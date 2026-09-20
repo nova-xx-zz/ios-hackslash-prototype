@@ -43,7 +43,7 @@ const ENEMY_TEMPLATES = [
 ];
 
 function buildEncounter(stage) {
-  const count = Math.min(4, 2 + Math.floor(stage / 2));
+  const count = Math.min(5, 3 + Math.floor(stage / 2));
   const pool = stage < 3 ? ENEMY_TEMPLATES.slice(0, 3) : ENEMY_TEMPLATES;
   const list = [];
   const mult = 1 + (stage - 1) * 0.18;

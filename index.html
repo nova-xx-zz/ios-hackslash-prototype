@@ -15,19 +15,20 @@
   <!-- タイトル画面 -->
   <section id="screen-title" class="screen">
     <div class="panel narrow">
-      <h1>ジョブクエスト</h1>
-      <p class="sub">FF風ジョブ × ドラクエ風ATBコマンドバトル<br>プロトタイプ</p>
+      <h1>クエストパーティ</h1>
+      <p class="sub">5人パーティ・オート戦闘のハクスラダンジョン<br>プロトタイプ</p>
       <div id="partyPreview" class="party-preview"></div>
       <button class="btn primary" id="btnGoBattle">冒険に出る</button>
-      <button class="btn ghost" id="btnGoJobs">ジョブ変更</button>
+      <button class="btn ghost" id="btnGoJobs">パーティ編成</button>
       <p class="best" id="bestClearText"></p>
     </div>
   </section>
 
-  <!-- ジョブ変更画面 -->
+  <!-- パーティ編成画面 -->
   <section id="screen-jobs" class="screen hidden">
     <div class="panel">
-      <h2>ジョブ変更</h2>
+      <h2>パーティ編成</h2>
+      <p class="sub">ジョブとサブアビリティ、オート戦闘で使うスキルのON/OFFを設定できます。</p>
       <div id="jobCharList" class="job-char-list"></div>
       <button class="btn primary" id="btnJobsDone">もどる</button>
     </div>
@@ -36,17 +37,16 @@
   <!-- バトル画面 -->
   <section id="screen-battle" class="screen hidden">
     <div class="battle-wrap">
+      <div class="battle-toolbar">
+        <div id="stageLabel" class="stage-label"></div>
+        <button class="btn small ghost" id="btnSpeedToggle">再生速度 x1</button>
+      </div>
       <div id="enemyRow" class="enemy-row"></div>
       <div id="battleLog" class="battle-log"></div>
     </div>
 
     <div id="bottomDock" class="bottom-dock">
       <div id="partyRow" class="party-row"></div>
-      <div id="commandPanel" class="command-panel hidden">
-        <div class="command-actor" id="commandActorName"></div>
-        <div id="commandMain" class="command-list"></div>
-        <div id="commandSub" class="command-list hidden"></div>
-      </div>
     </div>
   </section>
 
@@ -56,7 +56,7 @@
       <h2 id="resultTitle">しょうり！</h2>
       <div id="resultBody"></div>
       <button class="btn primary" id="btnNextBattle">つぎの戦闘へ</button>
-      <button class="btn ghost" id="btnResultJobs">ジョブ変更</button>
+      <button class="btn ghost" id="btnResultJobs">パーティ編成</button>
       <button class="btn ghost" id="btnResultTitle">タイトルへ</button>
     </div>
   </section>
