@@ -15,7 +15,6 @@
     opts = opts || {};
     const c = {
       id: "c" + nextCharSeq++, name, job, race: race || "human",
-      jobJP: { warrior: 0, mage: 0, priest: 0 },
       subAbilityId: null,
       skillActive: {}, // abilityId -> bool (default true when unlocked)
       level: opts.level || 1, exp: 0, expToNext: 30,
@@ -53,7 +52,7 @@
 
   function availableAbilities(c) {
     const job = JOBS[c.job];
-    const list = job.abilities.filter((a) => c.jobJP[c.job] >= a.reqJP);
+    const list = job.abilities.filter((a) => c.level >= a.reqLevel);
     if (c.subAbilityId) {
       const sub = getAbilityById(c.subAbilityId);
       if (sub && !list.find((a) => a.id === sub.id)) list.push(sub);
@@ -70,7 +69,7 @@
     for (const jobId in JOBS) {
       if (jobId === c.job) continue;
       for (const a of JOBS[jobId].abilities) {
-        if (c.jobJP[jobId] >= a.reqJP) list.push(a);
+        if (c.level >= a.reqLevel) list.push(a);
       }
     }
     return list;
@@ -221,6 +220,14 @@
         });
         skillToggleRow.appendChild(btn);
       }
+      const locked = JOBS[c.job].abilities.filter((a) => c.level < a.reqLevel);
+      for (const a of locked) {
+        const span = document.createElement("span");
+        span.className = "skill-toggle";
+        span.style.opacity = "0.35";
+        span.textContent = `${a.name}（Lv.${a.reqLevel}で習得）`;
+        skillToggleRow.appendChild(span);
+      }
 
       const race = RACES[c.race];
       const stats = computeStats(c);
@@ -256,7 +263,7 @@
 
   // ---------- Battle ----------
   const ATB_RATE = 7;
-  const BASIC_ATTACK = { id: "attack", name: "たたかう", reqJP: 0, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
+  const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
 
   let enemyEls = {}, partyEls = {};
 
@@ -356,7 +363,7 @@
       return true;
     });
     if (usable.length === 0) return BASIC_ATTACK;
-    usable.sort((a, b) => b.reqJP - a.reqJP);
+    usable.sort((a, b) => b.reqLevel - a.reqLevel);
     return usable[0];
   }
 
@@ -506,13 +513,12 @@
   function onVictory() {
     setBestStage(stage);
     const expGain = battle.enemies.reduce((s, e) => s + e.exp, 0);
-    const jpGain = battle.enemies.reduce((s, e) => s + e.jp, 0);
     const levelUps = [];
+    const abilityUnlocks = [];
     for (const c of activeParty()) {
       if (!c.alive) continue;
       const race = RACES[c.race];
       c.exp += Math.round(expGain * race.expMult);
-      c.jobJP[c.job] += jpGain;
       while (c.exp >= c.expToNext) {
         c.exp -= c.expToNext;
         c.level += 1;
@@ -520,6 +526,9 @@
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
         levelUps.push(c.name + " Lv." + c.level);
+        for (const a of JOBS[c.job].abilities) {
+          if (a.reqLevel === c.level) abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
+        }
       }
     }
     const drops = [];
@@ -528,7 +537,7 @@
 
     const tameResult = attemptTame();
 
-    renderResultScreen({ victory: true, expGain, jpGain, levelUps, drops, tameResult });
+    renderResultScreen({ victory: true, expGain, levelUps, abilityUnlocks, drops, tameResult });
     showScreen("screen-result");
   }
 
@@ -544,7 +553,7 @@
     body.innerHTML = "";
 
     const summary = document.createElement("div");
-    summary.textContent = `EXP +${info.expGain}　JP +${info.jpGain}`;
+    summary.textContent = `EXP +${info.expGain}`;
     body.appendChild(summary);
 
     if (info.levelUps.length) {
@@ -552,6 +561,13 @@
       lu.style.color = "#ffd24d";
       lu.textContent = "LEVEL UP! " + info.levelUps.join(" / ");
       body.appendChild(lu);
+    }
+
+    if (info.abilityUnlocks.length) {
+      const au = document.createElement("div");
+      au.style.color = "#4dc3ff";
+      au.textContent = info.abilityUnlocks.join(" / ");
+      body.appendChild(au);
     }
 
     if (info.tameResult) {
