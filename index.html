@@ -5,48 +5,73 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0b0b12">
-<title>Hackslash Prototype</title>
+<meta name="theme-color" content="#0e0c16">
+<title>Job Quest Prototype</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <canvas id="game"></canvas>
+<div id="app">
 
-  <div id="hud">
-    <div id="topBar">
-      <div id="levelBadge">Lv.1</div>
-      <div id="barGroup">
-        <div class="bar hpBar"><div id="hpFill" class="fill"></div><span id="hpText" class="barText"></span></div>
-        <div class="bar xpBar"><div id="xpFill" class="fill"></div><span id="xpText" class="barText"></span></div>
+  <!-- タイトル画面 -->
+  <section id="screen-title" class="screen">
+    <div class="panel narrow">
+      <h1>ジョブクエスト</h1>
+      <p class="sub">FF風ジョブ × ドラクエ風ATBコマンドバトル<br>プロトタイプ</p>
+      <div id="partyPreview" class="party-preview"></div>
+      <button class="btn primary" id="btnGoBattle">冒険に出る</button>
+      <button class="btn ghost" id="btnGoJobs">ジョブ変更</button>
+      <p class="best" id="bestClearText"></p>
+    </div>
+  </section>
+
+  <!-- ジョブ変更画面 -->
+  <section id="screen-jobs" class="screen hidden">
+    <div class="panel">
+      <h2>ジョブ変更</h2>
+      <div id="jobCharList" class="job-char-list"></div>
+      <button class="btn primary" id="btnJobsDone">もどる</button>
+    </div>
+  </section>
+
+  <!-- バトル画面 -->
+  <section id="screen-battle" class="screen hidden">
+    <div class="battle-wrap">
+      <div id="enemyRow" class="enemy-row"></div>
+      <div id="battleLog" class="battle-log"></div>
+    </div>
+
+    <div id="bottomDock" class="bottom-dock">
+      <div id="partyRow" class="party-row"></div>
+      <div id="commandPanel" class="command-panel hidden">
+        <div class="command-actor" id="commandActorName"></div>
+        <div id="commandMain" class="command-list"></div>
+        <div id="commandSub" class="command-list hidden"></div>
       </div>
-      <div id="waveBadge">Wave 1</div>
     </div>
-    <div id="toastArea"></div>
-  </div>
+  </section>
 
-  <div id="joystickZone">
-    <div id="joystickBase">
-      <div id="joystickStick"></div>
-    </div>
-  </div>
-
-  <div id="startScreen" class="overlay">
+  <!-- 勝利/結果画面 -->
+  <section id="screen-result" class="screen hidden">
     <div class="panel">
-      <h1>Hackslash Prototype</h1>
-      <p>左側をドラッグして移動。近くの敵には自動で攻撃します。<br>ウェーブを生き延びてレベルを上げよう。</p>
-      <p id="bestScore"></p>
-      <button id="startBtn">スタート</button>
+      <h2 id="resultTitle">しょうり！</h2>
+      <div id="resultBody"></div>
+      <button class="btn primary" id="btnNextBattle">つぎの戦闘へ</button>
+      <button class="btn ghost" id="btnResultJobs">ジョブ変更</button>
+      <button class="btn ghost" id="btnResultTitle">タイトルへ</button>
     </div>
-  </div>
+  </section>
 
-  <div id="gameOverScreen" class="overlay hidden">
+  <!-- ゲームオーバー画面 -->
+  <section id="screen-gameover" class="screen hidden">
     <div class="panel">
-      <h1>Game Over</h1>
-      <p id="resultText"></p>
-      <button id="retryBtn">もう一度</button>
+      <h2>ぜんめつ…</h2>
+      <p id="gameoverText"></p>
+      <button class="btn primary" id="btnRetryTitle">タイトルへもどる</button>
     </div>
-  </div>
+  </section>
 
-  <script src="js/game.js"></script>
+</div>
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
 </body>
 </html>
