@@ -72,13 +72,13 @@ html, body {
 .btn.small { width: auto; display: inline-block; padding: 8px 14px; font-size: 13px; margin: 4px; }
 
 /* party preview on title */
-.party-preview { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.party-preview { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
 .mini-card {
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px 6px;
-  width: 88px;
+  width: 104px;
   font-size: 11px;
 }
 .mini-card .name { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
@@ -106,6 +106,7 @@ html, body {
   cursor: pointer;
 }
 .job-pick.active { background: var(--accent); border-color: var(--accent); }
+.job-pick.disabled { opacity: 0.35; cursor: default; }
 .sub-ability-row { margin-top: 8px; font-size: 12px; color: var(--sub-text); }
 .sub-pick-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .sub-pick {

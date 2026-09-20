@@ -4,21 +4,27 @@
   const BEST_KEY = "jobquest_best_stage";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const MAX_ACTIVE = 5;
 
   function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
   function setBestStage(s) { if (s > getBestStage()) localStorage.setItem(BEST_KEY, String(s)); }
 
-  // ---------- Party ----------
-  function newCharacter(id, name, job) {
+  // ---------- Roster ----------
+  let nextCharSeq = 1;
+  function newCharacter(name, job, race, opts) {
+    opts = opts || {};
     const c = {
-      id, name, job,
+      id: "c" + nextCharSeq++, name, job, race: race || "human",
       jobJP: { warrior: 0, mage: 0, priest: 0 },
       subAbilityId: null,
       skillActive: {}, // abilityId -> bool (default true when unlocked)
-      level: 1, exp: 0, expToNext: 30,
+      level: opts.level || 1, exp: 0, expToNext: 30,
       equip: null,
       atb: 0, defending: false, alive: true,
+      active: opts.active !== undefined ? opts.active : true,
+      isMonster: opts.isMonster || false,
     };
+    c.expToNext = 30 + c.level * 15;
     const s = computeStats(c);
     c.hp = s.maxHp; c.mp = s.maxMp;
     return c;
@@ -26,17 +32,23 @@
 
   function computeStats(c) {
     const job = JOBS[c.job];
+    const race = RACES[c.race] || RACES.human;
     const growth = 1 + 0.12 * (c.level - 1);
     const s = {
-      maxHp: Math.round(job.base.hp * growth),
-      maxMp: Math.round(job.base.mp * growth),
-      atk: Math.round(job.base.atk * growth),
-      mag: Math.round(job.base.mag * growth),
-      def: Math.round(job.base.def * growth),
-      spd: job.base.spd,
+      maxHp: Math.round(job.base.hp * growth * race.mult.hp),
+      maxMp: Math.round(job.base.mp * growth * race.mult.mp),
+      atk: Math.round(job.base.atk * growth * race.mult.atk),
+      mag: Math.round(job.base.mag * growth * race.mult.mag),
+      def: Math.round(job.base.def * growth * race.mult.def),
+      spd: job.base.spd * race.mult.spd,
     };
     if (c.equip) s[c.equip.stat] += c.equip.value;
     return s;
+  }
+
+  function racePassive(c, key) {
+    const race = RACES[c.race] || RACES.human;
+    return race.passive[key] || 0;
   }
 
   function availableAbilities(c) {
@@ -64,12 +76,15 @@
     return list;
   }
 
-  let party = [
-    newCharacter("c1", "アレン", "warrior"),
-    newCharacter("c2", "ガイ", "warrior"),
-    newCharacter("c3", "ミナ", "mage"),
-    newCharacter("c4", "ノア", "mage"),
-    newCharacter("c5", "ルカ", "priest"),
+  function activeParty() { return roster.filter((c) => c.active); }
+  function currentMaxLevel() { return roster.reduce((m, c) => Math.max(m, c.level), 1); }
+
+  let roster = [
+    newCharacter("アレン", "warrior", "human"),
+    newCharacter("ガイ", "warrior", "beastkin"),
+    newCharacter("ミナ", "mage", "sylvan"),
+    newCharacter("ノア", "mage", "nocturne"),
+    newCharacter("ルカ", "priest", "stonekin"),
   ];
 
   let stage = 1;
@@ -87,14 +102,17 @@
   function renderTitle() {
     const el = document.getElementById("partyPreview");
     el.innerHTML = "";
-    for (const c of party) {
+    for (const c of activeParty()) {
       const div = document.createElement("div");
       div.className = "mini-card";
-      div.innerHTML = `<div class="name">${c.name}</div><div class="job">${JOBS[c.job].name} Lv.${c.level}</div>`;
+      div.innerHTML = `<div class="name">${c.name}</div><div class="job">${RACES[c.race].name}・${JOBS[c.job].name} Lv.${c.level}</div>`;
       el.appendChild(div);
     }
     const best = getBestStage();
-    document.getElementById("bestClearText").textContent = best > 0 ? `さいこう到達: Stage ${best}` : "";
+    const bits = [];
+    if (best > 0) bits.push(`さいこう到達: Stage ${best}`);
+    bits.push(`所持なかま: ${roster.length}人`);
+    document.getElementById("bestClearText").textContent = bits.join("　/　");
   }
 
   document.getElementById("btnGoBattle").addEventListener("click", () => {
@@ -111,9 +129,34 @@
   function renderJobsScreen() {
     const wrap = document.getElementById("jobCharList");
     wrap.innerHTML = "";
-    for (const c of party) {
+
+    const hint = document.createElement("div");
+    hint.className = "sub";
+    hint.style.margin = "0 0 12px";
+    hint.textContent = `編成人数: ${activeParty().length} / ${MAX_ACTIVE}（編成に入れたキャラだけが戦闘に参加します）`;
+    wrap.appendChild(hint);
+
+    for (const c of roster) {
       const card = document.createElement("div");
       card.className = "job-char-card";
+
+      const activeRow = document.createElement("div");
+      activeRow.className = "job-pick-row";
+      const activeBtn = document.createElement("button");
+      const atCap = !c.active && activeParty().length >= MAX_ACTIVE;
+      activeBtn.className = "job-pick" + (c.active ? " active" : "") + (atCap ? " disabled" : "");
+      activeBtn.textContent = c.active ? "編成中（外す）" : "ベンチ（編成に入れる）";
+      activeBtn.addEventListener("click", () => {
+        if (atCap) return;
+        c.active = !c.active;
+        if (c.active) {
+          const s = computeStats(c);
+          c.hp = Math.min(c.hp, s.maxHp);
+          c.mp = Math.min(c.mp, s.maxMp);
+        }
+        renderJobsScreen();
+      });
+      activeRow.appendChild(activeBtn);
 
       const jobRow = document.createElement("div");
       jobRow.className = "job-pick-row";
@@ -156,10 +199,10 @@
         subPickRow.appendChild(btn);
       }
       if (candidates.length === 0) {
-        const hint = document.createElement("div");
-        hint.className = "sub-ability-row";
-        hint.textContent = "（まだ他ジョブの技を習得していません）";
-        subRow.appendChild(hint);
+        const hintEl = document.createElement("div");
+        hintEl.className = "sub-ability-row";
+        hintEl.textContent = "（まだ他ジョブの技を習得していません）";
+        subRow.appendChild(hintEl);
       }
 
       const skillRow = document.createElement("div");
@@ -179,9 +222,12 @@
         skillToggleRow.appendChild(btn);
       }
 
+      const race = RACES[c.race];
       const stats = computeStats(c);
-      card.innerHTML = `<div class="cname">${c.name} — ${JOBS[c.job].name} Lv.${c.level}
-        <span style="float:right;color:var(--sub-text);font-size:11px;">HP${stats.maxHp} MP${stats.maxMp} ATK${stats.atk} MAG${stats.mag} DEF${stats.def} SPD${stats.spd}</span></div>`;
+      card.innerHTML = `<div class="cname">${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${JOBS[c.job].name} Lv.${c.level}
+        <span style="float:right;color:var(--sub-text);font-size:11px;">HP${stats.maxHp} MP${stats.maxMp} ATK${stats.atk} MAG${stats.mag} DEF${stats.def} SPD${Math.round(stats.spd)}</span></div>
+        <div class="sub-ability-row">${race.desc}</div>`;
+      card.appendChild(activeRow);
       card.appendChild(jobRow);
       card.appendChild(subRow);
       card.appendChild(subPickRow);
@@ -200,6 +246,13 @@
     renderJobsScreen();
     showScreen("screen-jobs");
   });
+  document.getElementById("btnRecruit").addEventListener("click", () => {
+    const r = rollNewRecruit();
+    const lvl = Math.max(1, currentMaxLevel() - 1);
+    const c = newCharacter(r.name, r.job, r.race, { level: lvl, active: false });
+    roster.push(c);
+    renderJobsScreen();
+  });
 
   // ---------- Battle ----------
   const ATB_RATE = 7;
@@ -215,7 +268,7 @@
       log: [],
       active: true,
     };
-    for (const c of party) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
+    for (const c of activeParty()) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
     buildBattleDOM();
     document.getElementById("stageLabel").textContent = `Stage ${st}`;
     logMsg(`Stage ${st} — 敵が現れた！`, "system");
@@ -240,7 +293,7 @@
       enemyEls[e.id] = card;
     }
 
-    for (const c of party) {
+    for (const c of activeParty()) {
       const card = document.createElement("div");
       card.className = "actor-card";
       card.innerHTML = `
@@ -264,7 +317,7 @@
       el.classList.toggle("dead", !e.alive);
       el.querySelector(".mini-bar.hp .fill").style.width = clamp((e.hp / e.maxHp) * 100, 0, 100) + "%";
     }
-    for (const c of party) {
+    for (const c of activeParty()) {
       const el = partyEls[c.id];
       if (!el) continue;
       const s = computeStats(c);
@@ -298,8 +351,8 @@
     const abilities = availableAbilities(c).filter((a) => isSkillActive(c, a.id) && c.mp >= a.mpCost);
     const usable = abilities.filter((a) => {
       if (a.kind !== "heal") return true;
-      if (a.target === "single-ally") return party.some((p) => p.alive && p.hp < computeStats(p).maxHp * 0.8);
-      if (a.target === "all-ally") return party.filter((p) => p.alive).some((p) => p.hp < computeStats(p).maxHp * 0.7);
+      if (a.target === "single-ally") return activeParty().some((p) => p.alive && p.hp < computeStats(p).maxHp * 0.8);
+      if (a.target === "all-ally") return activeParty().filter((p) => p.alive).some((p) => p.hp < computeStats(p).maxHp * 0.7);
       return true;
     });
     if (usable.length === 0) return BASIC_ATTACK;
@@ -314,7 +367,7 @@
   }
 
   function pickAllyTarget() {
-    const alive = party.filter((p) => p.alive);
+    const alive = activeParty().filter((p) => p.alive);
     if (alive.length === 0) return null;
     return alive.reduce((lowest, p) => {
       const lr = lowest.hp / computeStats(lowest).maxHp;
@@ -331,8 +384,9 @@
     if (ability.target === "single") { const t = pickEnemyTarget(); if (t) targets = [t]; }
     else if (ability.target === "single-ally") { const t = pickAllyTarget(); if (t) targets = [t]; }
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
-    else if (ability.target === "all-ally") targets = party.filter((p) => p.alive);
+    else if (ability.target === "all-ally") targets = activeParty().filter((p) => p.alive);
 
+    const lifesteal = racePassive(c, "lifesteal");
     for (const t of targets) {
       for (let h = 0; h < ability.hits; h++) {
         if (ability.kind === "heal") {
@@ -346,9 +400,17 @@
           const mitig = isMagic ? 0.15 : 0.3;
           let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
           dmg = Math.round(dmg * rand(0.9, 1.15));
-          if (!isMagic && Math.random() < 0.1) { dmg = Math.round(dmg * 1.5); logMsg("かいしんの一撃！", "hit"); }
+          const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus");
+          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logMsg("かいしんの一撃！", "hit"); }
           t.hp -= dmg;
-          logMsg(`${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`, "hit");
+          let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
+          if (lifesteal > 0) {
+            const heal = Math.max(1, Math.round(dmg * lifesteal));
+            const cs = computeStats(c);
+            c.hp = Math.min(cs.maxHp, c.hp + heal);
+            line += `（${heal}吸収）`;
+          }
+          logMsg(line, "hit");
           checkEnemyDeath(t);
         }
       }
@@ -365,7 +427,7 @@
     }
   }
   function checkPartyDown(p) {
-    if (party.includes(p) && p.hp <= 0 && p.alive) {
+    if (roster.includes(p) && p.hp <= 0 && p.alive) {
       p.alive = false;
       p.hp = 0;
       logMsg(`${p.name} はたおれた！`, "hit");
@@ -373,12 +435,14 @@
   }
 
   function performEnemyAction(e) {
-    const alive = party.filter((p) => p.alive);
+    const alive = activeParty().filter((p) => p.alive);
     if (alive.length === 0) return;
     const target = alive[Math.floor(Math.random() * alive.length)];
     const stats = computeStats(target);
     let dmg = Math.max(1, Math.round(e.atk - stats.def * 0.4));
     dmg = Math.round(dmg * rand(0.9, 1.15));
+    const dmgMult = racePassive(target, "dmgTakenMult") || 1;
+    dmg = Math.max(1, Math.round(dmg * dmgMult));
     target.hp -= dmg;
     logMsg(`${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");
     checkPartyDown(target);
@@ -388,7 +452,7 @@
   function checkBattleEnd() {
     if (!battle.active) return false;
     if (battle.enemies.every((e) => !e.alive)) { battle.active = false; onVictory(); return true; }
-    if (party.every((p) => !p.alive)) { battle.active = false; onDefeat(); return true; }
+    if (activeParty().every((p) => !p.alive)) { battle.active = false; onDefeat(); return true; }
     return false;
   }
 
@@ -402,7 +466,7 @@
   }
 
   function tick(dt) {
-    for (const c of party) {
+    for (const c of activeParty()) {
       if (c.actedFlash > 0) c.actedFlash -= dt;
       if (!c.alive) continue;
       c.atb = Math.min(100, c.atb + computeStats(c).spd * ATB_RATE * dt);
@@ -424,15 +488,30 @@
 
   requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
 
+  // ---------- Taming ----------
+  function attemptTame() {
+    const candidates = battle.enemies.filter((e) => !e.alive && getEnemyTemplate(e.key) && getEnemyTemplate(e.key).tamable);
+    if (candidates.length === 0) return null;
+    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    const tpl = getEnemyTemplate(target.key);
+    const success = Math.random() < tpl.tameChance;
+    if (!success) return { success: false, name: target.name };
+    const lvl = Math.max(1, currentMaxLevel() - 2);
+    const mon = newCharacter(target.name, "warrior", target.key, { level: lvl, active: false, isMonster: true });
+    roster.push(mon);
+    return { success: true, name: target.name, char: mon };
+  }
+
   // ---------- Victory / rewards ----------
   function onVictory() {
     setBestStage(stage);
     const expGain = battle.enemies.reduce((s, e) => s + e.exp, 0);
     const jpGain = battle.enemies.reduce((s, e) => s + e.jp, 0);
     const levelUps = [];
-    for (const c of party) {
+    for (const c of activeParty()) {
       if (!c.alive) continue;
-      c.exp += expGain;
+      const race = RACES[c.race];
+      c.exp += Math.round(expGain * race.expMult);
       c.jobJP[c.job] += jpGain;
       while (c.exp >= c.expToNext) {
         c.exp -= c.expToNext;
@@ -447,7 +526,9 @@
     drops.push(rollItemDrop());
     if (Math.random() < 0.4) drops.push(rollItemDrop());
 
-    renderResultScreen({ victory: true, expGain, jpGain, levelUps, drops });
+    const tameResult = attemptTame();
+
+    renderResultScreen({ victory: true, expGain, jpGain, levelUps, drops, tameResult });
     showScreen("screen-result");
   }
 
@@ -473,6 +554,18 @@
       body.appendChild(lu);
     }
 
+    if (info.tameResult) {
+      const tm = document.createElement("div");
+      if (info.tameResult.success) {
+        tm.style.color = "#7dffb0";
+        tm.textContent = `${info.tameResult.name} をテイムした！（パーティ編成からなかまに加えられます）`;
+      } else {
+        tm.style.color = "var(--sub-text)";
+        tm.textContent = `${info.tameResult.name} のテイムに失敗した…`;
+      }
+      body.appendChild(tm);
+    }
+
     for (const item of info.drops) {
       const row = document.createElement("div");
       row.className = "drop-row";
@@ -485,7 +578,7 @@
       row.appendChild(label);
       const pickRow = document.createElement("div");
       pickRow.className = "equip-pick-row";
-      for (const c of party) {
+      for (const c of activeParty()) {
         const btn = document.createElement("button");
         btn.className = "equip-pick";
         btn.textContent = c.name;
@@ -514,7 +607,7 @@
   });
   document.getElementById("btnRetryTitle").addEventListener("click", () => {
     stage = 1;
-    for (const c of party) {
+    for (const c of roster) {
       c.hp = computeStats(c).maxHp;
       c.mp = computeStats(c).maxMp;
       c.alive = true;
