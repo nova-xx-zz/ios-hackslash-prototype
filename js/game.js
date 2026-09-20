@@ -20,7 +20,7 @@
       level: opts.level || 1, exp: 0, expToNext: 30,
       equip: null,
       atb: 0, defending: false, alive: true,
-      active: opts.active !== undefined ? opts.active : true,
+      team: opts.team !== undefined ? opts.team : null, // 0..3 所属チーム / null は控え
       isMonster: opts.isMonster || false,
     };
     c.expToNext = 30 + c.level * 15;
@@ -75,15 +75,20 @@
     return list;
   }
 
-  function activeParty() { return roster.filter((c) => c.active); }
+  const TEAM_NAMES = ["第一のパーティ", "第二のパーティ", "第三のパーティ", "第四のパーティ"];
+  const TEAM_LABELS = ["I", "II", "III", "IV"];
+  let activeTeam = 0;
+
+  function teamMembers(i) { return roster.filter((c) => c.team === i); }
+  function activeParty() { return teamMembers(activeTeam); }
   function currentMaxLevel() { return roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
   let roster = [
-    newCharacter("アレン", "warrior", "human"),
-    newCharacter("ガイ", "warrior", "beastkin"),
-    newCharacter("ミナ", "mage", "sylvan"),
-    newCharacter("ノア", "mage", "nocturne"),
-    newCharacter("ルカ", "priest", "stonekin"),
+    newCharacter("アレン", "warrior", "human", { team: 0 }),
+    newCharacter("ガイ", "warrior", "beastkin", { team: 0 }),
+    newCharacter("ミナ", "mage", "sylvan", { team: 0 }),
+    newCharacter("ノア", "mage", "nocturne", { team: 0 }),
+    newCharacter("ルカ", "priest", "stonekin", { team: 0 }),
   ];
 
   let battle = null;
@@ -188,9 +193,10 @@
     const el = document.getElementById("dungeonInfo");
     const avg = averagePartyLevel();
     const enemyNames = d.pool.map((k) => getEnemyTemplate(k).name).join("・");
+    const party = activeParty();
     const warn = avg < d.level
-      ? `<span class="level-warn">（編成の平均Lv.${avg} — 推奨に届いていません）</span>`
-      : `（編成の平均Lv.${avg}）`;
+      ? `<span class="level-warn">（${TEAM_NAMES[activeTeam]}の平均Lv.${avg} — 推奨に届いていません）</span>`
+      : `（${TEAM_NAMES[activeTeam]}の平均Lv.${avg}）`;
     el.innerHTML = `
       <div class="dname">${d.name}${clearedDungeons.has(d.id) ? "　クリア済み" : ""}</div>
       <div class="dmeta">
@@ -202,8 +208,13 @@
     const btn = document.createElement("button");
     btn.className = "btn primary";
     btn.id = "btnEnterDungeon";
-    btn.textContent = "出発する";
-    btn.addEventListener("click", () => startDungeon(d.id));
+    if (party.length === 0) {
+      btn.textContent = `${TEAM_NAMES[activeTeam]}が空です（編成してください）`;
+      btn.disabled = true;
+    } else {
+      btn.textContent = `${TEAM_NAMES[activeTeam]}で出発する`;
+      btn.addEventListener("click", () => startDungeon(d.id));
+    }
     el.appendChild(btn);
   }
 
@@ -220,7 +231,9 @@
     const hint = document.createElement("div");
     hint.className = "sub";
     hint.style.margin = "0 0 12px";
-    hint.textContent = `編成人数: ${activeParty().length} / ${MAX_ACTIVE}（編成に入れたキャラだけが戦闘に参加します）`;
+    hint.textContent = TEAM_LABELS
+      .map((l, i) => `${l}: ${teamMembers(i).length}/${MAX_ACTIVE}人`)
+      .join("　") + "（1チーム最大5人。探索に出るのは選択中のチームのみ）";
     wrap.appendChild(hint);
 
     for (const c of roster) {
@@ -229,21 +242,26 @@
 
       const activeRow = document.createElement("div");
       activeRow.className = "job-pick-row";
-      const activeBtn = document.createElement("button");
-      const atCap = !c.active && activeParty().length >= MAX_ACTIVE;
-      activeBtn.className = "job-pick" + (c.active ? " active" : "") + (atCap ? " disabled" : "");
-      activeBtn.textContent = c.active ? "編成中（外す）" : "ベンチ（編成に入れる）";
-      activeBtn.addEventListener("click", () => {
-        if (atCap) return;
-        c.active = !c.active;
-        if (c.active) {
+      const benchBtn = document.createElement("button");
+      benchBtn.className = "job-pick" + (c.team === null ? " active" : "");
+      benchBtn.textContent = "控え";
+      benchBtn.addEventListener("click", () => { c.team = null; renderJobsScreen(); });
+      activeRow.appendChild(benchBtn);
+      for (let i = 0; i < TEAM_LABELS.length; i++) {
+        const btn = document.createElement("button");
+        const atCap = c.team !== i && teamMembers(i).length >= MAX_ACTIVE;
+        btn.className = "job-pick" + (c.team === i ? " active" : "") + (atCap ? " disabled" : "");
+        btn.textContent = TEAM_LABELS[i];
+        btn.addEventListener("click", () => {
+          if (atCap) return;
+          c.team = i;
           const s = computeStats(c);
           c.hp = Math.min(c.hp, s.maxHp);
           c.mp = Math.min(c.mp, s.maxMp);
-        }
-        renderJobsScreen();
-      });
-      activeRow.appendChild(activeBtn);
+          renderJobsScreen();
+        });
+        activeRow.appendChild(btn);
+      }
 
       const jobRow = document.createElement("div");
       jobRow.className = "job-pick-row";
@@ -333,14 +351,16 @@
   }
 
   document.getElementById("btnJobsDone").addEventListener("click", () => {
-    if (jobsReturnScreen === "screen-result") showScreen("screen-result");
-    else if (jobsReturnScreen === "screen-map") openMap();
-    else { renderTitle(); showScreen("screen-title"); }
-  });
-  document.getElementById("btnResultJobs").addEventListener("click", () => {
-    jobsReturnScreen = "screen-result";
-    renderJobsScreen();
-    showScreen("screen-jobs");
+    if (jobsReturnScreen === "screen-battle") {
+      buildPartyDock();
+      renderDock();
+      showScreen("screen-battle");
+    } else if (jobsReturnScreen === "screen-map") {
+      openMap();
+    } else {
+      renderTitle();
+      showScreen("screen-title");
+    }
   });
   document.getElementById("btnMapJobs").addEventListener("click", () => {
     jobsReturnScreen = "screen-map";
@@ -350,7 +370,7 @@
   document.getElementById("btnRecruit").addEventListener("click", () => {
     const r = rollNewRecruit();
     const lvl = Math.max(1, currentMaxLevel() - 1);
-    const c = newCharacter(r.name, r.job, r.race, { level: lvl, active: false });
+    const c = newCharacter(r.name, r.job, r.race, { level: lvl });
     roster.push(c);
     renderJobsScreen();
   });
@@ -359,18 +379,26 @@
   const ATB_RATE = 7;
   const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
 
-  let enemyEls = {}, partyEls = {};
+  let partyEls = {};
+  let currentCard = null;
+  let nextBattleTimer = null;
 
   function startDungeon(id) {
+    clearTimeout(nextBattleTimer);
     const d = getDungeon(id);
     run = {
-      dungeon: d, battleIndex: 0,
+      dungeon: d, battleIndex: 0, finished: false,
       expTotal: 0, drops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
     };
     for (const c of activeParty()) {
       const s = computeStats(c);
       c.hp = s.maxHp; c.mp = s.maxMp; c.alive = true;
     }
+    clearLog();
+    logEvent("start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
+    buildPartyDock();
+    renderDock();
+    showScreen("screen-battle");
     startBattle();
   }
 
@@ -380,35 +408,84 @@
     const enemies = buildEncounter(d, run.battleIndex);
     battle = {
       enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })),
-      log: [],
       active: true,
     };
     for (const c of activeParty()) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
-    buildBattleDOM();
-    document.getElementById("stageLabel").textContent =
-      `${d.name}　${run.battleIndex + 1}/${d.battles}${isBoss ? "（ボス）" : ""}`;
-    logMsg(isBoss ? `${d.name} — ボスが立ちはだかる！` : `${d.name} — 敵が現れた！`, "system");
-    showScreen("screen-battle");
+
+    logEvent("encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster());
+    renderDock();
   }
 
-  function buildBattleDOM() {
-    const enemyRow = document.getElementById("enemyRow");
-    const partyRow = document.getElementById("partyRow");
-    enemyRow.innerHTML = "";
-    partyRow.innerHTML = "";
-    enemyEls = {}; partyEls = {};
-
+  // 敵の残り状況をテキストで表示（敵パネルの代わり）
+  function enemyRoster() {
+    const counts = {};
     for (const e of battle.enemies) {
-      const card = document.createElement("div");
-      card.className = "enemy-card";
-      card.innerHTML = `
-        <div class="enemy-sprite" style="background:${e.color}"></div>
-        <div class="enemy-name">${e.name}</div>
-        <div class="mini-bar hp"><div class="fill" style="width:100%"></div></div>`;
-      enemyRow.appendChild(card);
-      enemyEls[e.id] = card;
+      const k = e.name;
+      if (!counts[k]) counts[k] = { total: 0, alive: 0 };
+      counts[k].total += 1;
+      if (e.alive) counts[k].alive += 1;
     }
+    return Object.keys(counts)
+      .map((k) => {
+        const c = counts[k];
+        return c.alive === 0 ? `${k} ×${c.total}（全滅）` : `${k} ×${c.alive}`;
+      })
+      .join("　");
+  }
 
+  // ---------- Log ----------
+  function clearLog() {
+    document.getElementById("logFeed").innerHTML = "";
+    currentCard = null;
+  }
+
+  function logEvent(type, title, subtitle) {
+    const feed = document.getElementById("logFeed");
+    const card = document.createElement("div");
+    card.className = "log-card " + type;
+    const t = document.createElement("div");
+    t.className = "lc-title";
+    t.textContent = title;
+    card.appendChild(t);
+    const sub = document.createElement("div");
+    sub.className = "lc-sub";
+    sub.textContent = subtitle || "";
+    if (!subtitle) sub.style.display = "none";
+    card.appendChild(sub);
+    const lines = document.createElement("div");
+    lines.className = "lc-lines";
+    card.appendChild(lines);
+    feed.appendChild(card);
+    currentCard = { card, sub, lines };
+    scrollLog();
+    return currentCard;
+  }
+
+  function logLine(text, cls) {
+    if (!currentCard) logEvent("encounter", "戦闘", "");
+    const div = document.createElement("div");
+    div.className = "lc-line " + (cls || "");
+    div.textContent = text;
+    currentCard.lines.appendChild(div);
+    scrollLog();
+  }
+
+  function updateCardSubtitle(text) {
+    if (!currentCard) return;
+    currentCard.sub.textContent = text;
+    currentCard.sub.style.display = text ? "" : "none";
+  }
+
+  function scrollLog() {
+    const feed = document.getElementById("logFeed");
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  // ---------- Dock ----------
+  function buildPartyDock() {
+    const partyRow = document.getElementById("partyRow");
+    partyRow.innerHTML = "";
+    partyEls = {};
     for (const c of activeParty()) {
       const card = document.createElement("div");
       card.className = "actor-card";
@@ -426,13 +503,43 @@
     updateBattleDOM();
   }
 
+  function renderDock() {
+    document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
+    const running = !!(run && !run.finished);
+    const d = run ? run.dungeon : null;
+
+    document.getElementById("exploreSub").textContent = d
+      ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目`
+      : "ダンジョン未選択";
+    document.getElementById("dockDungeon").textContent = d ? d.name : "—";
+    document.getElementById("dockStatus").textContent = !d
+      ? ""
+      : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
+    const pct = d ? (Math.min(run.battleIndex + (running ? 0 : 1), d.battles) / d.battles) * 100 : 0;
+    document.getElementById("dockProgressFill").style.width = clamp(pct, 0, 100) + "%";
+
+    document.getElementById("btnRedeploy").disabled = running || !d;
+    document.getElementById("btnDockMap").disabled = running;
+    document.getElementById("btnDockJobs").disabled = running;
+
+    const tabs = document.getElementById("teamTabs");
+    tabs.innerHTML = "";
+    TEAM_LABELS.forEach((label, i) => {
+      const btn = document.createElement("button");
+      btn.className = "team-tab" + (i === activeTeam ? " active" : "");
+      btn.innerHTML = `${label}<span class="count">${teamMembers(i).length}人</span>`;
+      btn.disabled = running;
+      btn.addEventListener("click", () => {
+        if (running) return;
+        activeTeam = i;
+        buildPartyDock();
+        renderDock();
+      });
+      tabs.appendChild(btn);
+    });
+  }
+
   function updateBattleDOM() {
-    for (const e of battle.enemies) {
-      const el = enemyEls[e.id];
-      if (!el) continue;
-      el.classList.toggle("dead", !e.alive);
-      el.querySelector(".mini-bar.hp .fill").style.width = clamp((e.hp / e.maxHp) * 100, 0, 100) + "%";
-    }
     for (const c of activeParty()) {
       const el = partyEls[c.id];
       if (!el) continue;
@@ -447,19 +554,21 @@
     }
   }
 
-  function logMsg(text, cls) {
-    battle.log.push({ text, cls: cls || "" });
-    const box = document.getElementById("battleLog");
-    const div = document.createElement("div");
-    div.className = "line " + (cls || "");
-    div.textContent = text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-  }
-
   document.getElementById("btnSpeedToggle").addEventListener("click", () => {
     speedMult = speedMult === 1 ? 2 : 1;
-    document.getElementById("btnSpeedToggle").textContent = `再生速度 x${speedMult}`;
+    document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
+  });
+  document.getElementById("btnRedeploy").addEventListener("click", () => {
+    if (run) startDungeon(run.dungeon.id);
+  });
+  document.getElementById("btnDockMap").addEventListener("click", () => {
+    restoreParty();
+    openMap();
+  });
+  document.getElementById("btnDockJobs").addEventListener("click", () => {
+    jobsReturnScreen = "screen-battle";
+    renderJobsScreen();
+    showScreen("screen-jobs");
   });
 
   // ---------- Auto-battle AI ----------
@@ -509,7 +618,7 @@
           const s = computeStats(t);
           const amount = Math.max(1, Math.round(stats.mag * ability.power * rand(0.9, 1.1)));
           t.hp = Math.min(s.maxHp, t.hp + amount);
-          logMsg(`${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
+          logLine(`${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
         } else {
           const isMagic = ability.kind === "magic";
           const atkStat = isMagic ? stats.mag : stats.atk;
@@ -517,7 +626,7 @@
           let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
           dmg = Math.round(dmg * rand(0.9, 1.15));
           const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus");
-          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logMsg("かいしんの一撃！", "hit"); }
+          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logLine("かいしんの一撃！", ""); }
           t.hp -= dmg;
           let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
           if (lifesteal > 0) {
@@ -526,7 +635,7 @@
             c.hp = Math.min(cs.maxHp, c.hp + heal);
             line += `（${heal}吸収）`;
           }
-          logMsg(line, "hit");
+          logLine(line, "hit");
           checkEnemyDeath(t);
         }
       }
@@ -539,14 +648,15 @@
     if (battle.enemies.includes(e) && e.alive && e.hp <= 0) {
       e.alive = false;
       e.hp = 0;
-      logMsg(`${e.name} をたおした！`, "system");
+      logLine(`${e.name} をたおした！`, "system");
+      updateCardSubtitle(enemyRoster());
     }
   }
   function checkPartyDown(p) {
     if (roster.includes(p) && p.hp <= 0 && p.alive) {
       p.alive = false;
       p.hp = 0;
-      logMsg(`${p.name} はたおれた！`, "hit");
+      logLine(`${p.name} はたおれた！`, "down");
     }
   }
 
@@ -560,7 +670,7 @@
     const dmgMult = racePassive(target, "dmgTakenMult") || 1;
     dmg = Math.max(1, Math.round(dmg * dmgMult));
     target.hp -= dmg;
-    logMsg(`${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");
+    logLine(`${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");
     checkPartyDown(target);
     e.atb = 0;
   }
@@ -613,7 +723,7 @@
     const success = Math.random() < tpl.tameChance;
     if (!success) return { success: false, name: tpl.name };
     const lvl = Math.max(1, currentMaxLevel() - 2);
-    const mon = newCharacter(tpl.name, "warrior", key, { level: lvl, active: false, isMonster: true });
+    const mon = newCharacter(tpl.name, "warrior", key, { level: lvl, isMonster: true });
     roster.push(mon);
     return { success: true, name: tpl.name, char: mon };
   }
@@ -648,10 +758,15 @@
     run.drops.push(rollItemDrop());
     if (Math.random() < 0.4) run.drops.push(rollItemDrop());
 
+    logLine(`EXP +${expGain}`, "system");
+
     const isLast = run.battleIndex + 1 >= run.dungeon.battles;
     if (!isLast) {
       run.battleIndex += 1;
-      renderResultScreen({ cleared: false, battleExp: expGain });
+      scheduleNext(() => {
+        if (Math.random() < 0.45) rollTreasureEvent();
+        scheduleNext(startBattle, 700);
+      }, 900);
     } else {
       const firstClear = !clearedDungeons.has(run.dungeon.id);
       clearedDungeons.add(run.dungeon.id);
@@ -659,125 +774,99 @@
       const unlocked = firstClear
         ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean)
         : [];
-      renderResultScreen({ cleared: true, tameResult: attemptTame(), unlocked });
+      scheduleNext(() => finishRun({ cleared: true, tameResult: attemptTame(), unlocked }), 700);
     }
-    showScreen("screen-result");
   }
 
   function onDefeat() {
-    document.getElementById("gameoverText").textContent =
-      `${run.dungeon.name} の ${run.battleIndex + 1}戦目 で全滅してしまった…（クリア済みダンジョン: ${clearedDungeons.size}）`;
-    showScreen("screen-gameover");
+    scheduleNext(() => finishRun({ cleared: false }), 700);
   }
 
-  function renderResultScreen(info) {
-    const d = run.dungeon;
-    const nextBtn = document.getElementById("btnNextBattle");
-    nextBtn.classList.toggle("hidden", !!info.cleared);
-    if (!info.cleared) {
-      const nextIsBoss = run.battleIndex === d.battles - 1;
-      nextBtn.textContent = nextIsBoss ? "ボス戦へ進む" : "つぎの戦闘へ";
-    }
-    document.getElementById("resultTitle").textContent = info.cleared
-      ? `${d.name} クリア！`
-      : `${run.battleIndex}/${d.battles} 戦目クリア`;
-    const body = document.getElementById("resultBody");
-    body.innerHTML = "";
+  function scheduleNext(fn, delayMs) {
+    clearTimeout(nextBattleTimer);
+    nextBattleTimer = setTimeout(fn, delayMs / speedMult);
+  }
 
-    const summary = document.createElement("div");
-    summary.textContent = info.cleared
-      ? `ダンジョン合計 EXP +${run.expTotal}`
-      : `EXP +${info.battleExp}（ここまで合計 +${run.expTotal}）`;
-    body.appendChild(summary);
-
-    if (run.levelUps.length) {
-      const lu = document.createElement("div");
-      lu.style.color = "#ffd24d";
-      lu.textContent = "LEVEL UP! " + run.levelUps.join(" / ");
-      body.appendChild(lu);
-    }
-
-    if (run.abilityUnlocks.length) {
-      const au = document.createElement("div");
-      au.style.color = "#4dc3ff";
-      au.textContent = run.abilityUnlocks.join(" / ");
-      body.appendChild(au);
-    }
-
-    // 道中は装備選択を出さず、獲得数だけ見せる
-    if (!info.cleared) {
-      const hint = document.createElement("div");
-      hint.style.color = "var(--sub-text)";
-      hint.textContent = `戦利品 ${run.drops.length}個（ダンジョンクリア時にまとめて装備できます）`;
-      body.appendChild(hint);
-      const hp = document.createElement("div");
-      hp.style.color = "var(--sub-text)";
-      hp.textContent = "HP/MPは次の戦闘に持ち越されます。";
-      body.appendChild(hp);
+  function rollTreasureEvent() {
+    if (Math.random() < 0.35) {
+      logEvent("treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
       return;
     }
-
-    if (info.tameResult) {
-      const tm = document.createElement("div");
-      if (info.tameResult.success) {
-        tm.style.color = "#7dffb0";
-        tm.textContent = `${info.tameResult.name} をテイムした！（パーティ編成からなかまに加えられます）`;
-      } else {
-        tm.style.color = "var(--sub-text)";
-        tm.textContent = `${info.tameResult.name} のテイムに失敗した…`;
-      }
-      body.appendChild(tm);
-    }
-
-    if (info.unlocked && info.unlocked.length) {
-      const un = document.createElement("div");
-      un.style.color = "#7c5cff";
-      un.textContent = "新しいダンジョンが解放された: " + info.unlocked.map((x) => x.name).join(" / ");
-      body.appendChild(un);
-    }
-
-    for (const item of run.drops) {
-      const row = document.createElement("div");
-      row.className = "drop-row";
-      const dot = document.createElement("div");
-      dot.className = "drop-dot";
-      dot.style.background = item.rarity.color;
-      row.appendChild(dot);
-      const label = document.createElement("div");
-      label.textContent = `${item.name}（${item.stat.toUpperCase()}+${item.value}）`;
-      row.appendChild(label);
-      const pickRow = document.createElement("div");
-      pickRow.className = "equip-pick-row";
-      for (const c of activeParty()) {
-        const btn = document.createElement("button");
-        btn.className = "equip-pick";
-        btn.textContent = c.name;
-        btn.addEventListener("click", () => {
-          c.equip = { name: item.name, stat: item.stat, value: item.value, rarity: item.rarity.key };
-          const s = computeStats(c);
-          c.hp = Math.min(c.hp, s.maxHp);
-          c.mp = Math.min(c.mp, s.maxMp);
-          pickRow.querySelectorAll(".equip-pick").forEach((b) => b.classList.remove("done"));
-          btn.classList.add("done");
-        });
-        pickRow.appendChild(btn);
-      }
-      row.appendChild(pickRow);
-      body.appendChild(row);
-    }
+    const item = rollItemDrop();
+    run.drops.push(item);
+    logEvent("treasure", "宝箱を見つけた！", `${item.name}（${item.stat.toUpperCase()}+${item.value}）を手に入れた`);
   }
 
-  document.getElementById("btnNextBattle").addEventListener("click", () => {
-    startBattle();
-  });
-  document.getElementById("btnResultMap").addEventListener("click", () => {
+  function finishRun(info) {
+    run.finished = true;
+    run.wiped = !info.cleared;
+
+    const card = info.cleared
+      ? logEvent("clear", `${run.dungeon.name} を踏破した！`, `合計 EXP +${run.expTotal}`)
+      : logEvent("wipe", "パーティは全滅した・・・", `${run.dungeon.name} の ${run.battleIndex + 1}戦目で力尽きた`);
+
+    currentCard = card;
+    if (run.levelUps.length) logLine("LEVEL UP! " + run.levelUps.join(" / "), "system");
+    if (run.abilityUnlocks.length) logLine(run.abilityUnlocks.join(" / "), "heal");
+
+    if (info.tameResult) {
+      logLine(
+        info.tameResult.success
+          ? `${info.tameResult.name} をテイムした！（編成からなかまに加えられます）`
+          : `${info.tameResult.name} のテイムに失敗した…`,
+        info.tameResult.success ? "heal" : ""
+      );
+    }
+    if (info.unlocked && info.unlocked.length) {
+      logLine("新しいダンジョンが解放された: " + info.unlocked.map((x) => x.name).join(" / "), "system");
+    }
+
+    if (run.drops.length) {
+      const head = document.createElement("div");
+      head.className = "lc-line system";
+      head.textContent = info.cleared
+        ? `獲得アイテム ${run.drops.length}個（装備させる仲間を選べます）`
+        : `持ち帰った戦利品 ${run.drops.length}個`;
+      card.lines.appendChild(head);
+      for (const item of run.drops) card.lines.appendChild(buildDropRow(item));
+    }
+
+    scrollLog();
     restoreParty();
-    openMap();
-  });
-  document.getElementById("btnRetryTitle").addEventListener("click", () => {
-    restoreParty();
-    openMap();
-  });
+    buildPartyDock();
+    renderDock();
+  }
+
+  function buildDropRow(item) {
+    const row = document.createElement("div");
+    row.className = "drop-row";
+    const dot = document.createElement("div");
+    dot.className = "drop-dot";
+    dot.style.background = item.rarity.color;
+    row.appendChild(dot);
+    const label = document.createElement("div");
+    label.textContent = `${item.name}（${item.stat.toUpperCase()}+${item.value}）`;
+    row.appendChild(label);
+    const pickRow = document.createElement("div");
+    pickRow.className = "equip-pick-row";
+    for (const c of activeParty()) {
+      const btn = document.createElement("button");
+      btn.className = "equip-pick";
+      btn.textContent = c.name;
+      btn.addEventListener("click", () => {
+        c.equip = { name: item.name, stat: item.stat, value: item.value, rarity: item.rarity.key };
+        const s = computeStats(c);
+        c.hp = Math.min(c.hp, s.maxHp);
+        c.mp = Math.min(c.mp, s.maxMp);
+        pickRow.querySelectorAll(".equip-pick").forEach((b) => b.classList.remove("done"));
+        btn.classList.add("done");
+        updateBattleDOM();
+      });
+      pickRow.appendChild(btn);
+    }
+    row.appendChild(pickRow);
+    return row;
+  }
 
   function restoreParty() {
     for (const c of roster) {

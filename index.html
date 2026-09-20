@@ -55,39 +55,34 @@
     </div>
   </section>
 
-  <!-- バトル画面 -->
+  <!-- 探索画面（ログ + ドック） -->
   <section id="screen-battle" class="screen hidden">
-    <div class="battle-wrap">
-      <div class="battle-toolbar">
-        <div id="stageLabel" class="stage-label"></div>
-        <button class="btn small ghost" id="btnSpeedToggle">再生速度 x1</button>
+    <div class="explore-wrap">
+      <div class="explore-header">
+        <div>
+          <div class="team-name" id="teamName">第一のパーティ</div>
+          <div class="explore-sub" id="exploreSub"></div>
+        </div>
+        <button class="btn small ghost" id="btnSpeedToggle">x1</button>
       </div>
-      <div id="enemyRow" class="enemy-row"></div>
-      <div id="battleLog" class="battle-log"></div>
+      <div id="logFeed" class="log-feed"></div>
     </div>
 
     <div id="bottomDock" class="bottom-dock">
+      <div class="dock-progress">
+        <div class="dock-progress-row">
+          <span id="dockDungeon">—</span>
+          <span id="dockStatus"></span>
+        </div>
+        <div class="stat-bar dungeon"><div class="fill" id="dockProgressFill" style="width:0%"></div></div>
+      </div>
       <div id="partyRow" class="party-row"></div>
-    </div>
-  </section>
-
-  <!-- 勝利/結果画面 -->
-  <section id="screen-result" class="screen hidden">
-    <div class="panel">
-      <h2 id="resultTitle">しょうり！</h2>
-      <div id="resultBody"></div>
-      <button class="btn primary" id="btnNextBattle">つぎの戦闘へ</button>
-      <button class="btn ghost" id="btnResultJobs">パーティ編成</button>
-      <button class="btn ghost" id="btnResultMap">マップへもどる</button>
-    </div>
-  </section>
-
-  <!-- ゲームオーバー画面 -->
-  <section id="screen-gameover" class="screen hidden">
-    <div class="panel">
-      <h2>ぜんめつ…</h2>
-      <p id="gameoverText"></p>
-      <button class="btn primary" id="btnRetryTitle">マップへもどる</button>
+      <div class="dock-actions">
+        <button class="btn small ghost" id="btnRedeploy">再出撃</button>
+        <button class="btn small ghost" id="btnDockMap">マップ</button>
+        <button class="btn small ghost" id="btnDockJobs">編成</button>
+      </div>
+      <div class="team-tabs" id="teamTabs"></div>
     </div>
   </section>
 
