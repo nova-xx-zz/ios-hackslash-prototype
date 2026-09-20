@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0b12">
+<title>Hackslash Prototype</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div id="topBar">
+      <div id="levelBadge">Lv.1</div>
+      <div id="barGroup">
+        <div class="bar hpBar"><div id="hpFill" class="fill"></div><span id="hpText" class="barText"></span></div>
+        <div class="bar xpBar"><div id="xpFill" class="fill"></div><span id="xpText" class="barText"></span></div>
+      </div>
+      <div id="waveBadge">Wave 1</div>
+    </div>
+    <div id="toastArea"></div>
+  </div>
+
+  <div id="joystickZone">
+    <div id="joystickBase">
+      <div id="joystickStick"></div>
+    </div>
+  </div>
+
+  <div id="startScreen" class="overlay">
+    <div class="panel">
+      <h1>Hackslash Prototype</h1>
+      <p>左側をドラッグして移動。近くの敵には自動で攻撃します。<br>ウェーブを生き延びてレベルを上げよう。</p>
+      <p id="bestScore"></p>
+      <button id="startBtn">スタート</button>
+    </div>
+  </div>
+
+  <div id="gameOverScreen" class="overlay hidden">
+    <div class="panel">
+      <h1>Game Over</h1>
+      <p id="resultText"></p>
+      <button id="retryBtn">もう一度</button>
+    </div>
+  </div>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
