@@ -123,22 +123,70 @@ function rollNewRecruit() {
   return { name, job, race };
 }
 
-function buildEncounter(stage) {
-  const count = Math.min(5, 3 + Math.floor(stage / 2));
-  const pool = stage < 3 ? ENEMY_TEMPLATES.slice(0, 3) : ENEMY_TEMPLATES;
+// ---------- ダンジョン ----------
+// x/y はマップ上の配置(％)。unlocks はクリア時に解放されるダンジョンID。
+const DUNGEONS = [
+  {
+    id: "plains", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
+    pool: ["slime", "bat"], boss: "slime", unlocks: ["forest"],
+    desc: "見晴らしのよい草原。弱い魔物しかいない。",
+  },
+  {
+    id: "forest", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
+    pool: ["slime", "goblin", "bat"], boss: "goblin", unlocks: ["cave"],
+    desc: "木々のざわめきに紛れて魔物が潜む。",
+  },
+  {
+    id: "cave", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
+    pool: ["goblin", "bat", "wolf"], boss: "wolf", unlocks: ["ruins"],
+    desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
+  },
+  {
+    id: "ruins", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
+    pool: ["goblin", "wolf", "ogre"], boss: "ogre", unlocks: ["peak"],
+    desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
+  },
+  {
+    id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
+    pool: ["wolf", "ogre"], boss: "ogre", unlocks: [],
+    desc: "巨大な骨が眠る山頂。最も危険な領域。",
+  },
+];
+
+function getDungeon(id) {
+  return DUNGEONS.find((d) => d.id === id);
+}
+
+const BOSS_MULT = 1.7;
+
+function buildEncounter(dungeon, battleIndex) {
+  const isBossBattle = battleIndex === dungeon.battles - 1;
+  // ダンジョン内で進むほど少しずつ強くなる
+  const mult = (1 + (dungeon.level - 1) * 0.16) * (1 + battleIndex * 0.06);
+  const count = Math.min(5, 3 + Math.floor(dungeon.level / 5));
   const list = [];
-  const mult = 1 + (stage - 1) * 0.18;
+
   for (let i = 0; i < count; i++) {
-    const t = pool[Math.floor(Math.random() * pool.length)];
-    list.push({
-      key: t.key, name: t.name, color: t.color,
-      hp: Math.round(t.hp * mult), maxHp: Math.round(t.hp * mult),
-      atk: Math.round(t.atk * mult), mag: t.mag, def: Math.round(t.def * mult),
-      spd: t.spd, exp: Math.round(t.exp * mult),
-      atb: Math.random() * 30,
-    });
+    const key = dungeon.pool[Math.floor(Math.random() * dungeon.pool.length)];
+    list.push(makeEnemy(getEnemyTemplate(key), mult, false));
+  }
+  if (isBossBattle) {
+    list.unshift(makeEnemy(getEnemyTemplate(dungeon.boss), mult * BOSS_MULT, true));
   }
   return list;
+}
+
+function makeEnemy(t, mult, isBoss) {
+  return {
+    key: t.key,
+    name: isBoss ? `${t.name}の主` : t.name,
+    color: t.color,
+    isBoss: !!isBoss,
+    hp: Math.round(t.hp * mult), maxHp: Math.round(t.hp * mult),
+    atk: Math.round(t.atk * mult), mag: t.mag, def: Math.round(t.def * mult),
+    spd: t.spd, exp: Math.round(t.exp * mult),
+    atb: Math.random() * 30,
+  };
 }
 
 const RARITIES = [

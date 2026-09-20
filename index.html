@@ -35,6 +35,26 @@
     </div>
   </section>
 
+  <!-- マップ画面 -->
+  <section id="screen-map" class="screen hidden">
+    <div class="map-wrap">
+      <div class="map-header">
+        <div class="map-title">ダンジョンをえらぶ</div>
+        <div>
+          <button class="btn small ghost" id="btnMapJobs">パーティ編成</button>
+          <button class="btn small ghost" id="btnMapBack">もどる</button>
+        </div>
+      </div>
+      <div id="mapBoard" class="map-board">
+        <svg id="mapLines" class="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+        <div id="mapNodes"></div>
+      </div>
+      <div id="dungeonInfo" class="dungeon-info">
+        <p class="sub" style="margin:0">ダンジョンをタップすると詳細が表示されます。</p>
+      </div>
+    </div>
+  </section>
+
   <!-- バトル画面 -->
   <section id="screen-battle" class="screen hidden">
     <div class="battle-wrap">
@@ -58,7 +78,7 @@
       <div id="resultBody"></div>
       <button class="btn primary" id="btnNextBattle">つぎの戦闘へ</button>
       <button class="btn ghost" id="btnResultJobs">パーティ編成</button>
-      <button class="btn ghost" id="btnResultTitle">タイトルへ</button>
+      <button class="btn ghost" id="btnResultMap">マップへもどる</button>
     </div>
   </section>
 
@@ -67,7 +87,7 @@
     <div class="panel">
       <h2>ぜんめつ…</h2>
       <p id="gameoverText"></p>
-      <button class="btn primary" id="btnRetryTitle">タイトルへもどる</button>
+      <button class="btn primary" id="btnRetryTitle">マップへもどる</button>
     </div>
   </section>
 

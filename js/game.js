@@ -1,13 +1,13 @@
 (() => {
   "use strict";
 
-  const BEST_KEY = "jobquest_best_stage";
+  const BEST_KEY = "jobquest_best_cleared";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
 
   function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
-  function setBestStage(s) { if (s > getBestStage()) localStorage.setItem(BEST_KEY, String(s)); }
+  function setBestStage(n) { if (n > getBestStage()) localStorage.setItem(BEST_KEY, String(n)); }
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
@@ -86,10 +86,18 @@
     newCharacter("ルカ", "priest", "stonekin"),
   ];
 
-  let stage = 1;
   let battle = null;
-  let returnToResultAfterJobs = false;
+  let run = null; // 進行中のダンジョン { dungeon, battleIndex, expTotal, drops }
+  let clearedDungeons = new Set();
+  let selectedDungeonId = null;
+  let jobsReturnScreen = "screen-title";
   let speedMult = 1;
+
+  function isDungeonOpen(d) {
+    if (clearedDungeons.has(d.id)) return true;
+    if (d.id === DUNGEONS[0].id) return true;
+    return DUNGEONS.some((src) => clearedDungeons.has(src.id) && src.unlocks.includes(d.id));
+  }
 
   // ---------- Screen management ----------
   function showScreen(id) {
@@ -109,19 +117,99 @@
     }
     const best = getBestStage();
     const bits = [];
-    if (best > 0) bits.push(`さいこう到達: Stage ${best}`);
+    if (best > 0) bits.push(`クリア済みダンジョン: ${best}`);
     bits.push(`所持なかま: ${roster.length}人`);
     document.getElementById("bestClearText").textContent = bits.join("　/　");
   }
 
   document.getElementById("btnGoBattle").addEventListener("click", () => {
-    stage = 1;
-    startBattle(stage);
+    openMap();
   });
   document.getElementById("btnGoJobs").addEventListener("click", () => {
-    returnToResultAfterJobs = false;
+    jobsReturnScreen = "screen-title";
     renderJobsScreen();
     showScreen("screen-jobs");
+  });
+
+  // ---------- Map screen ----------
+  function averagePartyLevel() {
+    const p = activeParty();
+    if (p.length === 0) return 1;
+    return Math.round(p.reduce((s, c) => s + c.level, 0) / p.length);
+  }
+
+  function openMap() {
+    renderMap();
+    showScreen("screen-map");
+  }
+
+  function renderMap() {
+    const nodes = document.getElementById("mapNodes");
+    const svg = document.getElementById("mapLines");
+    nodes.innerHTML = "";
+    svg.innerHTML = "";
+
+    for (const d of DUNGEONS) {
+      for (const nextId of d.unlocks) {
+        const next = getDungeon(nextId);
+        if (!next) continue;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", d.x);
+        line.setAttribute("y1", d.y);
+        line.setAttribute("x2", next.x);
+        line.setAttribute("y2", next.y);
+        if (clearedDungeons.has(d.id)) line.classList.add("open");
+        svg.appendChild(line);
+      }
+    }
+
+    for (const d of DUNGEONS) {
+      const cleared = clearedDungeons.has(d.id);
+      const open = isDungeonOpen(d);
+      const btn = document.createElement("button");
+      btn.className = "map-node " + (cleared ? "cleared" : open ? "open" : "locked") +
+        (selectedDungeonId === d.id ? " selected" : "");
+      btn.style.left = d.x + "%";
+      btn.style.top = d.y + "%";
+      btn.innerHTML = `<div class="dot">${cleared ? "✓" : open ? "▶" : "—"}</div>
+        <div class="label">${d.name}<br>Lv.${d.level}</div>`;
+      if (open) btn.addEventListener("click", () => selectDungeon(d));
+      nodes.appendChild(btn);
+    }
+  }
+
+  function selectDungeon(d) {
+    selectedDungeonId = d.id;
+    renderMap();
+    renderDungeonInfo(d);
+  }
+
+  function renderDungeonInfo(d) {
+    const el = document.getElementById("dungeonInfo");
+    const avg = averagePartyLevel();
+    const enemyNames = d.pool.map((k) => getEnemyTemplate(k).name).join("・");
+    const warn = avg < d.level
+      ? `<span class="level-warn">（編成の平均Lv.${avg} — 推奨に届いていません）</span>`
+      : `（編成の平均Lv.${avg}）`;
+    el.innerHTML = `
+      <div class="dname">${d.name}${clearedDungeons.has(d.id) ? "　クリア済み" : ""}</div>
+      <div class="dmeta">
+        ${d.desc}<br>
+        推奨レベル: ${d.level} ${warn}<br>
+        戦闘数: ${d.battles}回（最後はボス戦）<br>
+        出現モンスター: ${enemyNames}
+      </div>`;
+    const btn = document.createElement("button");
+    btn.className = "btn primary";
+    btn.id = "btnEnterDungeon";
+    btn.textContent = "出発する";
+    btn.addEventListener("click", () => startDungeon(d.id));
+    el.appendChild(btn);
+  }
+
+  document.getElementById("btnMapBack").addEventListener("click", () => {
+    renderTitle();
+    showScreen("screen-title");
   });
 
   // ---------- Party / job screen ----------
@@ -245,11 +333,17 @@
   }
 
   document.getElementById("btnJobsDone").addEventListener("click", () => {
-    if (returnToResultAfterJobs) showScreen("screen-result");
+    if (jobsReturnScreen === "screen-result") showScreen("screen-result");
+    else if (jobsReturnScreen === "screen-map") openMap();
     else { renderTitle(); showScreen("screen-title"); }
   });
   document.getElementById("btnResultJobs").addEventListener("click", () => {
-    returnToResultAfterJobs = true;
+    jobsReturnScreen = "screen-result";
+    renderJobsScreen();
+    showScreen("screen-jobs");
+  });
+  document.getElementById("btnMapJobs").addEventListener("click", () => {
+    jobsReturnScreen = "screen-map";
     renderJobsScreen();
     showScreen("screen-jobs");
   });
@@ -267,18 +361,33 @@
 
   let enemyEls = {}, partyEls = {};
 
-  function startBattle(st) {
-    const enemies = buildEncounter(st);
+  function startDungeon(id) {
+    const d = getDungeon(id);
+    run = {
+      dungeon: d, battleIndex: 0,
+      expTotal: 0, drops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
+    };
+    for (const c of activeParty()) {
+      const s = computeStats(c);
+      c.hp = s.maxHp; c.mp = s.maxMp; c.alive = true;
+    }
+    startBattle();
+  }
+
+  function startBattle() {
+    const d = run.dungeon;
+    const isBoss = run.battleIndex === d.battles - 1;
+    const enemies = buildEncounter(d, run.battleIndex);
     battle = {
-      stage: st,
       enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })),
       log: [],
       active: true,
     };
     for (const c of activeParty()) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
     buildBattleDOM();
-    document.getElementById("stageLabel").textContent = `Stage ${st}`;
-    logMsg(`Stage ${st} — 敵が現れた！`, "system");
+    document.getElementById("stageLabel").textContent =
+      `${d.name}　${run.battleIndex + 1}/${d.battles}${isBoss ? "（ボス）" : ""}`;
+    logMsg(isBoss ? `${d.name} — ボスが立ちはだかる！` : `${d.name} — 敵が現れた！`, "system");
     showScreen("screen-battle");
   }
 
@@ -495,26 +604,30 @@
 
   requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
 
-  // ---------- Taming ----------
+  // ---------- Taming（ダンジョンクリア時に判定） ----------
   function attemptTame() {
-    const candidates = battle.enemies.filter((e) => !e.alive && getEnemyTemplate(e.key) && getEnemyTemplate(e.key).tamable);
+    const candidates = run.defeatedTamable;
     if (candidates.length === 0) return null;
-    const target = candidates[Math.floor(Math.random() * candidates.length)];
-    const tpl = getEnemyTemplate(target.key);
+    const key = candidates[Math.floor(Math.random() * candidates.length)];
+    const tpl = getEnemyTemplate(key);
     const success = Math.random() < tpl.tameChance;
-    if (!success) return { success: false, name: target.name };
+    if (!success) return { success: false, name: tpl.name };
     const lvl = Math.max(1, currentMaxLevel() - 2);
-    const mon = newCharacter(target.name, "warrior", target.key, { level: lvl, active: false, isMonster: true });
+    const mon = newCharacter(tpl.name, "warrior", key, { level: lvl, active: false, isMonster: true });
     roster.push(mon);
-    return { success: true, name: target.name, char: mon };
+    return { success: true, name: tpl.name, char: mon };
   }
 
   // ---------- Victory / rewards ----------
   function onVictory() {
-    setBestStage(stage);
     const expGain = battle.enemies.reduce((s, e) => s + e.exp, 0);
-    const levelUps = [];
-    const abilityUnlocks = [];
+    run.expTotal += expGain;
+
+    for (const e of battle.enemies) {
+      const tpl = getEnemyTemplate(e.key);
+      if (tpl && tpl.tamable) run.defeatedTamable.push(e.key);
+    }
+
     for (const c of activeParty()) {
       if (!c.alive) continue;
       const race = RACES[c.race];
@@ -525,49 +638,83 @@
         c.expToNext = 30 + c.level * 15;
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
-        levelUps.push(c.name + " Lv." + c.level);
+        run.levelUps.push(c.name + " Lv." + c.level);
         for (const a of JOBS[c.job].abilities) {
-          if (a.reqLevel === c.level) abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
+          if (a.reqLevel === c.level) run.abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
         }
       }
     }
-    const drops = [];
-    drops.push(rollItemDrop());
-    if (Math.random() < 0.4) drops.push(rollItemDrop());
 
-    const tameResult = attemptTame();
+    run.drops.push(rollItemDrop());
+    if (Math.random() < 0.4) run.drops.push(rollItemDrop());
 
-    renderResultScreen({ victory: true, expGain, levelUps, abilityUnlocks, drops, tameResult });
+    const isLast = run.battleIndex + 1 >= run.dungeon.battles;
+    if (!isLast) {
+      run.battleIndex += 1;
+      renderResultScreen({ cleared: false, battleExp: expGain });
+    } else {
+      const firstClear = !clearedDungeons.has(run.dungeon.id);
+      clearedDungeons.add(run.dungeon.id);
+      setBestStage(clearedDungeons.size);
+      const unlocked = firstClear
+        ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean)
+        : [];
+      renderResultScreen({ cleared: true, tameResult: attemptTame(), unlocked });
+    }
     showScreen("screen-result");
   }
 
   function onDefeat() {
     document.getElementById("gameoverText").textContent =
-      `Stage ${stage} で全滅してしまった…（さいこう到達: Stage ${getBestStage()}）`;
+      `${run.dungeon.name} の ${run.battleIndex + 1}戦目 で全滅してしまった…（クリア済みダンジョン: ${clearedDungeons.size}）`;
     showScreen("screen-gameover");
   }
 
   function renderResultScreen(info) {
-    document.getElementById("resultTitle").textContent = `Stage ${stage} クリア！`;
+    const d = run.dungeon;
+    const nextBtn = document.getElementById("btnNextBattle");
+    nextBtn.classList.toggle("hidden", !!info.cleared);
+    if (!info.cleared) {
+      const nextIsBoss = run.battleIndex === d.battles - 1;
+      nextBtn.textContent = nextIsBoss ? "ボス戦へ進む" : "つぎの戦闘へ";
+    }
+    document.getElementById("resultTitle").textContent = info.cleared
+      ? `${d.name} クリア！`
+      : `${run.battleIndex}/${d.battles} 戦目クリア`;
     const body = document.getElementById("resultBody");
     body.innerHTML = "";
 
     const summary = document.createElement("div");
-    summary.textContent = `EXP +${info.expGain}`;
+    summary.textContent = info.cleared
+      ? `ダンジョン合計 EXP +${run.expTotal}`
+      : `EXP +${info.battleExp}（ここまで合計 +${run.expTotal}）`;
     body.appendChild(summary);
 
-    if (info.levelUps.length) {
+    if (run.levelUps.length) {
       const lu = document.createElement("div");
       lu.style.color = "#ffd24d";
-      lu.textContent = "LEVEL UP! " + info.levelUps.join(" / ");
+      lu.textContent = "LEVEL UP! " + run.levelUps.join(" / ");
       body.appendChild(lu);
     }
 
-    if (info.abilityUnlocks.length) {
+    if (run.abilityUnlocks.length) {
       const au = document.createElement("div");
       au.style.color = "#4dc3ff";
-      au.textContent = info.abilityUnlocks.join(" / ");
+      au.textContent = run.abilityUnlocks.join(" / ");
       body.appendChild(au);
+    }
+
+    // 道中は装備選択を出さず、獲得数だけ見せる
+    if (!info.cleared) {
+      const hint = document.createElement("div");
+      hint.style.color = "var(--sub-text)";
+      hint.textContent = `戦利品 ${run.drops.length}個（ダンジョンクリア時にまとめて装備できます）`;
+      body.appendChild(hint);
+      const hp = document.createElement("div");
+      hp.style.color = "var(--sub-text)";
+      hp.textContent = "HP/MPは次の戦闘に持ち越されます。";
+      body.appendChild(hp);
+      return;
     }
 
     if (info.tameResult) {
@@ -582,7 +729,14 @@
       body.appendChild(tm);
     }
 
-    for (const item of info.drops) {
+    if (info.unlocked && info.unlocked.length) {
+      const un = document.createElement("div");
+      un.style.color = "#7c5cff";
+      un.textContent = "新しいダンジョンが解放された: " + info.unlocked.map((x) => x.name).join(" / ");
+      body.appendChild(un);
+    }
+
+    for (const item of run.drops) {
       const row = document.createElement("div");
       row.className = "drop-row";
       const dot = document.createElement("div");
@@ -614,23 +768,24 @@
   }
 
   document.getElementById("btnNextBattle").addEventListener("click", () => {
-    stage += 1;
-    startBattle(stage);
+    startBattle();
   });
-  document.getElementById("btnResultTitle").addEventListener("click", () => {
-    renderTitle();
-    showScreen("screen-title");
+  document.getElementById("btnResultMap").addEventListener("click", () => {
+    restoreParty();
+    openMap();
   });
   document.getElementById("btnRetryTitle").addEventListener("click", () => {
-    stage = 1;
+    restoreParty();
+    openMap();
+  });
+
+  function restoreParty() {
     for (const c of roster) {
       c.hp = computeStats(c).maxHp;
       c.mp = computeStats(c).maxMp;
       c.alive = true;
     }
-    renderTitle();
-    showScreen("screen-title");
-  });
+  }
 
   renderTitle();
   showScreen("screen-title");

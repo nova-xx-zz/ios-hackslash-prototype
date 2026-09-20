@@ -136,6 +136,70 @@ html, body {
 }
 .skill-toggle.on { background: rgba(124,92,255,0.35); color: var(--text); border-color: var(--accent); opacity: 1; }
 
+/* map */
+.map-wrap {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: 10px;
+}
+.map-header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 8px; }
+.map-title { font-size: 15px; font-weight: 700; }
+
+.map-board {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(circle at 25% 80%, rgba(77,195,122,0.10), transparent 45%),
+    radial-gradient(circle at 75% 20%, rgba(209,112,77,0.12), transparent 45%),
+    rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.map-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.map-lines line { stroke: rgba(255,255,255,0.18); stroke-width: 0.5; stroke-dasharray: 2 1.5; }
+.map-lines line.open { stroke: rgba(124,92,255,0.6); stroke-dasharray: none; }
+
+.map-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; padding: 0;
+  color: var(--text);
+  cursor: pointer;
+  width: 78px;
+}
+.map-node .dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.map-node .label {
+  font-size: 10px; font-weight: 700; line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+.map-node.locked { opacity: 0.4; cursor: default; }
+.map-node.locked .dot { border-style: dashed; }
+.map-node.open .dot { background: var(--accent); border-color: #cbbcff; box-shadow: 0 0 12px rgba(124,92,255,0.6); }
+.map-node.cleared .dot { background: #2f7d54; border-color: #7dffb0; }
+.map-node.selected .dot { outline: 2px solid var(--atb); outline-offset: 3px; }
+
+.dungeon-info {
+  margin-top: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+}
+.dungeon-info .dname { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.dungeon-info .dmeta { font-size: 12px; color: var(--sub-text); line-height: 1.7; }
+.dungeon-info .btn { margin-top: 10px; }
+.level-warn { color: #ffb84d; }
+
 /* battle */
 .battle-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 10px; padding-bottom: 210px; overflow-y: auto; }
 .battle-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 8px; }
