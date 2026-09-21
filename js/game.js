@@ -18,7 +18,7 @@
       subAbilityId: null,
       skillActive: {}, // abilityId -> bool (default true when unlocked)
       level: opts.level || 1, exp: 0, expToNext: 30,
-      equip: null,
+      equip: { weapon: null, armor: null, accessory: null },
       atb: 0, defending: false, alive: true,
       team: opts.team !== undefined ? opts.team : null, // 0..3 所属チーム / null は控え
       isMonster: opts.isMonster || false,
@@ -41,8 +41,22 @@
       def: Math.round(job.base.def * growth * race.mult.def),
       spd: job.base.spd * race.mult.spd,
     };
-    if (c.equip) s[c.equip.stat] += c.equip.value;
+    for (const slot of SLOTS) {
+      const item = c.equip[slot.key];
+      if (item) s[item.stat] += item.value;
+    }
     return s;
+  }
+
+  // ジョブの基礎値を重みにして、そのキャラにとっての装備の価値を測る
+  function itemScore(c, item) {
+    const base = JOBS[c.job].base;
+    const weights = {
+      hp: base.hp / 30, mp: base.mp / 20,
+      atk: base.atk / 10, mag: base.mag / 10,
+      def: base.def / 8, spd: base.spd / 7,
+    };
+    return item.value * (weights[item.stat] || 0.5);
   }
 
   function racePassive(c, key) {
@@ -82,6 +96,42 @@
   function teamMembers(i) { return roster.filter((c) => c.team === i); }
   function activeParty() { return teamMembers(activeTeam); }
   function currentMaxLevel() { return roster.reduce((m, c) => Math.max(m, c.level), 1); }
+
+  // ---------- Inventory ----------
+  let inventory = [];
+
+  function equipItem(c, item) {
+    const idx = inventory.indexOf(item);
+    if (idx >= 0) inventory.splice(idx, 1);
+    const old = c.equip[item.slot];
+    if (old) inventory.push(old);
+    c.equip[item.slot] = item;
+    clampVitals(c);
+  }
+
+  function unequipSlot(c, slotKey) {
+    const item = c.equip[slotKey];
+    if (!item) return;
+    inventory.push(item);
+    c.equip[slotKey] = null;
+    clampVitals(c);
+  }
+
+  function autoEquip(c) {
+    for (const slot of SLOTS) {
+      const candidates = inventory.filter((i) => i.slot === slot.key);
+      const current = c.equip[slot.key];
+      if (candidates.length === 0) continue;
+      const best = candidates.reduce((a, b) => (itemScore(c, b) > itemScore(c, a) ? b : a));
+      if (!current || itemScore(c, best) > itemScore(c, current)) equipItem(c, best);
+    }
+  }
+
+  function clampVitals(c) {
+    const s = computeStats(c);
+    c.hp = Math.min(c.hp, s.maxHp);
+    c.mp = Math.min(c.mp, s.maxMp);
+  }
 
   let roster = [
     newCharacter("アレン", "warrior", "human", { team: 0 }),
@@ -342,12 +392,85 @@
         <div class="sub-ability-row">${race.desc}</div>`;
       card.appendChild(activeRow);
       card.appendChild(jobRow);
+      card.appendChild(buildEquipSection(c));
       card.appendChild(subRow);
       card.appendChild(subPickRow);
       card.appendChild(skillRow);
       card.appendChild(skillToggleRow);
       wrap.appendChild(card);
     }
+  }
+
+  // 装備セクション（スロットをタップで所持品から選ぶ）
+  let openSlot = null; // "charId:slotKey"
+
+  function buildEquipSection(c) {
+    const wrap = document.createElement("div");
+
+    const head = document.createElement("div");
+    head.className = "sub-ability-row";
+    head.textContent = `装備（所持品 ${inventory.length}個）`;
+    wrap.appendChild(head);
+
+    const row = document.createElement("div");
+    row.className = "equip-slot-row";
+    for (const slot of SLOTS) {
+      const item = c.equip[slot.key];
+      const key = `${c.id}:${slot.key}`;
+      const btn = document.createElement("button");
+      btn.className = "equip-slot" + (item ? " filled" : "") + (openSlot === key ? " open" : "");
+      if (item) btn.style.borderColor = item.rarityColor;
+      btn.innerHTML = `<span class="slot-name">${slot.name}</span>
+        <span class="slot-item">${item ? itemLabel(item) : "なし"}</span>`;
+      btn.addEventListener("click", () => {
+        openSlot = openSlot === key ? null : key;
+        renderJobsScreen();
+      });
+      row.appendChild(btn);
+    }
+    wrap.appendChild(row);
+
+    const autoBtn = document.createElement("button");
+    autoBtn.className = "sub-pick";
+    autoBtn.style.marginTop = "6px";
+    autoBtn.textContent = "おまかせ装備";
+    autoBtn.addEventListener("click", () => { autoEquip(c); renderJobsScreen(); });
+    wrap.appendChild(autoBtn);
+
+    // 開いているスロットの候補一覧
+    const opened = SLOTS.find((s) => openSlot === `${c.id}:${s.key}`);
+    if (opened) {
+      const list = document.createElement("div");
+      list.className = "equip-choice-list";
+      const candidates = inventory
+        .filter((i) => i.slot === opened.key)
+        .sort((a, b) => itemScore(c, b) - itemScore(c, a));
+
+      if (c.equip[opened.key]) {
+        const off = document.createElement("button");
+        off.className = "equip-choice";
+        off.textContent = "はずす";
+        off.addEventListener("click", () => { unequipSlot(c, opened.key); renderJobsScreen(); });
+        list.appendChild(off);
+      }
+      if (candidates.length === 0) {
+        const none = document.createElement("div");
+        none.className = "sub-ability-row";
+        none.textContent = `（${opened.name}の手持ちがありません）`;
+        list.appendChild(none);
+      }
+      for (const item of candidates) {
+        const btn = document.createElement("button");
+        btn.className = "equip-choice";
+        btn.style.borderColor = item.rarityColor;
+        btn.textContent = itemLabel(item);
+        btn.addEventListener("click", () => { equipItem(c, item); openSlot = null; renderJobsScreen(); });
+        list.appendChild(btn);
+      }
+      wrap.appendChild(list);
+    }
+
+    return wrap;
   }
 
   document.getElementById("btnJobsDone").addEventListener("click", () => {
@@ -755,8 +878,8 @@
       }
     }
 
-    run.drops.push(rollItemDrop());
-    if (Math.random() < 0.4) run.drops.push(rollItemDrop());
+    gainItem(rollItemDrop());
+    if (Math.random() < 0.4) gainItem(rollItemDrop());
 
     logLine(`EXP +${expGain}`, "system");
 
@@ -793,8 +916,13 @@
       return;
     }
     const item = rollItemDrop();
+    gainItem(item);
+    logEvent("treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
+  }
+
+  function gainItem(item) {
     run.drops.push(item);
-    logEvent("treasure", "宝箱を見つけた！", `${item.name}（${item.stat.toUpperCase()}+${item.value}）を手に入れた`);
+    inventory.push(item);
   }
 
   function finishRun(info) {
@@ -824,9 +952,7 @@
     if (run.drops.length) {
       const head = document.createElement("div");
       head.className = "lc-line system";
-      head.textContent = info.cleared
-        ? `獲得アイテム ${run.drops.length}個（装備させる仲間を選べます）`
-        : `持ち帰った戦利品 ${run.drops.length}個`;
+      head.textContent = `獲得アイテム ${run.drops.length}個（編成画面で装備できます）`;
       card.lines.appendChild(head);
       for (const item of run.drops) card.lines.appendChild(buildDropRow(item));
     }
@@ -842,30 +968,16 @@
     row.className = "drop-row";
     const dot = document.createElement("div");
     dot.className = "drop-dot";
-    dot.style.background = item.rarity.color;
+    dot.style.background = item.rarityColor;
     row.appendChild(dot);
     const label = document.createElement("div");
-    label.textContent = `${item.name}（${item.stat.toUpperCase()}+${item.value}）`;
+    label.textContent = itemLabel(item);
     row.appendChild(label);
-    const pickRow = document.createElement("div");
-    pickRow.className = "equip-pick-row";
-    for (const c of activeParty()) {
-      const btn = document.createElement("button");
-      btn.className = "equip-pick";
-      btn.textContent = c.name;
-      btn.addEventListener("click", () => {
-        c.equip = { name: item.name, stat: item.stat, value: item.value, rarity: item.rarity.key };
-        const s = computeStats(c);
-        c.hp = Math.min(c.hp, s.maxHp);
-        c.mp = Math.min(c.mp, s.maxMp);
-        pickRow.querySelectorAll(".equip-pick").forEach((b) => b.classList.remove("done"));
-        btn.classList.add("done");
-        updateBattleDOM();
-      });
-      pickRow.appendChild(btn);
-    }
-    row.appendChild(pickRow);
     return row;
+  }
+
+  function itemLabel(item) {
+    return `${item.name}（${STAT_LABELS[item.stat]}+${item.value}）`;
   }
 
   function restoreParty() {

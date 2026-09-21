@@ -205,21 +205,36 @@ function rollRarity() {
   return RARITIES[0];
 }
 
-const ITEM_BASES = [
-  { key: "sword", name: "剣", stat: "atk", base: 3 },
-  { key: "staff", name: "杖", stat: "mag", base: 3 },
-  { key: "armor", name: "よろい", stat: "def", base: 3 },
-  { key: "boots", name: "くつ", stat: "spd", base: 2 },
+const SLOTS = [
+  { key: "weapon", name: "武器" },
+  { key: "armor", name: "防具" },
+  { key: "accessory", name: "装飾品" },
 ];
 
+const ITEM_BASES = [
+  { key: "sword", name: "剣", slot: "weapon", stat: "atk", base: 3 },
+  { key: "staff", name: "杖", slot: "weapon", stat: "mag", base: 3 },
+  { key: "claw", name: "かぎ爪", slot: "weapon", stat: "spd", base: 2 },
+  { key: "armor", name: "よろい", slot: "armor", stat: "def", base: 3 },
+  { key: "robe", name: "ローブ", slot: "armor", stat: "mp", base: 4 },
+  { key: "amulet", name: "お守り", slot: "accessory", stat: "hp", base: 6 },
+  { key: "ring", name: "指輪", slot: "accessory", stat: "mag", base: 2 },
+  { key: "boots", name: "くつ", slot: "accessory", stat: "spd", base: 2 },
+];
+
+const STAT_LABELS = { hp: "HP", mp: "MP", atk: "ATK", mag: "MAG", def: "DEF", spd: "SPD" };
+
+let itemSeq = 1;
 function rollItemDrop() {
   const base = ITEM_BASES[Math.floor(Math.random() * ITEM_BASES.length)];
   const rarity = rollRarity();
   return {
-    id: "item_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    id: "item_" + itemSeq++,
     name: `${rarity.name}の${base.name}`,
+    slot: base.slot,
     stat: base.stat,
     value: Math.round(base.base * rarity.mult),
-    rarity,
+    rarity: rarity.key,
+    rarityColor: rarity.color,
   };
 }
