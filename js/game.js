@@ -17,6 +17,8 @@
       id: "c" + nextCharSeq++, name, job, race: race || "human",
       subAbilityId: null,
       skillActive: {}, // abilityId -> bool (default true when unlocked)
+      abilityPriority: {}, // abilityId -> 1(温存)/2(通常)/3(優先)、既定2
+      targetPriority: "weakest", // weakest / strongest / random
       level: opts.level || 1, exp: 0, expToNext: 30,
       equip: { weapon: null, armor: null, accessory: null },
       atb: 0, defending: false, alive: true,
@@ -767,27 +769,57 @@
 
       const skillRow = document.createElement("div");
       skillRow.className = "sub-ability-row";
-      skillRow.textContent = "オート戦闘で使うスキル（OFFにすると自動行動では使わない）";
-      const skillToggleRow = document.createElement("div");
-      skillToggleRow.className = "skill-toggle-row";
+      skillRow.textContent = "オート戦闘で使うスキル（OFFで不使用、優先度で使う順番を調整）";
+      const skillListWrap = document.createElement("div");
+      skillListWrap.className = "skill-list";
       for (const a of availableAbilities(c)) {
         const on = isSkillActive(c, a.id);
-        const btn = document.createElement("button");
-        btn.className = "skill-toggle" + (on ? " on" : "");
-        btn.textContent = `${a.name} ${on ? "ON" : "OFF"}`;
-        btn.addEventListener("click", () => {
+        const line = document.createElement("div");
+        line.className = "skill-line";
+
+        const onBtn = document.createElement("button");
+        onBtn.className = "skill-toggle" + (on ? " on" : "");
+        onBtn.textContent = `${a.name} ${on ? "ON" : "OFF"}`;
+        onBtn.addEventListener("click", () => {
           c.skillActive[a.id] = !isSkillActive(c, a.id);
           renderCharDetail();
         });
-        skillToggleRow.appendChild(btn);
+        line.appendChild(onBtn);
+
+        const tier = getAbilityTier(c, a.id);
+        const tierInfo = ABILITY_TIERS.find((t) => t.value === tier);
+        const tierBtn = document.createElement("button");
+        tierBtn.className = "priority-chip tier-" + tier + (on ? "" : " dim");
+        tierBtn.textContent = tierInfo.label;
+        tierBtn.title = "タップで優先度を切り替え（優先→通常→温存）";
+        tierBtn.addEventListener("click", () => {
+          cycleAbilityTier(c, a.id);
+          renderCharDetail();
+        });
+        line.appendChild(tierBtn);
+
+        skillListWrap.appendChild(line);
       }
       const locked = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
       for (const a of locked) {
-        const span = document.createElement("span");
-        span.className = "skill-toggle";
+        const span = document.createElement("div");
+        span.className = "skill-line";
         span.style.opacity = "0.35";
         span.textContent = `${a.name}（Lv.${a.reqLevel}で習得）`;
-        skillToggleRow.appendChild(span);
+        skillListWrap.appendChild(span);
+      }
+
+      const targetRow = document.createElement("div");
+      targetRow.className = "sub-ability-row";
+      targetRow.textContent = "攻撃対象の優先度（単体を狙う技・通常攻撃に適用）";
+      const targetPickRow = document.createElement("div");
+      targetPickRow.className = "sub-pick-row";
+      for (const mode of TARGET_MODES) {
+        const btn = document.createElement("button");
+        btn.className = "sub-pick" + (c.targetPriority === mode.value ? " active" : "");
+        btn.textContent = mode.label;
+        btn.addEventListener("click", () => { c.targetPriority = mode.value; renderCharDetail(); });
+        targetPickRow.appendChild(btn);
       }
 
       const race = RACES[c.race];
@@ -801,7 +833,9 @@
       card.appendChild(subRow);
       card.appendChild(subPickRow);
       card.appendChild(skillRow);
-      card.appendChild(skillToggleRow);
+      card.appendChild(skillListWrap);
+      card.appendChild(targetRow);
+      card.appendChild(targetPickRow);
       wrap.appendChild(card);
     }
   }
@@ -1112,6 +1146,29 @@
     return Math.max(0, Math.round(ability.mpCost * mult));
   }
 
+  // アビリティ優先度: 3=優先 / 2=通常(既定) / 1=温存（他に使えるものがない時だけ使う）
+  const ABILITY_TIERS = [
+    { value: 3, label: "優先" },
+    { value: 2, label: "通常" },
+    { value: 1, label: "温存" },
+  ];
+  function getAbilityTier(c, abilityId) {
+    return (c.abilityPriority && c.abilityPriority[abilityId]) || 2;
+  }
+  function cycleAbilityTier(c, abilityId) {
+    if (!c.abilityPriority) c.abilityPriority = {};
+    const cur = getAbilityTier(c, abilityId);
+    const idx = ABILITY_TIERS.findIndex((t) => t.value === cur);
+    c.abilityPriority[abilityId] = ABILITY_TIERS[(idx + 1) % ABILITY_TIERS.length].value;
+  }
+
+  // 敵ターゲット優先度
+  const TARGET_MODES = [
+    { value: "weakest", label: "弱い敵から" },
+    { value: "strongest", label: "強い敵から" },
+    { value: "random", label: "ランダム" },
+  ];
+
   function chooseAction(c) {
     const abilities = availableAbilities(c).filter((a) => isSkillActive(c, a.id) && c.mp >= mpCostFor(c, a));
     const usable = abilities.filter((a) => {
@@ -1121,13 +1178,20 @@
       return true;
     });
     if (usable.length === 0) return BASIC_ATTACK;
-    usable.sort((a, b) => b.reqLevel - a.reqLevel);
+    usable.sort((a, b) => {
+      const tierDiff = getAbilityTier(c, b.id) - getAbilityTier(c, a.id);
+      if (tierDiff !== 0) return tierDiff;
+      return b.reqLevel - a.reqLevel;
+    });
     return usable[0];
   }
 
-  function pickEnemyTarget() {
+  function pickEnemyTarget(c) {
     const alive = battle.enemies.filter((e) => e.alive);
     if (alive.length === 0) return null;
+    const mode = (c && c.targetPriority) || "weakest";
+    if (mode === "random") return alive[Math.floor(Math.random() * alive.length)];
+    if (mode === "strongest") return alive.reduce((hi, e) => (e.hp > hi.hp ? e : hi), alive[0]);
     return alive.reduce((lowest, e) => (e.hp < lowest.hp ? e : lowest), alive[0]);
   }
 
@@ -1146,7 +1210,7 @@
     c.mp = Math.max(0, c.mp - mpCostFor(c, ability));
     const stats = computeStats(c);
     let targets = [];
-    if (ability.target === "single") { const t = pickEnemyTarget(); if (t) targets = [t]; }
+    if (ability.target === "single") { const t = pickEnemyTarget(c); if (t) targets = [t]; }
     else if (ability.target === "single-ally") { const t = pickAllyTarget(); if (t) targets = [t]; }
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
     else if (ability.target === "all-ally") targets = activeParty().filter((p) => p.alive);
