@@ -32,9 +32,53 @@ const JOBS = {
   },
 };
 
+// テイムしたモンスター専用のジョブ。種族IDと対応し、人間のジョブには転職できない。
+const MONSTER_JOBS = {
+  slime: {
+    id: "slime", name: "スライム",
+    base: { hp: 30, mp: 6, atk: 8, mag: 3, def: 9, spd: 5 },
+    abilities: [
+      { id: "m_body_slam", name: "たいあたり", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.1, hits: 1, desc: "体ごとぶつかる" },
+      { id: "m_swallow", name: "まるのみ", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 1.9, hits: 1, desc: "敵を包み込んで締め上げる" },
+      { id: "m_split", name: "ぶんれつたい", reqLevel: 10, mpCost: 4, kind: "physical", target: "all-enemy", power: 0.9, hits: 1, desc: "分裂した体で敵全体を叩く" },
+    ],
+  },
+  goblin: {
+    id: "goblin", name: "ゴブリン",
+    base: { hp: 24, mp: 6, atk: 11, mag: 3, def: 6, spd: 7 },
+    abilities: [
+      { id: "m_ambush", name: "ふいうち", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.3, hits: 1, desc: "不意を突いて斬りかかる" },
+      { id: "m_scratch", name: "みだれひっかき", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.5, hits: 3, desc: "3回続けてひっかく" },
+      { id: "m_vital", name: "きゅうしょづき", reqLevel: 10, mpCost: 3, kind: "physical", target: "single", power: 2.2, hits: 1, desc: "急所を的確に突く" },
+    ],
+  },
+  bat: {
+    id: "bat", name: "コウモリ",
+    base: { hp: 18, mp: 8, atk: 9, mag: 5, def: 4, spd: 11 },
+    abilities: [
+      { id: "m_bite", name: "かみつく", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1, desc: "素早くかみつく" },
+      { id: "m_drain", name: "きゅうけつ", reqLevel: 5, mpCost: 2, kind: "physical", target: "single", power: 1.2, hits: 1, lifesteal: 0.5, desc: "与えたダメージの半分だけHPを吸収する" },
+      { id: "m_sonic", name: "ソニックウェーブ", reqLevel: 10, mpCost: 6, kind: "magic", target: "all-enemy", power: 0.9, hits: 1, desc: "超音波で敵全体を攻撃する" },
+    ],
+  },
+  wolf: {
+    id: "wolf", name: "ウルフ",
+    base: { hp: 26, mp: 5, atk: 12, mag: 2, def: 6, spd: 9 },
+    abilities: [
+      { id: "m_crunch", name: "かみくだく", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.2, hits: 1, desc: "鋭い牙でかみくだく" },
+      { id: "m_gale_claw", name: "れっぷうづめ", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.6, hits: 3, desc: "疾風のような3連撃" },
+      { id: "m_dash", name: "しっそうぎり", reqLevel: 10, mpCost: 4, kind: "physical", target: "all-enemy", power: 1.0, hits: 1, desc: "駆け抜けながら敵全体を裂く" },
+    ],
+  },
+};
+
 function getAbilityById(id) {
   for (const jobId in JOBS) {
     const found = JOBS[jobId].abilities.find((a) => a.id === id);
+    if (found) return found;
+  }
+  for (const jobId in MONSTER_JOBS) {
+    const found = MONSTER_JOBS[jobId].abilities.find((a) => a.id === id);
     if (found) return found;
   }
   return null;

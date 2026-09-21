@@ -29,8 +29,13 @@
     return c;
   }
 
+  // テイムしたモンスターは人間のジョブではなく種族専用ジョブを使う
+  function jobDef(c) {
+    return c.isMonster ? MONSTER_JOBS[c.race] : JOBS[c.job];
+  }
+
   function computeStats(c) {
-    const job = JOBS[c.job];
+    const job = jobDef(c);
     const race = RACES[c.race] || RACES.human;
     const growth = 1 + 0.12 * (c.level - 1);
     const s = {
@@ -50,7 +55,7 @@
 
   // ジョブの基礎値を重みにして、そのキャラにとっての装備の価値を測る
   function itemScore(c, item) {
-    const base = JOBS[c.job].base;
+    const base = jobDef(c).base;
     const weights = {
       hp: base.hp / 30, mp: base.mp / 20,
       atk: base.atk / 10, mag: base.mag / 10,
@@ -65,7 +70,7 @@
   }
 
   function availableAbilities(c) {
-    const job = JOBS[c.job];
+    const job = jobDef(c);
     const list = job.abilities.filter((a) => c.level >= a.reqLevel);
     if (c.subAbilityId) {
       const sub = getAbilityById(c.subAbilityId);
@@ -80,6 +85,7 @@
 
   function subAbilityCandidates(c) {
     const list = [];
+    if (c.isMonster) return list; // モンスターは人間の技を覚えない
     for (const jobId in JOBS) {
       if (jobId === c.job) continue;
       for (const a of JOBS[jobId].abilities) {
@@ -167,7 +173,7 @@
     for (const c of activeParty()) {
       const div = document.createElement("div");
       div.className = "mini-card";
-      div.innerHTML = `<div class="name">${c.name}</div><div class="job">${RACES[c.race].name}・${JOBS[c.job].name} Lv.${c.level}</div>`;
+      div.innerHTML = `<div class="name">${c.name}</div><div class="job">${RACES[c.race].name}・${jobDef(c).name} Lv.${c.level}</div>`;
       el.appendChild(div);
     }
     const best = getBestStage();
@@ -315,36 +321,43 @@
 
       const jobRow = document.createElement("div");
       jobRow.className = "job-pick-row";
-      for (const jobId in JOBS) {
-        const btn = document.createElement("button");
-        btn.className = "job-pick" + (c.job === jobId ? " active" : "");
-        btn.textContent = JOBS[jobId].name;
-        btn.addEventListener("click", () => {
-          c.job = jobId;
-          if (c.subAbilityId) {
-            const sub = getAbilityById(c.subAbilityId);
-            if (sub && JOBS[jobId].abilities.find((a) => a.id === sub.id)) c.subAbilityId = null;
-          }
-          const s = computeStats(c);
-          c.hp = Math.min(c.hp, s.maxHp);
-          c.mp = Math.min(c.mp, s.maxMp);
-          renderJobsScreen();
-        });
-        jobRow.appendChild(btn);
+      if (c.isMonster) {
+        const note = document.createElement("div");
+        note.className = "sub-ability-row";
+        note.textContent = "モンスターは転職できず、種族専用の技を使う";
+        jobRow.appendChild(note);
+      } else {
+        for (const jobId in JOBS) {
+          const btn = document.createElement("button");
+          btn.className = "job-pick" + (c.job === jobId ? " active" : "");
+          btn.textContent = JOBS[jobId].name;
+          btn.addEventListener("click", () => {
+            c.job = jobId;
+            if (c.subAbilityId) {
+              const sub = getAbilityById(c.subAbilityId);
+              if (sub && JOBS[jobId].abilities.find((a) => a.id === sub.id)) c.subAbilityId = null;
+            }
+            clampVitals(c);
+            renderJobsScreen();
+          });
+          jobRow.appendChild(btn);
+        }
       }
 
       const subRow = document.createElement("div");
       subRow.className = "sub-ability-row";
       const candidates = subAbilityCandidates(c);
-      subRow.textContent = "サブアビリティ（他ジョブで習得済みの技を1つ装備できる）";
       const subPickRow = document.createElement("div");
       subPickRow.className = "sub-pick-row";
+      if (!c.isMonster) {
+        subRow.textContent = "サブアビリティ（他ジョブで習得済みの技を1つ装備できる）";
 
-      const noneBtn = document.createElement("button");
-      noneBtn.className = "sub-pick" + (!c.subAbilityId ? " active" : "");
-      noneBtn.textContent = "なし";
-      noneBtn.addEventListener("click", () => { c.subAbilityId = null; renderJobsScreen(); });
-      subPickRow.appendChild(noneBtn);
+        const noneBtn = document.createElement("button");
+        noneBtn.className = "sub-pick" + (!c.subAbilityId ? " active" : "");
+        noneBtn.textContent = "なし";
+        noneBtn.addEventListener("click", () => { c.subAbilityId = null; renderJobsScreen(); });
+        subPickRow.appendChild(noneBtn);
+      }
 
       for (const a of candidates) {
         const btn = document.createElement("button");
@@ -353,7 +366,7 @@
         btn.addEventListener("click", () => { c.subAbilityId = a.id; renderJobsScreen(); });
         subPickRow.appendChild(btn);
       }
-      if (candidates.length === 0) {
+      if (!c.isMonster && candidates.length === 0) {
         const hintEl = document.createElement("div");
         hintEl.className = "sub-ability-row";
         hintEl.textContent = "（まだ他ジョブの技を習得していません）";
@@ -376,7 +389,7 @@
         });
         skillToggleRow.appendChild(btn);
       }
-      const locked = JOBS[c.job].abilities.filter((a) => c.level < a.reqLevel);
+      const locked = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
       for (const a of locked) {
         const span = document.createElement("span");
         span.className = "skill-toggle";
@@ -387,7 +400,7 @@
 
       const race = RACES[c.race];
       const stats = computeStats(c);
-      card.innerHTML = `<div class="cname">${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${JOBS[c.job].name} Lv.${c.level}
+      card.innerHTML = `<div class="cname">${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}
         <span style="float:right;color:var(--sub-text);font-size:11px;">HP${stats.maxHp} MP${stats.maxMp} ATK${stats.atk} MAG${stats.mag} DEF${stats.def} SPD${Math.round(stats.spd)}</span></div>
         <div class="sub-ability-row">${race.desc}</div>`;
       card.appendChild(activeRow);
@@ -614,7 +627,7 @@
       card.className = "actor-card";
       card.innerHTML = `
         <div class="actor-name">${c.name}</div>
-        <div class="actor-job">${JOBS[c.job].name} Lv.${c.level}</div>
+        <div class="actor-job">${jobDef(c).name} Lv.${c.level}</div>
         <div class="stat-bar hp"><div class="fill" style="width:100%"></div></div>
         <div class="stat-num hpnum"></div>
         <div class="stat-bar mp"><div class="fill" style="width:100%"></div></div>
@@ -734,7 +747,7 @@
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
     else if (ability.target === "all-ally") targets = activeParty().filter((p) => p.alive);
 
-    const lifesteal = racePassive(c, "lifesteal");
+    const lifesteal = racePassive(c, "lifesteal") + (ability.lifesteal || 0);
     for (const t of targets) {
       for (let h = 0; h < ability.hits; h++) {
         if (ability.kind === "heal") {
@@ -846,7 +859,7 @@
     const success = Math.random() < tpl.tameChance;
     if (!success) return { success: false, name: tpl.name };
     const lvl = Math.max(1, currentMaxLevel() - 2);
-    const mon = newCharacter(tpl.name, "warrior", key, { level: lvl, isMonster: true });
+    const mon = newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
     roster.push(mon);
     return { success: true, name: tpl.name, char: mon };
   }
@@ -872,7 +885,7 @@
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
         run.levelUps.push(c.name + " Lv." + c.level);
-        for (const a of JOBS[c.job].abilities) {
+        for (const a of jobDef(c).abilities) {
           if (a.reqLevel === c.level) run.abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
         }
       }
