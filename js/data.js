@@ -30,6 +30,36 @@ const JOBS = {
       { id: "blessing", name: "せいれいのしゅくふく", reqLevel: 15, mpCost: 18, kind: "heal", target: "all-ally", power: 2.0, hits: 1, desc: "味方全体のHPを大きく回復" },
     ],
   },
+  thief: {
+    id: "thief", name: "とうぞく", commandName: "わざ",
+    base: { hp: 24, mp: 8, atk: 9, mag: 3, def: 5, spd: 10 },
+    abilities: [
+      { id: "slash", name: "きりつけ", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.15, hits: 1, desc: "素早く斬りつける" },
+      { id: "wild_slash", name: "みだれぎり", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.5, hits: 3, desc: "3回続けて斬る" },
+      { id: "pursuit", name: "ついげき", reqLevel: 10, mpCost: 3, kind: "physical", target: "single", power: 0.45, hits: 4, desc: "4回連続で追撃する" },
+      { id: "shadow_sew", name: "かげぬい", reqLevel: 15, mpCost: 6, kind: "physical", target: "all-enemy", power: 1.1, hits: 1, desc: "影から敵全体を斬り抜ける" },
+    ],
+  },
+  monk: {
+    id: "monk", name: "ぶとうか", commandName: "けんぽう",
+    base: { hp: 32, mp: 6, atk: 10, mag: 4, def: 7, spd: 8 },
+    abilities: [
+      { id: "straight", name: "せいけんづき", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.2, hits: 1, desc: "鍛えた拳で突く" },
+      { id: "rush", name: "れんだ", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.45, hits: 3, desc: "拳を3回叩き込む" },
+      { id: "chi_heal", name: "きこう", reqLevel: 10, mpCost: 5, kind: "heal", target: "single-ally", power: 1.6, hits: 1, desc: "気を巡らせて味方1体を回復する" },
+      { id: "wave", name: "はどう", reqLevel: 15, mpCost: 8, kind: "magic", target: "all-enemy", power: 1.3, hits: 1, desc: "闘気の波動で敵全体を撃つ" },
+    ],
+  },
+  darkknight: {
+    id: "darkknight", name: "あんこくし", commandName: "あんこく",
+    base: { hp: 30, mp: 10, atk: 12, mag: 6, def: 7, spd: 6 },
+    abilities: [
+      { id: "dark_slash", name: "やみぎり", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.2, hits: 1, desc: "闇をまとった斬撃" },
+      { id: "drain", name: "ドレイン", reqLevel: 5, mpCost: 5, kind: "magic", target: "single", power: 1.3, hits: 1, lifesteal: 0.6, desc: "与えたダメージの6割を吸収する" },
+      { id: "black_mist", name: "くろいきり", reqLevel: 10, mpCost: 9, kind: "magic", target: "all-enemy", power: 1.1, hits: 1, desc: "黒い霧で敵全体を侵す" },
+      { id: "soul_edge", name: "こんしんのいちげき", reqLevel: 15, mpCost: 6, kind: "physical", target: "single", power: 2.6, hits: 1, desc: "魂を削る渾身の一撃" },
+    ],
+  },
 };
 
 // テイムしたモンスター専用のジョブ。種族IDと対応し、人間のジョブには転職できない。
@@ -128,6 +158,24 @@ const RACES = {
     mult: { hp: 1.05, mp: 1.05, atk: 1.1, mag: 1.1, def: 1.0, spd: 1.1 },
     expMult: 0.85, passive: { lifesteal: 0.06 },
     desc: "夜に力を増す一族。総合力は高いが成長は遅く、与えたダメージの一部でHPを回復する。",
+  },
+  artisan: {
+    name: "こうじん", kind: "player",
+    mult: { hp: 0.9, mp: 1.3, atk: 0.85, mag: 1.15, def: 0.95, spd: 1.0 },
+    expMult: 1.0, passive: { mpCostMult: 0.8 },
+    desc: "魔力の扱いに長けた技巧の民。MPが多く、技の消費MPが2割少なくて済む。",
+  },
+  spiritkin: {
+    name: "せいれいぞく", kind: "player",
+    mult: { hp: 0.85, mp: 1.25, atk: 0.8, mag: 1.2, def: 0.9, spd: 1.1 },
+    expMult: 1.0, passive: { healBonus: 0.25 },
+    desc: "精霊の血を引く種族。体は脆いが、使う回復量が25%増える。",
+  },
+  giant: {
+    name: "きょじん", kind: "player",
+    mult: { hp: 1.4, mp: 0.7, atk: 1.25, mag: 0.7, def: 1.15, spd: 0.65 },
+    expMult: 0.9, passive: { dmgTakenMult: 0.9 },
+    desc: "山のような巨躯を持つ種族。圧倒的な体力と攻撃力を誇るが、動きは非常に遅い。",
   },
   // テイムしたモンスターの種族（せんしジョブ + このステータス倍率で仲間になる）
   slime: {

@@ -452,7 +452,7 @@
     wrap.appendChild(row);
 
     const autoBtn = document.createElement("button");
-    autoBtn.className = "sub-pick";
+    autoBtn.className = "equip-choice";
     autoBtn.style.marginTop = "6px";
     autoBtn.textContent = "おまかせ装備";
     autoBtn.addEventListener("click", () => { autoEquip(c); renderJobsScreen(); });
@@ -723,8 +723,13 @@
   });
 
   // ---------- Auto-battle AI ----------
+  function mpCostFor(c, ability) {
+    const mult = racePassive(c, "mpCostMult") || 1;
+    return Math.max(0, Math.round(ability.mpCost * mult));
+  }
+
   function chooseAction(c) {
-    const abilities = availableAbilities(c).filter((a) => isSkillActive(c, a.id) && c.mp >= a.mpCost);
+    const abilities = availableAbilities(c).filter((a) => isSkillActive(c, a.id) && c.mp >= mpCostFor(c, a));
     const usable = abilities.filter((a) => {
       if (a.kind !== "heal") return true;
       if (a.target === "single-ally") return activeParty().some((p) => p.alive && p.hp < computeStats(p).maxHp * 0.8);
@@ -754,7 +759,7 @@
 
   function performCharacterAction(c) {
     const ability = chooseAction(c);
-    c.mp = Math.max(0, c.mp - ability.mpCost);
+    c.mp = Math.max(0, c.mp - mpCostFor(c, ability));
     const stats = computeStats(c);
     let targets = [];
     if (ability.target === "single") { const t = pickEnemyTarget(); if (t) targets = [t]; }
@@ -767,7 +772,8 @@
       for (let h = 0; h < ability.hits; h++) {
         if (ability.kind === "heal") {
           const s = computeStats(t);
-          const amount = Math.max(1, Math.round(stats.mag * ability.power * rand(0.9, 1.1)));
+          const healMult = 1 + racePassive(c, "healBonus");
+          const amount = Math.max(1, Math.round(stats.mag * ability.power * healMult * rand(0.9, 1.1)));
           t.hp = Math.min(s.maxHp, t.hp + amount);
           logLine(`${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
         } else {
