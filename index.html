@@ -26,12 +26,27 @@
 
   <!-- パーティ編成画面 -->
   <section id="screen-jobs" class="screen hidden">
-    <div class="panel">
-      <h2>パーティ編成</h2>
-      <p class="sub">種族×ジョブでステータスが変わります。最大5人まで編成に入れて戦闘に出せます。</p>
-      <div id="jobCharList" class="job-char-list"></div>
-      <button class="btn ghost" id="btnRecruit">仲間を探す</button>
-      <button class="btn primary" id="btnJobsDone">もどる</button>
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">パーティを編成する</div>
+        <button class="btn small ghost" id="btnJobsDone">もどる</button>
+      </div>
+      <div id="rosterBody" class="roster-body"></div>
+      <div class="roster-footer">
+        <span id="rosterCount" class="roster-count"></span>
+        <button class="btn small ghost" id="btnRecruit">仲間を探す</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- キャラ詳細画面 -->
+  <section id="screen-chardetail" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title" id="detailName">—</div>
+        <button class="btn small ghost" id="btnDetailBack">もどる</button>
+      </div>
+      <div id="detailBody" class="roster-body"></div>
     </div>
   </section>
 

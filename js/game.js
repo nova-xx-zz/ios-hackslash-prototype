@@ -287,20 +287,148 @@
     showScreen("screen-title");
   });
 
-  // ---------- Party / job screen ----------
+  // ---------- パーティ一覧（編成画面） ----------
+  const expandedTeams = new Set([0]);
+  let benchExpanded = true;
+  let detailCharId = null;
+
   function renderJobsScreen() {
-    const wrap = document.getElementById("jobCharList");
+    const wrap = document.getElementById("rosterBody");
     wrap.innerHTML = "";
 
-    const hint = document.createElement("div");
-    hint.className = "sub";
-    hint.style.margin = "0 0 12px";
-    hint.textContent = TEAM_LABELS
-      .map((l, i) => `${l}: ${teamMembers(i).length}/${MAX_ACTIVE}人`)
-      .join("　") + "（1チーム最大5人。探索に出るのは選択中のチームのみ）";
-    wrap.appendChild(hint);
+    wrap.appendChild(sectionLabel("パーティ"));
+    for (let i = 0; i < TEAM_LABELS.length; i++) {
+      const members = teamMembers(i);
+      wrap.appendChild(buildPartyRow({
+        key: "t" + i,
+        name: `${TEAM_NAMES[i]}（${TEAM_LABELS[i]}）`,
+        meta: `${members.length}/${MAX_ACTIVE}人`,
+        deployed: i === activeTeam,
+        expanded: expandedTeams.has(i),
+        onToggle: () => {
+          if (expandedTeams.has(i)) expandedTeams.delete(i); else expandedTeams.add(i);
+          renderJobsScreen();
+        },
+        onDeploy: () => { activeTeam = i; renderJobsScreen(); },
+        members,
+        emptyTile: null,
+      }));
+    }
 
-    for (const c of roster) {
+    wrap.appendChild(sectionLabel("未編成"));
+    const bench = roster.filter((c) => c.team === null);
+    wrap.appendChild(buildPartyRow({
+      key: "bench",
+      name: "控え",
+      meta: `${bench.length}人`,
+      expanded: benchExpanded,
+      onToggle: () => { benchExpanded = !benchExpanded; renderJobsScreen(); },
+      members: bench,
+      emptyTile: () => recruitCharacter(),
+    }));
+
+    document.getElementById("rosterCount").textContent =
+      `所持なかま ${roster.length}人　/　所持品 ${inventory.length}個`;
+  }
+
+  function sectionLabel(text) {
+    const el = document.createElement("div");
+    el.className = "roster-section";
+    el.textContent = text;
+    return el;
+  }
+
+  function buildPartyRow(opts) {
+    const frag = document.createDocumentFragment();
+
+    const head = document.createElement("button");
+    head.className = "party-row-head";
+    head.innerHTML = `<span class="chev">${opts.expanded ? "∨" : "＞"}</span>
+      <span class="pname">${opts.name}</span>`;
+    if (opts.deployed) {
+      const tag = document.createElement("span");
+      tag.className = "deployed";
+      tag.textContent = "出撃中";
+      head.appendChild(tag);
+    }
+    const meta = document.createElement("span");
+    meta.className = "pmeta";
+    meta.textContent = opts.meta;
+    head.appendChild(meta);
+    head.addEventListener("click", opts.onToggle);
+    frag.appendChild(head);
+
+    if (!opts.expanded) return frag;
+
+    const strip = document.createElement("div");
+    strip.className = "member-strip";
+    for (const c of opts.members) strip.appendChild(buildMemberCard(c));
+    if (opts.emptyTile) {
+      const add = document.createElement("button");
+      add.className = "member-card empty";
+      add.textContent = "＋";
+      add.title = "仲間を探す";
+      add.addEventListener("click", opts.emptyTile);
+      strip.appendChild(add);
+    }
+    if (opts.members.length === 0 && !opts.emptyTile) {
+      const none = document.createElement("div");
+      none.className = "sub-ability-row";
+      none.style.padding = "2px 4px 8px";
+      none.textContent = "（このパーティは空です）";
+      frag.appendChild(none);
+    }
+    frag.appendChild(strip);
+
+    if (opts.onDeploy && !opts.deployed && opts.members.length > 0) {
+      const btn = document.createElement("button");
+      btn.className = "equip-choice";
+      btn.style.margin = "0 2px 10px";
+      btn.textContent = "このパーティで出撃する";
+      btn.addEventListener("click", opts.onDeploy);
+      frag.appendChild(btn);
+    }
+    return frag;
+  }
+
+  function buildMemberCard(c) {
+    const stats = computeStats(c);
+    const btn = document.createElement("button");
+    btn.className = "member-card" + (c.isMonster ? " monster" : "");
+    btn.innerHTML = `
+      <div class="mtitle">${RACES[c.race].name}・${jobDef(c).name}</div>
+      <div class="mname">${c.name}</div>
+      <div class="mstats"><span>Lv.${c.level}</span><span>HP${stats.maxHp}</span></div>`;
+    btn.addEventListener("click", () => openCharDetail(c));
+    return btn;
+  }
+
+  function recruitCharacter() {
+    const r = rollNewRecruit();
+    const lvl = Math.max(1, currentMaxLevel() - 1);
+    const c = newCharacter(r.name, r.job, r.race, { level: lvl });
+    roster.push(c);
+    benchExpanded = true;
+    renderJobsScreen();
+    return c;
+  }
+
+  // ---------- キャラ詳細 ----------
+  function openCharDetail(c) {
+    detailCharId = c.id;
+    renderCharDetail();
+    showScreen("screen-chardetail");
+  }
+
+  function renderCharDetail() {
+    const c = roster.find((x) => x.id === detailCharId);
+    if (!c) { showScreen("screen-jobs"); return; }
+    const wrap = document.getElementById("detailBody");
+    wrap.innerHTML = "";
+    document.getElementById("detailName").textContent =
+      `${c.name}${c.isMonster ? "（テイム）" : ""}`;
+
+    {
       const card = document.createElement("div");
       card.className = "job-char-card";
 
@@ -309,7 +437,7 @@
       const benchBtn = document.createElement("button");
       benchBtn.className = "job-pick" + (c.team === null ? " active" : "");
       benchBtn.textContent = "控え";
-      benchBtn.addEventListener("click", () => { c.team = null; renderJobsScreen(); });
+      benchBtn.addEventListener("click", () => { c.team = null; renderCharDetail(); });
       activeRow.appendChild(benchBtn);
       for (let i = 0; i < TEAM_LABELS.length; i++) {
         const btn = document.createElement("button");
@@ -319,10 +447,8 @@
         btn.addEventListener("click", () => {
           if (atCap) return;
           c.team = i;
-          const s = computeStats(c);
-          c.hp = Math.min(c.hp, s.maxHp);
-          c.mp = Math.min(c.mp, s.maxMp);
-          renderJobsScreen();
+          clampVitals(c);
+          renderCharDetail();
         });
         activeRow.appendChild(btn);
       }
@@ -346,7 +472,7 @@
               if (sub && JOBS[jobId].abilities.find((a) => a.id === sub.id)) c.subAbilityId = null;
             }
             clampVitals(c);
-            renderJobsScreen();
+            renderCharDetail();
           });
           jobRow.appendChild(btn);
         }
@@ -363,7 +489,7 @@
         const noneBtn = document.createElement("button");
         noneBtn.className = "sub-pick" + (!c.subAbilityId ? " active" : "");
         noneBtn.textContent = "なし";
-        noneBtn.addEventListener("click", () => { c.subAbilityId = null; renderJobsScreen(); });
+        noneBtn.addEventListener("click", () => { c.subAbilityId = null; renderCharDetail(); });
         subPickRow.appendChild(noneBtn);
       }
 
@@ -371,7 +497,7 @@
         const btn = document.createElement("button");
         btn.className = "sub-pick" + (c.subAbilityId === a.id ? " active" : "");
         btn.textContent = a.name;
-        btn.addEventListener("click", () => { c.subAbilityId = a.id; renderJobsScreen(); });
+        btn.addEventListener("click", () => { c.subAbilityId = a.id; renderCharDetail(); });
         subPickRow.appendChild(btn);
       }
       if (!c.isMonster && candidates.length === 0) {
@@ -393,7 +519,7 @@
         btn.textContent = `${a.name} ${on ? "ON" : "OFF"}`;
         btn.addEventListener("click", () => {
           c.skillActive[a.id] = !isSkillActive(c, a.id);
-          renderJobsScreen();
+          renderCharDetail();
         });
         skillToggleRow.appendChild(btn);
       }
@@ -445,7 +571,7 @@
         <span class="slot-item">${item ? itemLabel(item) : "なし"}</span>`;
       btn.addEventListener("click", () => {
         openSlot = openSlot === key ? null : key;
-        renderJobsScreen();
+        renderCharDetail();
       });
       row.appendChild(btn);
     }
@@ -455,7 +581,7 @@
     autoBtn.className = "equip-choice";
     autoBtn.style.marginTop = "6px";
     autoBtn.textContent = "おまかせ装備";
-    autoBtn.addEventListener("click", () => { autoEquip(c); renderJobsScreen(); });
+    autoBtn.addEventListener("click", () => { autoEquip(c); renderCharDetail(); });
     wrap.appendChild(autoBtn);
 
     // 開いているスロットの候補一覧
@@ -471,7 +597,7 @@
         const off = document.createElement("button");
         off.className = "equip-choice";
         off.textContent = "はずす";
-        off.addEventListener("click", () => { unequipSlot(c, opened.key); renderJobsScreen(); });
+        off.addEventListener("click", () => { unequipSlot(c, opened.key); renderCharDetail(); });
         list.appendChild(off);
       }
       if (candidates.length === 0) {
@@ -485,7 +611,7 @@
         btn.className = "equip-choice";
         btn.style.borderColor = item.rarityColor;
         btn.textContent = itemLabel(item);
-        btn.addEventListener("click", () => { equipItem(c, item); openSlot = null; renderJobsScreen(); });
+        btn.addEventListener("click", () => { equipItem(c, item); openSlot = null; renderCharDetail(); });
         list.appendChild(btn);
       }
       wrap.appendChild(list);
@@ -511,12 +637,12 @@
     renderJobsScreen();
     showScreen("screen-jobs");
   });
-  document.getElementById("btnRecruit").addEventListener("click", () => {
-    const r = rollNewRecruit();
-    const lvl = Math.max(1, currentMaxLevel() - 1);
-    const c = newCharacter(r.name, r.job, r.race, { level: lvl });
-    roster.push(c);
+  document.getElementById("btnRecruit").addEventListener("click", () => { recruitCharacter(); });
+  document.getElementById("btnDetailBack").addEventListener("click", () => {
+    detailCharId = null;
+    openSlot = null;
     renderJobsScreen();
+    showScreen("screen-jobs");
   });
 
   // ---------- Battle ----------
