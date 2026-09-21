@@ -311,6 +311,7 @@
         },
         onDeploy: () => { activeTeam = i; renderJobsScreen(); },
         members,
+        dropKey: String(i),
         emptyTile: null,
       }));
     }
@@ -324,11 +325,20 @@
       expanded: benchExpanded,
       onToggle: () => { benchExpanded = !benchExpanded; renderJobsScreen(); },
       members: bench,
-      emptyTile: () => recruitCharacter(),
+      dropKey: "bench",
+      emptyTile: () => openCreateScreen(),
     }));
 
-    document.getElementById("rosterCount").textContent =
-      `所持なかま ${roster.length}人　/　所持品 ${inventory.length}個`;
+    document.getElementById("rosterCount").textContent = rosterMessage ||
+      `所持なかま ${roster.length}人　/　所持品 ${inventory.length}個　（カードを長押しでドラッグ移動）`;
+  }
+
+  let rosterMessage = "";
+  let rosterMessageTimer = null;
+  function flashRosterMessage(text) {
+    rosterMessage = text;
+    clearTimeout(rosterMessageTimer);
+    rosterMessageTimer = setTimeout(() => { rosterMessage = ""; renderJobsScreen(); }, 1800);
   }
 
   function sectionLabel(text) {
@@ -343,6 +353,7 @@
 
     const head = document.createElement("button");
     head.className = "party-row-head";
+    head.dataset.drop = opts.dropKey;
     head.innerHTML = `<span class="chev">${opts.expanded ? "∨" : "＞"}</span>
       <span class="pname">${opts.name}</span>`;
     if (opts.deployed) {
@@ -362,6 +373,7 @@
 
     const strip = document.createElement("div");
     strip.className = "member-strip";
+    strip.dataset.drop = opts.dropKey;
     for (const c of opts.members) strip.appendChild(buildMemberCard(c));
     if (opts.emptyTile) {
       const add = document.createElement("button");
@@ -399,19 +411,265 @@
       <div class="mtitle">${RACES[c.race].name}・${jobDef(c).name}</div>
       <div class="mname">${c.name}</div>
       <div class="mstats"><span>Lv.${c.level}</span><span>HP${stats.maxHp}</span></div>`;
-    btn.addEventListener("click", () => openCharDetail(c));
+    attachMemberDrag(btn, c);
     return btn;
   }
 
-  function recruitCharacter() {
+  // ---------- メンバーカードのドラッグ移動 ----------
+  // iOS Safari では HTML5 drag&drop が使えないので Pointer Events で実装する。
+  // 長押しでドラッグ開始、それ以前の指の移動は横スクロールとして扱う。
+  const DRAG_HOLD_MS = 260;
+  const DRAG_SLOP = 10;
+  let dragState = null;
+
+  function attachMemberDrag(card, c) {
+    card.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const start = { x: e.clientX, y: e.clientY };
+      let dragging = false;
+      let canceled = false;
+
+      const holdTimer = setTimeout(() => {
+        if (canceled) return;
+        dragging = true;
+        startMemberDrag(c, card, start);
+      }, DRAG_HOLD_MS);
+
+      const onMove = (ev) => {
+        if (dragging) {
+          ev.preventDefault();
+          moveMemberDrag(ev);
+          return;
+        }
+        if (Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > DRAG_SLOP) {
+          canceled = true;
+          clearTimeout(holdTimer);
+          detach();
+        }
+      };
+      const onUp = (ev) => {
+        clearTimeout(holdTimer);
+        detach();
+        if (dragging) dropMemberDrag(ev);
+        else if (!canceled) openCharDetail(c);
+      };
+      const detach = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
+      window.addEventListener("pointermove", onMove, { passive: false });
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    });
+
+    // キーボード操作など、ポインタを伴わない click のためのフォールバック
+    card.addEventListener("click", (e) => {
+      if (e.detail === 0) openCharDetail(c);
+    });
+  }
+
+  function startMemberDrag(c, card, pos) {
+    const ghost = card.cloneNode(true);
+    ghost.classList.add("drag-ghost");
+    ghost.style.width = card.offsetWidth + "px";
+    ghost.style.left = pos.x + "px";
+    ghost.style.top = pos.y + "px";
+    document.body.appendChild(ghost);
+    card.classList.add("dragging");
+    document.body.classList.add("dragging-member");
+    dragState = { char: c, card, ghost, zone: null };
+  }
+
+  function moveMemberDrag(ev) {
+    if (!dragState) return;
+    dragState.ghost.style.left = ev.clientX + "px";
+    dragState.ghost.style.top = ev.clientY + "px";
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const zone = el ? el.closest("[data-drop]") : null;
+    if (zone === dragState.zone) return;
+    if (dragState.zone) dragState.zone.classList.remove("drop-target", "full");
+    if (zone) {
+      zone.classList.add("drop-target");
+      if (!canDropOn(zone.dataset.drop, dragState.char)) zone.classList.add("full");
+    }
+    dragState.zone = zone;
+  }
+
+  function canDropOn(key, c) {
+    if (key === "bench") return true;
+    const i = parseInt(key, 10);
+    if (c.team === i) return true;
+    return teamMembers(i).length < MAX_ACTIVE;
+  }
+
+  function dropMemberDrag() {
+    if (!dragState) return;
+    const { char, card, ghost, zone } = dragState;
+    ghost.remove();
+    card.classList.remove("dragging");
+    document.body.classList.remove("dragging-member");
+    if (zone) zone.classList.remove("drop-target", "full");
+    dragState = null;
+
+    if (zone) {
+      const key = zone.dataset.drop;
+      if (key === "bench") {
+        char.team = null;
+        benchExpanded = true;
+      } else {
+        const i = parseInt(key, 10);
+        if (char.team !== i) {
+          if (!canDropOn(key, char)) {
+            flashRosterMessage(`${TEAM_NAMES[i]}は満員です（最大${MAX_ACTIVE}人）`);
+            renderJobsScreen();
+            return;
+          }
+          char.team = i;
+          clampVitals(char);
+          expandedTeams.add(i);
+        }
+      }
+    }
+    renderJobsScreen();
+  }
+
+  // ---------- キャラ作成（自由ビルド） ----------
+  let draft = null;
+
+  function openCreateScreen() {
     const r = rollNewRecruit();
-    const lvl = Math.max(1, currentMaxLevel() - 1);
-    const c = newCharacter(r.name, r.job, r.race, { level: lvl });
+    draft = { name: r.name, race: r.race, job: r.job };
+    renderCreateScreen();
+    showScreen("screen-create");
+  }
+
+  function renderCreateScreen() {
+    const wrap = document.getElementById("createBody");
+    wrap.innerHTML = "";
+
+    // 名前
+    const nameField = document.createElement("div");
+    nameField.className = "create-field";
+    nameField.innerHTML = `<div class="create-label">なまえ</div>`;
+    const nameRow = document.createElement("div");
+    nameRow.className = "name-row";
+    const input = document.createElement("input");
+    input.className = "name-input";
+    input.id = "createName";
+    input.type = "text";
+    input.maxLength = 8;
+    input.value = draft.name;
+    input.addEventListener("input", () => {
+      draft.name = input.value;
+      updateCreatePreview();
+    });
+    nameRow.appendChild(input);
+    const dice = document.createElement("button");
+    dice.className = "pick-chip";
+    dice.textContent = "別の名前";
+    dice.addEventListener("click", () => {
+      draft.name = rollNewRecruit().name;
+      renderCreateScreen();
+    });
+    nameRow.appendChild(dice);
+    nameField.appendChild(nameRow);
+    wrap.appendChild(nameField);
+
+    // 種族
+    wrap.appendChild(buildPickField("しゅぞく", PLAYER_RACE_IDS, draft.race,
+      (id) => RACES[id].name,
+      (id) => { draft.race = id; renderCreateScreen(); }));
+    const raceDesc = document.createElement("div");
+    raceDesc.className = "create-label";
+    raceDesc.style.marginTop = "-8px";
+    raceDesc.style.marginBottom = "14px";
+    raceDesc.textContent = RACES[draft.race].desc;
+    wrap.appendChild(raceDesc);
+
+    // ジョブ
+    wrap.appendChild(buildPickField("ジョブ", Object.keys(JOBS), draft.job,
+      (id) => JOBS[id].name,
+      (id) => { draft.job = id; renderCreateScreen(); }));
+    const jobDesc = document.createElement("div");
+    jobDesc.className = "create-label";
+    jobDesc.style.marginTop = "-8px";
+    jobDesc.style.marginBottom = "14px";
+    jobDesc.textContent = JOBS[draft.job].abilities
+      .map((a) => `${a.name}(Lv.${a.reqLevel})`)
+      .join(" / ");
+    wrap.appendChild(jobDesc);
+
+    // プレビュー
+    const box = document.createElement("div");
+    box.className = "preview-box";
+    box.id = "createPreview";
+    wrap.appendChild(box);
+    updateCreatePreview();
+  }
+
+  function buildPickField(label, ids, selected, nameOf, onPick) {
+    const field = document.createElement("div");
+    field.className = "create-field";
+    field.innerHTML = `<div class="create-label">${label}</div>`;
+    const grid = document.createElement("div");
+    grid.className = "pick-grid";
+    for (const id of ids) {
+      const chip = document.createElement("button");
+      chip.className = "pick-chip" + (id === selected ? " active" : "");
+      chip.textContent = nameOf(id);
+      chip.addEventListener("click", () => onPick(id));
+      grid.appendChild(chip);
+    }
+    field.appendChild(grid);
+    return field;
+  }
+
+  function createStartLevel() { return Math.max(1, currentMaxLevel() - 1); }
+
+  function updateCreatePreview() {
+    const box = document.getElementById("createPreview");
+    if (!box) return;
+    const preview = newCharacter(draft.name || "ななし", draft.job, draft.race, { level: createStartLevel() });
+    const s = computeStats(preview);
+    const race = RACES[draft.race];
+    const passives = Object.keys(race.passive).map((k) => PASSIVE_LABELS[k](race.passive[k]));
+    if (race.expMult !== 1) passives.push(`獲得経験値 ${Math.round((race.expMult - 1) * 100)}%`);
+    box.innerHTML = `
+      <div class="pv-name">${draft.name || "ななし"} — ${race.name}・${JOBS[draft.job].name} Lv.${preview.level}</div>
+      <div class="pv-stats">HP ${s.maxHp}　MP ${s.maxMp}　ATK ${s.atk}　MAG ${s.mag}　DEF ${s.def}　SPD ${Math.round(s.spd * 10) / 10}</div>
+      <div class="pv-note">${passives.length ? "種族特性: " + passives.join(" / ") : "種族特性: なし"}</div>
+      <div class="pv-note">習得済み: ${availableAbilities(preview).map((a) => a.name).join("、") || "なし"}</div>`;
+  }
+
+  const PASSIVE_LABELS = {
+    critBonus: (v) => `会心率 +${Math.round(v * 100)}%`,
+    dmgTakenMult: (v) => `被ダメージ ${Math.round((v - 1) * 100)}%`,
+    lifesteal: (v) => `与ダメージの ${Math.round(v * 100)}% を吸収`,
+    mpCostMult: (v) => `消費MP ${Math.round((v - 1) * 100)}%`,
+    healBonus: (v) => `回復量 +${Math.round(v * 100)}%`,
+  };
+
+  function confirmCreate() {
+    const name = (draft.name || "").trim() || "ななし";
+    const c = newCharacter(name, draft.job, draft.race, { level: createStartLevel() });
     roster.push(c);
     benchExpanded = true;
     renderJobsScreen();
+    showScreen("screen-jobs");
     return c;
   }
+
+  document.getElementById("btnCreateBack").addEventListener("click", () => {
+    renderJobsScreen();
+    showScreen("screen-jobs");
+  });
+  document.getElementById("btnCreateRandom").addEventListener("click", () => {
+    const r = rollNewRecruit();
+    draft = { name: r.name, race: r.race, job: r.job };
+    renderCreateScreen();
+  });
+  document.getElementById("btnCreateConfirm").addEventListener("click", () => { confirmCreate(); });
 
   // ---------- キャラ詳細 ----------
   function openCharDetail(c) {
@@ -637,7 +895,7 @@
     renderJobsScreen();
     showScreen("screen-jobs");
   });
-  document.getElementById("btnRecruit").addEventListener("click", () => { recruitCharacter(); });
+  document.getElementById("btnRecruit").addEventListener("click", () => { openCreateScreen(); });
   document.getElementById("btnDetailBack").addEventListener("click", () => {
     detailCharId = null;
     openSlot = null;

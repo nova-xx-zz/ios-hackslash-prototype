@@ -205,6 +205,58 @@ html, body {
   min-height: 62px;
 }
 
+/* character creation */
+.create-field { margin-bottom: 14px; }
+.create-label { font-size: 11px; font-weight: 700; color: var(--sub-text); margin-bottom: 5px; }
+.name-row { display: flex; gap: 6px; }
+.name-input {
+  flex: 1; min-width: 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  padding: 9px 10px;
+  -webkit-user-select: text; user-select: text;
+}
+.name-input:focus { outline: none; border-color: var(--accent); }
+
+.pick-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.pick-chip {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.pick-chip.active { background: var(--accent); border-color: var(--accent); }
+
+.preview-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px;
+}
+.preview-box .pv-name { font-size: 14px; font-weight: 700; }
+.preview-box .pv-stats { font-size: 12px; margin-top: 6px; line-height: 1.7; }
+.preview-box .pv-note { font-size: 11px; color: var(--sub-text); margin-top: 6px; line-height: 1.6; }
+
+/* drag & drop */
+.member-card.dragging { opacity: 0.35; }
+.drag-ghost {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.92;
+  transform: translate(-50%, -50%) scale(1.04);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+}
+.drop-target { outline: 2px dashed var(--atb); outline-offset: 2px; }
+.drop-target.full { outline-color: var(--hp); }
+body.dragging-member { overflow: hidden; touch-action: none; }
+
 /* skill toggle chips (party screen) */
 .skill-toggle-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .skill-toggle {
