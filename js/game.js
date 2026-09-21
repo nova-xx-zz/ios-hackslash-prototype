@@ -50,6 +50,13 @@
       const item = c.equip[slot.key];
       if (item) s[item.stat] += item.value;
     }
+    // 石碑の加護はそのダンジョンの間だけ乗る（HP/MPは除く）
+    if (run && !run.finished) {
+      for (const stat of ["atk", "mag", "def", "spd"]) {
+        const buff = run.buffs[stat];
+        if (buff) s[stat] = Math.round(s[stat] * (1 + buff) * 10) / 10;
+      }
+    }
     return s;
   }
 
@@ -139,6 +146,14 @@
     c.mp = Math.min(c.mp, s.maxMp);
   }
 
+  // computeStats が run.buffs を参照するため、roster を組み立てる前に宣言しておく
+  let battle = null;
+  let run = null; // 進行中のダンジョン { dungeon, battleIndex, buffs, expTotal, drops }
+  let clearedDungeons = new Set();
+  let selectedDungeonId = null;
+  let jobsReturnScreen = "screen-title";
+  let speedMult = 1;
+
   let roster = [
     newCharacter("アレン", "warrior", "human", { team: 0 }),
     newCharacter("ガイ", "warrior", "beastkin", { team: 0 }),
@@ -146,13 +161,6 @@
     newCharacter("ノア", "mage", "nocturne", { team: 0 }),
     newCharacter("ルカ", "priest", "stonekin", { team: 0 }),
   ];
-
-  let battle = null;
-  let run = null; // 進行中のダンジョン { dungeon, battleIndex, expTotal, drops }
-  let clearedDungeons = new Set();
-  let selectedDungeonId = null;
-  let jobsReturnScreen = "screen-title";
-  let speedMult = 1;
 
   function isDungeonOpen(d) {
     if (clearedDungeons.has(d.id)) return true;
@@ -524,6 +532,7 @@
     const d = getDungeon(id);
     run = {
       dungeon: d, battleIndex: 0, finished: false,
+      buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
       expTotal: 0, drops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
     };
     for (const c of activeParty()) {
@@ -644,8 +653,14 @@
     const running = !!(run && !run.finished);
     const d = run ? run.dungeon : null;
 
+    const buffText = run
+      ? Object.keys(run.buffs)
+          .filter((k) => run.buffs[k] > 0)
+          .map((k) => `${STAT_LABELS[k]}+${Math.round(run.buffs[k] * 100)}%`)
+          .join(" ")
+      : "";
     document.getElementById("exploreSub").textContent = d
-      ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目`
+      ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
       : "ダンジョン未選択";
     document.getElementById("dockDungeon").textContent = d ? d.name : "—";
     document.getElementById("dockStatus").textContent = !d
@@ -900,7 +915,7 @@
     if (!isLast) {
       run.battleIndex += 1;
       scheduleNext(() => {
-        if (Math.random() < 0.45) rollTreasureEvent();
+        if (Math.random() < 0.6) rollDungeonEvent();
         scheduleNext(startBattle, 700);
       }, 900);
     } else {
@@ -923,6 +938,23 @@
     nextBattleTimer = setTimeout(fn, delayMs / speedMult);
   }
 
+  // ---------- 道中イベント ----------
+  const EVENT_WEIGHTS = [
+    { fn: () => rollTreasureEvent(), weight: 40 },
+    { fn: () => rollTrapEvent(), weight: 25 },
+    { fn: () => rollSpringEvent(), weight: 20 },
+    { fn: () => rollShrineEvent(), weight: 15 },
+  ];
+
+  function rollDungeonEvent() {
+    const total = EVENT_WEIGHTS.reduce((s, e) => s + e.weight, 0);
+    let roll = Math.random() * total;
+    for (const e of EVENT_WEIGHTS) {
+      if (roll < e.weight) { e.fn(); return; }
+      roll -= e.weight;
+    }
+  }
+
   function rollTreasureEvent() {
     if (Math.random() < 0.35) {
       logEvent("treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
@@ -931,6 +963,47 @@
     const item = rollItemDrop();
     gainItem(item);
     logEvent("treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
+  }
+
+  function rollTrapEvent() {
+    const alive = activeParty().filter((p) => p.alive);
+    if (alive.length === 0) return;
+    const wide = Math.random() < 0.45;
+    const targets = wide ? alive : [alive[Math.floor(Math.random() * alive.length)]];
+    const ratio = wide ? 0.1 : 0.18;
+
+    logEvent("trap", wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
+    for (const c of targets) {
+      const s = computeStats(c);
+      const dmg = Math.max(1, Math.round(s.maxHp * ratio * rand(0.85, 1.15)));
+      c.hp = Math.max(1, c.hp - dmg); // 罠では戦闘不能にならない
+      logLine(`${c.name} は ${dmg} のダメージを受けた`, "down");
+    }
+    updateBattleDOM();
+  }
+
+  function rollSpringEvent() {
+    const alive = activeParty().filter((p) => p.alive);
+    if (alive.length === 0) return;
+    logEvent("blessing", "清らかな泉を見つけた！", "パーティは水を飲んで休息した");
+    for (const c of alive) {
+      const s = computeStats(c);
+      const hp = Math.round(s.maxHp * 0.3);
+      const mp = Math.round(s.maxMp * 0.25);
+      c.hp = Math.min(s.maxHp, c.hp + hp);
+      c.mp = Math.min(s.maxMp, c.mp + mp);
+      logLine(`${c.name} のHPが${hp}、MPが${mp}かいふく`, "heal");
+    }
+    updateBattleDOM();
+  }
+
+  function rollShrineEvent() {
+    const stat = ["atk", "def", "spd"][Math.floor(Math.random() * 3)];
+    run.buffs[stat] = (run.buffs[stat] || 0) + 0.12;
+    logEvent("blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
+    logLine(`${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");
+    renderDock();
+    updateBattleDOM();
   }
 
   function gainItem(item) {

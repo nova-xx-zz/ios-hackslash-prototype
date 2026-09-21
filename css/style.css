@@ -236,6 +236,8 @@ html, body {
 
 .log-card.encounter { border-left-color: #b3405a; background: rgba(140, 40, 62, 0.16); }
 .log-card.treasure { border-left-color: #3aa88a; background: rgba(42, 120, 100, 0.16); }
+.log-card.trap { border-left-color: #c9782f; background: rgba(150, 90, 30, 0.16); }
+.log-card.blessing { border-left-color: #4dc3ff; background: rgba(40, 110, 150, 0.16); }
 .log-card.clear { border-left-color: var(--accent); background: rgba(124, 92, 255, 0.14); }
 .log-card.wipe { border-left-color: #7a7a86; background: rgba(0,0,0,0.35); }
 .log-card.start { border-left-color: var(--atb); background: rgba(255, 210, 77, 0.10); }
