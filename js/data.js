@@ -366,12 +366,15 @@ function makeEnemy(t, mult, isBoss) {
 // N/R/SR/UR/LRの5段階。上位ほど急激に出にくくなる（1戦闘平均1.4個・1ダンジョン平均約5個のドロップ換算で、
 // LRはおおよそ100周に1個出るか出ないかのペースになるよう重みを設定している）
 const RARITIES = [
-  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7000 },
-  { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200 },
-  { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650 },
-  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 135 },
-  { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15 },
+  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7000, sell: 5 },
+  { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200, sell: 20 },
+  { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650, sell: 80 },
+  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 135, sell: 350 },
+  { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15, sell: 1500 },
 ];
+
+// 自動売却の対象レア度（N/Rのみ。SR以上は必ず所持品に残す）
+const AUTO_SELL_RARITIES = ["n", "r"];
 
 function rollRarity() {
   const total = RARITIES.reduce((s, r) => s + r.weight, 0);
@@ -414,5 +417,6 @@ function rollItemDrop() {
     value: Math.round(base.base * rarity.mult),
     rarity: rarity.key,
     rarityColor: rarity.color,
+    sellValue: rarity.sell,
   };
 }

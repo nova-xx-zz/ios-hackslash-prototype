@@ -2,12 +2,18 @@
   "use strict";
 
   const BEST_KEY = "jobquest_best_cleared";
+  const GOLD_KEY = "jobquest_gold";
+  const AUTOSELL_KEY = "jobquest_autosell";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
 
   function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
   function setBestStage(n) { if (n > getBestStage()) localStorage.setItem(BEST_KEY, String(n)); }
+
+  let gold = parseInt(localStorage.getItem(GOLD_KEY) || "0", 10);
+  let autoSell = localStorage.getItem(AUTOSELL_KEY) === "1";
+  function addGold(n) { gold += n; localStorage.setItem(GOLD_KEY, String(gold)); }
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
@@ -224,6 +230,7 @@
     const bits = [];
     if (best > 0) bits.push(`クリア済みダンジョン: ${best}`);
     bits.push(`所持なかま: ${roster.length}人`);
+    bits.push(`所持G: ${gold}`);
     document.getElementById("bestClearText").textContent = bits.join("　/　");
   }
 
@@ -1086,6 +1093,7 @@
       dungeon: d, battleIndex: 0, finished: false,
       buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
       expTotal: 0, drops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
+      soldCount: 0, soldGold: 0,
     };
     for (const c of activeParty()) {
       const s = computeStats(c);
@@ -1202,6 +1210,7 @@
 
   function renderDock() {
     document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
+    document.getElementById("goldLine").textContent = `G ${gold}`;
     const running = !!(run && !run.finished);
     const d = run ? run.dungeon : null;
 
@@ -1261,6 +1270,17 @@
     speedMult = speedMult === 1 ? 2 : 1;
     document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
   });
+  function updateAutoSellButton() {
+    const btn = document.getElementById("btnAutoSellToggle");
+    btn.textContent = autoSell ? "自動売却 ON" : "自動売却 OFF";
+    btn.classList.toggle("toggle-on", autoSell);
+  }
+  document.getElementById("btnAutoSellToggle").addEventListener("click", () => {
+    autoSell = !autoSell;
+    localStorage.setItem(AUTOSELL_KEY, autoSell ? "1" : "0");
+    updateAutoSellButton();
+  });
+  updateAutoSellButton();
   document.getElementById("btnRedeploy").addEventListener("click", () => {
     if (run) startDungeon(run.dungeon.id);
   });
@@ -1597,6 +1617,12 @@
   }
 
   function gainItem(item) {
+    if (autoSell && AUTO_SELL_RARITIES.includes(item.rarity)) {
+      addGold(item.sellValue);
+      run.soldCount += 1;
+      run.soldGold += item.sellValue;
+      return;
+    }
     run.drops.push(item);
     inventory.push(item);
   }
@@ -1631,6 +1657,9 @@
       head.textContent = `獲得アイテム ${run.drops.length}個（編成画面で装備できます）`;
       card.lines.appendChild(head);
       for (const item of run.drops) card.lines.appendChild(buildDropRow(item));
+    }
+    if (run.soldCount > 0) {
+      logLine(`自動売却: ${run.soldCount}個（+${run.soldGold}G）　所持G ${gold}`, "system");
     }
 
     scrollLog();
