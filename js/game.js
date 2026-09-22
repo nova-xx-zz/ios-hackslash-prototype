@@ -611,34 +611,96 @@
     return row;
   }
 
-  function openCreatePick(field) {
-    const title = document.getElementById("createPickTitle");
-    const body = document.getElementById("createPickBody");
-    body.innerHTML = "";
-    title.textContent = field === "race" ? "しゅぞくを選ぶ" : "ジョブを選ぶ";
-    const ids = field === "race" ? PLAYER_RACE_IDS : Object.keys(JOBS);
-    for (const id of ids) {
-      const def = field === "race" ? RACES[id] : JOBS[id];
-      const sub = field === "race" ? def.desc : def.abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
-      const row = document.createElement("button");
-      row.className = "create-row create-pick-option" + (draft[field] === id ? " active" : "");
-      row.innerHTML = `
-        <div class="cr-main">
-          <div class="cr-value">${def.name}</div>
-          <div class="cr-sub">${sub}</div>
-        </div>
-        <div class="cr-chev">${draft[field] === id ? "✓" : "›"}</div>`;
-      row.addEventListener("click", () => {
-        draft[field] = id;
-        renderCreateScreen();
-        showScreen("screen-create");
-      });
-      body.appendChild(row);
-    }
-    showScreen("screen-create-pick");
+  function statStars(value, allValues, maxStars) {
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    if (min === max) return Math.ceil(maxStars / 2);
+    return Math.max(1, Math.round(((value - min) / (max - min)) * (maxStars - 1)) + 1);
   }
 
-  document.getElementById("btnCreatePickBack").addEventListener("click", () => showScreen("screen-create"));
+  function jobStatStars(job, maxStars) {
+    const stars = {};
+    for (const k of Object.keys(STAT_LABELS)) {
+      stars[k] = statStars(job.base[k], Object.values(JOBS).map((j) => j.base[k]), maxStars);
+    }
+    return stars;
+  }
+
+  function raceStatStars(race, maxStars) {
+    const stars = {};
+    for (const k of Object.keys(STAT_LABELS)) {
+      stars[k] = statStars(race.mult[k], PLAYER_RACE_IDS.map((id) => RACES[id].mult[k]), maxStars);
+    }
+    return stars;
+  }
+
+  function starBar(stars, maxStars) {
+    return "★".repeat(stars) + "☆".repeat(maxStars - stars);
+  }
+
+  function openCreatePick(field) {
+    renderPickModal(field, draft[field]);
+  }
+
+  function renderPickModal(field, id) {
+    const isJob = field === "job";
+    const def = isJob ? JOBS[id] : RACES[id];
+    const ids = isJob ? Object.keys(JOBS) : PLAYER_RACE_IDS;
+    const MAX_STARS = 5;
+    const stars = isJob ? jobStatStars(def, MAX_STARS) : raceStatStars(def, MAX_STARS);
+
+    document.getElementById("pmIcon").textContent = def.icon || "❓";
+    document.getElementById("pmName").textContent = def.name;
+    document.getElementById("pmDesc").textContent = def.desc;
+
+    const statsBox = document.getElementById("pmStats");
+    statsBox.innerHTML = Object.keys(STAT_LABELS).map((k) => `
+      <div class="pm-stat-row">
+        <span class="pm-stat-label">${STAT_LABELS[k]}</span>
+        <span class="pm-stat-stars">${starBar(stars[k], MAX_STARS)}</span>
+      </div>`).join("");
+
+    const listBox = document.getElementById("pmList");
+    if (isJob) {
+      listBox.innerHTML = `<div class="pm-list-label">アビリティ</div>` + def.abilities.map((a) => `
+        <div class="pm-ability-row">
+          <div class="pm-ability-name">${a.name}<span class="pm-ability-lv">Lv.${a.reqLevel}</span></div>
+          <div class="pm-ability-desc">${a.desc}</div>
+        </div>`).join("");
+    } else {
+      const passives = Object.keys(def.passive).map((k) => PASSIVE_LABELS[k](def.passive[k]));
+      if (def.expMult !== 1) passives.push(`獲得経験値 ${Math.round((def.expMult - 1) * 100)}%`);
+      listBox.innerHTML = `<div class="pm-list-label">種族特性</div>
+        <div class="pm-ability-desc">${passives.length ? passives.join(" / ") : "特性なし"}</div>`;
+    }
+
+    const strip = document.getElementById("pmStrip");
+    strip.innerHTML = "";
+    for (const oid of ids) {
+      const odef = isJob ? JOBS[oid] : RACES[oid];
+      const chip = document.createElement("button");
+      chip.className = "pm-chip" + (oid === id ? " active" : "");
+      chip.textContent = odef.icon || "❓";
+      chip.title = odef.name;
+      chip.addEventListener("click", () => renderPickModal(field, oid));
+      strip.appendChild(chip);
+    }
+
+    document.getElementById("btnPickModalOk").onclick = () => {
+      draft[field] = id;
+      renderCreateScreen();
+      closePickModal();
+    };
+    document.getElementById("pickModal").classList.remove("hidden");
+  }
+
+  function closePickModal() {
+    document.getElementById("pickModal").classList.add("hidden");
+  }
+
+  document.getElementById("pickModal").addEventListener("click", (e) => {
+    if (e.target.id === "pickModal") closePickModal();
+  });
 
   function createStartLevel() { return 1; }
 

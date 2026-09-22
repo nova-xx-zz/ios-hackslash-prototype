@@ -229,8 +229,6 @@ html, body {
   font-size: 11px; color: var(--sub-text); margin-top: 3px; line-height: 1.5;
 }
 .create-row .cr-chev { font-size: 16px; color: var(--sub-text); flex: 0 0 auto; }
-.create-pick-option.active { border-color: var(--accent); background: rgba(124,92,255,0.12); }
-.create-pick-option .cr-chev { color: var(--accent); font-weight: 700; }
 
 .create-section-label {
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
@@ -273,6 +271,56 @@ html, body {
 .preview-box .pv-name { font-size: 14px; font-weight: 700; }
 .preview-box .pv-stats { font-size: 12px; margin-top: 6px; line-height: 1.7; }
 .preview-box .pv-note { font-size: 11px; color: var(--sub-text); margin-top: 6px; line-height: 1.6; }
+
+/* ジョブ/しゅぞく 詳細モーダル */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal-overlay.hidden { display: none; }
+.modal-card {
+  width: 100%; max-width: 360px; max-height: 86vh;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.modal-icon { font-size: 34px; text-align: center; line-height: 1; }
+.modal-name { font-size: 17px; font-weight: 700; text-align: center; margin-top: 8px; }
+.modal-desc { font-size: 12px; color: var(--sub-text); line-height: 1.6; margin-top: 10px; text-align: center; }
+.modal-stats {
+  margin-top: 14px; display: flex; flex-direction: column; gap: 5px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.pm-stat-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.pm-stat-label { color: var(--sub-text); }
+.pm-stat-stars { color: var(--atb); letter-spacing: 1px; }
+.modal-list { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.pm-list-label { font-size: 11px; font-weight: 700; color: var(--sub-text); margin-bottom: 6px; }
+.pm-ability-row { margin-bottom: 8px; }
+.pm-ability-row:last-child { margin-bottom: 0; }
+.pm-ability-name { font-size: 13px; font-weight: 700; }
+.pm-ability-lv { font-size: 10px; color: var(--sub-text); margin-left: 6px; font-weight: 400; }
+.pm-ability-desc { font-size: 11px; color: var(--sub-text); margin-top: 2px; line-height: 1.5; }
+.modal-strip { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 14px; padding-bottom: 2px; }
+.pm-chip {
+  flex: 0 0 auto; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.pm-chip.active { border-color: var(--accent); background: rgba(124,92,255,0.18); }
+.modal-ok { width: 100%; margin-top: 16px; }
 
 /* drag & drop */
 .member-card.dragging { opacity: 0.35; }

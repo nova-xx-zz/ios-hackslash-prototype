@@ -54,17 +54,6 @@
     </div>
   </section>
 
-  <!-- キャラ作成: 項目選択画面 -->
-  <section id="screen-create-pick" class="screen hidden">
-    <div class="roster-wrap">
-      <div class="roster-header">
-        <div class="map-title" id="createPickTitle">—</div>
-        <button class="btn small ghost" id="btnCreatePickBack">もどる</button>
-      </div>
-      <div id="createPickBody" class="roster-body"></div>
-    </div>
-  </section>
-
   <!-- キャラ詳細画面 -->
   <section id="screen-chardetail" class="screen hidden">
     <div class="roster-wrap">
@@ -126,6 +115,19 @@
       <div class="team-tabs" id="teamTabs"></div>
     </div>
   </section>
+
+  <!-- ジョブ/しゅぞく 詳細モーダル -->
+  <div id="pickModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon" id="pmIcon">—</div>
+      <div class="modal-name" id="pmName">—</div>
+      <div class="modal-desc" id="pmDesc"></div>
+      <div class="modal-stats" id="pmStats"></div>
+      <div class="modal-list" id="pmList"></div>
+      <div class="modal-strip" id="pmStrip"></div>
+      <button class="btn primary modal-ok" id="btnPickModalOk">OK</button>
+    </div>
+  </div>
 
 </div>
 <script src="js/data.js"></script>
