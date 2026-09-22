@@ -11,11 +11,14 @@
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
+  function expForLevel(level) { return 30 + level * 15; }
+
   function newCharacter(name, job, race, opts) {
     opts = opts || {};
     const c = {
       id: "c" + nextCharSeq++, name, job, race: race || "human",
-      subAbilityId: null,
+      subAbilityIds: [null, null],
+      jobLevels: {}, // ジョブID -> {level, exp, expToNext}（転職してもレベルを保持するため）
       skillActive: {}, // abilityId -> bool (default true when unlocked)
       abilityPriority: {}, // abilityId -> 1(温存)/2(通常)/3(優先)、既定2
       targetPriority: "weakest", // weakest / strongest / random
@@ -25,10 +28,35 @@
       team: opts.team !== undefined ? opts.team : null, // 0..3 所属チーム / null は控え
       isMonster: opts.isMonster || false,
     };
-    c.expToNext = 30 + c.level * 15;
+    c.expToNext = expForLevel(c.level);
+    if (!c.isMonster && job) c.jobLevels[job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
     const s = computeStats(c);
     c.hp = s.maxHp; c.mp = s.maxMp;
     return c;
+  }
+
+  // 転職: 直前のジョブの進行を保存し、切り替え先のジョブの保持レベルを復元する（無ければLv1から）
+  function switchJob(c, jobId) {
+    if (c.isMonster || c.job === jobId) return;
+    c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+    c.job = jobId;
+    const saved = c.jobLevels[jobId] || { level: 1, exp: 0, expToNext: expForLevel(1) };
+    c.jobLevels[jobId] = saved;
+    c.level = saved.level; c.exp = saved.exp; c.expToNext = saved.expToNext;
+    c.subAbilityIds = c.subAbilityIds.map((id) => {
+      if (!id) return null;
+      const sub = getAbilityById(id);
+      return sub && JOBS[jobId].abilities.find((a) => a.id === sub.id) ? null : id;
+    });
+  }
+
+  // 上級職は対応する基本職を規定レベルまで極めると解放される
+  function jobUnlocked(c, jobId) {
+    const job = JOBS[jobId];
+    if (job.tier !== "advanced") return true;
+    const req = job.requires;
+    const lvl = (c.jobLevels[req.job] && c.jobLevels[req.job].level) || 0;
+    return lvl >= req.level;
   }
 
   // テイムしたモンスターは人間のジョブではなく種族専用ジョブを使う
@@ -81,9 +109,12 @@
   function availableAbilities(c) {
     const job = jobDef(c);
     const list = job.abilities.filter((a) => c.level >= a.reqLevel);
-    if (c.subAbilityId) {
-      const sub = getAbilityById(c.subAbilityId);
-      if (sub && !list.find((a) => a.id === sub.id)) list.push(sub);
+    if (!c.isMonster) {
+      for (const id of c.subAbilityIds) {
+        if (!id) continue;
+        const sub = getAbilityById(id);
+        if (sub && !list.find((a) => a.id === sub.id)) list.push(sub);
+      }
     }
     return list;
   }
@@ -92,13 +123,16 @@
     return c.skillActive[abilityId] !== false; // default ON
   }
 
+  // サブアビリティ候補: 実際にそのジョブでレベルを上げたことがある（jobLevelsに記録がある）技のみ
   function subAbilityCandidates(c) {
     const list = [];
     if (c.isMonster) return list; // モンスターは人間の技を覚えない
     for (const jobId in JOBS) {
       if (jobId === c.job) continue;
+      const trained = c.jobLevels[jobId];
+      if (!trained) continue;
       for (const a of JOBS[jobId].abilities) {
-        if (c.level >= a.reqLevel) list.push(a);
+        if (trained.level >= a.reqLevel) list.push(a);
       }
     }
     return list;
@@ -620,8 +654,9 @@
 
   function jobStatStars(job, maxStars) {
     const stars = {};
+    const peers = Object.values(JOBS).filter((j) => j.tier === job.tier);
     for (const k of Object.keys(STAT_LABELS)) {
-      stars[k] = statStars(job.base[k], Object.values(JOBS).map((j) => j.base[k]), maxStars);
+      stars[k] = statStars(job.base[k], peers.map((j) => j.base[k]), maxStars);
     }
     return stars;
   }
@@ -645,7 +680,7 @@
   function renderPickModal(field, id) {
     const isJob = field === "job";
     const def = isJob ? JOBS[id] : RACES[id];
-    const ids = isJob ? Object.keys(JOBS) : PLAYER_RACE_IDS;
+    const ids = isJob ? BASIC_JOB_IDS : PLAYER_RACE_IDS;
     const MAX_STARS = 5;
     const stars = isJob ? jobStatStars(def, MAX_STARS) : raceStatStars(def, MAX_STARS);
 
@@ -790,56 +825,81 @@
 
       const jobRow = document.createElement("div");
       jobRow.className = "job-pick-row";
+      const jobBlocks = [jobRow];
       if (c.isMonster) {
         const note = document.createElement("div");
         note.className = "sub-ability-row";
         note.textContent = "モンスターは転職できず、種族専用の技を使う";
         jobRow.appendChild(note);
       } else {
-        for (const jobId in JOBS) {
+        const jobLabel = (jobId) => {
+          const lvl = (c.jobLevels[jobId] && c.jobLevels[jobId].level) || 0;
+          const mastered = lvl >= 15 ? "★" : "";
+          return lvl > 0 ? `${JOBS[jobId].name} Lv.${lvl}${mastered}` : JOBS[jobId].name;
+        };
+        for (const jobId of BASIC_JOB_IDS) {
           const btn = document.createElement("button");
           btn.className = "job-pick" + (c.job === jobId ? " active" : "");
-          btn.textContent = JOBS[jobId].name;
+          btn.textContent = jobLabel(jobId);
+          btn.addEventListener("click", () => { switchJob(c, jobId); clampVitals(c); renderCharDetail(); });
+          jobRow.appendChild(btn);
+        }
+        const advLabel = document.createElement("div");
+        advLabel.className = "sub-ability-row";
+        advLabel.textContent = "上級職（対応する基本職をLv.15まで極めると転職できる）";
+        const advRow = document.createElement("div");
+        advRow.className = "job-pick-row";
+        for (const jobId in JOBS) {
+          if (JOBS[jobId].tier !== "advanced") continue;
+          const unlocked = jobUnlocked(c, jobId);
+          const btn = document.createElement("button");
+          btn.className = "job-pick" + (c.job === jobId ? " active" : "") + (unlocked ? "" : " disabled");
+          btn.textContent = jobLabel(jobId);
+          if (!unlocked) btn.title = `${JOBS[JOBS[jobId].requires.job].name} Lv.${JOBS[jobId].requires.level}で解放`;
           btn.addEventListener("click", () => {
-            c.job = jobId;
-            if (c.subAbilityId) {
-              const sub = getAbilityById(c.subAbilityId);
-              if (sub && JOBS[jobId].abilities.find((a) => a.id === sub.id)) c.subAbilityId = null;
-            }
+            if (!unlocked) return;
+            switchJob(c, jobId);
             clampVitals(c);
             renderCharDetail();
           });
-          jobRow.appendChild(btn);
+          advRow.appendChild(btn);
+        }
+        jobBlocks.push(advLabel, advRow);
+      }
+
+      const subLabels = ["サブアビリティ①", "サブアビリティ②"];
+      const subBlocks = [];
+      if (!c.isMonster) {
+        for (let slot = 0; slot < 2; slot++) {
+          const subRow = document.createElement("div");
+          subRow.className = "sub-ability-row";
+          subRow.textContent = `${subLabels[slot]}（他ジョブで実際にレベルを上げた技を装備できる）`;
+          const subPickRow = document.createElement("div");
+          subPickRow.className = "sub-pick-row";
+
+          const noneBtn = document.createElement("button");
+          noneBtn.className = "sub-pick" + (!c.subAbilityIds[slot] ? " active" : "");
+          noneBtn.textContent = "なし";
+          noneBtn.addEventListener("click", () => { c.subAbilityIds[slot] = null; renderCharDetail(); });
+          subPickRow.appendChild(noneBtn);
+
+          const otherSlotId = c.subAbilityIds[1 - slot];
+          const candidates = subAbilityCandidates(c).filter((a) => a.id !== otherSlotId);
+          for (const a of candidates) {
+            const btn = document.createElement("button");
+            btn.className = "sub-pick" + (c.subAbilityIds[slot] === a.id ? " active" : "");
+            btn.textContent = a.name;
+            btn.addEventListener("click", () => { c.subAbilityIds[slot] = a.id; renderCharDetail(); });
+            subPickRow.appendChild(btn);
+          }
+          subBlocks.push(subRow, subPickRow);
         }
       }
-
-      const subRow = document.createElement("div");
-      subRow.className = "sub-ability-row";
-      const candidates = subAbilityCandidates(c);
-      const subPickRow = document.createElement("div");
-      subPickRow.className = "sub-pick-row";
-      if (!c.isMonster) {
-        subRow.textContent = "サブアビリティ（他ジョブで習得済みの技を1つ装備できる）";
-
-        const noneBtn = document.createElement("button");
-        noneBtn.className = "sub-pick" + (!c.subAbilityId ? " active" : "");
-        noneBtn.textContent = "なし";
-        noneBtn.addEventListener("click", () => { c.subAbilityId = null; renderCharDetail(); });
-        subPickRow.appendChild(noneBtn);
-      }
-
-      for (const a of candidates) {
-        const btn = document.createElement("button");
-        btn.className = "sub-pick" + (c.subAbilityId === a.id ? " active" : "");
-        btn.textContent = a.name;
-        btn.addEventListener("click", () => { c.subAbilityId = a.id; renderCharDetail(); });
-        subPickRow.appendChild(btn);
-      }
-      if (!c.isMonster && candidates.length === 0) {
+      if (!c.isMonster && subAbilityCandidates(c).length === 0) {
         const hintEl = document.createElement("div");
         hintEl.className = "sub-ability-row";
         hintEl.textContent = "（まだ他ジョブの技を習得していません）";
-        subRow.appendChild(hintEl);
+        subBlocks.push(hintEl);
       }
 
       const skillRow = document.createElement("div");
@@ -903,10 +963,9 @@
         <span style="float:right;color:var(--sub-text);font-size:11px;">HP${stats.maxHp} MP${stats.maxMp} ATK${stats.atk} MAG${stats.mag} DEF${stats.def} SPD${Math.round(stats.spd)}</span></div>
         <div class="sub-ability-row">${race.desc}</div>`;
       card.appendChild(activeRow);
-      card.appendChild(jobRow);
+      for (const el of jobBlocks) card.appendChild(el);
       card.appendChild(buildEquipSection(c));
-      card.appendChild(subRow);
-      card.appendChild(subPickRow);
+      for (const el of subBlocks) card.appendChild(el);
       card.appendChild(skillRow);
       card.appendChild(skillListWrap);
       card.appendChild(targetRow);
@@ -1425,7 +1484,7 @@
       while (c.exp >= c.expToNext) {
         c.exp -= c.expToNext;
         c.level += 1;
-        c.expToNext = 30 + c.level * 15;
+        c.expToNext = expForLevel(c.level);
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
         run.levelUps.push(c.name + " Lv." + c.level);
@@ -1433,6 +1492,8 @@
           if (a.reqLevel === c.level) run.abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
         }
       }
+      // 転職してもレベルを保持できるよう、現在のジョブの進行を都度書き戻す
+      if (!c.isMonster) c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
     }
 
     gainItem(rollItemDrop());

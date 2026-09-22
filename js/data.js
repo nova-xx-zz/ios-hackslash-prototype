@@ -1,7 +1,7 @@
 // ゲームデータ定義（ジョブ / アビリティ / 敵 / アイテム）
 const JOBS = {
   warrior: {
-    id: "warrior", name: "せんし", commandName: "とくぎ", icon: "⚔️",
+    id: "warrior", name: "せんし", commandName: "とくぎ", icon: "⚔️", tier: "basic",
     desc: "接近して斬りかかる正統派の近接アタッカー。技はどれも消費MPがなく、安定して打撃を重ねられる。",
     base: { hp: 34, mp: 4, atk: 11, mag: 2, def: 8, spd: 6 },
     abilities: [
@@ -12,7 +12,7 @@ const JOBS = {
     ],
   },
   mage: {
-    id: "mage", name: "まほうつかい", commandName: "まほう", icon: "🪄",
+    id: "mage", name: "まほうつかい", commandName: "まほう", icon: "🪄", tier: "basic",
     desc: "属性魔法で敵を攻撃する後衛職。MPを多く消費するが、敵全体を巻き込む魔法も得意とする。",
     base: { hp: 20, mp: 20, atk: 4, mag: 12, def: 3, spd: 7 },
     abilities: [
@@ -23,7 +23,7 @@ const JOBS = {
     ],
   },
   priest: {
-    id: "priest", name: "そうりょ", commandName: "いのり", icon: "✨",
+    id: "priest", name: "そうりょ", commandName: "いのり", icon: "✨", tier: "basic",
     desc: "回復魔法を得意とする支援職。パーティのHPを立て直しながら長期戦を支える。",
     base: { hp: 24, mp: 18, atk: 5, mag: 9, def: 5, spd: 6 },
     abilities: [
@@ -34,7 +34,7 @@ const JOBS = {
     ],
   },
   thief: {
-    id: "thief", name: "とうぞく", commandName: "わざ", icon: "🗡️",
+    id: "thief", name: "とうぞく", commandName: "わざ", icon: "🗡️", tier: "basic",
     desc: "素早い身のこなしで多段攻撃を得意とする軽戦士。行動速度が高く、手数で押し切る。",
     base: { hp: 24, mp: 8, atk: 9, mag: 3, def: 5, spd: 10 },
     abilities: [
@@ -45,7 +45,7 @@ const JOBS = {
     ],
   },
   monk: {
-    id: "monk", name: "ぶとうか", commandName: "けんぽう", icon: "👊",
+    id: "monk", name: "ぶとうか", commandName: "けんぽう", icon: "👊", tier: "basic",
     desc: "拳で戦いながら気の力で自らを癒す、攻撃と回復を両立できる近接職。",
     base: { hp: 32, mp: 6, atk: 10, mag: 4, def: 7, spd: 8 },
     abilities: [
@@ -56,7 +56,7 @@ const JOBS = {
     ],
   },
   darkknight: {
-    id: "darkknight", name: "あんこくし", commandName: "あんこく", icon: "🌑",
+    id: "darkknight", name: "あんこくし", commandName: "あんこく", icon: "🌑", tier: "basic",
     desc: "闇の力で敵のHPを吸収する異端の戦士。攻撃を重ねながら自分のHPも回復できる。",
     base: { hp: 30, mp: 10, atk: 12, mag: 6, def: 7, spd: 6 },
     abilities: [
@@ -66,7 +66,82 @@ const JOBS = {
       { id: "soul_edge", name: "こんしんのいちげき", reqLevel: 15, mpCost: 6, kind: "physical", target: "single", power: 2.6, hits: 1, desc: "魂を削る渾身の一撃" },
     ],
   },
+  // ---------- 上級職（対応する基本職をLv.15まで極めると転職できる） ----------
+  swordmaster: {
+    id: "swordmaster", name: "けんごう", commandName: "けんじゅつ", icon: "🌀", tier: "advanced",
+    requires: { job: "warrior", level: 15 },
+    desc: "せんしの技を極めた剣の達人。一撃の重さと隙のない連撃を兼ね備える。",
+    base: { hp: 42, mp: 4, atk: 15, mag: 2, def: 9, spd: 8 },
+    abilities: [
+      { id: "iai_slash", name: "いあいぎり", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.5, hits: 1, desc: "抜刀の一撃で敵を斬る" },
+      { id: "tornado_slash", name: "たつまきぎり", reqLevel: 5, mpCost: 0, kind: "physical", target: "all-enemy", power: 0.95, hits: 1, desc: "刃の竜巻で敵全体を斬り払う" },
+      { id: "hundred_slash", name: "ひゃくれつざん", reqLevel: 10, mpCost: 4, kind: "physical", target: "single", power: 0.42, hits: 5, desc: "目にも留まらぬ5連撃" },
+      { id: "peerless_slash", name: "むそうのいちげき", reqLevel: 15, mpCost: 8, kind: "physical", target: "single", power: 3.4, hits: 1, desc: "会心必中、奥義の一閃" },
+    ],
+  },
+  archmage: {
+    id: "archmage", name: "だいまどうし", commandName: "だいまほう", icon: "🔥", tier: "advanced",
+    requires: { job: "mage", level: 15 },
+    desc: "まほうつかいの上位職。より強大な魔法を扱い、大魔法で戦況を一変させる。",
+    base: { hp: 24, mp: 28, atk: 4, mag: 17, def: 4, spd: 8 },
+    abilities: [
+      { id: "thunder_bolt", name: "いなずま", reqLevel: 1, mpCost: 5, kind: "magic", target: "single", power: 1.9, hits: 1, desc: "鋭い雷撃を放つ" },
+      { id: "grand_thunder", name: "ごくらいせん", reqLevel: 5, mpCost: 12, kind: "magic", target: "all-enemy", power: 1.55, hits: 1, desc: "極大の雷撃で敵全体を撃つ" },
+      { id: "absolute_zero", name: "ぜったいれいど", reqLevel: 10, mpCost: 10, kind: "magic", target: "single", power: 2.7, hits: 1, desc: "凍てつく極寒の一撃" },
+      { id: "limit_magic", name: "げんかいまほう", reqLevel: 15, mpCost: 20, kind: "magic", target: "all-enemy", power: 2.0, hits: 1, desc: "魔力を限界まで解き放つ大魔法" },
+    ],
+  },
+  archpriest: {
+    id: "archpriest", name: "だいしんかん", commandName: "だいいのり", icon: "🕊️", tier: "advanced",
+    requires: { job: "priest", level: 15 },
+    desc: "そうりょの上位職。回復量と範囲に優れ、パーティを崩れさせない支柱となる。",
+    base: { hp: 28, mp: 26, atk: 5, mag: 13, def: 6, spd: 7 },
+    abilities: [
+      { id: "great_heal", name: "だいちゆ", reqLevel: 1, mpCost: 7, kind: "heal", target: "single-ally", power: 2.2, hits: 1, desc: "味方1体を大きく回復する" },
+      { id: "full_heal", name: "かんぜんかいふく", reqLevel: 5, mpCost: 14, kind: "heal", target: "single-ally", power: 4.0, hits: 1, desc: "味方1体のHPを完全に回復する" },
+      { id: "sanctuary_prayer", name: "せいいきのいのり", reqLevel: 10, mpCost: 16, kind: "heal", target: "all-ally", power: 2.4, hits: 1, desc: "味方全体を大きく回復する祈り" },
+      { id: "miracle_light", name: "きせきのひかり", reqLevel: 15, mpCost: 24, kind: "heal", target: "all-ally", power: 3.2, hits: 1, desc: "奇跡の光で全体を癒やす" },
+    ],
+  },
+  ninja: {
+    id: "ninja", name: "にんじゃ", commandName: "にんじゅつ", icon: "🥷", tier: "advanced",
+    requires: { job: "thief", level: 15 },
+    desc: "とうぞくの上位職。卓越した速さと多彩な技でひたすら手数を重ねる。",
+    base: { hp: 27, mp: 10, atk: 13, mag: 4, def: 6, spd: 14 },
+    abilities: [
+      { id: "shuriken", name: "しゅりけん", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.3, hits: 1, desc: "手裏剣を投げつける" },
+      { id: "silent_blade", name: "しのびだち", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.48, hits: 3, desc: "音もなく3連撃を放つ" },
+      { id: "poison_needle", name: "どくばり", reqLevel: 10, mpCost: 3, kind: "physical", target: "single", power: 1.7, hits: 1, desc: "急所を狙い深く突き刺す" },
+      { id: "ougi_no_jutsu", name: "ごくいのじゅつ", reqLevel: 15, mpCost: 7, kind: "physical", target: "all-enemy", power: 1.35, hits: 1, desc: "会得した奥義で敵全体を斬る" },
+    ],
+  },
+  saintfist: {
+    id: "saintfist", name: "けんせい", commandName: "せいけん", icon: "🕉️", tier: "advanced",
+    requires: { job: "monk", level: 15 },
+    desc: "ぶとうかの上位職。拳の威力と気の扱いが共に極まった、攻守一体の達人。",
+    base: { hp: 40, mp: 9, atk: 15, mag: 6, def: 10, spd: 10 },
+    abilities: [
+      { id: "vacuum_thrust", name: "しんくうづき", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.5, hits: 1, desc: "衝撃波を伴う一撃" },
+      { id: "fist_barrage", name: "れんげきけん", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.42, hits: 4, desc: "拳による4連撃" },
+      { id: "chi_flow_heal", name: "きろのちゆ", reqLevel: 10, mpCost: 6, kind: "heal", target: "all-ally", power: 1.8, hits: 1, desc: "気を巡らせ味方全体を癒やす" },
+      { id: "ougi_no_sho", name: "ごくいのしょう", reqLevel: 15, mpCost: 9, kind: "physical", target: "all-enemy", power: 1.7, hits: 1, desc: "会得した掌打の極意で敵全体を打つ" },
+    ],
+  },
+  reaper: {
+    id: "reaper", name: "しにがみ", commandName: "しにがみのちから", icon: "💀", tier: "advanced",
+    requires: { job: "darkknight", level: 15 },
+    desc: "あんこくしの上位職。生命力を刈り取る技で、攻撃と回復を同時に成立させる。",
+    base: { hp: 36, mp: 14, atk: 17, mag: 9, def: 8, spd: 8 },
+    abilities: [
+      { id: "sickle_wind", name: "かまいたち", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.4, hits: 1, desc: "鎌のような斬撃で切り裂く" },
+      { id: "soul_sickle", name: "たましいのかま", reqLevel: 5, mpCost: 6, kind: "magic", target: "single", power: 1.6, hits: 1, lifesteal: 0.5, desc: "魂を刈り取るような一撃。与ダメージの5割を吸収する" },
+      { id: "kiss_of_death", name: "しのくちづけ", reqLevel: 10, mpCost: 11, kind: "magic", target: "all-enemy", power: 1.3, hits: 1, lifesteal: 0.3, desc: "触れた者の力を吸い取る。与ダメージの3割を吸収する" },
+      { id: "grand_sickle", name: "こんぱくのだいかま", reqLevel: 15, mpCost: 10, kind: "physical", target: "single", power: 3.0, hits: 1, lifesteal: 0.4, desc: "魂ごと刈り取る渾身の一撃。与ダメージの4割を吸収する" },
+    ],
+  },
 };
+
+const BASIC_JOB_IDS = Object.keys(JOBS).filter((id) => JOBS[id].tier === "basic");
 
 // テイムしたモンスター専用のジョブ。種族IDと対応し、人間のジョブには転職できない。
 const MONSTER_JOBS = {
@@ -215,7 +290,7 @@ const RECRUIT_NAME_POOL = ["カイ", "レン", "シオン", "ファナ", "トウ
 
 function rollNewRecruit() {
   const race = PLAYER_RACE_IDS[Math.floor(Math.random() * PLAYER_RACE_IDS.length)];
-  const jobIds = Object.keys(JOBS);
+  const jobIds = BASIC_JOB_IDS;
   const job = jobIds[Math.floor(Math.random() * jobIds.length)];
   const name = RECRUIT_NAME_POOL[Math.floor(Math.random() * RECRUIT_NAME_POOL.length)];
   return { name, job, race };
