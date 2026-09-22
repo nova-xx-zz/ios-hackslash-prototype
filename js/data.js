@@ -363,10 +363,14 @@ function makeEnemy(t, mult, isBoss) {
   };
 }
 
+// N/R/SR/UR/LRの5段階。上位ほど急激に出にくくなる（1戦闘平均1.4個・1ダンジョン平均約5個のドロップ換算で、
+// LRはおおよそ100周に1個出るか出ないかのペースになるよう重みを設定している）
 const RARITIES = [
-  { key: "common", name: "コモン", color: "#cfd8dc", mult: 1, weight: 60 },
-  { key: "rare", name: "レア", color: "#4dc3ff", mult: 2, weight: 30 },
-  { key: "epic", name: "エピック", color: "#b24dff", mult: 3.2, weight: 10 },
+  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7000 },
+  { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200 },
+  { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650 },
+  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 135 },
+  { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15 },
 ];
 
 function rollRarity() {
