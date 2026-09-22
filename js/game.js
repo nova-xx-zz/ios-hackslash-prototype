@@ -552,8 +552,8 @@
 
     // 名前
     const nameField = document.createElement("div");
-    nameField.className = "create-field";
-    nameField.innerHTML = `<div class="create-label">なまえ</div>`;
+    nameField.className = "create-row create-row-name";
+    nameField.innerHTML = `<div class="cr-label">なまえ</div>`;
     const nameRow = document.createElement("div");
     nameRow.className = "name-row";
     const input = document.createElement("input");
@@ -579,30 +579,17 @@
     wrap.appendChild(nameField);
 
     // 種族
-    wrap.appendChild(buildPickField("しゅぞく", PLAYER_RACE_IDS, draft.race,
-      (id) => RACES[id].name,
-      (id) => { draft.race = id; renderCreateScreen(); }));
-    const raceDesc = document.createElement("div");
-    raceDesc.className = "create-label";
-    raceDesc.style.marginTop = "-8px";
-    raceDesc.style.marginBottom = "14px";
-    raceDesc.textContent = RACES[draft.race].desc;
-    wrap.appendChild(raceDesc);
+    wrap.appendChild(buildCreatePickRow("しゅぞく", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race")));
 
     // ジョブ
-    wrap.appendChild(buildPickField("ジョブ", Object.keys(JOBS), draft.job,
-      (id) => JOBS[id].name,
-      (id) => { draft.job = id; renderCreateScreen(); }));
-    const jobDesc = document.createElement("div");
-    jobDesc.className = "create-label";
-    jobDesc.style.marginTop = "-8px";
-    jobDesc.style.marginBottom = "14px";
-    jobDesc.textContent = JOBS[draft.job].abilities
-      .map((a) => `${a.name}(Lv.${a.reqLevel})`)
-      .join(" / ");
-    wrap.appendChild(jobDesc);
+    const jobSub = JOBS[draft.job].abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
+    wrap.appendChild(buildCreatePickRow("ジョブ", JOBS[draft.job].name, jobSub, () => openCreatePick("job")));
 
     // プレビュー
+    const previewLabel = document.createElement("div");
+    previewLabel.className = "create-section-label";
+    previewLabel.textContent = "プレビュー";
+    wrap.appendChild(previewLabel);
     const box = document.createElement("div");
     box.className = "preview-box";
     box.id = "createPreview";
@@ -610,24 +597,50 @@
     updateCreatePreview();
   }
 
-  function buildPickField(label, ids, selected, nameOf, onPick) {
-    const field = document.createElement("div");
-    field.className = "create-field";
-    field.innerHTML = `<div class="create-label">${label}</div>`;
-    const grid = document.createElement("div");
-    grid.className = "pick-grid";
-    for (const id of ids) {
-      const chip = document.createElement("button");
-      chip.className = "pick-chip" + (id === selected ? " active" : "");
-      chip.textContent = nameOf(id);
-      chip.addEventListener("click", () => onPick(id));
-      grid.appendChild(chip);
-    }
-    field.appendChild(grid);
-    return field;
+  function buildCreatePickRow(label, value, sub, onClick) {
+    const row = document.createElement("button");
+    row.className = "create-row";
+    row.innerHTML = `
+      <div class="cr-main">
+        <div class="cr-label">${label}</div>
+        <div class="cr-value">${value}</div>
+        <div class="cr-sub">${sub}</div>
+      </div>
+      <div class="cr-chev">›</div>`;
+    row.addEventListener("click", onClick);
+    return row;
   }
 
-  function createStartLevel() { return Math.max(1, currentMaxLevel() - 1); }
+  function openCreatePick(field) {
+    const title = document.getElementById("createPickTitle");
+    const body = document.getElementById("createPickBody");
+    body.innerHTML = "";
+    title.textContent = field === "race" ? "しゅぞくを選ぶ" : "ジョブを選ぶ";
+    const ids = field === "race" ? PLAYER_RACE_IDS : Object.keys(JOBS);
+    for (const id of ids) {
+      const def = field === "race" ? RACES[id] : JOBS[id];
+      const sub = field === "race" ? def.desc : def.abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
+      const row = document.createElement("button");
+      row.className = "create-row create-pick-option" + (draft[field] === id ? " active" : "");
+      row.innerHTML = `
+        <div class="cr-main">
+          <div class="cr-value">${def.name}</div>
+          <div class="cr-sub">${sub}</div>
+        </div>
+        <div class="cr-chev">${draft[field] === id ? "✓" : "›"}</div>`;
+      row.addEventListener("click", () => {
+        draft[field] = id;
+        renderCreateScreen();
+        showScreen("screen-create");
+      });
+      body.appendChild(row);
+    }
+    showScreen("screen-create-pick");
+  }
+
+  document.getElementById("btnCreatePickBack").addEventListener("click", () => showScreen("screen-create"));
+
+  function createStartLevel() { return 1; }
 
   function updateCreatePreview() {
     const box = document.getElementById("createPreview");

@@ -208,6 +208,37 @@ html, body {
 /* character creation */
 .create-field { margin-bottom: 14px; }
 .create-label { font-size: 11px; font-weight: 700; color: var(--sub-text); margin-bottom: 5px; }
+
+.create-row {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.create-row-name { cursor: default; flex-direction: column; align-items: stretch; }
+.create-row .cr-label { font-size: 10px; font-weight: 700; color: var(--sub-text); margin-bottom: 3px; }
+.create-row .cr-main { flex: 1; min-width: 0; }
+.create-row .cr-value { font-size: 14px; font-weight: 700; }
+.create-row .cr-sub {
+  font-size: 11px; color: var(--sub-text); margin-top: 3px; line-height: 1.5;
+}
+.create-row .cr-chev { font-size: 16px; color: var(--sub-text); flex: 0 0 auto; }
+.create-pick-option.active { border-color: var(--accent); background: rgba(124,92,255,0.12); }
+.create-pick-option .cr-chev { color: var(--accent); font-weight: 700; }
+
+.create-section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--sub-text);
+  margin: 16px 2px 6px;
+}
+.create-section-label:first-child { margin-top: 0; }
+
 .name-row { display: flex; gap: 6px; }
 .name-input {
   flex: 1; min-width: 0;
