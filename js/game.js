@@ -834,7 +834,7 @@
       } else {
         const jobLabel = (jobId) => {
           const lvl = (c.jobLevels[jobId] && c.jobLevels[jobId].level) || 0;
-          const mastered = lvl >= 15 ? "★" : "";
+          const mastered = lvl >= JOB_MASTER_LEVEL ? "★" : "";
           return lvl > 0 ? `${JOBS[jobId].name} Lv.${lvl}${mastered}` : JOBS[jobId].name;
         };
         for (const jobId of BASIC_JOB_IDS) {
@@ -846,7 +846,7 @@
         }
         const advLabel = document.createElement("div");
         advLabel.className = "sub-ability-row";
-        advLabel.textContent = "上級職（対応する基本職をLv.15まで極めると転職できる）";
+        advLabel.textContent = `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
         const advRow = document.createElement("div");
         advRow.className = "job-pick-row";
         for (const jobId in JOBS) {

@@ -1,4 +1,5 @@
 // ゲームデータ定義（ジョブ / アビリティ / 敵 / アイテム）
+const JOB_MASTER_LEVEL = 50; // 上級職の解放に必要な、対応する基本職のレベル
 const JOBS = {
   warrior: {
     id: "warrior", name: "せんし", commandName: "とくぎ", icon: "⚔️", tier: "basic",
@@ -66,10 +67,10 @@ const JOBS = {
       { id: "soul_edge", name: "こんしんのいちげき", reqLevel: 15, mpCost: 6, kind: "physical", target: "single", power: 2.6, hits: 1, desc: "魂を削る渾身の一撃" },
     ],
   },
-  // ---------- 上級職（対応する基本職をLv.15まで極めると転職できる） ----------
+  // ---------- 上級職（対応する基本職をLv.50まで極めると転職できる） ----------
   swordmaster: {
     id: "swordmaster", name: "けんごう", commandName: "けんじゅつ", icon: "🌀", tier: "advanced",
-    requires: { job: "warrior", level: 15 },
+    requires: { job: "warrior", level: JOB_MASTER_LEVEL },
     desc: "せんしの技を極めた剣の達人。一撃の重さと隙のない連撃を兼ね備える。",
     base: { hp: 42, mp: 4, atk: 15, mag: 2, def: 9, spd: 8 },
     abilities: [
@@ -81,7 +82,7 @@ const JOBS = {
   },
   archmage: {
     id: "archmage", name: "だいまどうし", commandName: "だいまほう", icon: "🔥", tier: "advanced",
-    requires: { job: "mage", level: 15 },
+    requires: { job: "mage", level: JOB_MASTER_LEVEL },
     desc: "まほうつかいの上位職。より強大な魔法を扱い、大魔法で戦況を一変させる。",
     base: { hp: 24, mp: 28, atk: 4, mag: 17, def: 4, spd: 8 },
     abilities: [
@@ -93,7 +94,7 @@ const JOBS = {
   },
   archpriest: {
     id: "archpriest", name: "だいしんかん", commandName: "だいいのり", icon: "🕊️", tier: "advanced",
-    requires: { job: "priest", level: 15 },
+    requires: { job: "priest", level: JOB_MASTER_LEVEL },
     desc: "そうりょの上位職。回復量と範囲に優れ、パーティを崩れさせない支柱となる。",
     base: { hp: 28, mp: 26, atk: 5, mag: 13, def: 6, spd: 7 },
     abilities: [
@@ -105,7 +106,7 @@ const JOBS = {
   },
   ninja: {
     id: "ninja", name: "にんじゃ", commandName: "にんじゅつ", icon: "🥷", tier: "advanced",
-    requires: { job: "thief", level: 15 },
+    requires: { job: "thief", level: JOB_MASTER_LEVEL },
     desc: "とうぞくの上位職。卓越した速さと多彩な技でひたすら手数を重ねる。",
     base: { hp: 27, mp: 10, atk: 13, mag: 4, def: 6, spd: 14 },
     abilities: [
@@ -117,7 +118,7 @@ const JOBS = {
   },
   saintfist: {
     id: "saintfist", name: "けんせい", commandName: "せいけん", icon: "🕉️", tier: "advanced",
-    requires: { job: "monk", level: 15 },
+    requires: { job: "monk", level: JOB_MASTER_LEVEL },
     desc: "ぶとうかの上位職。拳の威力と気の扱いが共に極まった、攻守一体の達人。",
     base: { hp: 40, mp: 9, atk: 15, mag: 6, def: 10, spd: 10 },
     abilities: [
@@ -129,7 +130,7 @@ const JOBS = {
   },
   reaper: {
     id: "reaper", name: "しにがみ", commandName: "しにがみのちから", icon: "💀", tier: "advanced",
-    requires: { job: "darkknight", level: 15 },
+    requires: { job: "darkknight", level: JOB_MASTER_LEVEL },
     desc: "あんこくしの上位職。生命力を刈り取る技で、攻撃と回復を同時に成立させる。",
     base: { hp: 36, mp: 14, atk: 17, mag: 9, def: 8, spd: 8 },
     abilities: [
