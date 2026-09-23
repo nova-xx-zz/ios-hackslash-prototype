@@ -4,6 +4,7 @@
   const BEST_KEY = "jobquest_best_cleared";
   const MATERIAL_KEY = "jobquest_material";
   const AUTO_DISASSEMBLE_KEY = "jobquest_autodisassemble";
+  const AUTO_DISASSEMBLE_FILTER_KEY = "jobquest_autodisassemble_filter";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
@@ -14,6 +15,16 @@
   let material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
   let autoDisassemble = localStorage.getItem(AUTO_DISASSEMBLE_KEY) === "1";
   function addMaterial(n) { material += n; localStorage.setItem(MATERIAL_KEY, String(material)); }
+
+  // 自動分解の対象レア度（プレイヤーがフィルターで選択、端末に保存）
+  let autoDisassembleRarities = new Set(DEFAULT_AUTO_DISASSEMBLE_RARITIES);
+  try {
+    const saved = JSON.parse(localStorage.getItem(AUTO_DISASSEMBLE_FILTER_KEY));
+    if (Array.isArray(saved)) autoDisassembleRarities = new Set(saved);
+  } catch (e) { /* 保存値が壊れていたら既定値のまま */ }
+  function saveAutoDisassembleFilter() {
+    localStorage.setItem(AUTO_DISASSEMBLE_FILTER_KEY, JSON.stringify([...autoDisassembleRarities]));
+  }
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
@@ -1347,12 +1358,32 @@
     const btn = document.getElementById("btnAutoDisassembleToggle");
     btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
     btn.classList.toggle("toggle-on", autoDisassemble);
+    document.getElementById("disassembleFilterRow").classList.toggle("hidden", !autoDisassemble);
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
     autoDisassemble = !autoDisassemble;
     localStorage.setItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
+  function renderDisassembleFilter() {
+    const row = document.getElementById("disassembleFilterRow");
+    row.innerHTML = `<span class="disassemble-filter-label">対象:</span>`;
+    for (const rarity of RARITIES) {
+      const chip = document.createElement("button");
+      const on = autoDisassembleRarities.has(rarity.key);
+      chip.className = "disassemble-chip" + (on ? " active" : "");
+      chip.textContent = rarity.name;
+      if (on) chip.style.background = rarity.color;
+      chip.addEventListener("click", () => {
+        if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
+        else autoDisassembleRarities.add(rarity.key);
+        saveAutoDisassembleFilter();
+        renderDisassembleFilter();
+      });
+      row.appendChild(chip);
+    }
+  }
+  renderDisassembleFilter();
   updateAutoDisassembleButton();
   document.getElementById("btnRedeploy").addEventListener("click", () => {
     if (run) startDungeon(run.dungeon.id);
@@ -1690,7 +1721,7 @@
   }
 
   function gainItem(item) {
-    if (autoDisassemble && AUTO_DISASSEMBLE_RARITIES.includes(item.rarity)) {
+    if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
       addMaterial(item.materialValue);
       run.disassembleCount += 1;
       run.materialGained += item.materialValue;

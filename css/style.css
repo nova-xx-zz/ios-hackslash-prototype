@@ -448,6 +448,21 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .material-line { font-size: 11px; color: var(--atb); margin-top: 2px; font-weight: 700; }
 .explore-header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: 0 0 auto; }
 .explore-header-actions .btn { margin: 0; }
+
+.disassemble-filter-row { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 0 2px 8px; }
+.disassemble-filter-row.hidden { display: none; }
+.disassemble-filter-label { font-size: 10.5px; color: var(--sub-text); margin-right: 2px; }
+.disassemble-chip {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  color: var(--sub-text);
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.disassemble-chip.active { color: #0b0b12; border-color: transparent; }
 .btn.toggle-on { background: rgba(124,92,255,0.35); border-color: var(--accent); color: var(--text); }
 
 .log-feed {

@@ -374,8 +374,8 @@ const RARITIES = [
   { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15, material: 1500 },
 ];
 
-// 自動分解の対象レア度（N/Rのみ。SR以上は必ず所持品に残す）
-const AUTO_DISASSEMBLE_RARITIES = ["n", "r"];
+// 自動分解フィルターの初期値（未設定時はN/Rのみ）。実際に使う対象はプレイヤーが画面上で変更でき、端末に保存される
+const DEFAULT_AUTO_DISASSEMBLE_RARITIES = ["n", "r"];
 
 function rollRarity() {
   const total = RARITIES.reduce((s, r) => s + r.weight, 0);
