@@ -365,16 +365,17 @@ function makeEnemy(t, mult, isBoss) {
 
 // N/R/SR/UR/LRの5段階。上位ほど急激に出にくくなる（1戦闘平均1.4個・1ダンジョン平均約5個のドロップ換算で、
 // LRはおおよそ100周に1個出るか出ないかのペースになるよう重みを設定している）
+// material: 自動分解した時に得られる強化石の量
 const RARITIES = [
-  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7000, sell: 5 },
-  { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200, sell: 20 },
-  { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650, sell: 80 },
-  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 135, sell: 350 },
-  { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15, sell: 1500 },
+  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7000, material: 5 },
+  { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200, material: 20 },
+  { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650, material: 80 },
+  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 135, material: 350 },
+  { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15, material: 1500 },
 ];
 
-// 自動売却の対象レア度（N/Rのみ。SR以上は必ず所持品に残す）
-const AUTO_SELL_RARITIES = ["n", "r"];
+// 自動分解の対象レア度（N/Rのみ。SR以上は必ず所持品に残す）
+const AUTO_DISASSEMBLE_RARITIES = ["n", "r"];
 
 function rollRarity() {
   const total = RARITIES.reduce((s, r) => s + r.weight, 0);
@@ -384,6 +385,38 @@ function rollRarity() {
     roll -= r.weight;
   }
   return RARITIES[0];
+}
+
+// ---------- 装備強化（+0〜+99） ----------
+// レア度が高いほど基礎成功率が低く、かつ+が上がるごとに減衰も速いので、
+// 上位レア度ほど「なかなか+が上がらない」体感になる（周回して素材を貯める意味を持たせるため）。
+const ENHANCE_MAX_PLUS = 99;
+const ENHANCE_CONFIG = {
+  n: { baseRate: 0.90, decay: 0.995, cost: 3 },
+  r: { baseRate: 0.75, decay: 0.990, cost: 8 },
+  sr: { baseRate: 0.55, decay: 0.985, cost: 20 },
+  ur: { baseRate: 0.35, decay: 0.978, cost: 60 },
+  lr: { baseRate: 0.15, decay: 0.965, cost: 150 },
+};
+const ENHANCE_RATE_FLOOR = 0.03; // 何度失敗しても最低3%は残す（完全に詰まないように）
+
+function enhanceSuccessRate(item) {
+  const cfg = ENHANCE_CONFIG[item.rarity];
+  const rate = cfg.baseRate * Math.pow(cfg.decay, item.plus || 0);
+  return Math.max(ENHANCE_RATE_FLOOR, rate);
+}
+
+function enhanceCost(item) {
+  return ENHANCE_CONFIG[item.rarity].cost;
+}
+
+// 強化値に応じてステータス上昇量を底上げする。装備の元の数値が小さい（2〜6）ため率ではなくレア度に応じた
+// 固定量をceilで積み上げる（+1でも必ず変化が見え、かつレア度が高いほど伸びが大きい＝+99で元の値の約4倍になる）
+function itemEffectiveValue(item) {
+  const rarity = RARITIES.find((r) => r.key === item.rarity);
+  const mult = rarity ? rarity.mult : 1;
+  const bonus = Math.ceil((item.plus || 0) * mult * 0.08);
+  return Math.max(1, item.value + bonus);
 }
 
 const SLOTS = [
@@ -417,6 +450,7 @@ function rollItemDrop() {
     value: Math.round(base.base * rarity.mult),
     rarity: rarity.key,
     rarityColor: rarity.color,
-    sellValue: rarity.sell,
+    materialValue: rarity.material,
+    plus: 0,
   };
 }

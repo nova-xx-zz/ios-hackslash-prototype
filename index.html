@@ -92,10 +92,10 @@
         <div>
           <div class="team-name" id="teamName">第一のパーティ</div>
           <div class="explore-sub" id="exploreSub"></div>
-          <div class="gold-line" id="goldLine">G 0</div>
+          <div class="material-line" id="materialLine">強化石 0</div>
         </div>
         <div class="explore-header-actions">
-          <button class="btn small ghost" id="btnAutoSellToggle">自動売却 OFF</button>
+          <button class="btn small ghost" id="btnAutoDisassembleToggle">自動分解 OFF</button>
           <button class="btn small ghost" id="btnSpeedToggle">x1</button>
         </div>
       </div>
@@ -130,6 +130,19 @@
       <div class="modal-list" id="pmList"></div>
       <div class="modal-strip" id="pmStrip"></div>
       <button class="btn primary modal-ok" id="btnPickModalOk">OK</button>
+    </div>
+  </div>
+
+  <!-- 装備強化モーダル -->
+  <div id="enhanceModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon" id="enIcon">—</div>
+      <div class="modal-name" id="enName">—</div>
+      <div class="modal-desc" id="enDesc"></div>
+      <div class="modal-stats" id="enStats"></div>
+      <div class="enhance-result" id="enResult"></div>
+      <button class="btn primary modal-ok" id="btnEnhanceGo">強化する</button>
+      <button class="btn ghost modal-ok" id="btnEnhanceClose">とじる</button>
     </div>
   </div>
 

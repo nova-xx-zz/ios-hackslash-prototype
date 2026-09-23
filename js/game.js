@@ -2,8 +2,8 @@
   "use strict";
 
   const BEST_KEY = "jobquest_best_cleared";
-  const GOLD_KEY = "jobquest_gold";
-  const AUTOSELL_KEY = "jobquest_autosell";
+  const MATERIAL_KEY = "jobquest_material";
+  const AUTO_DISASSEMBLE_KEY = "jobquest_autodisassemble";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
@@ -11,9 +11,9 @@
   function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
   function setBestStage(n) { if (n > getBestStage()) localStorage.setItem(BEST_KEY, String(n)); }
 
-  let gold = parseInt(localStorage.getItem(GOLD_KEY) || "0", 10);
-  let autoSell = localStorage.getItem(AUTOSELL_KEY) === "1";
-  function addGold(n) { gold += n; localStorage.setItem(GOLD_KEY, String(gold)); }
+  let material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
+  let autoDisassemble = localStorage.getItem(AUTO_DISASSEMBLE_KEY) === "1";
+  function addMaterial(n) { material += n; localStorage.setItem(MATERIAL_KEY, String(material)); }
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
@@ -84,7 +84,7 @@
     };
     for (const slot of SLOTS) {
       const item = c.equip[slot.key];
-      if (item) s[item.stat] += item.value;
+      if (item) s[item.stat] += itemEffectiveValue(item);
     }
     // 石碑の加護はそのダンジョンの間だけ乗る（HP/MPは除く）
     if (run && !run.finished) {
@@ -104,7 +104,7 @@
       atk: base.atk / 10, mag: base.mag / 10,
       def: base.def / 8, spd: base.spd / 7,
     };
-    return item.value * (weights[item.stat] || 0.5);
+    return itemEffectiveValue(item) * (weights[item.stat] || 0.5);
   }
 
   function racePassive(c, key) {
@@ -230,7 +230,7 @@
     const bits = [];
     if (best > 0) bits.push(`クリア済みダンジョン: ${best}`);
     bits.push(`所持なかま: ${roster.length}人`);
-    bits.push(`所持G: ${gold}`);
+    bits.push(`強化石: ${material}`);
     document.getElementById("bestClearText").textContent = bits.join("　/　");
   }
 
@@ -1032,6 +1032,12 @@
         off.textContent = "はずす";
         off.addEventListener("click", () => { unequipSlot(c, opened.key); renderCharDetail(); });
         list.appendChild(off);
+
+        const enhance = document.createElement("button");
+        enhance.className = "equip-choice enhance-open";
+        enhance.textContent = "強化する";
+        enhance.addEventListener("click", () => openEnhanceModal(c.equip[opened.key]));
+        list.appendChild(enhance);
       }
       if (candidates.length === 0) {
         const none = document.createElement("div");
@@ -1052,6 +1058,73 @@
 
     return wrap;
   }
+
+  // ---------- 装備強化 ----------
+  const SLOT_ICONS = { weapon: "⚔️", armor: "🛡️", accessory: "💍" };
+  let enhanceItem = null;
+  let enhanceMessage = "";
+
+  function openEnhanceModal(item) {
+    enhanceItem = item;
+    enhanceMessage = "";
+    renderEnhanceModal();
+    document.getElementById("enhanceModal").classList.remove("hidden");
+  }
+
+  function closeEnhanceModal() {
+    document.getElementById("enhanceModal").classList.add("hidden");
+    enhanceItem = null;
+    renderCharDetail();
+  }
+
+  function renderEnhanceModal() {
+    const item = enhanceItem;
+    if (!item) return;
+    const rarity = RARITIES.find((r) => r.key === item.rarity);
+    const maxed = item.plus >= ENHANCE_MAX_PLUS;
+    const nextValue = itemEffectiveValue({ ...item, plus: item.plus + 1 });
+
+    document.getElementById("enIcon").textContent = SLOT_ICONS[item.slot] || "❓";
+    document.getElementById("enName").textContent = `${item.name}${item.plus > 0 ? "+" + item.plus : ""}`;
+    document.getElementById("enDesc").textContent =
+      `${rarity.name} / ${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}` +
+      (maxed ? "（強化値が上限に達しています）" : ` → 成功で ${STAT_LABELS[item.stat]}+${nextValue}`);
+
+    const rate = enhanceSuccessRate(item);
+    const cost = enhanceCost(item);
+    const statsBox = document.getElementById("enStats");
+    statsBox.innerHTML = `
+      <div class="pm-stat-row"><span class="pm-stat-label">強化値</span><span>+${item.plus} / +${ENHANCE_MAX_PLUS}</span></div>
+      <div class="pm-stat-row"><span class="pm-stat-label">成功率</span><span>${Math.round(rate * 100)}%</span></div>
+      <div class="pm-stat-row"><span class="pm-stat-label">消費強化石</span><span>${cost}（所持 ${material}）</span></div>`;
+
+    const resultBox = document.getElementById("enResult");
+    resultBox.textContent = enhanceMessage;
+    resultBox.className = "enhance-result" + (enhanceMessage.startsWith("成功") ? " success" : enhanceMessage ? " fail" : "");
+
+    const btn = document.getElementById("btnEnhanceGo");
+    btn.disabled = maxed || material < cost;
+    btn.textContent = maxed ? "強化値が上限です" : (material < cost ? "強化石が足りません" : "強化する");
+  }
+
+  document.getElementById("btnEnhanceGo").addEventListener("click", () => {
+    const item = enhanceItem;
+    if (!item || item.plus >= ENHANCE_MAX_PLUS) return;
+    const cost = enhanceCost(item);
+    if (material < cost) return;
+    addMaterial(-cost);
+    if (Math.random() < enhanceSuccessRate(item)) {
+      item.plus += 1;
+      enhanceMessage = `成功！ +${item.plus} になった`;
+    } else {
+      enhanceMessage = `失敗…（+${item.plus} のまま）`;
+    }
+    renderEnhanceModal();
+  });
+  document.getElementById("btnEnhanceClose").addEventListener("click", closeEnhanceModal);
+  document.getElementById("enhanceModal").addEventListener("click", (e) => {
+    if (e.target.id === "enhanceModal") closeEnhanceModal();
+  });
 
   document.getElementById("btnJobsDone").addEventListener("click", () => {
     if (jobsReturnScreen === "screen-battle") {
@@ -1093,7 +1166,7 @@
       dungeon: d, battleIndex: 0, finished: false,
       buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
       expTotal: 0, drops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
-      soldCount: 0, soldGold: 0,
+      disassembleCount: 0, materialGained: 0,
     };
     for (const c of activeParty()) {
       const s = computeStats(c);
@@ -1210,7 +1283,7 @@
 
   function renderDock() {
     document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
-    document.getElementById("goldLine").textContent = `G ${gold}`;
+    document.getElementById("materialLine").textContent = `強化石 ${material}`;
     const running = !!(run && !run.finished);
     const d = run ? run.dungeon : null;
 
@@ -1270,17 +1343,17 @@
     speedMult = speedMult === 1 ? 2 : 1;
     document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
   });
-  function updateAutoSellButton() {
-    const btn = document.getElementById("btnAutoSellToggle");
-    btn.textContent = autoSell ? "自動売却 ON" : "自動売却 OFF";
-    btn.classList.toggle("toggle-on", autoSell);
+  function updateAutoDisassembleButton() {
+    const btn = document.getElementById("btnAutoDisassembleToggle");
+    btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
+    btn.classList.toggle("toggle-on", autoDisassemble);
   }
-  document.getElementById("btnAutoSellToggle").addEventListener("click", () => {
-    autoSell = !autoSell;
-    localStorage.setItem(AUTOSELL_KEY, autoSell ? "1" : "0");
-    updateAutoSellButton();
+  document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
+    autoDisassemble = !autoDisassemble;
+    localStorage.setItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
+    updateAutoDisassembleButton();
   });
-  updateAutoSellButton();
+  updateAutoDisassembleButton();
   document.getElementById("btnRedeploy").addEventListener("click", () => {
     if (run) startDungeon(run.dungeon.id);
   });
@@ -1617,10 +1690,10 @@
   }
 
   function gainItem(item) {
-    if (autoSell && AUTO_SELL_RARITIES.includes(item.rarity)) {
-      addGold(item.sellValue);
-      run.soldCount += 1;
-      run.soldGold += item.sellValue;
+    if (autoDisassemble && AUTO_DISASSEMBLE_RARITIES.includes(item.rarity)) {
+      addMaterial(item.materialValue);
+      run.disassembleCount += 1;
+      run.materialGained += item.materialValue;
       return;
     }
     run.drops.push(item);
@@ -1658,8 +1731,8 @@
       card.lines.appendChild(head);
       for (const item of run.drops) card.lines.appendChild(buildDropRow(item));
     }
-    if (run.soldCount > 0) {
-      logLine(`自動売却: ${run.soldCount}個（+${run.soldGold}G）　所持G ${gold}`, "system");
+    if (run.disassembleCount > 0) {
+      logLine(`自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${material}`, "system");
     }
 
     scrollLog();
@@ -1682,7 +1755,8 @@
   }
 
   function itemLabel(item) {
-    return `${item.name}（${STAT_LABELS[item.stat]}+${item.value}）`;
+    const plusText = item.plus > 0 ? `+${item.plus}` : "";
+    return `${item.name}${plusText}（${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}）`;
   }
 
   function restoreParty() {
