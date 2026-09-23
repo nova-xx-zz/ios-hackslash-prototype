@@ -71,6 +71,7 @@ html, body {
 .btn.primary { background: var(--accent); color: white; }
 .btn.ghost { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid var(--border); }
 .btn:active { opacity: 0.75; }
+.btn:disabled { opacity: 0.35; cursor: default; }
 .btn.small { width: auto; display: inline-block; padding: 8px 14px; font-size: 13px; margin: 4px; }
 
 /* party preview on title */
@@ -463,6 +464,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .disassemble-chip.active { color: #0b0b12; border-color: transparent; }
+.disassemble-chip:disabled { opacity: 0.4; cursor: default; }
 .btn.toggle-on { background: rgba(124,92,255,0.35); border-color: var(--accent); color: var(--text); }
 
 .log-feed {

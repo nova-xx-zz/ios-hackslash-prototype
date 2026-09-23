@@ -206,6 +206,7 @@
   let selectedDungeonId = null;
   let jobsReturnScreen = "screen-title";
   let speedMult = 1;
+  function isRunActive() { return !!(run && !run.finished); }
 
   let roster = [
     newCharacter("アレン", "warrior", "human", { team: 0 }),
@@ -1295,7 +1296,7 @@
   function renderDock() {
     document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
     document.getElementById("materialLine").textContent = `強化石 ${material}`;
-    const running = !!(run && !run.finished);
+    const running = isRunActive();
     const d = run ? run.dungeon : null;
 
     const buffText = run
@@ -1317,6 +1318,8 @@
     document.getElementById("btnRedeploy").disabled = running || !d;
     document.getElementById("btnDockMap").disabled = running;
     document.getElementById("btnDockJobs").disabled = running;
+    updateAutoDisassembleButton();
+    renderDisassembleFilter();
 
     const tabs = document.getElementById("teamTabs");
     tabs.innerHTML = "";
@@ -1355,26 +1358,33 @@
     document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
   });
   function updateAutoDisassembleButton() {
+    const running = isRunActive();
     const btn = document.getElementById("btnAutoDisassembleToggle");
     btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
     btn.classList.toggle("toggle-on", autoDisassemble);
+    btn.disabled = running;
+    btn.title = running ? "探索中は変更できません" : "";
     document.getElementById("disassembleFilterRow").classList.toggle("hidden", !autoDisassemble);
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
+    if (isRunActive()) return;
     autoDisassemble = !autoDisassemble;
     localStorage.setItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
   function renderDisassembleFilter() {
+    const running = isRunActive();
     const row = document.getElementById("disassembleFilterRow");
-    row.innerHTML = `<span class="disassemble-filter-label">対象:</span>`;
+    row.innerHTML = `<span class="disassemble-filter-label">対象${running ? "（探索中は変更不可）" : ""}:</span>`;
     for (const rarity of RARITIES) {
       const chip = document.createElement("button");
       const on = autoDisassembleRarities.has(rarity.key);
       chip.className = "disassemble-chip" + (on ? " active" : "");
       chip.textContent = rarity.name;
+      chip.disabled = running;
       if (on) chip.style.background = rarity.color;
       chip.addEventListener("click", () => {
+        if (isRunActive()) return;
         if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
         else autoDisassembleRarities.add(rarity.key);
         saveAutoDisassembleFilter();
