@@ -247,13 +247,19 @@
   }
 
   document.getElementById("btnGoBattle").addEventListener("click", () => {
-    openMap();
+    openExploreHub();
   });
   document.getElementById("btnGoJobs").addEventListener("click", () => {
     jobsReturnScreen = "screen-title";
     renderJobsScreen();
     showScreen("screen-jobs");
   });
+
+  function openExploreHub() {
+    buildPartyDock();
+    renderDock();
+    showScreen("screen-battle");
+  }
 
   // ---------- Map screen ----------
   function averagePartyLevel() {
@@ -338,8 +344,7 @@
   }
 
   document.getElementById("btnMapBack").addEventListener("click", () => {
-    renderTitle();
-    showScreen("screen-title");
+    openExploreHub();
   });
 
   // ---------- パーティ一覧（編成画面） ----------
@@ -1255,9 +1260,7 @@
 
   document.getElementById("btnJobsDone").addEventListener("click", () => {
     if (jobsReturnScreen === "screen-battle") {
-      buildPartyDock();
-      renderDock();
-      showScreen("screen-battle");
+      openExploreHub();
     } else if (jobsReturnScreen === "screen-map") {
       openMap();
     } else {
@@ -1424,6 +1427,10 @@
       ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
       : "ダンジョン未選択";
     document.getElementById("dockDungeon").textContent = d ? d.name : "—";
+    const feed = document.getElementById("logFeed");
+    if (!run && feed.children.length === 0) {
+      feed.innerHTML = `<p class="sub" style="margin:24px 0;text-align:center;">下の「マップ」からダンジョンを選んで冒険を始めましょう</p>`;
+    }
     document.getElementById("dockStatus").textContent = !d
       ? ""
       : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
