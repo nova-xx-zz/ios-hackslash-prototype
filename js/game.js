@@ -5,6 +5,8 @@
   const MATERIAL_KEY = "jobquest_material";
   const AUTO_DISASSEMBLE_KEY = "jobquest_autodisassemble";
   const AUTO_DISASSEMBLE_FILTER_KEY = "jobquest_autodisassemble_filter";
+  const AUTO_REPEAT_TARGET_KEY = "jobquest_autorepeat_target";
+  const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
@@ -207,6 +209,13 @@
   let jobsReturnScreen = "screen-title";
   let speedMult = 1;
   function isRunActive() { return !!(run && !run.finished); }
+
+  // 自動周回（設定した回数だけ同じダンジョンへ再出撃し続ける）
+  let autoRepeatTarget = clampAutoRepeatTarget(parseInt(localStorage.getItem(AUTO_REPEAT_TARGET_KEY) || "5", 10));
+  let autoRepeatActive = false;
+  let autoRepeatDone = 0;
+  function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
+  function isDockLocked() { return isRunActive() || autoRepeatActive; }
 
   let roster = [
     newCharacter("アレン", "warrior", "human", { team: 0 }),
@@ -1415,6 +1424,7 @@
     document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
     document.getElementById("materialLine").textContent = `強化石 ${material}`;
     const running = isRunActive();
+    const locked = isDockLocked();
     const d = run ? run.dungeon : null;
 
     const buffText = run
@@ -1437,11 +1447,12 @@
     const pct = d ? (Math.min(run.battleIndex + (running ? 0 : 1), d.battles) / d.battles) * 100 : 0;
     document.getElementById("dockProgressFill").style.width = clamp(pct, 0, 100) + "%";
 
-    document.getElementById("btnRedeploy").disabled = running || !d;
-    document.getElementById("btnDockMap").disabled = running;
-    document.getElementById("btnDockJobs").disabled = running;
+    document.getElementById("btnRedeploy").disabled = locked || !d;
+    document.getElementById("btnDockMap").disabled = locked;
+    document.getElementById("btnDockJobs").disabled = locked;
     updateAutoDisassembleButton();
     renderDisassembleFilter();
+    renderAutoRepeatRow();
 
     const tabs = document.getElementById("teamTabs");
     tabs.innerHTML = "";
@@ -1449,15 +1460,71 @@
       const btn = document.createElement("button");
       btn.className = "team-tab" + (i === activeTeam ? " active" : "");
       btn.innerHTML = `${label}<span class="count">${teamMembers(i).length}人</span>`;
-      btn.disabled = running;
+      btn.disabled = locked;
       btn.addEventListener("click", () => {
-        if (running) return;
+        if (locked) return;
         activeTeam = i;
         buildPartyDock();
         renderDock();
       });
       tabs.appendChild(btn);
     });
+  }
+
+  function renderAutoRepeatRow() {
+    const row = document.getElementById("autoRepeatRow");
+    if (!row) return;
+    row.innerHTML = "";
+    const locked = isDockLocked();
+    const canStart = !!(run && run.dungeon);
+
+    const label = document.createElement("div");
+    label.className = "auto-repeat-label";
+    label.textContent = "自動周回";
+    row.appendChild(label);
+
+    if (autoRepeatActive) {
+      const status = document.createElement("div");
+      status.className = "auto-repeat-status";
+      status.textContent = `${autoRepeatDone}/${autoRepeatTarget} 周`;
+      row.appendChild(status);
+    } else {
+      const chips = document.createElement("div");
+      chips.className = "auto-repeat-chips";
+      for (const n of AUTO_REPEAT_OPTIONS) {
+        const chip = document.createElement("button");
+        chip.className = "auto-repeat-chip" + (autoRepeatTarget === n ? " active" : "");
+        chip.textContent = `x${n}`;
+        chip.disabled = locked;
+        chip.addEventListener("click", () => {
+          if (isDockLocked()) return;
+          autoRepeatTarget = n;
+          localStorage.setItem(AUTO_REPEAT_TARGET_KEY, String(n));
+          renderAutoRepeatRow();
+        });
+        chips.appendChild(chip);
+      }
+      row.appendChild(chips);
+    }
+
+    const btn = document.createElement("button");
+    btn.className = "btn small " + (autoRepeatActive ? "ghost" : "primary");
+    btn.textContent = autoRepeatActive ? "停止" : "自動周回開始";
+    btn.disabled = autoRepeatActive ? false : (locked || !canStart);
+    if (!autoRepeatActive && !canStart) btn.title = "先にダンジョンへ出撃してください";
+    btn.addEventListener("click", () => {
+      if (autoRepeatActive) {
+        autoRepeatActive = false;
+        logLine("自動周回を停止しました", "system");
+        renderDock();
+        return;
+      }
+      if (isDockLocked() || !canStart) return;
+      autoRepeatActive = true;
+      autoRepeatDone = 0;
+      startDungeon(run.dungeon.id);
+    });
+    row.appendChild(btn);
   }
 
   function updateBattleDOM() {
@@ -1480,33 +1547,33 @@
     document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
   });
   function updateAutoDisassembleButton() {
-    const running = isRunActive();
+    const locked = isDockLocked();
     const btn = document.getElementById("btnAutoDisassembleToggle");
     btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
     btn.classList.toggle("toggle-on", autoDisassemble);
-    btn.disabled = running;
-    btn.title = running ? "探索中は変更できません" : "";
+    btn.disabled = locked;
+    btn.title = locked ? "探索中は変更できません" : "";
     document.getElementById("disassembleFilterRow").classList.toggle("hidden", !autoDisassemble);
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
-    if (isRunActive()) return;
+    if (isDockLocked()) return;
     autoDisassemble = !autoDisassemble;
     localStorage.setItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
   function renderDisassembleFilter() {
-    const running = isRunActive();
+    const locked = isDockLocked();
     const row = document.getElementById("disassembleFilterRow");
-    row.innerHTML = `<span class="disassemble-filter-label">対象${running ? "（探索中は変更不可）" : ""}:</span>`;
+    row.innerHTML = `<span class="disassemble-filter-label">対象${locked ? "（探索中は変更不可）" : ""}:</span>`;
     for (const rarity of RARITIES) {
       const chip = document.createElement("button");
       const on = autoDisassembleRarities.has(rarity.key);
       chip.className = "disassemble-chip" + (on ? " active" : "");
       chip.textContent = rarity.name;
-      chip.disabled = running;
+      chip.disabled = locked;
       if (on) chip.style.background = rarity.color;
       chip.addEventListener("click", () => {
-        if (isRunActive()) return;
+        if (isDockLocked()) return;
         if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
         else autoDisassembleRarities.add(rarity.key);
         saveAutoDisassembleFilter();
@@ -1517,8 +1584,10 @@
   }
   renderDisassembleFilter();
   updateAutoDisassembleButton();
+  renderAutoRepeatRow();
   document.getElementById("btnRedeploy").addEventListener("click", () => {
-    if (run) startDungeon(run.dungeon.id);
+    if (isDockLocked() || !run) return;
+    startDungeon(run.dungeon.id);
   });
   document.getElementById("btnDockMap").addEventListener("click", () => {
     restoreParty();
@@ -1902,6 +1971,26 @@
     restoreParty();
     buildPartyDock();
     renderDock();
+
+    if (autoRepeatActive) {
+      if (run.wiped) {
+        autoRepeatActive = false;
+        logLine("パーティが全滅したため自動周回を停止しました", "system");
+        renderDock();
+      } else {
+        autoRepeatDone += 1;
+        if (autoRepeatDone >= autoRepeatTarget) {
+          autoRepeatActive = false;
+          logLine(`自動周回が完了しました（${autoRepeatDone}周）`, "system");
+          renderDock();
+        } else {
+          logLine(`自動周回 ${autoRepeatDone}/${autoRepeatTarget} 周完了。次のダンジョンへ出発します…`, "system");
+          renderAutoRepeatRow();
+          const nextId = run.dungeon.id;
+          scheduleNext(() => startDungeon(nextId), 1400);
+        }
+      }
+    }
   }
 
   function buildDropRow(item) {

@@ -579,6 +579,25 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .dock-progress-row span:last-child { color: var(--sub-text); font-weight: 400; }
 .stat-bar.dungeon .fill { background: var(--accent); }
 
+.auto-repeat-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 4px 8px 6px; border-top: 1px solid var(--border); }
+.auto-repeat-label { font-size: 10.5px; color: var(--sub-text); font-weight: 700; margin-right: 2px; }
+.auto-repeat-chips { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+.auto-repeat-chip {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  color: var(--sub-text);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.auto-repeat-chip.active { background: var(--accent); border-color: transparent; color: white; }
+.auto-repeat-chip:disabled { opacity: 0.4; cursor: default; }
+.auto-repeat-status { flex: 1; font-size: 12px; font-weight: 700; color: var(--accent); }
+.auto-repeat-row .btn { width: auto; margin: 0; padding: 6px 12px; font-size: 12px; }
+.auto-repeat-row .btn:disabled { opacity: 0.35; }
+
 .dock-actions { display: flex; gap: 6px; padding: 2px 8px 6px; }
 .dock-actions .btn { flex: 1; margin: 0; }
 .dock-actions .btn:disabled { opacity: 0.35; }
