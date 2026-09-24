@@ -6,19 +6,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0e0c16">
-<title>Job Quest Prototype</title>
+<title>クエストパーティ</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
 
   <!-- タイトル画面 -->
-  <section id="screen-title" class="screen">
-    <div class="panel narrow">
-      <h1>クエストパーティ</h1>
+  <section id="screen-title" class="screen title-screen">
+    <div class="title-glow"></div>
+    <div class="panel narrow title-panel">
+      <div class="title-emblem">⚔</div>
+      <h1 class="title-logo">クエストパーティ</h1>
+      <p class="title-logo-en">Quest Party</p>
       <p class="sub">5人パーティ・オート戦闘のハクスラダンジョン<br>プロトタイプ</p>
       <div id="partyPreview" class="party-preview"></div>
-      <button class="btn primary" id="btnGoBattle">冒険に出る</button>
+      <button class="btn primary title-cta" id="btnGoBattle">⚔ 冒険に出る</button>
       <button class="btn ghost" id="btnGoJobs">パーティ編成</button>
       <p class="best" id="bestClearText"></p>
     </div>
