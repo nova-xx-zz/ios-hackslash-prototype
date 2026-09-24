@@ -346,6 +346,7 @@
   const expandedTeams = new Set([0]);
   let benchExpanded = true;
   let detailCharId = null;
+  let detailTab = "stats";
 
   function renderJobsScreen() {
     const wrap = document.getElementById("rosterBody");
@@ -805,192 +806,264 @@
   // ---------- キャラ詳細 ----------
   function openCharDetail(c) {
     detailCharId = c.id;
+    detailTab = "stats";
     renderCharDetail();
     showScreen("screen-chardetail");
   }
 
+  const DETAIL_TABS = [
+    { key: "stats", label: "能力値" },
+    { key: "equip", label: "装備" },
+    { key: "skill", label: "スキル" },
+    { key: "job", label: "ジョブ" },
+  ];
+
   function renderCharDetail() {
     const c = roster.find((x) => x.id === detailCharId);
     if (!c) { showScreen("screen-jobs"); return; }
-    const wrap = document.getElementById("detailBody");
-    wrap.innerHTML = "";
     document.getElementById("detailName").textContent =
       `${c.name}${c.isMonster ? "（テイム）" : ""}`;
 
-    {
-      const card = document.createElement("div");
-      card.className = "job-char-card";
+    renderDetailTabs();
 
-      const activeRow = document.createElement("div");
-      activeRow.className = "job-pick-row";
-      const benchBtn = document.createElement("button");
-      benchBtn.className = "job-pick" + (c.team === null ? " active" : "");
-      benchBtn.textContent = "控え";
-      benchBtn.addEventListener("click", () => { c.team = null; renderCharDetail(); });
-      activeRow.appendChild(benchBtn);
-      for (let i = 0; i < TEAM_LABELS.length; i++) {
-        const btn = document.createElement("button");
-        const atCap = c.team !== i && teamMembers(i).length >= MAX_ACTIVE;
-        btn.className = "job-pick" + (c.team === i ? " active" : "") + (atCap ? " disabled" : "");
-        btn.textContent = TEAM_LABELS[i];
-        btn.addEventListener("click", () => {
-          if (atCap) return;
-          c.team = i;
-          clampVitals(c);
-          renderCharDetail();
-        });
-        activeRow.appendChild(btn);
-      }
+    const wrap = document.getElementById("detailBody");
+    wrap.innerHTML = "";
+    const card = document.createElement("div");
+    card.className = "job-char-card";
+    if (detailTab === "equip") card.appendChild(buildEquipSection(c));
+    else if (detailTab === "skill") card.appendChild(buildSkillTab(c));
+    else if (detailTab === "job") card.appendChild(buildJobTab(c));
+    else card.appendChild(buildStatsTab(c));
+    wrap.appendChild(card);
+  }
 
-      const jobRow = document.createElement("div");
-      jobRow.className = "job-pick-row";
-      const jobBlocks = [jobRow];
-      if (c.isMonster) {
-        const note = document.createElement("div");
-        note.className = "sub-ability-row";
-        note.textContent = "モンスターは転職できず、種族専用の技を使う";
-        jobRow.appendChild(note);
-      } else {
-        const jobLabel = (jobId) => {
-          const lvl = (c.jobLevels[jobId] && c.jobLevels[jobId].level) || 0;
-          const mastered = lvl >= JOB_MASTER_LEVEL ? "★" : "";
-          return lvl > 0 ? `${JOBS[jobId].name} Lv.${lvl}${mastered}` : JOBS[jobId].name;
-        };
-        for (const jobId of BASIC_JOB_IDS) {
-          const btn = document.createElement("button");
-          btn.className = "job-pick" + (c.job === jobId ? " active" : "");
-          btn.textContent = jobLabel(jobId);
-          btn.addEventListener("click", () => { switchJob(c, jobId); clampVitals(c); renderCharDetail(); });
-          jobRow.appendChild(btn);
-        }
-        const advLabel = document.createElement("div");
-        advLabel.className = "sub-ability-row";
-        advLabel.textContent = `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
-        const advRow = document.createElement("div");
-        advRow.className = "job-pick-row";
-        for (const jobId in JOBS) {
-          if (JOBS[jobId].tier !== "advanced") continue;
-          const unlocked = jobUnlocked(c, jobId);
-          const btn = document.createElement("button");
-          btn.className = "job-pick" + (c.job === jobId ? " active" : "") + (unlocked ? "" : " disabled");
-          btn.textContent = jobLabel(jobId);
-          if (!unlocked) btn.title = `${JOBS[JOBS[jobId].requires.job].name} Lv.${JOBS[jobId].requires.level}で解放`;
-          btn.addEventListener("click", () => {
-            if (!unlocked) return;
-            switchJob(c, jobId);
-            clampVitals(c);
-            renderCharDetail();
-          });
-          advRow.appendChild(btn);
-        }
-        jobBlocks.push(advLabel, advRow);
-      }
+  function renderDetailTabs() {
+    const tabs = document.getElementById("detailTabs");
+    tabs.innerHTML = "";
+    for (const t of DETAIL_TABS) {
+      const btn = document.createElement("button");
+      btn.className = "detail-tab" + (detailTab === t.key ? " active" : "");
+      btn.textContent = t.label;
+      btn.addEventListener("click", () => { detailTab = t.key; renderCharDetail(); });
+      tabs.appendChild(btn);
+    }
+  }
 
+  // ---------- 詳細: 能力値タブ ----------
+  function buildStatsTab(c) {
+    const wrap = document.createElement("div");
+    const race = RACES[c.race];
+    const stats = computeStats(c);
+
+    wrap.innerHTML = `<div class="cname">${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}</div>
+      <div class="sub-ability-row">${race.desc}</div>`;
+
+    const partyLabel = document.createElement("div");
+    partyLabel.className = "sub-ability-row";
+    partyLabel.textContent = "所属パーティ";
+    wrap.appendChild(partyLabel);
+
+    const activeRow = document.createElement("div");
+    activeRow.className = "job-pick-row";
+    const benchBtn = document.createElement("button");
+    benchBtn.className = "job-pick" + (c.team === null ? " active" : "");
+    benchBtn.textContent = "控え";
+    benchBtn.addEventListener("click", () => { c.team = null; renderCharDetail(); });
+    activeRow.appendChild(benchBtn);
+    for (let i = 0; i < TEAM_LABELS.length; i++) {
+      const btn = document.createElement("button");
+      const atCap = c.team !== i && teamMembers(i).length >= MAX_ACTIVE;
+      btn.className = "job-pick" + (c.team === i ? " active" : "") + (atCap ? " disabled" : "");
+      btn.textContent = TEAM_LABELS[i];
+      btn.addEventListener("click", () => {
+        if (atCap) return;
+        c.team = i;
+        clampVitals(c);
+        renderCharDetail();
+      });
+      activeRow.appendChild(btn);
+    }
+    wrap.appendChild(activeRow);
+
+    const statLabel = document.createElement("div");
+    statLabel.className = "sub-ability-row";
+    statLabel.textContent = "能力値";
+    wrap.appendChild(statLabel);
+
+    const statBox = document.createElement("div");
+    statBox.className = "detail-stat-box";
+    const rows = [
+      ["HP", stats.maxHp], ["MP", stats.maxMp],
+      ["ATK", stats.atk], ["MAG", stats.mag],
+      ["DEF", stats.def], ["SPD", Math.round(stats.spd * 10) / 10],
+    ];
+    statBox.innerHTML = rows.map(([k, v]) => `<div class="detail-stat-row"><span>${k}</span><span>${v}</span></div>`).join("");
+    wrap.appendChild(statBox);
+
+    return wrap;
+  }
+
+  // ---------- 詳細: ジョブタブ ----------
+  function buildJobTab(c) {
+    const wrap = document.createElement("div");
+    if (c.isMonster) {
+      const note = document.createElement("div");
+      note.className = "sub-ability-row";
+      note.textContent = "モンスターは転職できず、種族専用の技を使う";
+      wrap.appendChild(note);
+      return wrap;
+    }
+
+    const jobLabel = (jobId) => {
+      const lvl = (c.jobLevels[jobId] && c.jobLevels[jobId].level) || 0;
+      const mastered = lvl >= JOB_MASTER_LEVEL ? "★" : "";
+      return lvl > 0 ? `${JOBS[jobId].name} Lv.${lvl}${mastered}` : JOBS[jobId].name;
+    };
+
+    const basicLabel = document.createElement("div");
+    basicLabel.className = "sub-ability-row";
+    basicLabel.textContent = "基本職";
+    wrap.appendChild(basicLabel);
+
+    const jobRow = document.createElement("div");
+    jobRow.className = "job-pick-row";
+    for (const jobId of BASIC_JOB_IDS) {
+      const btn = document.createElement("button");
+      btn.className = "job-pick" + (c.job === jobId ? " active" : "");
+      btn.textContent = jobLabel(jobId);
+      btn.addEventListener("click", () => { switchJob(c, jobId); clampVitals(c); renderCharDetail(); });
+      jobRow.appendChild(btn);
+    }
+    wrap.appendChild(jobRow);
+
+    const advLabel = document.createElement("div");
+    advLabel.className = "sub-ability-row";
+    advLabel.textContent = `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
+    wrap.appendChild(advLabel);
+
+    const advRow = document.createElement("div");
+    advRow.className = "job-pick-row";
+    for (const jobId in JOBS) {
+      if (JOBS[jobId].tier !== "advanced") continue;
+      const unlocked = jobUnlocked(c, jobId);
+      const btn = document.createElement("button");
+      btn.className = "job-pick" + (c.job === jobId ? " active" : "") + (unlocked ? "" : " disabled");
+      btn.textContent = jobLabel(jobId);
+      if (!unlocked) btn.title = `${JOBS[JOBS[jobId].requires.job].name} Lv.${JOBS[jobId].requires.level}で解放`;
+      btn.addEventListener("click", () => {
+        if (!unlocked) return;
+        switchJob(c, jobId);
+        clampVitals(c);
+        renderCharDetail();
+      });
+      advRow.appendChild(btn);
+    }
+    wrap.appendChild(advRow);
+
+    return wrap;
+  }
+
+  // ---------- 詳細: スキルタブ ----------
+  function buildSkillTab(c) {
+    const wrap = document.createElement("div");
+
+    if (!c.isMonster) {
       const subLabels = ["サブアビリティ①", "サブアビリティ②"];
-      const subBlocks = [];
-      if (!c.isMonster) {
-        for (let slot = 0; slot < 2; slot++) {
-          const subRow = document.createElement("div");
-          subRow.className = "sub-ability-row";
-          subRow.textContent = `${subLabels[slot]}（他ジョブで実際にレベルを上げた技を装備できる）`;
-          const subPickRow = document.createElement("div");
-          subPickRow.className = "sub-pick-row";
+      for (let slot = 0; slot < 2; slot++) {
+        const subRow = document.createElement("div");
+        subRow.className = "sub-ability-row";
+        subRow.textContent = `${subLabels[slot]}（他ジョブで実際にレベルを上げた技を装備できる）`;
+        wrap.appendChild(subRow);
 
-          const noneBtn = document.createElement("button");
-          noneBtn.className = "sub-pick" + (!c.subAbilityIds[slot] ? " active" : "");
-          noneBtn.textContent = "なし";
-          noneBtn.addEventListener("click", () => { c.subAbilityIds[slot] = null; renderCharDetail(); });
-          subPickRow.appendChild(noneBtn);
+        const subPickRow = document.createElement("div");
+        subPickRow.className = "sub-pick-row";
+        const noneBtn = document.createElement("button");
+        noneBtn.className = "sub-pick" + (!c.subAbilityIds[slot] ? " active" : "");
+        noneBtn.textContent = "なし";
+        noneBtn.addEventListener("click", () => { c.subAbilityIds[slot] = null; renderCharDetail(); });
+        subPickRow.appendChild(noneBtn);
 
-          const otherSlotId = c.subAbilityIds[1 - slot];
-          const candidates = subAbilityCandidates(c).filter((a) => a.id !== otherSlotId);
-          for (const a of candidates) {
-            const btn = document.createElement("button");
-            btn.className = "sub-pick" + (c.subAbilityIds[slot] === a.id ? " active" : "");
-            btn.textContent = a.name;
-            btn.addEventListener("click", () => { c.subAbilityIds[slot] = a.id; renderCharDetail(); });
-            subPickRow.appendChild(btn);
-          }
-          subBlocks.push(subRow, subPickRow);
+        const otherSlotId = c.subAbilityIds[1 - slot];
+        const candidates = subAbilityCandidates(c).filter((a) => a.id !== otherSlotId);
+        for (const a of candidates) {
+          const btn = document.createElement("button");
+          btn.className = "sub-pick" + (c.subAbilityIds[slot] === a.id ? " active" : "");
+          btn.textContent = a.name;
+          btn.addEventListener("click", () => { c.subAbilityIds[slot] = a.id; renderCharDetail(); });
+          subPickRow.appendChild(btn);
         }
+        wrap.appendChild(subPickRow);
       }
-      if (!c.isMonster && subAbilityCandidates(c).length === 0) {
+      if (subAbilityCandidates(c).length === 0) {
         const hintEl = document.createElement("div");
         hintEl.className = "sub-ability-row";
         hintEl.textContent = "（まだ他ジョブの技を習得していません）";
-        subBlocks.push(hintEl);
+        wrap.appendChild(hintEl);
       }
-
-      const skillRow = document.createElement("div");
-      skillRow.className = "sub-ability-row";
-      skillRow.textContent = "オート戦闘で使うスキル（OFFで不使用、優先度で使う順番を調整）";
-      const skillListWrap = document.createElement("div");
-      skillListWrap.className = "skill-list";
-      for (const a of availableAbilities(c)) {
-        const on = isSkillActive(c, a.id);
-        const line = document.createElement("div");
-        line.className = "skill-line";
-
-        const onBtn = document.createElement("button");
-        onBtn.className = "skill-toggle" + (on ? " on" : "");
-        onBtn.textContent = `${a.name} ${on ? "ON" : "OFF"}`;
-        onBtn.addEventListener("click", () => {
-          c.skillActive[a.id] = !isSkillActive(c, a.id);
-          renderCharDetail();
-        });
-        line.appendChild(onBtn);
-
-        const tier = getAbilityTier(c, a.id);
-        const tierInfo = ABILITY_TIERS.find((t) => t.value === tier);
-        const tierBtn = document.createElement("button");
-        tierBtn.className = "priority-chip tier-" + tier + (on ? "" : " dim");
-        tierBtn.textContent = tierInfo.label;
-        tierBtn.title = "タップで優先度を切り替え（優先→通常→温存）";
-        tierBtn.addEventListener("click", () => {
-          cycleAbilityTier(c, a.id);
-          renderCharDetail();
-        });
-        line.appendChild(tierBtn);
-
-        skillListWrap.appendChild(line);
-      }
-      const locked = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
-      for (const a of locked) {
-        const span = document.createElement("div");
-        span.className = "skill-line";
-        span.style.opacity = "0.35";
-        span.textContent = `${a.name}（Lv.${a.reqLevel}で習得）`;
-        skillListWrap.appendChild(span);
-      }
-
-      const targetRow = document.createElement("div");
-      targetRow.className = "sub-ability-row";
-      targetRow.textContent = "攻撃対象の優先度（単体を狙う技・通常攻撃に適用）";
-      const targetPickRow = document.createElement("div");
-      targetPickRow.className = "sub-pick-row";
-      for (const mode of TARGET_MODES) {
-        const btn = document.createElement("button");
-        btn.className = "sub-pick" + (c.targetPriority === mode.value ? " active" : "");
-        btn.textContent = mode.label;
-        btn.addEventListener("click", () => { c.targetPriority = mode.value; renderCharDetail(); });
-        targetPickRow.appendChild(btn);
-      }
-
-      const race = RACES[c.race];
-      const stats = computeStats(c);
-      card.innerHTML = `<div class="cname">${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}
-        <span style="float:right;color:var(--sub-text);font-size:11px;">HP${stats.maxHp} MP${stats.maxMp} ATK${stats.atk} MAG${stats.mag} DEF${stats.def} SPD${Math.round(stats.spd)}</span></div>
-        <div class="sub-ability-row">${race.desc}</div>`;
-      card.appendChild(activeRow);
-      for (const el of jobBlocks) card.appendChild(el);
-      card.appendChild(buildEquipSection(c));
-      for (const el of subBlocks) card.appendChild(el);
-      card.appendChild(skillRow);
-      card.appendChild(skillListWrap);
-      card.appendChild(targetRow);
-      card.appendChild(targetPickRow);
-      wrap.appendChild(card);
     }
+
+    const skillRow = document.createElement("div");
+    skillRow.className = "sub-ability-row";
+    skillRow.textContent = "オート戦闘で使うスキル（OFFで不使用、優先度で使う順番を調整）";
+    wrap.appendChild(skillRow);
+
+    const skillListWrap = document.createElement("div");
+    skillListWrap.className = "skill-list";
+    for (const a of availableAbilities(c)) {
+      const on = isSkillActive(c, a.id);
+      const line = document.createElement("div");
+      line.className = "skill-line";
+
+      const onBtn = document.createElement("button");
+      onBtn.className = "skill-toggle" + (on ? " on" : "");
+      onBtn.textContent = `${a.name} ${on ? "ON" : "OFF"}`;
+      onBtn.addEventListener("click", () => {
+        c.skillActive[a.id] = !isSkillActive(c, a.id);
+        renderCharDetail();
+      });
+      line.appendChild(onBtn);
+
+      const tier = getAbilityTier(c, a.id);
+      const tierInfo = ABILITY_TIERS.find((t) => t.value === tier);
+      const tierBtn = document.createElement("button");
+      tierBtn.className = "priority-chip tier-" + tier + (on ? "" : " dim");
+      tierBtn.textContent = tierInfo.label;
+      tierBtn.title = "タップで優先度を切り替え（優先→通常→温存）";
+      tierBtn.addEventListener("click", () => {
+        cycleAbilityTier(c, a.id);
+        renderCharDetail();
+      });
+      line.appendChild(tierBtn);
+
+      skillListWrap.appendChild(line);
+    }
+    const locked = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
+    for (const a of locked) {
+      const span = document.createElement("div");
+      span.className = "skill-line";
+      span.style.opacity = "0.35";
+      span.textContent = `${a.name}（Lv.${a.reqLevel}で習得）`;
+      skillListWrap.appendChild(span);
+    }
+    wrap.appendChild(skillListWrap);
+
+    const targetRow = document.createElement("div");
+    targetRow.className = "sub-ability-row";
+    targetRow.textContent = "攻撃対象の優先度（単体を狙う技・通常攻撃に適用）";
+    wrap.appendChild(targetRow);
+
+    const targetPickRow = document.createElement("div");
+    targetPickRow.className = "sub-pick-row";
+    for (const mode of TARGET_MODES) {
+      const btn = document.createElement("button");
+      btn.className = "sub-pick" + (c.targetPriority === mode.value ? " active" : "");
+      btn.textContent = mode.label;
+      btn.addEventListener("click", () => { c.targetPriority = mode.value; renderCharDetail(); });
+      targetPickRow.appendChild(btn);
+    }
+    wrap.appendChild(targetPickRow);
+
+    return wrap;
   }
 
   // 装備セクション（スロットをタップで所持品から選ぶ）
