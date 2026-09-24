@@ -904,6 +904,30 @@
   }
 
   // ---------- 詳細: ジョブタブ ----------
+  function buildJobCard(c, jobId, unlocked) {
+    const job = JOBS[jobId];
+    const trained = c.jobLevels[jobId];
+    const lvl = trained ? trained.level : 0;
+    const mastered = lvl >= JOB_MASTER_LEVEL;
+    const pct = trained ? clamp((trained.exp / trained.expToNext) * 100, 0, 100) : 0;
+
+    const card = document.createElement("button");
+    card.className = "job-card" + (c.job === jobId ? " active" : "") + (unlocked ? "" : " locked");
+    card.innerHTML = `
+      <div class="job-card-icon">${job.icon || "❓"}</div>
+      <div class="job-card-level">${trained ? `Lv.${lvl}${mastered ? '<span class="star">★</span>' : ""}` : "未経験"}</div>
+      <div class="job-card-name">${job.name}</div>
+      <div class="job-card-exp-bar"><div class="fill" style="width:${pct}%"></div></div>`;
+    if (!unlocked) card.title = `${JOBS[job.requires.job].name} Lv.${job.requires.level}で解放`;
+    card.addEventListener("click", () => {
+      if (!unlocked) return;
+      switchJob(c, jobId);
+      clampVitals(c);
+      renderCharDetail();
+    });
+    return card;
+  }
+
   function buildJobTab(c) {
     const wrap = document.createElement("div");
     if (c.isMonster) {
@@ -914,58 +938,121 @@
       return wrap;
     }
 
-    const jobLabel = (jobId) => {
-      const lvl = (c.jobLevels[jobId] && c.jobLevels[jobId].level) || 0;
-      const mastered = lvl >= JOB_MASTER_LEVEL ? "★" : "";
-      return lvl > 0 ? `${JOBS[jobId].name} Lv.${lvl}${mastered}` : JOBS[jobId].name;
-    };
+    const advIds = Object.keys(JOBS).filter((id) => JOBS[id].tier === "advanced");
+    const masteredCount = (ids) => ids.filter((id) => (c.jobLevels[id] && c.jobLevels[id].level) >= JOB_MASTER_LEVEL).length;
 
-    const basicLabel = document.createElement("div");
-    basicLabel.className = "sub-ability-row";
-    basicLabel.textContent = "基本職";
-    wrap.appendChild(basicLabel);
+    const basicHead = document.createElement("div");
+    basicHead.className = "detail-section-head";
+    basicHead.innerHTML = `<span>基本職</span><span class="count">${masteredCount(BASIC_JOB_IDS)}/${BASIC_JOB_IDS.length}</span>`;
+    wrap.appendChild(basicHead);
 
-    const jobRow = document.createElement("div");
-    jobRow.className = "job-pick-row";
-    for (const jobId of BASIC_JOB_IDS) {
-      const btn = document.createElement("button");
-      btn.className = "job-pick" + (c.job === jobId ? " active" : "");
-      btn.textContent = jobLabel(jobId);
-      btn.addEventListener("click", () => { switchJob(c, jobId); clampVitals(c); renderCharDetail(); });
-      jobRow.appendChild(btn);
-    }
-    wrap.appendChild(jobRow);
+    const basicGrid = document.createElement("div");
+    basicGrid.className = "job-card-grid";
+    for (const jobId of BASIC_JOB_IDS) basicGrid.appendChild(buildJobCard(c, jobId, true));
+    wrap.appendChild(basicGrid);
 
-    const advLabel = document.createElement("div");
-    advLabel.className = "sub-ability-row";
-    advLabel.textContent = `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
-    wrap.appendChild(advLabel);
+    const advHead = document.createElement("div");
+    advHead.className = "detail-section-head";
+    advHead.innerHTML = `<span>上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）</span><span class="count">${masteredCount(advIds)}/${advIds.length}</span>`;
+    wrap.appendChild(advHead);
 
-    const advRow = document.createElement("div");
-    advRow.className = "job-pick-row";
-    for (const jobId in JOBS) {
-      if (JOBS[jobId].tier !== "advanced") continue;
-      const unlocked = jobUnlocked(c, jobId);
-      const btn = document.createElement("button");
-      btn.className = "job-pick" + (c.job === jobId ? " active" : "") + (unlocked ? "" : " disabled");
-      btn.textContent = jobLabel(jobId);
-      if (!unlocked) btn.title = `${JOBS[JOBS[jobId].requires.job].name} Lv.${JOBS[jobId].requires.level}で解放`;
-      btn.addEventListener("click", () => {
-        if (!unlocked) return;
-        switchJob(c, jobId);
-        clampVitals(c);
-        renderCharDetail();
-      });
-      advRow.appendChild(btn);
-    }
-    wrap.appendChild(advRow);
+    const advGrid = document.createElement("div");
+    advGrid.className = "job-card-grid";
+    for (const jobId of advIds) advGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
+    wrap.appendChild(advGrid);
 
     return wrap;
   }
 
   // ---------- 詳細: スキルタブ ----------
+  const ABILITY_KIND_ICONS = { physical: "⚔️", magic: "🔥", heal: "✨" };
+
+  function buildSkillRow(c, a, opts) {
+    opts = opts || {};
+    const row = document.createElement("div");
+    row.className = "skill-row" + (opts.locked ? " locked" : "");
+
+    const icon = document.createElement("div");
+    icon.className = "skill-row-icon";
+    icon.textContent = ABILITY_KIND_ICONS[a.kind] || "◆";
+    row.appendChild(icon);
+
+    const name = document.createElement("div");
+    name.className = "skill-row-name";
+    name.textContent = a.name;
+    row.appendChild(name);
+
+    if (opts.locked) {
+      const lockedLabel = document.createElement("div");
+      lockedLabel.className = "skill-row-locked-label";
+      lockedLabel.textContent = `Lv.${a.reqLevel}で習得`;
+      row.appendChild(lockedLabel);
+      return row;
+    }
+
+    if (opts.staticOn) {
+      const staticToggle = document.createElement("div");
+      staticToggle.className = "skill-toggle-circle on static";
+      row.appendChild(staticToggle);
+      return row;
+    }
+
+    const on = isSkillActive(c, a.id);
+    const tier = getAbilityTier(c, a.id);
+    const tierInfo = ABILITY_TIERS.find((t) => t.value === tier);
+    const tierBtn = document.createElement("button");
+    tierBtn.className = "priority-chip tier-" + tier + (on ? "" : " dim");
+    tierBtn.textContent = tierInfo.label;
+    tierBtn.title = "タップで優先度を切り替え（優先→通常→温存）";
+    tierBtn.addEventListener("click", () => { cycleAbilityTier(c, a.id); renderCharDetail(); });
+    row.appendChild(tierBtn);
+
+    const toggle = document.createElement("button");
+    toggle.className = "skill-toggle-circle" + (on ? " on" : "");
+    toggle.title = on ? "タップでOFFにする" : "タップでONにする";
+    toggle.addEventListener("click", () => {
+      c.skillActive[a.id] = !isSkillActive(c, a.id);
+      renderCharDetail();
+    });
+    row.appendChild(toggle);
+
+    return row;
+  }
+
   function buildSkillTab(c) {
     const wrap = document.createElement("div");
+
+    const activeList = availableAbilities(c);
+    const lockedList = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
+    const activeHead = document.createElement("div");
+    activeHead.className = "detail-section-head";
+    activeHead.innerHTML = `<span>アクティブ（OFFで不使用、優先度で使う順番を調整）</span><span class="count">${activeList.length}/${activeList.length + lockedList.length}</span>`;
+    wrap.appendChild(activeHead);
+
+    const activeListWrap = document.createElement("div");
+    activeListWrap.className = "skill-row-list";
+    for (const a of activeList) activeListWrap.appendChild(buildSkillRow(c, a));
+    for (const a of lockedList) activeListWrap.appendChild(buildSkillRow(c, a, { locked: true }));
+    wrap.appendChild(activeListWrap);
+
+    const race = RACES[c.race];
+    const passives = Object.keys(race.passive).map((k) => ({ id: "p_" + k, name: PASSIVE_LABELS[k](race.passive[k]), kind: "passive" }));
+    if (race.expMult !== 1) passives.push({ id: "p_exp", name: `獲得経験値 ${Math.round((race.expMult - 1) * 100)}%`, kind: "passive" });
+    const passiveHead = document.createElement("div");
+    passiveHead.className = "detail-section-head";
+    passiveHead.innerHTML = `<span>パッシブ（種族特性、常時有効）</span><span class="count">${passives.length}/${passives.length}</span>`;
+    wrap.appendChild(passiveHead);
+
+    const passiveListWrap = document.createElement("div");
+    passiveListWrap.className = "skill-row-list";
+    for (const p of passives) passiveListWrap.appendChild(buildSkillRow(c, p, { staticOn: true }));
+    if (passives.length === 0) {
+      const none = document.createElement("div");
+      none.className = "sub-ability-row";
+      none.textContent = "（この種族に特性はありません）";
+      passiveListWrap.appendChild(none);
+    }
+    wrap.appendChild(passiveListWrap);
 
     if (!c.isMonster) {
       const subLabels = ["サブアビリティ①", "サブアビリティ②"];
@@ -1001,51 +1088,6 @@
         wrap.appendChild(hintEl);
       }
     }
-
-    const skillRow = document.createElement("div");
-    skillRow.className = "sub-ability-row";
-    skillRow.textContent = "オート戦闘で使うスキル（OFFで不使用、優先度で使う順番を調整）";
-    wrap.appendChild(skillRow);
-
-    const skillListWrap = document.createElement("div");
-    skillListWrap.className = "skill-list";
-    for (const a of availableAbilities(c)) {
-      const on = isSkillActive(c, a.id);
-      const line = document.createElement("div");
-      line.className = "skill-line";
-
-      const onBtn = document.createElement("button");
-      onBtn.className = "skill-toggle" + (on ? " on" : "");
-      onBtn.textContent = `${a.name} ${on ? "ON" : "OFF"}`;
-      onBtn.addEventListener("click", () => {
-        c.skillActive[a.id] = !isSkillActive(c, a.id);
-        renderCharDetail();
-      });
-      line.appendChild(onBtn);
-
-      const tier = getAbilityTier(c, a.id);
-      const tierInfo = ABILITY_TIERS.find((t) => t.value === tier);
-      const tierBtn = document.createElement("button");
-      tierBtn.className = "priority-chip tier-" + tier + (on ? "" : " dim");
-      tierBtn.textContent = tierInfo.label;
-      tierBtn.title = "タップで優先度を切り替え（優先→通常→温存）";
-      tierBtn.addEventListener("click", () => {
-        cycleAbilityTier(c, a.id);
-        renderCharDetail();
-      });
-      line.appendChild(tierBtn);
-
-      skillListWrap.appendChild(line);
-    }
-    const locked = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
-    for (const a of locked) {
-      const span = document.createElement("div");
-      span.className = "skill-line";
-      span.style.opacity = "0.35";
-      span.textContent = `${a.name}（Lv.${a.reqLevel}で習得）`;
-      skillListWrap.appendChild(span);
-    }
-    wrap.appendChild(skillListWrap);
 
     const targetRow = document.createElement("div");
     targetRow.className = "sub-ability-row";
