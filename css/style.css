@@ -528,7 +528,6 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .dungeon-info .dname { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .dungeon-info .dmeta { font-size: 12px; color: var(--sub-text); line-height: 1.7; }
 .dungeon-info .btn { margin-top: 10px; }
-.level-warn { color: #ffb84d; }
 
 /* explore (log + dock) */
 .explore-wrap {

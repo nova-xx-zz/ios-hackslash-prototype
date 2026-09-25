@@ -342,12 +342,6 @@
   }
 
   // ---------- Map screen ----------
-  function averagePartyLevel() {
-    const p = activeParty();
-    if (p.length === 0) return 1;
-    return Math.round(p.reduce((s, c) => s + c.level, 0) / p.length);
-  }
-
   function openMap() {
     renderMap();
     showScreen("screen-map");
@@ -382,7 +376,7 @@
       btn.style.left = d.x + "%";
       btn.style.top = d.y + "%";
       btn.innerHTML = `<div class="dot">${cleared ? "✓" : open ? "▶" : "—"}</div>
-        <div class="label">${d.name}<br>Lv.${d.level}</div>`;
+        <div class="label">${d.name}</div>`;
       if (open) btn.addEventListener("click", () => selectDungeon(d));
       nodes.appendChild(btn);
     }
@@ -396,19 +390,12 @@
 
   function renderDungeonInfo(d) {
     const el = document.getElementById("dungeonInfo");
-    const avg = averagePartyLevel();
-    const enemyNames = d.pool.map((k) => getEnemyTemplate(k).name).join("・");
     const party = activeParty();
-    const warn = avg < d.level
-      ? `<span class="level-warn">（${TEAM_NAMES[activeTeam]}の平均Lv.${avg} — 推奨に届いていません）</span>`
-      : `（${TEAM_NAMES[activeTeam]}の平均Lv.${avg}）`;
     el.innerHTML = `
       <div class="dname">${d.name}${clearedDungeons.has(d.id) ? "　クリア済み" : ""}</div>
       <div class="dmeta">
         ${d.desc}<br>
-        推奨レベル: ${d.level} ${warn}<br>
-        戦闘数: ${d.battles}回（最後はボス戦）<br>
-        出現モンスター: ${enemyNames}
+        戦闘数: ${d.battles}回（最後はボス戦）
       </div>`;
     const btn = document.createElement("button");
     btn.className = "btn primary";
