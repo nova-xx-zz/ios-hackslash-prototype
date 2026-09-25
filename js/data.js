@@ -399,13 +399,14 @@ function makeEnemy(t, mult, isBoss) {
 }
 
 // N/R/SR/UR/LRの5段階。上位ほど急激に出にくくなる（1戦闘平均1.4個・1ダンジョン平均約5個のドロップ換算で、
-// LRはおおよそ100周に1個出るか出ないかのペースになるよう重みを設定している）
+// LRはおおよそ100周に1個出るか出ないかのペース、URは10周やって出たら運がいいと感じるくらい
+// （10周で遭遇率およそ15〜25%、30周でも半分弱程度）になるよう重みを設定している）
 // material: 自動分解した時に得られる強化石の量
 const RARITIES = [
-  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7000, material: 5 },
+  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7100, material: 5 },
   { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200, material: 20 },
   { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650, material: 80 },
-  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 135, material: 350 },
+  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 35, material: 350 },
   { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15, material: 1500 },
 ];
 
