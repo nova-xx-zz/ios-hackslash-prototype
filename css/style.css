@@ -411,6 +411,10 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .skill-toggle-circle.on { background: #4dc37a; border-color: #4dc37a; }
 .skill-toggle-circle.static { cursor: default; }
 
+/* キャラ詳細: モンスター合成タブ */
+.fusion-footer { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--sub-text); margin: 10px 0 8px; }
+.fusion-footer span:last-child { color: var(--atb); }
+
 /* キャラ詳細: ジョブカードグリッド */
 .job-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
 .job-card {

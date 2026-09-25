@@ -45,6 +45,34 @@
   let nextCharSeq = 1;
   function expForLevel(level) { return 30 + level * 15; }
 
+  // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
+  function gainExp(c, amount) {
+    const levelUps = [];
+    const abilityUnlocks = [];
+    c.exp += amount;
+    while (c.exp >= c.expToNext) {
+      c.exp -= c.expToNext;
+      c.level += 1;
+      c.expToNext = expForLevel(c.level);
+      const s = computeStats(c);
+      c.hp = s.maxHp; c.mp = s.maxMp;
+      levelUps.push(c.name + " Lv." + c.level);
+      for (const a of jobDef(c).abilities) {
+        if (a.reqLevel === c.level) abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
+      }
+    }
+    // 転職してもレベルを保持できるよう、現在のジョブの進行を都度書き戻す
+    if (!c.isMonster) c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+    return { levelUps, abilityUnlocks };
+  }
+
+  // キャラがLv.1からここまで積み上げたおおよそのEXP総量（モンスター合成の還元量計算に使用）
+  function totalExpInvested(c) {
+    let total = c.exp;
+    for (let n = 1; n < c.level; n++) total += expForLevel(n);
+    return total;
+  }
+
   function newCharacter(name, job, race, opts) {
     opts = opts || {};
     const c = {
@@ -419,6 +447,8 @@
   let benchExpanded = true;
   let detailCharId = null;
   let detailTab = "stats";
+  let fusionSelection = new Set(); // モンスター合成: 選択中の素材モンスターのid
+  let fusionMessage = "";
 
   function renderJobsScreen() {
     const wrap = document.getElementById("rosterBody");
@@ -879,6 +909,8 @@
   function openCharDetail(c) {
     detailCharId = c.id;
     detailTab = "stats";
+    fusionSelection = new Set();
+    fusionMessage = "";
     renderCharDetail();
     showScreen("screen-chardetail");
   }
@@ -910,12 +942,13 @@
   }
 
   function renderDetailTabs() {
+    const c = roster.find((x) => x.id === detailCharId);
     const tabs = document.getElementById("detailTabs");
     tabs.innerHTML = "";
     for (const t of DETAIL_TABS) {
       const btn = document.createElement("button");
       btn.className = "detail-tab" + (detailTab === t.key ? " active" : "");
-      btn.textContent = t.label;
+      btn.textContent = t.key === "job" && c && c.isMonster ? "合成" : t.label;
       btn.addEventListener("click", () => { detailTab = t.key; renderCharDetail(); });
       tabs.appendChild(btn);
     }
@@ -1000,15 +1033,103 @@
     return card;
   }
 
-  function buildJobTab(c) {
+  // ---------- 詳細: 合成タブ（テイムしたモンスター専用） ----------
+  function buildFusionTab(c) {
     const wrap = document.createElement("div");
-    if (c.isMonster) {
-      const note = document.createElement("div");
-      note.className = "sub-ability-row";
-      note.textContent = "モンスターは転職できず、種族専用の技を使う";
-      wrap.appendChild(note);
+    const desc = document.createElement("div");
+    desc.className = "sub-ability-row";
+    desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。チームに編成中のモンスターは選べません）";
+    wrap.appendChild(desc);
+
+    const candidates = roster.filter((m) => m.isMonster && m.id !== c.id && m.team === null);
+    for (const id of [...fusionSelection]) {
+      if (!candidates.some((m) => m.id === id)) fusionSelection.delete(id);
+    }
+
+    if (candidates.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "sub-ability-row";
+      empty.textContent = "合成できる控えのモンスターがいません";
+      wrap.appendChild(empty);
+      if (fusionMessage) {
+        const msg = document.createElement("div");
+        msg.className = "sub-ability-row";
+        msg.textContent = fusionMessage;
+        wrap.appendChild(msg);
+      }
       return wrap;
     }
+
+    const list = document.createElement("div");
+    list.className = "skill-row-list";
+    for (const m of candidates) {
+      const tpl = getEnemyTemplate(m.race);
+      const row = document.createElement("div");
+      row.className = "skill-row";
+      const icon = document.createElement("div");
+      icon.className = "skill-row-icon";
+      icon.textContent = (tpl && tpl.icon) || "❓";
+      row.appendChild(icon);
+      const name = document.createElement("div");
+      name.className = "skill-row-name";
+      name.textContent = `${m.name}（${RACES[m.race].name}） Lv.${m.level}`;
+      row.appendChild(name);
+      const selected = fusionSelection.has(m.id);
+      const toggle = document.createElement("button");
+      toggle.className = "skill-toggle-circle" + (selected ? " on" : "");
+      toggle.title = selected ? "タップで選択解除" : "タップで選択";
+      toggle.addEventListener("click", () => {
+        if (fusionSelection.has(m.id)) fusionSelection.delete(m.id);
+        else fusionSelection.add(m.id);
+        fusionMessage = "";
+        renderCharDetail();
+      });
+      row.appendChild(toggle);
+      list.appendChild(row);
+    }
+    wrap.appendChild(list);
+
+    const selectedMonsters = candidates.filter((m) => fusionSelection.has(m.id));
+    const totalExpGain = selectedMonsters.reduce((s, m) => s + Math.round(totalExpInvested(m) * 0.5), 0);
+
+    const footer = document.createElement("div");
+    footer.className = "fusion-footer";
+    footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: +${totalExpGain}</span>`;
+    wrap.appendChild(footer);
+
+    const btn = document.createElement("button");
+    btn.className = "btn primary";
+    btn.textContent = selectedMonsters.length > 0 ? `${selectedMonsters.length}体を合成する` : "素材を選んでください";
+    btn.disabled = selectedMonsters.length === 0;
+    btn.addEventListener("click", () => {
+      if (selectedMonsters.length === 0) return;
+      const consumedNames = selectedMonsters.map((m) => m.name);
+      for (const m of selectedMonsters) {
+        const idx = roster.findIndex((x) => x.id === m.id);
+        if (idx !== -1) roster.splice(idx, 1);
+      }
+      fusionSelection = new Set();
+      const result = gainExp(c, totalExpGain);
+      fusionMessage = `${consumedNames.join("・")}を合成し、${c.name}はEXP+${totalExpGain}を獲得した` +
+        (result.levelUps.length ? "／" + result.levelUps.join("・") : "") +
+        (result.abilityUnlocks.length ? "／" + result.abilityUnlocks.join("・") : "");
+      renderCharDetail();
+    });
+    wrap.appendChild(btn);
+
+    if (fusionMessage) {
+      const msg = document.createElement("div");
+      msg.className = "sub-ability-row";
+      msg.textContent = fusionMessage;
+      wrap.appendChild(msg);
+    }
+
+    return wrap;
+  }
+
+  function buildJobTab(c) {
+    if (c.isMonster) return buildFusionTab(c);
+    const wrap = document.createElement("div");
 
     const advIds = Object.keys(JOBS).filter((id) => JOBS[id].tier === "advanced");
     const masteredCount = (ids) => ids.filter((id) => (c.jobLevels[id] && c.jobLevels[id].level) >= JOB_MASTER_LEVEL).length;
@@ -1865,20 +1986,9 @@
     for (const c of activeParty()) {
       if (!c.alive) continue;
       const race = RACES[c.race];
-      c.exp += Math.round(expGain * race.expMult);
-      while (c.exp >= c.expToNext) {
-        c.exp -= c.expToNext;
-        c.level += 1;
-        c.expToNext = expForLevel(c.level);
-        const s = computeStats(c);
-        c.hp = s.maxHp; c.mp = s.maxMp;
-        run.levelUps.push(c.name + " Lv." + c.level);
-        for (const a of jobDef(c).abilities) {
-          if (a.reqLevel === c.level) run.abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
-        }
-      }
-      // 転職してもレベルを保持できるよう、現在のジョブの進行を都度書き戻す
-      if (!c.isMonster) c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+      const result = gainExp(c, Math.round(expGain * race.expMult));
+      run.levelUps.push(...result.levelUps);
+      run.abilityUnlocks.push(...result.abilityUnlocks);
     }
 
     gainItem(rollItemDrop());
