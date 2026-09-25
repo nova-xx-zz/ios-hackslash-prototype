@@ -7,6 +7,7 @@
   const AUTO_DISASSEMBLE_FILTER_KEY = "jobquest_autodisassemble_filter";
   const AUTO_REPEAT_TARGET_KEY = "jobquest_autorepeat_target";
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
+  const DEX_SEEN_KEY = "jobquest_dex_seen";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
@@ -26,6 +27,18 @@
   } catch (e) { /* 保存値が壊れていたら既定値のまま */ }
   function saveAutoDisassembleFilter() {
     localStorage.setItem(AUTO_DISASSEMBLE_FILTER_KEY, JSON.stringify([...autoDisassembleRarities]));
+  }
+
+  // モンスター図鑑（遭遇したモンスターのキーを端末に保存）
+  let dexSeen = new Set();
+  try {
+    const savedDex = JSON.parse(localStorage.getItem(DEX_SEEN_KEY));
+    if (Array.isArray(savedDex)) dexSeen = new Set(savedDex);
+  } catch (e) { /* 保存値が壊れていたら空のまま */ }
+  function markDexSeen(key) {
+    if (dexSeen.has(key)) return;
+    dexSeen.add(key);
+    localStorage.setItem(DEX_SEEN_KEY, JSON.stringify([...dexSeen]));
   }
 
   // ---------- Roster ----------
@@ -262,6 +275,64 @@
     jobsReturnScreen = "screen-title";
     renderJobsScreen();
     showScreen("screen-jobs");
+  });
+  document.getElementById("btnGoDex").addEventListener("click", () => {
+    renderDexScreen();
+    showScreen("screen-dex");
+  });
+  document.getElementById("btnDexBack").addEventListener("click", () => {
+    renderTitle();
+    showScreen("screen-title");
+  });
+
+  function renderDexScreen() {
+    document.getElementById("dexCount").textContent =
+      `発見済み ${dexSeen.size} / ${ENEMY_TEMPLATES.length} 体`;
+    const body = document.getElementById("dexBody");
+    body.innerHTML = "";
+    const grid = document.createElement("div");
+    grid.className = "dex-card-grid";
+    for (const t of ENEMY_TEMPLATES) {
+      const seen = dexSeen.has(t.key);
+      const card = document.createElement("button");
+      card.className = "dex-card" + (seen ? "" : " locked");
+      card.innerHTML = seen
+        ? `<div class="dex-card-icon">${t.icon || "❓"}</div>
+           <div class="dex-card-name">${t.name}</div>
+           <div class="dex-card-element">${t.element}</div>`
+        : `<div class="dex-card-icon">❓</div>
+           <div class="dex-card-name">？？？</div>
+           <div class="dex-card-element">&nbsp;</div>`;
+      if (seen) card.addEventListener("click", () => openDexDetail(t.key));
+      grid.appendChild(card);
+    }
+    body.appendChild(grid);
+  }
+
+  function openDexDetail(key) {
+    const t = getEnemyTemplate(key);
+    document.getElementById("dexIcon").textContent = t.icon || "❓";
+    document.getElementById("dexName").textContent = t.name;
+    document.getElementById("dexElement").textContent =
+      `属性: ${t.element}　${t.tamable ? "テイム可能" : "テイム不可"}`;
+    document.getElementById("dexDesc").textContent = t.desc || "";
+    const statsBox = document.getElementById("dexStats");
+    const rows = [
+      ["HP", t.hp], ["ATK", t.atk], ["DEF", t.def], ["SPD", t.spd], ["EXP", t.exp],
+    ];
+    statsBox.innerHTML = rows.map(([label, value]) => `
+      <div class="pm-stat-row">
+        <span class="pm-stat-label">${label}</span>
+        <span class="dex-stat-value">${value}</span>
+      </div>`).join("");
+    document.getElementById("dexModal").classList.remove("hidden");
+  }
+  function closeDexModal() {
+    document.getElementById("dexModal").classList.add("hidden");
+  }
+  document.getElementById("btnDexModalClose").addEventListener("click", closeDexModal);
+  document.getElementById("dexModal").addEventListener("click", (e) => {
+    if (e.target.id === "dexModal") closeDexModal();
   });
 
   function openExploreHub() {
@@ -1327,6 +1398,7 @@
       enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })),
       active: true,
     };
+    for (const e of battle.enemies) markDexSeen(e.key);
     for (const c of activeParty()) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
 
     logEvent("encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster());

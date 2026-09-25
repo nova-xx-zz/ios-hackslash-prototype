@@ -23,7 +23,20 @@
       <div id="partyPreview" class="party-preview"></div>
       <button class="btn primary title-cta" id="btnGoBattle">⚔ 冒険に出る</button>
       <button class="btn ghost" id="btnGoJobs">パーティ編成</button>
+      <button class="btn ghost" id="btnGoDex">モンスター図鑑</button>
       <p class="best" id="bestClearText"></p>
+    </div>
+  </section>
+
+  <!-- モンスター図鑑 -->
+  <section id="screen-dex" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">モンスター図鑑</div>
+        <button class="btn small ghost" id="btnDexBack">もどる</button>
+      </div>
+      <div class="dex-count" id="dexCount"></div>
+      <div id="dexBody" class="roster-body"></div>
     </div>
   </section>
 
@@ -136,6 +149,18 @@
       <div class="modal-list" id="pmList"></div>
       <div class="modal-strip" id="pmStrip"></div>
       <button class="btn primary modal-ok" id="btnPickModalOk">OK</button>
+    </div>
+  </div>
+
+  <!-- モンスター図鑑 詳細モーダル -->
+  <div id="dexModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon" id="dexIcon">—</div>
+      <div class="modal-name" id="dexName">—</div>
+      <div class="dex-element" id="dexElement"></div>
+      <div class="modal-desc" id="dexDesc"></div>
+      <div class="modal-stats" id="dexStats"></div>
+      <button class="btn ghost modal-ok" id="btnDexModalClose">とじる</button>
     </div>
   </div>
 

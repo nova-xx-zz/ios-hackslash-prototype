@@ -196,12 +196,47 @@ function getAbilityById(id) {
   return null;
 }
 
+// element はフレーバー・図鑑表示専用のタグで、戦闘計算には一切影響しない
 const ENEMY_TEMPLATES = [
-  { key: "slime", name: "スライム", hp: 16, atk: 6, mag: 0, def: 2, spd: 4, exp: 6, color: "#4dc37a", tamable: true, tameChance: 0.35 },
-  { key: "goblin", name: "ゴブリン", hp: 24, atk: 9, mag: 0, def: 4, spd: 6, exp: 9, color: "#8fae4d", tamable: true, tameChance: 0.22 },
-  { key: "bat", name: "コウモリ", hp: 12, atk: 7, mag: 0, def: 1, spd: 10, exp: 7, color: "#8a6dd1", tamable: true, tameChance: 0.28 },
-  { key: "wolf", name: "ウルフ", hp: 22, atk: 10, mag: 0, def: 3, spd: 8, exp: 10, color: "#c9c9c9", tamable: true, tameChance: 0.2 },
-  { key: "ogre", name: "オーガ", hp: 48, atk: 14, mag: 0, def: 6, spd: 4, exp: 20, color: "#d1704d", tamable: false, tameChance: 0 },
+  // ---- はじまりの草原 (Lv1) ----
+  { key: "slime", name: "スライム", hp: 16, atk: 6, mag: 0, def: 2, spd: 4, exp: 6, color: "#4dc37a", icon: "🟢", element: "水", tamable: true, tameChance: 0.35, desc: "どこにでもいる最弱の魔物。柔らかい体で衝撃を吸収する。" },
+  { key: "killer_moth", name: "キラーモス", hp: 10, atk: 5, mag: 0, def: 1, spd: 11, exp: 5, color: "#d1c94d", icon: "🦋", element: "風", tamable: false, tameChance: 0, desc: "草原を群れで飛び回る蛾。鱗粉をまき散らして視界を奪う。" },
+  { key: "field_rat", name: "フィールドラット", hp: 13, atk: 5, mag: 0, def: 2, spd: 7, exp: 5, color: "#a67c52", icon: "🐀", element: "無", tamable: false, tameChance: 0, desc: "草原にすむ小さなネズミ。繁殖力が高く数で押し寄せる。" },
+  { key: "mud_plant", name: "マッドプラント", hp: 22, atk: 4, mag: 0, def: 5, spd: 2, exp: 6, color: "#6d7a3d", icon: "🌿", element: "土", tamable: false, tameChance: 0, desc: "泥の中に潜み、根を伸ばして獲物を絡めとる植物型の魔物。" },
+  { key: "leaf_pixie", name: "リーフピクシー", hp: 9, atk: 6, mag: 0, def: 1, spd: 9, exp: 7, color: "#8fe0a0", icon: "🧚", element: "光", tamable: false, tameChance: 0, desc: "木の葉に姿を隠す小さな妖精。悪戯好きだが力は弱い。" },
+  { key: "horned_rabbit", name: "ツノウサギ", hp: 26, atk: 8, mag: 0, def: 3, spd: 9, exp: 10, color: "#eee1c6", icon: "🐇", element: "無", tamable: false, tameChance: 0, desc: "額に鋭い角を持つ大型のウサギ。跳躍からの角突きは侮れない。" },
+
+  // ---- ささやきの森 (Lv4) ----
+  { key: "goblin", name: "ゴブリン", hp: 24, atk: 9, mag: 0, def: 4, spd: 6, exp: 9, color: "#8fae4d", icon: "👺", element: "無", tamable: true, tameChance: 0.22, desc: "群れで行動する小柄な魔物。武器を手に徒党を組んで襲う。" },
+  { key: "bat", name: "コウモリ", hp: 12, atk: 7, mag: 0, def: 1, spd: 10, exp: 7, color: "#8a6dd1", icon: "🦇", element: "風", tamable: true, tameChance: 0.28, desc: "洞窟や森に生息する小型の魔物。素早く飛び回り不意を突く。" },
+  { key: "forest_spider", name: "フォレストスパイダー", hp: 20, atk: 9, mag: 0, def: 2, spd: 9, exp: 9, color: "#6a4a86", icon: "🕷️", element: "毒", tamable: false, tameChance: 0, desc: "糸を吐いて獲物の動きを封じる森の蜘蛛。噛まれると痺れる。" },
+  { key: "mandrake", name: "マンドレイク", hp: 28, atk: 7, mag: 0, def: 6, spd: 3, exp: 9, color: "#7a8f4d", icon: "🥕", element: "土", tamable: false, tameChance: 0, desc: "根に顔を持つ魔法の植物。引き抜かれると甲高い声で鳴く。" },
+  { key: "kobold", name: "コボルト", hp: 21, atk: 10, mag: 0, def: 3, spd: 7, exp: 9, color: "#9a8f6d", icon: "🪓", element: "無", tamable: false, tameChance: 0, desc: "群れで行動する小柄な魔物。粗末な武器でも数を頼みに襲いかかる。" },
+  { key: "hornet", name: "ホーネット", hp: 16, atk: 10, mag: 0, def: 2, spd: 11, exp: 9, color: "#d19b2f", icon: "🐝", element: "風", tamable: false, tameChance: 0, desc: "巨大な蜂。小さな体に似合わず毒針の一撃は重い。" },
+  { key: "elder_treant", name: "エルダートレント", hp: 42, atk: 11, mag: 0, def: 8, spd: 3, exp: 15, color: "#4d6a3d", icon: "🌳", element: "土", tamable: false, tameChance: 0, desc: "森の奥に根を張る古木の化身。動きは鈍いが一撃は重い。" },
+
+  // ---- こだまの洞窟 (Lv7) ----
+  { key: "wolf", name: "ウルフ", hp: 22, atk: 10, mag: 0, def: 3, spd: 8, exp: 10, color: "#c9c9c9", icon: "🐺", element: "無", tamable: true, tameChance: 0.2, desc: "群れで狩りをする獣。俊敏な動きで獲物を追い詰める。" },
+  { key: "cave_bat", name: "ケイブバット", hp: 18, atk: 10, mag: 0, def: 2, spd: 13, exp: 11, color: "#5a3f7a", icon: "🦇", element: "闇", tamable: false, tameChance: 0, desc: "洞窟の暗闇を飛び回るコウモリの上位種。超音波で仲間を呼ぶ。" },
+  { key: "stone_lizard", name: "ストーンリザード", hp: 30, atk: 10, mag: 0, def: 7, spd: 5, exp: 12, color: "#8a8a82", icon: "🦎", element: "土", tamable: false, tameChance: 0, desc: "岩肌に擬態するトカゲ。硬い鱗が刃を弾き返す。" },
+  { key: "shadow_wolf", name: "シャドウウルフ", hp: 26, atk: 13, mag: 0, def: 3, spd: 10, exp: 13, color: "#3a3a4a", icon: "🐺", element: "闇", tamable: false, tameChance: 0, desc: "闇に溶け込む狼。群れのウルフより獰猛で気配を絶って迫る。" },
+  { key: "mud_crab", name: "マッドクラブ", hp: 32, atk: 9, mag: 0, def: 8, spd: 3, exp: 11, color: "#8a5a4a", icon: "🦀", element: "水", tamable: false, tameChance: 0, desc: "地底の水脈に潜むカニ。硬い甲殻で攻撃を防ぐ。" },
+  { key: "rock_golem", name: "ロックゴーレム", hp: 58, atk: 13, mag: 0, def: 11, spd: 2, exp: 20, color: "#6f6f78", icon: "🗿", element: "土", tamable: false, tameChance: 0, desc: "洞窟の岩が魔力で動き出した巨躯。鈍重だが一撃は岩をも砕く。" },
+
+  // ---- 忘れられた遺跡 (Lv11) ----
+  { key: "ogre", name: "オーガ", hp: 48, atk: 14, mag: 0, def: 6, spd: 4, exp: 20, color: "#d1704d", icon: "👹", element: "無", tamable: false, tameChance: 0, desc: "怪力を誇る大型の魔物。一撃の重さは並の魔物の比ではない。" },
+  { key: "skeleton", name: "スケルトン", hp: 30, atk: 13, mag: 0, def: 4, spd: 6, exp: 16, color: "#d8d0c0", icon: "💀", element: "闇", tamable: false, tameChance: 0, desc: "遺跡を彷徨う人骨の魔物。痛みを感じず向かってくる。" },
+  { key: "living_armor", name: "リビングアーマー", hp: 40, atk: 14, mag: 0, def: 9, spd: 4, exp: 17, color: "#7a7a85", icon: "🛡️", element: "闇", tamable: false, tameChance: 0, desc: "主を失った鎧に宿った怨念。中身のない体で剣を振るう。" },
+  { key: "wight", name: "ワイト", hp: 34, atk: 15, mag: 0, def: 5, spd: 7, exp: 18, color: "#6a7a5a", icon: "👻", element: "闇", tamable: false, tameChance: 0, desc: "生者の活力を吸う死霊。触れられるとじわりと力が抜けていく。" },
+  { key: "necro_hound", name: "ネクロハウンド", hp: 28, atk: 16, mag: 0, def: 4, spd: 11, exp: 17, color: "#5a2a2a", icon: "🐕", element: "闇", tamable: false, tameChance: 0, desc: "骨だけの犬型魔物。群れで駆け回り獲物を追い詰める。" },
+  { key: "stone_gargoyle", name: "ストーンガーゴイル", hp: 62, atk: 17, mag: 0, def: 12, spd: 5, exp: 26, color: "#55555f", icon: "😈", element: "土", tamable: false, tameChance: 0, desc: "遺跡の屋根から舞い降りる石像の魔物。硬い体のまま急襲する。" },
+
+  // ---- 竜骨の山頂 (Lv15) ----
+  { key: "frost_wolf", name: "フロストウルフ", hp: 34, atk: 15, mag: 0, def: 5, spd: 12, exp: 22, color: "#a8d8ea", icon: "🐺", element: "氷", tamable: false, tameChance: 0, desc: "雪山に生きる狼の亜種。吐息は凍てつき肌を刺す。" },
+  { key: "ice_golem", name: "アイスゴーレム", hp: 60, atk: 14, mag: 0, def: 12, spd: 3, exp: 24, color: "#bfe6ea", icon: "🧊", element: "氷", tamable: false, tameChance: 0, desc: "氷雪が凝結して生まれたゴーレム。触れた者の体温を奪う。" },
+  { key: "mountain_troll", name: "マウンテントロール", hp: 70, atk: 19, mag: 0, def: 8, spd: 4, exp: 28, color: "#6a7a4a", icon: "🧌", element: "無", tamable: false, tameChance: 0, desc: "山肌に住む巨躯の魔物。傷を負ってもすぐに再生してしまう。" },
+  { key: "bone_drake", name: "ボーンドレイク", hp: 45, atk: 20, mag: 0, def: 7, spd: 9, exp: 27, color: "#cfc6b0", icon: "🐉", element: "闇", tamable: false, tameChance: 0, desc: "竜の骨が魔力で動き出した小竜。牙も爪も古びてなお鋭い。" },
+  { key: "ancient_wyvern", name: "エンシェントワイバーン", hp: 95, atk: 24, mag: 0, def: 14, spd: 8, exp: 40, color: "#8a2a3a", icon: "🐲", element: "火", tamable: false, tameChance: 0, desc: "竜骨の山頂に棲まう古き翼竜。伝説の中でしか語られぬ最強格の魔物。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -302,27 +337,27 @@ function rollNewRecruit() {
 const DUNGEONS = [
   {
     id: "plains", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
-    pool: ["slime", "bat"], boss: "slime", unlocks: ["forest"],
+    pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", unlocks: ["forest"],
     desc: "見晴らしのよい草原。弱い魔物しかいない。",
   },
   {
     id: "forest", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
-    pool: ["slime", "goblin", "bat"], boss: "goblin", unlocks: ["cave"],
+    pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
   },
   {
     id: "cave", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
-    pool: ["goblin", "bat", "wolf"], boss: "wolf", unlocks: ["ruins"],
+    pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
   },
   {
     id: "ruins", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
-    pool: ["goblin", "wolf", "ogre"], boss: "ogre", unlocks: ["peak"],
+    pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
   },
   {
     id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
-    pool: ["wolf", "ogre"], boss: "ogre", unlocks: [],
+    pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", unlocks: [],
     desc: "巨大な骨が眠る山頂。最も危険な領域。",
   },
 ];
