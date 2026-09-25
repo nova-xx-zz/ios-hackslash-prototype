@@ -1628,7 +1628,8 @@
       const chip = document.createElement("button");
       const on = autoDisassembleRarities.has(rarity.key);
       chip.className = "disassemble-chip" + (on ? " active" : "");
-      chip.textContent = rarity.name;
+      chip.textContent = rarity.key.toUpperCase();
+      chip.title = rarity.name;
       chip.disabled = locked;
       if (on) chip.style.background = rarity.color;
       chip.addEventListener("click", () => {
