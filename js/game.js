@@ -1530,7 +1530,7 @@
     run = {
       dungeon: d, battleIndex: 0, finished: false,
       buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
-      expTotal: 0, drops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
+      expTotal: 0, drops: [], pendingDrops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
       disassembleCount: 0, materialGained: 0,
     };
     for (const c of activeParty()) {
@@ -2138,20 +2138,30 @@
     updateBattleDOM();
   }
 
+  // ドロップは即座に所持品化・分解せず、ダンジョンを踏破した時だけ確定させる
+  // （全滅した場合は道中で見つけたドロップを持ち帰れない）
   function gainItem(item) {
-    if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
-      addMaterial(item.materialValue);
-      run.disassembleCount += 1;
-      run.materialGained += item.materialValue;
-      return;
+    run.pendingDrops.push(item);
+  }
+
+  // 踏破が確定した時点で、保留していたドロップを所持品化・自動分解する
+  function settlePendingDrops() {
+    for (const item of run.pendingDrops) {
+      if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
+        addMaterial(item.materialValue);
+        run.disassembleCount += 1;
+        run.materialGained += item.materialValue;
+      } else {
+        run.drops.push(item);
+        inventory.push(item);
+      }
     }
-    run.drops.push(item);
-    inventory.push(item);
   }
 
   function finishRun(info) {
     run.finished = true;
     run.wiped = !info.cleared;
+    if (info.cleared) settlePendingDrops();
 
     const card = info.cleared
       ? logEvent("clear", `${run.dungeon.name} を踏破した！`, `合計 EXP +${run.expTotal}`)
@@ -2182,6 +2192,9 @@
     }
     if (run.disassembleCount > 0) {
       logLine(`自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${material}`, "system");
+    }
+    if (run.wiped && run.pendingDrops.length > 0) {
+      logLine(`全滅したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
     }
 
     scrollLog();
