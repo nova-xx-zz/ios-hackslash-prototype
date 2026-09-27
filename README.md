@@ -58,6 +58,9 @@ python3 -m http.server 8000
 - `css/style.css` — スタイル
 - `js/data.js` — ジョブ・アビリティ・敵・種族・ダンジョン・アイテムのデータ定義
 - `js/game.js` — 画面遷移・マップ描画・ダンジョン進行・オート戦闘AI・ATBエンジン・転職/装備ロジック
+- `docs/requirements.md` — 要件定義書
+- `docs/basic-design.md` — 基本設計書
+- `docs/detailed-design.md` — 詳細設計書（データ構造・計算式・関数マッピング）
 
 ## オート戦闘AIのロジック（現状）
 
