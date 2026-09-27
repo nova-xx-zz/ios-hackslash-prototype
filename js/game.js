@@ -51,6 +51,13 @@
         roster, inventory, activeTeam,
         clearedDungeons: [...clearedDungeons],
         nextCharSeq,
+        savedAt: Date.now(),
+        autoRepeat: {
+          active: autoRepeatActive,
+          target: autoRepeatTarget,
+          done: autoRepeatDone,
+          dungeonId: (run && run.dungeon) ? run.dungeon.id : null,
+        },
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) { /* 保存に失敗しても致命的ではないので無視 */ }
@@ -62,7 +69,9 @@
     saveTimer = setTimeout(saveGame, 400);
   }
 
-  // 起動時に保存データがあれば復元する。無ければ既定のスターターロスターのまま
+  // 起動時に保存データがあれば復元する。無ければ既定のスターターロスターのまま。
+  // 自動周回が稼働中のまま離れていた場合は、離れていた時間分の周回をまとめて計算する
+  let pendingOfflineSummary = null;
   function loadGame() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
@@ -80,6 +89,8 @@
         c.hp = s.maxHp; c.mp = s.maxMp;
         c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
       }
+      pendingOfflineSummary = runOfflineProgress(data.autoRepeat, data.savedAt);
+      if (pendingOfflineSummary) saveGame();
       return true;
     } catch (e) {
       return false;
@@ -302,6 +313,125 @@
   let autoRepeatDone = 0;
   function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
   function isDockLocked() { return isRunActive() || autoRepeatActive; }
+
+  // ---------- 自動周回のオフライン進行 ----------
+  // ブラウザを閉じている・バックグラウンドの間は実際のATB戦闘を再現できないため、
+  // 「経過時間内に何周できたはずか」を既存の報酬計算式を再利用して概算する
+  const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000; // これを超えた経過時間は切り捨てる
+  const OFFLINE_SEC_PER_BATTLE = 5; // 1戦闘あたりの目安秒数(x1速度想定)
+  const OFFLINE_SEC_PER_GAP = 2; // 戦闘間の道中イベント・インターバルの目安
+  const OFFLINE_SEC_OVERHEAD = 2; // 出発〜踏破演出、周回間の待機の目安
+
+  function estimateOfflineRunSeconds(dungeon) {
+    return dungeon.battles * OFFLINE_SEC_PER_BATTLE + Math.max(0, dungeon.battles - 1) * OFFLINE_SEC_PER_GAP + OFFLINE_SEC_OVERHEAD;
+  }
+
+  // 実際の戦闘は行わず、パーティ平均Lvとダンジョン推奨Lvの差から踏破確率を概算する
+  function offlineClearChance(dungeon) {
+    const party = teamMembers(activeTeam);
+    if (party.length === 0) return 0;
+    const avgLevel = party.reduce((s, c) => s + c.level, 0) / party.length;
+    return clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98);
+  }
+
+  function simulateOfflineRun(dungeon) {
+    const party = teamMembers(activeTeam);
+    const cleared = Math.random() < offlineClearChance(dungeon);
+    const battlesToRun = cleared ? dungeon.battles : 1 + Math.floor(Math.random() * dungeon.battles);
+    let expTotal = 0;
+    const drops = [];
+    const defeatedTamable = [];
+    for (let i = 0; i < battlesToRun; i++) {
+      const enemies = buildEncounter(dungeon, i);
+      for (const e of enemies) {
+        expTotal += e.exp;
+        const tpl = getEnemyTemplate(e.key);
+        if (tpl && tpl.tamable) defeatedTamable.push(e.key);
+      }
+      if (cleared) {
+        drops.push(rollItemDrop());
+        if (Math.random() < 0.4) drops.push(rollItemDrop());
+      }
+    }
+    // 全滅した周は、実際のプレイと同じくドロップ・EXPを持ち帰れない
+    if (!cleared) return { cleared: false };
+
+    for (const c of party) {
+      const race = RACES[c.race];
+      gainExp(c, Math.round(expTotal * race.expMult));
+    }
+    let itemsGained = 0;
+    for (const item of drops) {
+      if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
+        addMaterial(item.materialValue);
+      } else {
+        inventory.push(item);
+        itemsGained += 1;
+      }
+    }
+    let tamedName = null;
+    if (defeatedTamable.length > 0) {
+      const key = defeatedTamable[Math.floor(Math.random() * defeatedTamable.length)];
+      const tpl = getEnemyTemplate(key);
+      if (Math.random() < tpl.tameChance) {
+        const lvl = Math.max(1, currentMaxLevel() - 2);
+        roster.push(newCharacter(tpl.name, null, key, { level: lvl, isMonster: true }));
+        tamedName = tpl.name;
+      }
+    }
+    clearedDungeons.add(dungeon.id);
+    setBestStage(clearedDungeons.size);
+    return { cleared: true, expTotal, itemsGained, tamedName };
+  }
+
+  // 保存されていた自動周回の状態と経過時間から、離れていた間の周回をまとめて計算する
+  function runOfflineProgress(autoRepeatInfo, savedAt) {
+    if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
+    const dungeon = getDungeon(autoRepeatInfo.dungeonId);
+    if (!dungeon) return null;
+    const elapsedMs = Math.min(Date.now() - savedAt, OFFLINE_MAX_MS);
+    if (elapsedMs < 5000) return null; // 数秒程度の中断では計算しない
+    const secPerRun = estimateOfflineRunSeconds(dungeon);
+    const maxRunsByTime = Math.floor((elapsedMs / 1000) / secPerRun);
+    const remainingTarget = Math.max(0, autoRepeatInfo.target - autoRepeatInfo.done);
+    const runsToAttempt = Math.min(maxRunsByTime, remainingTarget);
+    if (runsToAttempt <= 0) return null;
+
+    let cleared = 0, expGained = 0, itemsGained = 0;
+    const tamedNames = [];
+    let wipedOut = false;
+    for (let i = 0; i < runsToAttempt; i++) {
+      const result = simulateOfflineRun(dungeon);
+      if (!result.cleared) { wipedOut = true; break; }
+      cleared += 1;
+      expGained += result.expTotal;
+      itemsGained += result.itemsGained;
+      if (result.tamedName) tamedNames.push(result.tamedName);
+    }
+
+    // 自動周回はここで一旦停止し、プレイヤーが結果を確認してから再開できるようにする
+    autoRepeatActive = false;
+    autoRepeatTarget = autoRepeatInfo.target;
+    autoRepeatDone = wipedOut ? 0 : autoRepeatInfo.done + cleared;
+
+    if (cleared === 0 && !wipedOut) return null;
+    return { dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut };
+  }
+
+  function showOfflineModal(summary) {
+    const lines = [`「${summary.dungeonName}」を ${summary.cleared}周 クリアしました`];
+    if (summary.cleared > 0) {
+      lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
+    }
+    if (summary.tamedNames.length) lines.push(`テイム: ${summary.tamedNames.join("・")}`);
+    if (summary.wipedOut) lines.push("パーティが全滅したため、途中で自動周回が停止しました");
+    lines.push("自動周回は停止中です。続けるには「自動周回開始」を押してください");
+    document.getElementById("offlineDesc").innerHTML = lines.join("<br>");
+    document.getElementById("offlineModal").classList.remove("hidden");
+  }
+  document.getElementById("btnOfflineClose").addEventListener("click", () => {
+    document.getElementById("offlineModal").classList.add("hidden");
+  });
 
   let roster = [
     newCharacter("アレン", "warrior", "human", { team: 0 }),
@@ -2262,4 +2392,5 @@
   loadGame();
   renderTitle();
   showScreen("screen-title");
+  if (pendingOfflineSummary) showOfflineModal(pendingOfflineSummary);
 })();
