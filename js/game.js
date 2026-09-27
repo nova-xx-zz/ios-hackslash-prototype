@@ -8,6 +8,7 @@
   const AUTO_REPEAT_TARGET_KEY = "jobquest_autorepeat_target";
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
   const DEX_SEEN_KEY = "jobquest_dex_seen";
+  const SAVE_KEY = "jobquest_save_v1";
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
@@ -39,6 +40,50 @@
     if (dexSeen.has(key)) return;
     dexSeen.add(key);
     localStorage.setItem(DEX_SEEN_KEY, JSON.stringify([...dexSeen]));
+  }
+
+  // ---------- セーブ/ロード ----------
+  // ロスター・所持品・出撃中チーム・クリア済みダンジョンを端末に保存する。
+  // 戦闘中の一時的な状態(run/battle)や画面表示用の状態は保存しない
+  function saveGame() {
+    try {
+      const data = {
+        roster, inventory, activeTeam,
+        clearedDungeons: [...clearedDungeons],
+        nextCharSeq,
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    } catch (e) { /* 保存に失敗しても致命的ではないので無視 */ }
+  }
+
+  let saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveGame, 400);
+  }
+
+  // 起動時に保存データがあれば復元する。無ければ既定のスターターロスターのまま
+  function loadGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.roster) || data.roster.length === 0) return false;
+      roster = data.roster;
+      inventory = Array.isArray(data.inventory) ? data.inventory : [];
+      activeTeam = typeof data.activeTeam === "number" ? data.activeTeam : 0;
+      clearedDungeons = new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []);
+      nextCharSeq = typeof data.nextCharSeq === "number" ? data.nextCharSeq : 1;
+      // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
+      for (const c of roster) {
+        const s = computeStats(c);
+        c.hp = s.maxHp; c.mp = s.maxMp;
+        c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   // ---------- Roster ----------
@@ -451,6 +496,7 @@
   let fusionMessage = "";
 
   function renderJobsScreen() {
+    scheduleSave();
     const wrap = document.getElementById("rosterBody");
     wrap.innerHTML = "";
 
@@ -923,6 +969,7 @@
   ];
 
   function renderCharDetail() {
+    scheduleSave();
     const c = roster.find((x) => x.id === detailCharId);
     if (!c) { showScreen("screen-jobs"); return; }
     document.getElementById("detailName").textContent =
@@ -2141,6 +2188,7 @@
     restoreParty();
     buildPartyDock();
     renderDock();
+    saveGame();
 
     if (autoRepeatActive) {
       if (run.wiped) {
@@ -2189,6 +2237,16 @@
     }
   }
 
+  // タブを閉じる・バックグラウンドに回す・アプリを切り替えるなど、
+  // ページが見えなくなるタイミングで必ず保存しておく（iOS Safariでは
+  // beforeunload/pagehideが確実に発火しないことがあるため、visibilitychangeも併用）
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) saveGame();
+  });
+  window.addEventListener("pagehide", saveGame);
+  setInterval(saveGame, 20000);
+
+  loadGame();
   renderTitle();
   showScreen("screen-title");
 })();
