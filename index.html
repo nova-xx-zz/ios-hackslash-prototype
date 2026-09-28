@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0e0c16">
 <title>クエストパーティ</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 <div id="app">
@@ -22,10 +22,38 @@
       <p class="title-logo-en">Quest Party</p>
       <p class="sub">5人パーティ・オート戦闘のハクスラダンジョン<br>プロトタイプ</p>
       <div id="partyPreview" class="party-preview"></div>
-      <button class="btn primary title-cta" id="btnGoBattle">⚔ 冒険に出る</button>
-      <button class="btn ghost" id="btnGoJobs">パーティ編成</button>
-      <button class="btn ghost" id="btnGoDex">モンスター図鑑</button>
       <p class="best" id="bestClearText"></p>
+      <div class="title-nav-row">
+        <button class="title-nav-btn" id="btnGoJobs">
+          <span class="title-nav-icon">👥</span><span class="title-nav-label">編成</span>
+        </button>
+        <button class="title-nav-btn primary" id="btnGoBattle">
+          <span class="title-nav-icon">⚔️</span><span class="title-nav-label">探索</span>
+        </button>
+        <button class="title-nav-btn" id="btnGoDex">
+          <span class="title-nav-icon">📖</span><span class="title-nav-label">図鑑</span>
+        </button>
+        <button class="title-nav-btn" id="btnGoSettings">
+          <span class="title-nav-icon">⚙️</span><span class="title-nav-label">設定</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 設定画面 -->
+  <section id="screen-settings" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">設定</div>
+        <button class="btn small ghost" id="btnSettingsBack">もどる</button>
+      </div>
+      <div class="roster-body">
+        <div class="settings-row">
+          <span class="settings-label">バージョン</span>
+          <span class="settings-value">プロトタイプ版</span>
+        </div>
+        <p class="sub" style="margin-top:16px;">設定項目は今後ここに追加していく予定です。</p>
+      </div>
     </div>
   </section>
 
@@ -190,6 +218,6 @@
 
 </div>
 <script src="js/data.js?v=1"></script>
-<script src="js/game.js?v=6"></script>
+<script src="js/game.js?v=7"></script>
 </body>
 </html>

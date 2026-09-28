@@ -505,6 +505,13 @@
     renderDexScreen();
     showScreen("screen-dex");
   });
+  document.getElementById("btnGoSettings").addEventListener("click", () => {
+    showScreen("screen-settings");
+  });
+  document.getElementById("btnSettingsBack").addEventListener("click", () => {
+    renderTitle();
+    showScreen("screen-title");
+  });
   document.getElementById("btnDexBack").addEventListener("click", () => {
     renderTitle();
     showScreen("screen-title");
@@ -1735,8 +1742,8 @@
       const s = computeStats(c);
       c.hp = s.maxHp; c.mp = s.maxMp; c.alive = true;
     }
-    clearLog(teamIndex);
     logEvent(teamIndex, "start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
+    trimTeamLog(teamIndex);
     if (teamIndex === activeTeam) {
       buildPartyDock();
       renderDock();
@@ -1782,11 +1789,24 @@
   // 4チームが並行して進行するため、ログ履歴はチームごとにデータとして保持し、
   // 実際にDOMへ描画するのは「現在表示中のチーム」の分だけにする。
   // 背後で進行しているチームのログはteamLogsに積み上がるだけで、タブ切替時にrenderLogFeedで一括描画する。
+  // 周回のたびに消してしまうと直前の結果を見返せないため消さず、直近LOG_HISTORY_RUNS周分だけを残して
+  // それより古い周回のログはtrimTeamLogでまとめて間引く（大量に自動周回してもDOMが際限なく増えないように）
+  const LOG_HISTORY_RUNS = 20;
   let teamLogs = Array.from({ length: TEAM_COUNT }, () => []); // [{type,title,subtitle,lines:[{text,cls}|{drop:item}]}]
 
-  function clearLog(teamIndex) {
-    teamLogs[teamIndex] = [];
-    if (teamIndex === activeTeam) document.getElementById("logFeed").innerHTML = "";
+  function trimTeamLog(teamIndex) {
+    const entries = teamLogs[teamIndex];
+    let startCount = 0;
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].type === "start") {
+        startCount += 1;
+        if (startCount > LOG_HISTORY_RUNS) {
+          entries.splice(0, i + 1);
+          if (teamIndex === activeTeam) renderLogFeed(teamIndex);
+          return;
+        }
+      }
+    }
   }
 
   function logEvent(teamIndex, type, title, subtitle) {

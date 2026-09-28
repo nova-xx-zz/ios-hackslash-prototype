@@ -100,14 +100,45 @@ html, body {
   -webkit-text-fill-color: transparent;
 }
 .title-logo-en { margin: 2px 0 4px; font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: var(--sub-text); }
-.title-cta { box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45); animation: title-cta-pulse 2.4s ease-in-out infinite; }
 @keyframes title-cta-pulse {
   0%, 100% { box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45); }
   50% { box-shadow: 0 4px 26px rgba(124, 92, 255, 0.8); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .title-cta { animation: none; }
+  .title-nav-btn.primary { animation: none; }
 }
+
+/* タイトル画面下部のナビ行（編成／探索／図鑑／設定） */
+.title-nav-row { display: flex; gap: 8px; margin-top: 4px; }
+.title-nav-btn {
+  pointer-events: auto;
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 4px 8px;
+  color: var(--text);
+  cursor: pointer;
+}
+.title-nav-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45);
+  animation: title-cta-pulse 2.4s ease-in-out infinite;
+}
+.title-nav-btn:active { opacity: 0.75; }
+.title-nav-icon { font-size: 20px; line-height: 1; }
+.title-nav-label { font-size: 11px; font-weight: 700; }
+
+/* 設定画面 */
+.settings-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 2px; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.settings-label { color: var(--sub-text); }
+.settings-value { font-weight: 700; }
 
 /* party preview on title */
 .party-preview { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
