@@ -47,22 +47,27 @@
 }
 ```
 
-### 1.3 ダンジョン進行オブジェクト `run`
+### 1.3 ダンジョン進行オブジェクト `run`（チームごとに独立、`teamRuns[team]`）
 
-`startDungeon(id)` で生成、`screen-battle` を離れても `finishRun()` まで保持される一時状態。
+`startDungeon(teamIndex, id, opts)` で生成、`screen-battle` を離れても・他チームを表示中でも `finishRun()` まで保持される一時状態。4チームぶんが `teamRuns[0..3]` に同時に存在しうる。戦闘そのものの状態（敵配列）は `teamBattles[team]` に分離して保持する。
 
 ```js
 {
-  dungeon,               // DUNGEONS の要素
-  battleIndex,            // 0-origin。最後の要素がボス戦
+  team,                   // 0-3。このrunがどのチームのものかを表す
+  dungeon,                // DUNGEONS の要素
+  battleIndex,             // 0-origin。最後の要素がボス戦
   finished, wiped,
   buffs: { atk, mag, def, spd },   // 石碑イベントで加算される割合バフ（このダンジョン中のみ）
   expTotal, levelUps, abilityUnlocks, defeatedTamable,
-  drops,                  // 確定済みドロップ（踏破時のみpendingDropsから移される）
-  pendingDrops,            // 踏破するまで確定しない保留ドロップ
+  drops,                   // 確定済みドロップ（踏破時のみpendingDropsから移される）
+  pendingDrops,             // 踏破するまで確定しない保留ドロップ
   disassembleCount, materialGained,
+  autoDisassemble,          // 出撃時点(startDungeon呼び出し時)の自動分解ON/OFFのスナップショット
+  autoDisassembleRarities,  // 同、対象レア度Setのスナップショット（settlePendingDropsで使用）
 }
 ```
+
+`autoDisassemble`/`autoDisassembleRarities` をrun自身にスナップショットしているのは、複数チームが同時に探索できるようになったことで、探索中に設定画面で自動分解の設定を変更しても「今まさに他チームが進行中の周回」の結果が変わってしまわないようにするため（詳細は基本設計書5.4節）。
 
 ### 1.4 セーブデータスキーマ（`localStorage["jobquest_save_v1"]`）
 
@@ -74,16 +79,18 @@
   clearedDungeons: [...clearedDungeons], // Setを配列化
   nextCharSeq,
   savedAt: Date.now(),
-  autoRepeat: {
-    active: autoRepeatActive,
-    target: autoRepeatTarget,
-    done: autoRepeatDone,
-    dungeonId: run && run.dungeon ? run.dungeon.id : null,
-  },
+  autoRepeat: [           // チームごとの自動周回状態を並べた4要素配列（index = チーム番号）
+    {
+      active,              // このチームが自動周回稼働中か
+      target, done,
+      dungeonId: teamRuns[i] && teamRuns[i].dungeon ? teamRuns[i].dungeon.id : null,
+    },
+    // ...team 1, 2, 3
+  ],
 }
 ```
 
-`run`/`battle` そのもの（進行中の戦闘状態）は保存しない。ロード後は `autoRepeat.dungeonId` を使ってオフライン進行の計算のみ行い、実際の戦闘再現はしない。
+`teamRuns`/`teamBattles` そのもの（進行中の戦闘状態）は保存しない。ロード後は各要素の `autoRepeat[i].dungeonId` を使ってチームごとにオフライン進行の計算のみ行い、実際の戦闘再現はしない。`autoRepeat` が配列でない（旧バージョンの単一チーム時代のセーブデータ）場合は、`loadGame()` がオフライン進行の計算だけをスキップする（ロスター等の本体データは通常どおり復元される）。
 
 ## 2. 主要な計算式・アルゴリズム
 
@@ -122,21 +129,29 @@ totalExpInvested(c) = c.exp + Σ_{n=1}^{level-1} expForLevel(n)
 ```
 選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する。素材は `roster` から削除（`splice`）される。
 
-### 2.5 ATB戦闘ループ
+### 2.5 ATB戦闘ループ（4チーム並行）
 
 定数: `ATB_RATE = 7`
 
 ```
 loop(t):  dt = min(0.05, (t - lastT)/1000) * speedMult
+          tick(dt)
 tick(dt):
-  for each alive party member c:
+  for team i in 0..3:
+    if teamBattles[i] && teamBattles[i].active: tickTeam(i, dt)
+  updateTeamTabDots()   // 表示中でないチームの「探索中」タブ表示を毎フレーム追従させる
+
+tickTeam(i, dt):
+  run = teamRuns[i]; battle = teamBattles[i]
+  for each alive member c of teamMembers(i):
     c.atb += computeStats(c).spd * ATB_RATE * dt
-    if c.atb >= 100: performCharacterAction(c); checkBattleEnd()
-  for each alive enemy e:
+    if c.atb >= 100: performCharacterAction(run, battle, c); checkBattleEnd(run, battle)
+  for each alive enemy e of battle.enemies:
     e.atb += e.spd * ATB_RATE * dt
-    if e.atb >= 100: performEnemyAction(e); checkBattleEnd()
+    if e.atb >= 100: performEnemyAction(run, battle, e); checkBattleEnd(run, battle)
+  if i === activeTeam: updateBattleDOM()   // DOM更新は表示中チームのみ
 ```
-`speedMult` は `btnSpeedToggle` で 1 または 2 を切り替える。`requestAnimationFrame` により毎フレーム呼び出される。
+`speedMult` は `btnSpeedToggle` で 1 または 2 を切り替え、全チーム共通で速度に反映される（チームごとの個別速度設定はない）。`requestAnimationFrame` により毎フレーム呼び出され、`activeTeam`（画面に表示中のチーム）に関わらず4チーム全てのATBが等しく進行する。DOM更新（アクターカードのHP/MPバー、ログの追記）だけを表示中チームに限定することで、背後のチームの処理自体は止めずに描画コストを抑えている。
 
 ### 2.6 ダメージ・回復計算（`performCharacterAction`）
 
@@ -224,13 +239,15 @@ offlineClearChance(dungeon)
   = clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98)
 ```
 
-`runOfflineProgress(autoRepeatInfo, savedAt)`:
+`runOfflineProgressForTeam(teamIndex, autoRepeatInfo, savedAt)`:
 1. `elapsedMs = min(now - savedAt, OFFLINE_MAX_MS)`。5秒未満なら計算しない（何もしなかったとみなす）
 2. `maxRunsByTime = floor(elapsedMs/1000 / estimateOfflineRunSeconds(dungeon))`
 3. `runsToAttempt = min(maxRunsByTime, target - done)`
-4. `runsToAttempt` 回、`simulateOfflineRun(dungeon)` を実行。全滅（`cleared:false`）が出た時点でループを打ち切り、それ以前の成功分のみ結果に反映する
+4. `runsToAttempt` 回、`simulateOfflineRun(dungeon, teamIndex)` を実行。全滅（`cleared:false`）が出た時点でループを打ち切り、それ以前の成功分のみ結果に反映する
 
-`simulateOfflineRun(dungeon)` は `offlineClearChance` で踏破/全滅を1回抽選し、踏破時のみ全戦闘分のEXP・ドロップ（1戦闘あたり基本1個＋40%で追加1個、`rollItemDrop()`）・テイム抽選（該当種のいずれか1体、`tameChance`で判定）を通常プレイと同じ処理で反映する。全滅時は何も反映せずその周を打ち切る（オフライン中も「全滅時は持ち帰れない」仕様を維持）。
+`simulateOfflineRun(dungeon, teamIndex)` は `offlineClearChance` で踏破/全滅を1回抽選し、踏破時のみ全戦闘分のEXP・ドロップ（1戦闘あたり基本1個＋40%で追加1個、`rollItemDrop()`）・テイム抽選（該当種のいずれか1体、`tameChance`で判定）を通常プレイと同じ処理で反映する。全滅時は何も反映せずその周を打ち切る（オフライン中も「全滅時は持ち帰れない」仕様を維持）。
+
+`runOfflineProgress(savedAutoRepeatArray, savedAt)` は上記をチーム0〜3それぞれに対して呼び出し、結果が出たチームの summary だけを配列にまとめて返す（1チームも該当しなければ `null`）。複数チームが同時にオフライン進行していた場合、`showOfflineModal()` がこの配列をチームごとのブロックとして並べて表示する。
 
 ### 2.12 道中イベント抽選（`rollDungeonEvent`）
 
@@ -262,10 +279,12 @@ offlineClearChance(dungeon)
 | キャラ詳細: スキル | `buildSkillTab()`, `buildSkillRow()`, `cycleAbilityTier()` |
 | キャラ詳細: ジョブ/合成 | `buildJobTab()` → 人間は `buildJobCard()` 一覧、モンスターは `buildFusionTab()` |
 | マップ | `renderMap()`, `selectDungeon()`, `renderDungeonInfo()` |
-| 探索ドック | `renderDock()`, `renderAutoRepeatRow()`, `renderDisassembleFilter()` |
-| 戦闘進行 | `startDungeon()`, `startBattle()`, `loop()`/`tick()`, `onVictory()`, `onDefeat()`, `finishRun()` |
+| 探索ドック | `renderDock()`, `renderAutoRepeatRow()`, `renderDisassembleFilter()`, `updateTeamTabDots()`（表示外チームのタブ状態を毎フレーム追従） |
+| 戦闘進行（4チーム並行） | `startDungeon(teamIndex, id, opts)`, `startBattle(run)`, `loop()`/`tick()`/`tickTeam(i, dt)`, `onVictory(run, battle)`, `onDefeat(run)`, `finishRun(run, info)` |
+| ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
+| ログ（チームごとに履歴保持） | `logEvent(teamIndex, ...)`, `logLine(teamIndex, ...)`, `renderLogFeed(teamIndex)`（タブ切替時にDOM再構築） |
 | セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()` |
-| オフライン進行 | `runOfflineProgress()`, `simulateOfflineRun()`, `showOfflineModal()` |
+| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `simulateOfflineRun()`, `showOfflineModal()` |
 
 ## 4. localStorage キー一覧
 
@@ -283,4 +302,4 @@ offlineClearChance(dungeon)
 
 ## 5. キャッシュバスティング運用
 
-`index.html` の `css/style.css`・`js/data.js`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。2026-09時点: `style.css?v=2`, `data.js?v=1`, `game.js?v=5`。
+`index.html` の `css/style.css`・`js/data.js`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。2026-09時点: `style.css?v=3`, `data.js?v=1`, `game.js?v=6`。

@@ -12,6 +12,7 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
+  const TEAM_COUNT = 4;
 
   function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
   function setBestStage(n) { if (n > getBestStage()) localStorage.setItem(BEST_KEY, String(n)); }
@@ -44,7 +45,8 @@
 
   // ---------- セーブ/ロード ----------
   // ロスター・所持品・出撃中チーム・クリア済みダンジョンを端末に保存する。
-  // 戦闘中の一時的な状態(run/battle)や画面表示用の状態は保存しない
+  // 戦闘中の一時的な状態(run/battle)や画面表示用の状態は保存しない。
+  // 自動周回はチームごとに独立しているため、配列として保存する
   function saveGame() {
     try {
       const data = {
@@ -52,12 +54,12 @@
         clearedDungeons: [...clearedDungeons],
         nextCharSeq,
         savedAt: Date.now(),
-        autoRepeat: {
-          active: autoRepeatActive,
-          target: autoRepeatTarget,
-          done: autoRepeatDone,
-          dungeonId: (run && run.dungeon) ? run.dungeon.id : null,
-        },
+        autoRepeat: autoRepeat.map((ar, i) => ({
+          active: ar.active,
+          target: ar.target,
+          done: ar.done,
+          dungeonId: (teamRuns[i] && teamRuns[i].dungeon) ? teamRuns[i].dungeon.id : null,
+        })),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     } catch (e) { /* 保存に失敗しても致命的ではないので無視 */ }
@@ -70,8 +72,9 @@
   }
 
   // 起動時に保存データがあれば復元する。無ければ既定のスターターロスターのまま。
-  // 自動周回が稼働中のまま離れていた場合は、離れていた時間分の周回をまとめて計算する
-  let pendingOfflineSummary = null;
+  // 自動周回が稼働中のまま離れていたチームがあれば、離れていた時間分の周回をまとめて計算する
+  // （チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある）
+  let pendingOfflineSummaries = null;
   function loadGame() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
@@ -89,8 +92,11 @@
         c.hp = s.maxHp; c.mp = s.maxMp;
         c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
       }
-      pendingOfflineSummary = runOfflineProgress(data.autoRepeat, data.savedAt);
-      if (pendingOfflineSummary) saveGame();
+      // 旧バージョン（単一チームのみの自動周回）のデータはそのままでは形が合わないため、
+      // 配列でない場合はオフライン進行の計算対象から外す（ロスター等の本体データは復元される）
+      const savedAutoRepeat = Array.isArray(data.autoRepeat) ? data.autoRepeat : [];
+      pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
+      if (pendingOfflineSummaries) saveGame();
       return true;
     } catch (e) {
       return false;
@@ -196,10 +202,11 @@
       const item = c.equip[slot.key];
       if (item) s[item.stat] += itemEffectiveValue(item);
     }
-    // 石碑の加護はそのダンジョンの間だけ乗る（HP/MPは除く）
-    if (run && !run.finished) {
+    // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
+    const teamRun = c.team !== null ? teamRuns[c.team] : null;
+    if (teamRun && !teamRun.finished) {
       for (const stat of ["atk", "mag", "def", "spd"]) {
-        const buff = run.buffs[stat];
+        const buff = teamRun.buffs[stat];
         if (buff) s[stat] = Math.round(s[stat] * (1 + buff) * 10) / 10;
       }
     }
@@ -256,7 +263,7 @@
 
   const TEAM_NAMES = ["第一のパーティ", "第二のパーティ", "第三のパーティ", "第四のパーティ"];
   const TEAM_LABELS = ["I", "II", "III", "IV"];
-  let activeTeam = 0;
+  let activeTeam = 0; // 探索画面/編成画面で「表示中」のチーム（探索の進行そのものとは独立）
 
   function teamMembers(i) { return roster.filter((c) => c.team === i); }
   function activeParty() { return teamMembers(activeTeam); }
@@ -298,21 +305,23 @@
     c.mp = Math.min(c.mp, s.maxMp);
   }
 
-  // computeStats が run.buffs を参照するため、roster を組み立てる前に宣言しておく
-  let battle = null;
-  let run = null; // 進行中のダンジョン { dungeon, battleIndex, buffs, expTotal, drops }
+  // computeStats が teamRuns[].buffs を参照するため、roster を組み立てる前に宣言しておく。
+  // 4チームがそれぞれ独立にダンジョンへ出撃できるよう、進行状態(run)・戦闘状態(battle)・
+  // 自動周回状態はすべてチームごとの配列で管理し、全チームが常に並行して進行する
+  let teamRuns = new Array(TEAM_COUNT).fill(null);
+  let teamBattles = new Array(TEAM_COUNT).fill(null);
   let clearedDungeons = new Set();
   let selectedDungeonId = null;
   let jobsReturnScreen = "screen-title";
   let speedMult = 1;
-  function isRunActive() { return !!(run && !run.finished); }
+  function isTeamRunActive(i) { const r = teamRuns[i]; return !!(r && !r.finished); }
 
-  // 自動周回（設定した回数だけ同じダンジョンへ再出撃し続ける）
-  let autoRepeatTarget = clampAutoRepeatTarget(parseInt(localStorage.getItem(AUTO_REPEAT_TARGET_KEY) || "5", 10));
-  let autoRepeatActive = false;
-  let autoRepeatDone = 0;
+  // 自動周回（チームごとに独立して設定・進行する）
+  const defaultAutoRepeatTarget = clampAutoRepeatTarget(parseInt(localStorage.getItem(AUTO_REPEAT_TARGET_KEY) || "5", 10));
+  let autoRepeat = Array.from({ length: TEAM_COUNT }, () => ({ active: false, target: defaultAutoRepeatTarget, done: 0 }));
   function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
-  function isDockLocked() { return isRunActive() || autoRepeatActive; }
+  // そのチームが探索中で、編成・装備・スキル・転職・合成などの変更を受け付けられない状態か
+  function isTeamLocked(i) { return isTeamRunActive(i) || autoRepeat[i].active; }
 
   // ---------- 自動周回のオフライン進行 ----------
   // ブラウザを閉じている・バックグラウンドの間は実際のATB戦闘を再現できないため、
@@ -327,16 +336,16 @@
   }
 
   // 実際の戦闘は行わず、パーティ平均Lvとダンジョン推奨Lvの差から踏破確率を概算する
-  function offlineClearChance(dungeon) {
-    const party = teamMembers(activeTeam);
+  function offlineClearChance(dungeon, teamIndex) {
+    const party = teamMembers(teamIndex);
     if (party.length === 0) return 0;
     const avgLevel = party.reduce((s, c) => s + c.level, 0) / party.length;
     return clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98);
   }
 
-  function simulateOfflineRun(dungeon) {
-    const party = teamMembers(activeTeam);
-    const cleared = Math.random() < offlineClearChance(dungeon);
+  function simulateOfflineRun(dungeon, teamIndex) {
+    const party = teamMembers(teamIndex);
+    const cleared = Math.random() < offlineClearChance(dungeon, teamIndex);
     const battlesToRun = cleared ? dungeon.battles : 1 + Math.floor(Math.random() * dungeon.battles);
     let expTotal = 0;
     const drops = [];
@@ -384,8 +393,8 @@
     return { cleared: true, expTotal, itemsGained, tamedName };
   }
 
-  // 保存されていた自動周回の状態と経過時間から、離れていた間の周回をまとめて計算する
-  function runOfflineProgress(autoRepeatInfo, savedAt) {
+  // 保存されていたそのチームの自動周回状態と経過時間から、離れていた間の周回をまとめて計算する
+  function runOfflineProgressForTeam(teamIndex, autoRepeatInfo, savedAt) {
     if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
     const dungeon = getDungeon(autoRepeatInfo.dungeonId);
     if (!dungeon) return null;
@@ -401,7 +410,7 @@
     const tamedNames = [];
     let wipedOut = false;
     for (let i = 0; i < runsToAttempt; i++) {
-      const result = simulateOfflineRun(dungeon);
+      const result = simulateOfflineRun(dungeon, teamIndex);
       if (!result.cleared) { wipedOut = true; break; }
       cleared += 1;
       expGained += result.expTotal;
@@ -410,23 +419,36 @@
     }
 
     // 自動周回はここで一旦停止し、プレイヤーが結果を確認してから再開できるようにする
-    autoRepeatActive = false;
-    autoRepeatTarget = autoRepeatInfo.target;
-    autoRepeatDone = wipedOut ? 0 : autoRepeatInfo.done + cleared;
+    autoRepeat[teamIndex].active = false;
+    autoRepeat[teamIndex].target = autoRepeatInfo.target;
+    autoRepeat[teamIndex].done = wipedOut ? 0 : autoRepeatInfo.done + cleared;
 
     if (cleared === 0 && !wipedOut) return null;
-    return { dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut };
+    return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut };
   }
 
-  function showOfflineModal(summary) {
-    const lines = [`「${summary.dungeonName}」を ${summary.cleared}周 クリアしました`];
-    if (summary.cleared > 0) {
-      lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
+  // チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある
+  function runOfflineProgress(savedAutoRepeatArray, savedAt) {
+    const summaries = [];
+    for (let i = 0; i < TEAM_COUNT; i++) {
+      const summary = runOfflineProgressForTeam(i, savedAutoRepeatArray[i], savedAt);
+      if (summary) summaries.push(summary);
     }
-    if (summary.tamedNames.length) lines.push(`テイム: ${summary.tamedNames.join("・")}`);
-    if (summary.wipedOut) lines.push("パーティが全滅したため、途中で自動周回が停止しました");
-    lines.push("自動周回は停止中です。続けるには「自動周回開始」を押してください");
-    document.getElementById("offlineDesc").innerHTML = lines.join("<br>");
+    return summaries.length > 0 ? summaries : null;
+  }
+
+  function showOfflineModal(summaries) {
+    const blocks = summaries.map((summary) => {
+      const lines = [`【${TEAM_LABELS[summary.team]}】「${summary.dungeonName}」を ${summary.cleared}周 クリアしました`];
+      if (summary.cleared > 0) {
+        lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
+      }
+      if (summary.tamedNames.length) lines.push(`テイム: ${summary.tamedNames.join("・")}`);
+      if (summary.wipedOut) lines.push("パーティが全滅したため、途中で自動周回が停止しました");
+      return lines.join("<br>");
+    });
+    blocks.push("自動周回は停止中です。続けるには各チームで「自動周回開始」を押してください");
+    document.getElementById("offlineDesc").innerHTML = blocks.join("<br><br>");
     document.getElementById("offlineModal").classList.remove("hidden");
   }
   document.getElementById("btnOfflineClose").addEventListener("click", () => {
@@ -608,7 +630,7 @@
       btn.disabled = true;
     } else {
       btn.textContent = `${TEAM_NAMES[activeTeam]}で出発する`;
-      btn.addEventListener("click", () => startDungeon(d.id));
+      btn.addEventListener("click", () => startDungeon(activeTeam, d.id, { navigate: true }));
     }
     el.appendChild(btn);
   }
@@ -637,13 +659,19 @@
         key: "t" + i,
         name: `${TEAM_NAMES[i]}（${TEAM_LABELS[i]}）`,
         meta: `${members.length}/${MAX_ACTIVE}人`,
-        deployed: i === activeTeam,
+        viewed: i === activeTeam,
+        exploring: isTeamRunActive(i),
+        locked: isTeamLocked(i),
         expanded: expandedTeams.has(i),
         onToggle: () => {
           if (expandedTeams.has(i)) expandedTeams.delete(i); else expandedTeams.add(i);
           renderJobsScreen();
         },
-        onDeploy: () => { activeTeam = i; renderJobsScreen(); },
+        onView: () => {
+          activeTeam = i;
+          scheduleSave();
+          renderJobsScreen();
+        },
         members,
         dropKey: String(i),
         emptyTile: null,
@@ -690,10 +718,16 @@
     head.dataset.drop = opts.dropKey;
     head.innerHTML = `<span class="chev">${opts.expanded ? "∨" : "＞"}</span>
       <span class="pname">${opts.name}</span>`;
-    if (opts.deployed) {
+    if (opts.viewed) {
       const tag = document.createElement("span");
       tag.className = "deployed";
-      tag.textContent = "出撃中";
+      tag.textContent = "表示中";
+      head.appendChild(tag);
+    }
+    if (opts.exploring) {
+      const tag = document.createElement("span");
+      tag.className = "exploring-badge";
+      tag.textContent = "探索中";
       head.appendChild(tag);
     }
     const meta = document.createElement("span");
@@ -706,7 +740,7 @@
     if (!opts.expanded) return frag;
 
     const strip = document.createElement("div");
-    strip.className = "member-strip";
+    strip.className = "member-strip" + (opts.locked ? " locked" : "");
     strip.dataset.drop = opts.dropKey;
     for (const c of opts.members) strip.appendChild(buildMemberCard(c));
     if (opts.emptyTile) {
@@ -726,12 +760,12 @@
     }
     frag.appendChild(strip);
 
-    if (opts.onDeploy && !opts.deployed && opts.members.length > 0) {
+    if (opts.onView && !opts.viewed && opts.members.length > 0) {
       const btn = document.createElement("button");
       btn.className = "equip-choice";
       btn.style.margin = "0 2px 10px";
-      btn.textContent = "このパーティで出撃する";
-      btn.addEventListener("click", opts.onDeploy);
+      btn.textContent = "このパーティを表示する";
+      btn.addEventListener("click", opts.onView);
       frag.appendChild(btn);
     }
     return frag;
@@ -765,6 +799,12 @@
 
       const holdTimer = setTimeout(() => {
         if (canceled) return;
+        // 探索中のチームに所属するキャラは、途中で編成が変わらないようドラッグ移動できない
+        if (c.team !== null && isTeamLocked(c.team)) {
+          canceled = true;
+          flashRosterMessage(`${TEAM_NAMES[c.team]}は探索中のため編成を変更できません`);
+          return;
+        }
         dragging = true;
         startMemberDrag(c, card, start);
       }, DRAG_HOLD_MS);
@@ -833,6 +873,7 @@
   function canDropOn(key, c) {
     if (key === "bench") return true;
     const i = parseInt(key, 10);
+    if (isTeamLocked(i)) return false;
     if (c.team === i) return true;
     return teamMembers(i).length < MAX_ACTIVE;
   }
@@ -854,6 +895,11 @@
       } else {
         const i = parseInt(key, 10);
         if (char.team !== i) {
+          if (isTeamLocked(i)) {
+            flashRosterMessage(`${TEAM_NAMES[i]}は探索中のため編成できません`);
+            renderJobsScreen();
+            return;
+          }
           if (!canDropOn(key, char)) {
             flashRosterMessage(`${TEAM_NAMES[i]}は満員です（最大${MAX_ACTIVE}人）`);
             renderJobsScreen();
@@ -1109,8 +1155,19 @@
 
     const wrap = document.getElementById("detailBody");
     wrap.innerHTML = "";
+
+    // 探索中のチームに所属するキャラは、装備・スキル・転職・合成などを変更すると
+    // 戦闘中の状態が不整合になるため、表示のみ（操作不可）にする
+    const locked = c.team !== null && isTeamLocked(c.team);
+    if (locked) {
+      const notice = document.createElement("div");
+      notice.className = "sub-ability-row locked-notice";
+      notice.textContent = `${TEAM_NAMES[c.team]}は探索中のため、この画面では変更できません（表示のみ）`;
+      wrap.appendChild(notice);
+    }
+
     const card = document.createElement("div");
-    card.className = "job-char-card";
+    card.className = "job-char-card" + (locked ? " readonly" : "");
     if (detailTab === "equip") card.appendChild(buildEquipSection(c));
     else if (detailTab === "skill") card.appendChild(buildSkillTab(c));
     else if (detailTab === "job") card.appendChild(buildJobTab(c));
@@ -1147,18 +1204,25 @@
 
     const activeRow = document.createElement("div");
     activeRow.className = "job-pick-row";
+    const benchLocked = c.team !== null && isTeamLocked(c.team);
     const benchBtn = document.createElement("button");
-    benchBtn.className = "job-pick" + (c.team === null ? " active" : "");
+    benchBtn.className = "job-pick" + (c.team === null ? " active" : "") + (benchLocked ? " disabled" : "");
     benchBtn.textContent = "控え";
-    benchBtn.addEventListener("click", () => { c.team = null; renderCharDetail(); });
+    benchBtn.addEventListener("click", () => {
+      if (benchLocked) return;
+      c.team = null; renderCharDetail();
+    });
     activeRow.appendChild(benchBtn);
     for (let i = 0; i < TEAM_LABELS.length; i++) {
       const btn = document.createElement("button");
       const atCap = c.team !== i && teamMembers(i).length >= MAX_ACTIVE;
-      btn.className = "job-pick" + (c.team === i ? " active" : "") + (atCap ? " disabled" : "");
+      const destLocked = c.team !== i && isTeamLocked(i);
+      const srcLocked = c.team !== null && c.team !== i && isTeamLocked(c.team);
+      const disabled = atCap || destLocked || srcLocked;
+      btn.className = "job-pick" + (c.team === i ? " active" : "") + (disabled ? " disabled" : "");
       btn.textContent = TEAM_LABELS[i];
       btn.addEventListener("click", () => {
-        if (atCap) return;
+        if (disabled) return;
         c.team = i;
         clampVitals(c);
         renderCharDetail();
@@ -1651,47 +1715,54 @@
   const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
 
   let partyEls = {};
-  let currentCard = null;
-  let nextBattleTimer = null;
+  let nextBattleTimer = new Array(TEAM_COUNT).fill(null);
 
-  function startDungeon(id) {
-    clearTimeout(nextBattleTimer);
+  function startDungeon(teamIndex, id, opts) {
+    opts = opts || {};
+    clearTimeout(nextBattleTimer[teamIndex]);
     const d = getDungeon(id);
-    run = {
-      dungeon: d, battleIndex: 0, finished: false,
+    const run = {
+      team: teamIndex, dungeon: d, battleIndex: 0, finished: false,
       buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
       expTotal: 0, drops: [], pendingDrops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
       disassembleCount: 0, materialGained: 0,
+      // 出撃時点の自動分解設定をスナップショットしておく（この周回中に設定画面で変更しても
+      // 途中から挙動が変わらないようにするため。おかげで自動分解の設定はロック不要になる）
+      autoDisassemble, autoDisassembleRarities: new Set(autoDisassembleRarities),
     };
-    for (const c of activeParty()) {
+    teamRuns[teamIndex] = run;
+    for (const c of teamMembers(teamIndex)) {
       const s = computeStats(c);
       c.hp = s.maxHp; c.mp = s.maxMp; c.alive = true;
     }
-    clearLog();
-    logEvent("start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
-    buildPartyDock();
-    renderDock();
-    showScreen("screen-battle");
-    startBattle();
+    clearLog(teamIndex);
+    logEvent(teamIndex, "start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
+    if (teamIndex === activeTeam) {
+      buildPartyDock();
+      renderDock();
+    }
+    if (opts.navigate) showScreen("screen-battle");
+    startBattle(run);
   }
 
-  function startBattle() {
+  function startBattle(run) {
     const d = run.dungeon;
     const isBoss = run.battleIndex === d.battles - 1;
     const enemies = buildEncounter(d, run.battleIndex);
-    battle = {
+    const battle = {
       enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })),
       active: true,
     };
+    teamBattles[run.team] = battle;
     for (const e of battle.enemies) markDexSeen(e.key);
-    for (const c of activeParty()) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
+    for (const c of teamMembers(run.team)) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
 
-    logEvent("encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster());
-    renderDock();
+    logEvent(run.team, "encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster(battle));
+    if (run.team === activeTeam) renderDock();
   }
 
   // 敵の残り状況をテキストで表示（敵パネルの代わり）
-  function enemyRoster() {
+  function enemyRoster(battle) {
     const counts = {};
     for (const e of battle.enemies) {
       const k = e.name;
@@ -1708,46 +1779,102 @@
   }
 
   // ---------- Log ----------
-  function clearLog() {
-    document.getElementById("logFeed").innerHTML = "";
-    currentCard = null;
+  // 4チームが並行して進行するため、ログ履歴はチームごとにデータとして保持し、
+  // 実際にDOMへ描画するのは「現在表示中のチーム」の分だけにする。
+  // 背後で進行しているチームのログはteamLogsに積み上がるだけで、タブ切替時にrenderLogFeedで一括描画する。
+  let teamLogs = Array.from({ length: TEAM_COUNT }, () => []); // [{type,title,subtitle,lines:[{text,cls}|{drop:item}]}]
+
+  function clearLog(teamIndex) {
+    teamLogs[teamIndex] = [];
+    if (teamIndex === activeTeam) document.getElementById("logFeed").innerHTML = "";
   }
 
-  function logEvent(type, title, subtitle) {
+  function logEvent(teamIndex, type, title, subtitle) {
+    const entry = { type, title, subtitle: subtitle || "", lines: [] };
+    teamLogs[teamIndex].push(entry);
+    if (teamIndex === activeTeam) appendLogCardDOM(entry);
+    return entry;
+  }
+
+  function logLine(teamIndex, text, cls) {
+    const entries = teamLogs[teamIndex];
+    if (entries.length === 0) entries.push({ type: "encounter", title: "戦闘", subtitle: "", lines: [] });
+    const entry = entries[entries.length - 1];
+    entry.lines.push({ text, cls: cls || "" });
+    if (teamIndex === activeTeam) appendLogLineDOM(text, cls);
+  }
+
+  function logDropLine(teamIndex, item) {
+    const entries = teamLogs[teamIndex];
+    if (entries.length === 0) return;
+    entries[entries.length - 1].lines.push({ drop: item });
+    if (teamIndex === activeTeam) {
+      const feed = document.getElementById("logFeed");
+      const card = feed.lastElementChild;
+      if (card) card.querySelector(".lc-lines").appendChild(buildDropRow(item));
+    }
+  }
+
+  function updateCardSubtitle(teamIndex, text) {
+    const entries = teamLogs[teamIndex];
+    if (entries.length === 0) return;
+    entries[entries.length - 1].subtitle = text || "";
+    if (teamIndex !== activeTeam) return;
+    const feed = document.getElementById("logFeed");
+    const card = feed.lastElementChild;
+    if (!card) return;
+    const sub = card.querySelector(".lc-sub");
+    sub.textContent = text || "";
+    sub.style.display = text ? "" : "none";
+  }
+
+  function appendLogCardDOM(entry) {
     const feed = document.getElementById("logFeed");
     const card = document.createElement("div");
-    card.className = "log-card " + type;
+    card.className = "log-card " + entry.type;
     const t = document.createElement("div");
     t.className = "lc-title";
-    t.textContent = title;
+    t.textContent = entry.title;
     card.appendChild(t);
     const sub = document.createElement("div");
     sub.className = "lc-sub";
-    sub.textContent = subtitle || "";
-    if (!subtitle) sub.style.display = "none";
+    sub.textContent = entry.subtitle || "";
+    if (!entry.subtitle) sub.style.display = "none";
     card.appendChild(sub);
     const lines = document.createElement("div");
     lines.className = "lc-lines";
+    for (const l of entry.lines) {
+      if (l.drop) { lines.appendChild(buildDropRow(l.drop)); continue; }
+      const div = document.createElement("div");
+      div.className = "lc-line " + (l.cls || "");
+      div.textContent = l.text;
+      lines.appendChild(div);
+    }
     card.appendChild(lines);
     feed.appendChild(card);
-    currentCard = { card, sub, lines };
     scrollLog();
-    return currentCard;
   }
 
-  function logLine(text, cls) {
-    if (!currentCard) logEvent("encounter", "戦闘", "");
+  function appendLogLineDOM(text, cls) {
+    const feed = document.getElementById("logFeed");
+    const card = feed.lastElementChild;
+    if (!card) return;
+    const lines = card.querySelector(".lc-lines");
     const div = document.createElement("div");
     div.className = "lc-line " + (cls || "");
     div.textContent = text;
-    currentCard.lines.appendChild(div);
+    lines.appendChild(div);
     scrollLog();
   }
 
-  function updateCardSubtitle(text) {
-    if (!currentCard) return;
-    currentCard.sub.textContent = text;
-    currentCard.sub.style.display = text ? "" : "none";
+  // 表示するチームを切り替えた時、そのチームのログ履歴からDOMを丸ごと再構築する
+  function renderLogFeed(teamIndex) {
+    const feed = document.getElementById("logFeed");
+    feed.innerHTML = "";
+    for (const entry of teamLogs[teamIndex]) appendLogCardDOM(entry);
+    if (teamLogs[teamIndex].length === 0 && !teamRuns[teamIndex]) {
+      feed.innerHTML = `<p class="sub" style="margin:24px 0;text-align:center;">下の「マップ」からダンジョンを選んで冒険を始めましょう</p>`;
+    }
   }
 
   function scrollLog() {
@@ -1780,8 +1907,9 @@
   function renderDock() {
     document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
     document.getElementById("materialLine").textContent = `強化石 ${material}`;
-    const running = isRunActive();
-    const locked = isDockLocked();
+    const run = teamRuns[activeTeam];
+    const running = isTeamRunActive(activeTeam);
+    const locked = isTeamLocked(activeTeam);
     const d = run ? run.dungeon : null;
 
     const buffText = run
@@ -1794,10 +1922,7 @@
       ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
       : "ダンジョン未選択";
     document.getElementById("dockDungeon").textContent = d ? d.name : "—";
-    const feed = document.getElementById("logFeed");
-    if (!run && feed.children.length === 0) {
-      feed.innerHTML = `<p class="sub" style="margin:24px 0;text-align:center;">下の「マップ」からダンジョンを選んで冒険を始めましょう</p>`;
-    }
+    renderLogFeed(activeTeam);
     document.getElementById("dockStatus").textContent = !d
       ? ""
       : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
@@ -1806,7 +1931,6 @@
 
     document.getElementById("btnRedeploy").disabled = locked || !d;
     document.getElementById("btnDockMap").disabled = locked;
-    document.getElementById("btnDockJobs").disabled = locked;
     updateAutoDisassembleButton();
     renderDisassembleFilter();
     renderAutoRepeatRow();
@@ -1815,24 +1939,38 @@
     tabs.innerHTML = "";
     TEAM_LABELS.forEach((label, i) => {
       const btn = document.createElement("button");
-      btn.className = "team-tab" + (i === activeTeam ? " active" : "");
+      btn.className = "team-tab" + (i === activeTeam ? " active" : "") + (isTeamRunActive(i) ? " exploring" : "");
       btn.innerHTML = `${label}<span class="count">${teamMembers(i).length}人</span>`;
-      btn.disabled = locked;
       btn.addEventListener("click", () => {
-        if (locked) return;
+        if (i === activeTeam) return;
         activeTeam = i;
         buildPartyDock();
         renderDock();
+        scheduleSave();
       });
       tabs.appendChild(btn);
     });
+  }
+
+  // renderDock()は表示中チームの操作をきっかけにしか呼ばれないため、他チームの探索状況を示す
+  // タブのドットが更新されないままになる。毎フレーム軽量にクラスだけ切り替えて追従させる
+  function updateTeamTabDots() {
+    const tabs = document.getElementById("teamTabs");
+    if (!tabs) return;
+    const buttons = tabs.children;
+    for (let i = 0; i < buttons.length; i++) {
+      buttons[i].classList.toggle("exploring", isTeamRunActive(i));
+    }
   }
 
   function renderAutoRepeatRow() {
     const row = document.getElementById("autoRepeatRow");
     if (!row) return;
     row.innerHTML = "";
-    const locked = isDockLocked();
+    const i = activeTeam;
+    const ar = autoRepeat[i];
+    const run = teamRuns[i];
+    const locked = isTeamLocked(i);
     const canStart = !!(run && run.dungeon);
 
     const label = document.createElement("div");
@@ -1840,22 +1978,22 @@
     label.textContent = "自動周回";
     row.appendChild(label);
 
-    if (autoRepeatActive) {
+    if (ar.active) {
       const status = document.createElement("div");
       status.className = "auto-repeat-status";
-      status.textContent = `${autoRepeatDone}/${autoRepeatTarget} 周`;
+      status.textContent = `${ar.done}/${ar.target} 周`;
       row.appendChild(status);
     } else {
       const chips = document.createElement("div");
       chips.className = "auto-repeat-chips";
       for (const n of AUTO_REPEAT_OPTIONS) {
         const chip = document.createElement("button");
-        chip.className = "auto-repeat-chip" + (autoRepeatTarget === n ? " active" : "");
+        chip.className = "auto-repeat-chip" + (ar.target === n ? " active" : "");
         chip.textContent = `x${n}`;
         chip.disabled = locked;
         chip.addEventListener("click", () => {
-          if (isDockLocked()) return;
-          autoRepeatTarget = n;
+          if (isTeamLocked(i)) return;
+          ar.target = n;
           localStorage.setItem(AUTO_REPEAT_TARGET_KEY, String(n));
           renderAutoRepeatRow();
         });
@@ -1865,21 +2003,21 @@
     }
 
     const btn = document.createElement("button");
-    btn.className = "btn small " + (autoRepeatActive ? "ghost" : "primary");
-    btn.textContent = autoRepeatActive ? "停止" : "自動周回開始";
-    btn.disabled = autoRepeatActive ? false : (locked || !canStart);
-    if (!autoRepeatActive && !canStart) btn.title = "先にダンジョンへ出撃してください";
+    btn.className = "btn small " + (ar.active ? "ghost" : "primary");
+    btn.textContent = ar.active ? "停止" : "自動周回開始";
+    btn.disabled = ar.active ? false : (locked || !canStart);
+    if (!ar.active && !canStart) btn.title = "先にダンジョンへ出撃してください";
     btn.addEventListener("click", () => {
-      if (autoRepeatActive) {
-        autoRepeatActive = false;
-        logLine("自動周回を停止しました", "system");
+      if (ar.active) {
+        ar.active = false;
+        logLine(i, "自動周回を停止しました", "system");
         renderDock();
         return;
       }
-      if (isDockLocked() || !canStart) return;
-      autoRepeatActive = true;
-      autoRepeatDone = 0;
-      startDungeon(run.dungeon.id);
+      if (isTeamLocked(i) || !canStart) return;
+      ar.active = true;
+      ar.done = 0;
+      startDungeon(i, run.dungeon.id, { navigate: true });
     });
     row.appendChild(btn);
   }
@@ -1903,35 +2041,30 @@
     speedMult = speedMult === 1 ? 2 : 1;
     document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
   });
+  // 自動分解のON/OFF・フィルターは、出撃時にrunへスナップショットされた値で確定するため、
+  // 探索中でも自由に変更できる（変更は次に出発する周回から反映される）
   function updateAutoDisassembleButton() {
-    const locked = isDockLocked();
     const btn = document.getElementById("btnAutoDisassembleToggle");
     btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
     btn.classList.toggle("toggle-on", autoDisassemble);
-    btn.disabled = locked;
-    btn.title = locked ? "探索中は変更できません" : "";
     document.getElementById("disassembleFilterRow").classList.toggle("hidden", !autoDisassemble);
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
-    if (isDockLocked()) return;
     autoDisassemble = !autoDisassemble;
     localStorage.setItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
   function renderDisassembleFilter() {
-    const locked = isDockLocked();
     const row = document.getElementById("disassembleFilterRow");
-    row.innerHTML = `<span class="disassemble-filter-label">対象${locked ? "（探索中は変更不可）" : ""}:</span>`;
+    row.innerHTML = `<span class="disassemble-filter-label">対象:</span>`;
     for (const rarity of RARITIES) {
       const chip = document.createElement("button");
       const on = autoDisassembleRarities.has(rarity.key);
       chip.className = "disassemble-chip" + (on ? " active" : "");
       chip.textContent = rarity.key.toUpperCase();
       chip.title = rarity.name;
-      chip.disabled = locked;
       if (on) chip.style.background = rarity.color;
       chip.addEventListener("click", () => {
-        if (isDockLocked()) return;
         if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
         else autoDisassembleRarities.add(rarity.key);
         saveAutoDisassembleFilter();
@@ -1944,11 +2077,11 @@
   updateAutoDisassembleButton();
   renderAutoRepeatRow();
   document.getElementById("btnRedeploy").addEventListener("click", () => {
-    if (isDockLocked() || !run) return;
-    startDungeon(run.dungeon.id);
+    const run = teamRuns[activeTeam];
+    if (isTeamLocked(activeTeam) || !run) return;
+    startDungeon(activeTeam, run.dungeon.id, { navigate: true });
   });
   document.getElementById("btnDockMap").addEventListener("click", () => {
-    restoreParty();
     openMap();
   });
   document.getElementById("btnDockJobs").addEventListener("click", () => {
@@ -1986,12 +2119,12 @@
     { value: "random", label: "ランダム" },
   ];
 
-  function chooseAction(c) {
+  function chooseAction(c, teamIndex) {
     const abilities = availableAbilities(c).filter((a) => isSkillActive(c, a.id) && c.mp >= mpCostFor(c, a));
     const usable = abilities.filter((a) => {
       if (a.kind !== "heal") return true;
-      if (a.target === "single-ally") return activeParty().some((p) => p.alive && p.hp < computeStats(p).maxHp * 0.8);
-      if (a.target === "all-ally") return activeParty().filter((p) => p.alive).some((p) => p.hp < computeStats(p).maxHp * 0.7);
+      if (a.target === "single-ally") return teamMembers(teamIndex).some((p) => p.alive && p.hp < computeStats(p).maxHp * 0.8);
+      if (a.target === "all-ally") return teamMembers(teamIndex).filter((p) => p.alive).some((p) => p.hp < computeStats(p).maxHp * 0.7);
       return true;
     });
     if (usable.length === 0) return BASIC_ATTACK;
@@ -2003,7 +2136,7 @@
     return usable[0];
   }
 
-  function pickEnemyTarget(c) {
+  function pickEnemyTarget(c, battle) {
     const alive = battle.enemies.filter((e) => e.alive);
     if (alive.length === 0) return null;
     const mode = (c && c.targetPriority) || "weakest";
@@ -2012,8 +2145,8 @@
     return alive.reduce((lowest, e) => (e.hp < lowest.hp ? e : lowest), alive[0]);
   }
 
-  function pickAllyTarget() {
-    const alive = activeParty().filter((p) => p.alive);
+  function pickAllyTarget(teamIndex) {
+    const alive = teamMembers(teamIndex).filter((p) => p.alive);
     if (alive.length === 0) return null;
     return alive.reduce((lowest, p) => {
       const lr = lowest.hp / computeStats(lowest).maxHp;
@@ -2022,15 +2155,15 @@
     }, alive[0]);
   }
 
-  function performCharacterAction(c) {
-    const ability = chooseAction(c);
+  function performCharacterAction(run, battle, c) {
+    const ability = chooseAction(c, run.team);
     c.mp = Math.max(0, c.mp - mpCostFor(c, ability));
     const stats = computeStats(c);
     let targets = [];
-    if (ability.target === "single") { const t = pickEnemyTarget(c); if (t) targets = [t]; }
-    else if (ability.target === "single-ally") { const t = pickAllyTarget(); if (t) targets = [t]; }
+    if (ability.target === "single") { const t = pickEnemyTarget(c, battle); if (t) targets = [t]; }
+    else if (ability.target === "single-ally") { const t = pickAllyTarget(run.team); if (t) targets = [t]; }
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
-    else if (ability.target === "all-ally") targets = activeParty().filter((p) => p.alive);
+    else if (ability.target === "all-ally") targets = teamMembers(run.team).filter((p) => p.alive);
 
     const lifesteal = racePassive(c, "lifesteal") + (ability.lifesteal || 0);
     for (const t of targets) {
@@ -2040,7 +2173,7 @@
           const healMult = 1 + racePassive(c, "healBonus");
           const amount = Math.max(1, Math.round(stats.mag * ability.power * healMult * rand(0.9, 1.1)));
           t.hp = Math.min(s.maxHp, t.hp + amount);
-          logLine(`${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
+          logLine(run.team, `${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
         } else {
           const isMagic = ability.kind === "magic";
           const atkStat = isMagic ? stats.mag : stats.atk;
@@ -2048,7 +2181,7 @@
           let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
           dmg = Math.round(dmg * rand(0.9, 1.15));
           const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus");
-          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logLine("かいしんの一撃！", ""); }
+          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
           t.hp -= dmg;
           let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
           if (lifesteal > 0) {
@@ -2057,8 +2190,8 @@
             c.hp = Math.min(cs.maxHp, c.hp + heal);
             line += `（${heal}吸収）`;
           }
-          logLine(line, "hit");
-          checkEnemyDeath(t);
+          logLine(run.team, line, "hit");
+          checkEnemyDeath(run, battle, t);
         }
       }
     }
@@ -2066,24 +2199,24 @@
     c.atb = 0;
   }
 
-  function checkEnemyDeath(e) {
+  function checkEnemyDeath(run, battle, e) {
     if (battle.enemies.includes(e) && e.alive && e.hp <= 0) {
       e.alive = false;
       e.hp = 0;
-      logLine(`${e.name} をたおした！`, "system");
-      updateCardSubtitle(enemyRoster());
+      logLine(run.team, `${e.name} をたおした！`, "system");
+      updateCardSubtitle(run.team, enemyRoster(battle));
     }
   }
-  function checkPartyDown(p) {
+  function checkPartyDown(run, p) {
     if (roster.includes(p) && p.hp <= 0 && p.alive) {
       p.alive = false;
       p.hp = 0;
-      logLine(`${p.name} はたおれた！`, "down");
+      logLine(run.team, `${p.name} はたおれた！`, "down");
     }
   }
 
-  function performEnemyAction(e) {
-    const alive = activeParty().filter((p) => p.alive);
+  function performEnemyAction(run, battle, e) {
+    const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
     const target = alive[Math.floor(Math.random() * alive.length)];
     const stats = computeStats(target);
@@ -2092,52 +2225,63 @@
     const dmgMult = racePassive(target, "dmgTakenMult") || 1;
     dmg = Math.max(1, Math.round(dmg * dmgMult));
     target.hp -= dmg;
-    logLine(`${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");
-    checkPartyDown(target);
+    logLine(run.team, `${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");
+    checkPartyDown(run, target);
     e.atb = 0;
   }
 
-  function checkBattleEnd() {
+  function checkBattleEnd(run, battle) {
     if (!battle.active) return false;
-    if (battle.enemies.every((e) => !e.alive)) { battle.active = false; onVictory(); return true; }
-    if (activeParty().every((p) => !p.alive)) { battle.active = false; onDefeat(); return true; }
+    if (battle.enemies.every((e) => !e.alive)) { battle.active = false; onVictory(run, battle); return true; }
+    if (teamMembers(run.team).every((p) => !p.alive)) { battle.active = false; onDefeat(run); return true; }
     return false;
   }
 
   // ---------- Main ATB loop ----------
+  // 4チーム全てのATBを同時に(x1速度なら等速で)進める。表示中のチームだけDOMを更新する
   let lastT = 0;
   function loop(t) {
     const dtRaw = Math.min(0.05, (t - lastT) / 1000 || 0);
     lastT = t;
-    if (battle && battle.active) tick(dtRaw * speedMult);
+    tick(dtRaw * speedMult);
     requestAnimationFrame(loop);
   }
 
   function tick(dt) {
-    for (const c of activeParty()) {
+    for (let i = 0; i < TEAM_COUNT; i++) {
+      const battle = teamBattles[i];
+      if (battle && battle.active) tickTeam(i, dt);
+    }
+    updateTeamTabDots();
+  }
+
+  function tickTeam(i, dt) {
+    const run = teamRuns[i];
+    const battle = teamBattles[i];
+    for (const c of teamMembers(i)) {
       if (c.actedFlash > 0) c.actedFlash -= dt;
       if (!c.alive) continue;
       c.atb = Math.min(100, c.atb + computeStats(c).spd * ATB_RATE * dt);
       if (c.atb >= 100) {
-        performCharacterAction(c);
-        if (checkBattleEnd()) { updateBattleDOM(); return; }
+        performCharacterAction(run, battle, c);
+        if (checkBattleEnd(run, battle)) { if (i === activeTeam) updateBattleDOM(); return; }
       }
     }
     for (const e of battle.enemies) {
       if (!e.alive) continue;
       e.atb = Math.min(100, e.atb + e.spd * ATB_RATE * dt);
       if (e.atb >= 100) {
-        performEnemyAction(e);
-        if (checkBattleEnd()) { updateBattleDOM(); return; }
+        performEnemyAction(run, battle, e);
+        if (checkBattleEnd(run, battle)) { if (i === activeTeam) updateBattleDOM(); return; }
       }
     }
-    updateBattleDOM();
+    if (i === activeTeam) updateBattleDOM();
   }
 
   requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
 
   // ---------- Taming（ダンジョンクリア時に判定） ----------
-  function attemptTame() {
+  function attemptTame(run) {
     const candidates = run.defeatedTamable;
     if (candidates.length === 0) return null;
     const key = candidates[Math.floor(Math.random() * candidates.length)];
@@ -2151,7 +2295,7 @@
   }
 
   // ---------- Victory / rewards ----------
-  function onVictory() {
+  function onVictory(run, battle) {
     const expGain = battle.enemies.reduce((s, e) => s + e.exp, 0);
     run.expTotal += expGain;
 
@@ -2160,7 +2304,7 @@
       if (tpl && tpl.tamable) run.defeatedTamable.push(e.key);
     }
 
-    for (const c of activeParty()) {
+    for (const c of teamMembers(run.team)) {
       if (!c.alive) continue;
       const race = RACES[c.race];
       const result = gainExp(c, Math.round(expGain * race.expMult));
@@ -2168,17 +2312,17 @@
       run.abilityUnlocks.push(...result.abilityUnlocks);
     }
 
-    gainItem(rollItemDrop());
-    if (Math.random() < 0.4) gainItem(rollItemDrop());
+    gainItem(run, rollItemDrop());
+    if (Math.random() < 0.4) gainItem(run, rollItemDrop());
 
-    logLine(`EXP +${expGain}`, "system");
+    logLine(run.team, `EXP +${expGain}`, "system");
 
     const isLast = run.battleIndex + 1 >= run.dungeon.battles;
     if (!isLast) {
       run.battleIndex += 1;
-      scheduleNext(() => {
-        if (Math.random() < 0.6) rollDungeonEvent();
-        scheduleNext(startBattle, 700);
+      scheduleNext(run.team, () => {
+        if (Math.random() < 0.6) rollDungeonEvent(run);
+        scheduleNext(run.team, () => startBattle(run), 700);
       }, 900);
     } else {
       const firstClear = !clearedDungeons.has(run.dungeon.id);
@@ -2187,97 +2331,98 @@
       const unlocked = firstClear
         ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean)
         : [];
-      scheduleNext(() => finishRun({ cleared: true, tameResult: attemptTame(), unlocked }), 700);
+      scheduleNext(run.team, () => finishRun(run, { cleared: true, tameResult: attemptTame(run), unlocked }), 700);
     }
   }
 
-  function onDefeat() {
-    scheduleNext(() => finishRun({ cleared: false }), 700);
+  function onDefeat(run) {
+    scheduleNext(run.team, () => finishRun(run, { cleared: false }), 700);
   }
 
-  function scheduleNext(fn, delayMs) {
-    clearTimeout(nextBattleTimer);
-    nextBattleTimer = setTimeout(fn, delayMs / speedMult);
+  function scheduleNext(teamIndex, fn, delayMs) {
+    clearTimeout(nextBattleTimer[teamIndex]);
+    nextBattleTimer[teamIndex] = setTimeout(fn, delayMs / speedMult);
   }
 
   // ---------- 道中イベント ----------
   const EVENT_WEIGHTS = [
-    { fn: () => rollTreasureEvent(), weight: 40 },
-    { fn: () => rollTrapEvent(), weight: 25 },
-    { fn: () => rollSpringEvent(), weight: 20 },
-    { fn: () => rollShrineEvent(), weight: 15 },
+    { fn: (run) => rollTreasureEvent(run), weight: 40 },
+    { fn: (run) => rollTrapEvent(run), weight: 25 },
+    { fn: (run) => rollSpringEvent(run), weight: 20 },
+    { fn: (run) => rollShrineEvent(run), weight: 15 },
   ];
 
-  function rollDungeonEvent() {
+  function rollDungeonEvent(run) {
     const total = EVENT_WEIGHTS.reduce((s, e) => s + e.weight, 0);
     let roll = Math.random() * total;
     for (const e of EVENT_WEIGHTS) {
-      if (roll < e.weight) { e.fn(); return; }
+      if (roll < e.weight) { e.fn(run); return; }
       roll -= e.weight;
     }
   }
 
-  function rollTreasureEvent() {
+  function rollTreasureEvent(run) {
     if (Math.random() < 0.35) {
-      logEvent("treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
+      logEvent(run.team, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
       return;
     }
     const item = rollItemDrop();
-    gainItem(item);
-    logEvent("treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
+    gainItem(run, item);
+    logEvent(run.team, "treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
   }
 
-  function rollTrapEvent() {
-    const alive = activeParty().filter((p) => p.alive);
+  function rollTrapEvent(run) {
+    const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
     const wide = Math.random() < 0.45;
     const targets = wide ? alive : [alive[Math.floor(Math.random() * alive.length)]];
     const ratio = wide ? 0.1 : 0.18;
 
-    logEvent("trap", wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
+    logEvent(run.team, "trap", wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
     for (const c of targets) {
       const s = computeStats(c);
       const dmg = Math.max(1, Math.round(s.maxHp * ratio * rand(0.85, 1.15)));
       c.hp = Math.max(1, c.hp - dmg); // 罠では戦闘不能にならない
-      logLine(`${c.name} は ${dmg} のダメージを受けた`, "down");
+      logLine(run.team, `${c.name} は ${dmg} のダメージを受けた`, "down");
     }
-    updateBattleDOM();
+    if (run.team === activeTeam) updateBattleDOM();
   }
 
-  function rollSpringEvent() {
-    const alive = activeParty().filter((p) => p.alive);
+  function rollSpringEvent(run) {
+    const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
-    logEvent("blessing", "清らかな泉を見つけた！", "パーティは水を飲んで休息した");
+    logEvent(run.team, "blessing", "清らかな泉を見つけた！", "パーティは水を飲んで休息した");
     for (const c of alive) {
       const s = computeStats(c);
       const hp = Math.round(s.maxHp * 0.3);
       const mp = Math.round(s.maxMp * 0.25);
       c.hp = Math.min(s.maxHp, c.hp + hp);
       c.mp = Math.min(s.maxMp, c.mp + mp);
-      logLine(`${c.name} のHPが${hp}、MPが${mp}かいふく`, "heal");
+      logLine(run.team, `${c.name} のHPが${hp}、MPが${mp}かいふく`, "heal");
     }
-    updateBattleDOM();
+    if (run.team === activeTeam) updateBattleDOM();
   }
 
-  function rollShrineEvent() {
+  function rollShrineEvent(run) {
     const stat = ["atk", "def", "spd"][Math.floor(Math.random() * 3)];
     run.buffs[stat] = (run.buffs[stat] || 0) + 0.12;
-    logEvent("blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
-    logLine(`${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");
-    renderDock();
-    updateBattleDOM();
+    logEvent(run.team, "blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
+    logLine(run.team, `${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");
+    if (run.team === activeTeam) { renderDock(); updateBattleDOM(); }
   }
 
   // ドロップは即座に所持品化・分解せず、ダンジョンを踏破した時だけ確定させる
   // （全滅した場合は道中で見つけたドロップを持ち帰れない）
-  function gainItem(item) {
+  function gainItem(run, item) {
     run.pendingDrops.push(item);
   }
 
-  // 踏破が確定した時点で、保留していたドロップを所持品化・自動分解する
-  function settlePendingDrops() {
+  // 踏破が確定した時点で、保留していたドロップを所持品化・自動分解する。
+  // 出撃時にスナップショットした自動分解設定(run.autoDisassemble等)を使うため、
+  // 探索中に設定画面で自動分解の設定を変えても、この周回の結果には影響しない
+  function settlePendingDrops(run) {
     for (const item of run.pendingDrops) {
-      if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
+      if (run.autoDisassemble && run.autoDisassembleRarities.has(item.rarity)) {
         addMaterial(item.materialValue);
         run.disassembleCount += 1;
         run.materialGained += item.materialValue;
@@ -2288,21 +2433,23 @@
     }
   }
 
-  function finishRun(info) {
+  function finishRun(run, info) {
     run.finished = true;
     run.wiped = !info.cleared;
-    if (info.cleared) settlePendingDrops();
+    if (info.cleared) settlePendingDrops(run);
+    const isViewed = run.team === activeTeam;
 
-    const card = info.cleared
-      ? logEvent("clear", `${run.dungeon.name} を踏破した！`, `合計 EXP +${run.expTotal}`)
-      : logEvent("wipe", "パーティは全滅した・・・", `${run.dungeon.name} の ${run.battleIndex + 1}戦目で力尽きた`);
+    logEvent(run.team,
+      info.cleared ? "clear" : "wipe",
+      info.cleared ? `${run.dungeon.name} を踏破した！` : "パーティは全滅した・・・",
+      info.cleared ? `合計 EXP +${run.expTotal}` : `${run.dungeon.name} の ${run.battleIndex + 1}戦目で力尽きた`
+    );
 
-    currentCard = card;
-    if (run.levelUps.length) logLine("LEVEL UP! " + run.levelUps.join(" / "), "system");
-    if (run.abilityUnlocks.length) logLine(run.abilityUnlocks.join(" / "), "heal");
+    if (run.levelUps.length) logLine(run.team, "LEVEL UP! " + run.levelUps.join(" / "), "system");
+    if (run.abilityUnlocks.length) logLine(run.team, run.abilityUnlocks.join(" / "), "heal");
 
     if (info.tameResult) {
-      logLine(
+      logLine(run.team,
         info.tameResult.success
           ? `${info.tameResult.name} をテイムした！（編成からなかまに加えられます）`
           : `${info.tameResult.name} のテイムに失敗した…`,
@@ -2310,45 +2457,46 @@
       );
     }
     if (info.unlocked && info.unlocked.length) {
-      logLine("新しいダンジョンが解放された: " + info.unlocked.map((x) => x.name).join(" / "), "system");
+      logLine(run.team, "新しいダンジョンが解放された: " + info.unlocked.map((x) => x.name).join(" / "), "system");
     }
 
     if (run.drops.length) {
-      const head = document.createElement("div");
-      head.className = "lc-line system";
-      head.textContent = `獲得アイテム ${run.drops.length}個（編成画面で装備できます）`;
-      card.lines.appendChild(head);
-      for (const item of run.drops) card.lines.appendChild(buildDropRow(item));
+      logLine(run.team, `獲得アイテム ${run.drops.length}個（編成画面で装備できます）`, "system");
+      for (const item of run.drops) logDropLine(run.team, item);
     }
     if (run.disassembleCount > 0) {
-      logLine(`自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${material}`, "system");
+      logLine(run.team, `自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${material}`, "system");
     }
     if (run.wiped && run.pendingDrops.length > 0) {
-      logLine(`全滅したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
+      logLine(run.team, `全滅したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
     }
 
-    scrollLog();
-    restoreParty();
-    buildPartyDock();
-    renderDock();
+    // 全滅・クリアで回復するのは「このチームのメンバー」だけ。他チームが探索中の場合に
+    // その戦闘状態を壊してしまわないよう、ロスター全体は回復しない
+    restoreTeamParty(run.team);
     saveGame();
 
-    if (autoRepeatActive) {
+    if (isViewed) {
+      buildPartyDock();
+      renderDock();
+    }
+
+    if (autoRepeat[run.team].active) {
       if (run.wiped) {
-        autoRepeatActive = false;
-        logLine("パーティが全滅したため自動周回を停止しました", "system");
-        renderDock();
+        autoRepeat[run.team].active = false;
+        logLine(run.team, "パーティが全滅したため自動周回を停止しました", "system");
+        if (isViewed) renderDock();
       } else {
-        autoRepeatDone += 1;
-        if (autoRepeatDone >= autoRepeatTarget) {
-          autoRepeatActive = false;
-          logLine(`自動周回が完了しました（${autoRepeatDone}周）`, "system");
-          renderDock();
+        autoRepeat[run.team].done += 1;
+        if (autoRepeat[run.team].done >= autoRepeat[run.team].target) {
+          autoRepeat[run.team].active = false;
+          logLine(run.team, `自動周回が完了しました（${autoRepeat[run.team].done}周）`, "system");
+          if (isViewed) renderDock();
         } else {
-          logLine(`自動周回 ${autoRepeatDone}/${autoRepeatTarget} 周完了。次のダンジョンへ出発します…`, "system");
-          renderAutoRepeatRow();
+          logLine(run.team, `自動周回 ${autoRepeat[run.team].done}/${autoRepeat[run.team].target} 周完了。次のダンジョンへ出発します…`, "system");
+          if (isViewed) renderAutoRepeatRow();
           const nextId = run.dungeon.id;
-          scheduleNext(() => startDungeon(nextId), 1400);
+          scheduleNext(run.team, () => startDungeon(run.team, nextId), 1400);
         }
       }
     }
@@ -2372,8 +2520,9 @@
     return `${item.name}${plusText}（${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}）`;
   }
 
-  function restoreParty() {
-    for (const c of roster) {
+  // ダンジョンを終えたチームのメンバーだけHP/MPを全回復する（他チームの戦闘中の状態には触れない）
+  function restoreTeamParty(teamIndex) {
+    for (const c of teamMembers(teamIndex)) {
       c.hp = computeStats(c).maxHp;
       c.mp = computeStats(c).maxMp;
       c.alive = true;
@@ -2392,5 +2541,5 @@
   loadGame();
   renderTitle();
   showScreen("screen-title");
-  if (pendingOfflineSummary) showOfflineModal(pendingOfflineSummary);
+  if (pendingOfflineSummaries) showOfflineModal(pendingOfflineSummaries);
 })();
