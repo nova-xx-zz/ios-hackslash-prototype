@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0e0c16">
 <title>クエストパーティ</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 <div id="app">
@@ -21,22 +21,8 @@
       <h1 class="title-logo">クエストパーティ</h1>
       <p class="title-logo-en">Quest Party</p>
       <p class="sub">5人パーティ・オート戦闘のハクスラダンジョン<br>プロトタイプ</p>
-      <div id="partyPreview" class="party-preview"></div>
+      <button class="btn primary title-cta" id="btnGoBattle">⚔ はじめる</button>
       <p class="best" id="bestClearText"></p>
-      <div class="title-nav-row">
-        <button class="title-nav-btn" id="btnGoJobs">
-          <span class="title-nav-icon">👥</span><span class="title-nav-label">編成</span>
-        </button>
-        <button class="title-nav-btn primary" id="btnGoBattle">
-          <span class="title-nav-icon">⚔️</span><span class="title-nav-label">探索</span>
-        </button>
-        <button class="title-nav-btn" id="btnGoDex">
-          <span class="title-nav-icon">📖</span><span class="title-nav-label">図鑑</span>
-        </button>
-        <button class="title-nav-btn" id="btnGoSettings">
-          <span class="title-nav-icon">⚙️</span><span class="title-nav-label">設定</span>
-        </button>
-      </div>
     </div>
   </section>
 
@@ -162,9 +148,22 @@
       <div class="dock-actions">
         <button class="btn small ghost" id="btnRedeploy">再出撃</button>
         <button class="btn small ghost" id="btnDockMap">マップ</button>
-        <button class="btn small ghost" id="btnDockJobs">編成</button>
       </div>
       <div class="team-tabs" id="teamTabs"></div>
+      <div class="hub-nav-row">
+        <button class="hub-nav-btn" id="btnHubJobs">
+          <span class="hub-nav-icon">👥</span><span class="hub-nav-label">編成</span>
+        </button>
+        <button class="hub-nav-btn active" id="btnHubExplore">
+          <span class="hub-nav-icon">⚔️</span><span class="hub-nav-label">探索</span>
+        </button>
+        <button class="hub-nav-btn" id="btnHubDex">
+          <span class="hub-nav-icon">📖</span><span class="hub-nav-label">図鑑</span>
+        </button>
+        <button class="hub-nav-btn" id="btnHubSettings">
+          <span class="hub-nav-icon">⚙️</span><span class="hub-nav-label">設定</span>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -218,6 +217,6 @@
 
 </div>
 <script src="js/data.js?v=1"></script>
-<script src="js/game.js?v=7"></script>
+<script src="js/game.js?v=8"></script>
 </body>
 </html>

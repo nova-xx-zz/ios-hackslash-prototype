@@ -312,7 +312,7 @@
   let teamBattles = new Array(TEAM_COUNT).fill(null);
   let clearedDungeons = new Set();
   let selectedDungeonId = null;
-  let jobsReturnScreen = "screen-title";
+  let jobsReturnScreen = "screen-battle"; // タイトルは常設ナビを持たないスプラッシュのため、既定の戻り先は探索画面にする
   let speedMult = 1;
   function isTeamRunActive(i) { const r = teamRuns[i]; return !!(r && !r.finished); }
 
@@ -476,15 +476,9 @@
   }
 
   // ---------- Title screen ----------
+  // タイトル画面は「はじめる」ボタンのみのシンプルな入口とし、常設ナビ（編成／探索／図鑑／設定）は
+  // 実質的なホーム画面である探索画面（screen-battle）側に置く（hub-nav-row、btnHub*のリスナーを参照）
   function renderTitle() {
-    const el = document.getElementById("partyPreview");
-    el.innerHTML = "";
-    for (const c of activeParty()) {
-      const div = document.createElement("div");
-      div.className = "mini-card";
-      div.innerHTML = `<div class="name">${c.name}</div><div class="job">${RACES[c.race].name}・${jobDef(c).name} Lv.${c.level}</div>`;
-      el.appendChild(div);
-    }
     const best = getBestStage();
     const bits = [];
     if (best > 0) bits.push(`クリア済みダンジョン: ${best}`);
@@ -496,25 +490,26 @@
   document.getElementById("btnGoBattle").addEventListener("click", () => {
     openExploreHub();
   });
-  document.getElementById("btnGoJobs").addEventListener("click", () => {
-    jobsReturnScreen = "screen-title";
+  document.getElementById("btnHubJobs").addEventListener("click", () => {
+    jobsReturnScreen = "screen-battle";
     renderJobsScreen();
     showScreen("screen-jobs");
   });
-  document.getElementById("btnGoDex").addEventListener("click", () => {
+  document.getElementById("btnHubExplore").addEventListener("click", () => {
+    openExploreHub();
+  });
+  document.getElementById("btnHubDex").addEventListener("click", () => {
     renderDexScreen();
     showScreen("screen-dex");
   });
-  document.getElementById("btnGoSettings").addEventListener("click", () => {
+  document.getElementById("btnHubSettings").addEventListener("click", () => {
     showScreen("screen-settings");
   });
   document.getElementById("btnSettingsBack").addEventListener("click", () => {
-    renderTitle();
-    showScreen("screen-title");
+    openExploreHub();
   });
   document.getElementById("btnDexBack").addEventListener("click", () => {
-    renderTitle();
-    showScreen("screen-title");
+    openExploreHub();
   });
 
   function renderDexScreen() {
@@ -1695,13 +1690,10 @@
   });
 
   document.getElementById("btnJobsDone").addEventListener("click", () => {
-    if (jobsReturnScreen === "screen-battle") {
-      openExploreHub();
-    } else if (jobsReturnScreen === "screen-map") {
+    if (jobsReturnScreen === "screen-map") {
       openMap();
     } else {
-      renderTitle();
-      showScreen("screen-title");
+      openExploreHub();
     }
   });
   document.getElementById("btnMapJobs").addEventListener("click", () => {
@@ -2103,11 +2095,6 @@
   });
   document.getElementById("btnDockMap").addEventListener("click", () => {
     openMap();
-  });
-  document.getElementById("btnDockJobs").addEventListener("click", () => {
-    jobsReturnScreen = "screen-battle";
-    renderJobsScreen();
-    showScreen("screen-jobs");
   });
 
   // ---------- Auto-battle AI ----------

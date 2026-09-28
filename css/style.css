@@ -100,36 +100,32 @@ html, body {
   -webkit-text-fill-color: transparent;
 }
 .title-logo-en { margin: 2px 0 4px; font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: var(--sub-text); }
+.title-cta { box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45); animation: title-cta-pulse 2.4s ease-in-out infinite; }
 @keyframes title-cta-pulse {
   0%, 100% { box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45); }
   50% { box-shadow: 0 4px 26px rgba(124, 92, 255, 0.8); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .title-nav-btn.primary { animation: none; }
+  .title-cta { animation: none; }
 }
 
-/* タイトル画面下部のナビ行（編成／探索／図鑑／設定） */
-.title-nav-row { display: flex; gap: 8px; margin-top: 4px; }
-.title-nav-btn {
+/* 探索画面下部の常設ナビ行（編成／探索／図鑑／設定） */
+.hub-nav-row { display: flex; gap: 6px; padding: 6px 8px 8px; border-top: 1px solid var(--border); }
+.hub-nav-btn {
   pointer-events: auto;
   flex: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 4px 8px;
+  border-radius: 10px;
+  padding: 7px 2px 6px;
   color: var(--text);
   cursor: pointer;
 }
-.title-nav-btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45);
-  animation: title-cta-pulse 2.4s ease-in-out infinite;
-}
-.title-nav-btn:active { opacity: 0.75; }
-.title-nav-icon { font-size: 20px; line-height: 1; }
-.title-nav-label { font-size: 11px; font-weight: 700; }
+.hub-nav-btn.active { background: rgba(124,92,255,0.22); border-color: var(--accent); }
+.hub-nav-btn:active { opacity: 0.75; }
+.hub-nav-icon { font-size: 17px; line-height: 1; }
+.hub-nav-label { font-size: 10px; font-weight: 700; }
 
 /* 設定画面 */
 .settings-row {
@@ -139,19 +135,6 @@ html, body {
 }
 .settings-label { color: var(--sub-text); }
 .settings-value { font-weight: 700; }
-
-/* party preview on title */
-.party-preview { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
-.mini-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 6px;
-  width: 104px;
-  font-size: 11px;
-}
-.mini-card .name { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
-.mini-card .job { color: var(--sub-text); }
 
 /* job change screen */
 .job-char-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }
@@ -577,7 +560,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 
 /* explore (log + dock) */
 .explore-wrap {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 250px;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 305px;
   display: flex; flex-direction: column;
   padding: 10px 10px 0;
 }
