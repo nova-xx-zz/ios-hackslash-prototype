@@ -40,6 +40,7 @@ html, body {
   padding: 16px;
 }
 .screen.hidden { display: none; }
+.hidden { display: none; } /* 汎用の非表示クラス（画面/モーダル以外の要素にも使う） */
 
 .panel {
   background: var(--panel-bg);
@@ -135,6 +136,61 @@ html, body {
 }
 .settings-label { color: var(--sub-text); }
 .settings-value { font-weight: 700; }
+
+/* 冒険者ギルドからのお知らせ（タイトルアイコン／一覧／今後の予定） */
+.announce-icon-btn {
+  pointer-events: auto;
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+}
+.announce-badge {
+  position: absolute; top: -2px; right: -2px;
+  width: 10px; height: 10px;
+  background: var(--hp);
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+.announce-row {
+  pointer-events: auto;
+  display: block; width: 100%; text-align: left;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 8px;
+  color: var(--text);
+  cursor: pointer;
+}
+.announce-row.unread { border-color: var(--accent); background: rgba(124,92,255,0.12); }
+.announce-row-meta { font-size: 10px; color: var(--sub-text); }
+.announce-row-title { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.roadmap-row {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 8px;
+}
+.roadmap-status {
+  display: inline-block;
+  font-size: 10px; font-weight: 700;
+  border-radius: 6px; padding: 2px 6px;
+  color: var(--sub-text); border: 1px solid var(--border);
+}
+.roadmap-status.released { color: #0b0b12; background: var(--rarity-r); border-color: transparent; }
+.roadmap-status.development { color: #0b0b12; background: var(--rarity-ur); border-color: transparent; }
+.roadmap-title { font-size: 13px; font-weight: 700; margin-top: 5px; }
+.roadmap-summary { font-size: 12px; color: var(--sub-text); margin-top: 2px; }
+.roadmap-timing { font-size: 10px; color: var(--sub-text); margin-top: 4px; }
+#announceModalBody { text-align: left; }
+#announceModalBody p { margin: 0 0 8px; }
+#announceModalBody p:last-child { margin-bottom: 0; }
 
 /* job change screen */
 .job-char-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px; }

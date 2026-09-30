@@ -1,4 +1,17 @@
 // ゲームデータ定義（ジョブ / アビリティ / 敵 / アイテム）
+
+// 段階公開の機能フラグ（配布バージョンごとの運営設定）。告知の公開日時や端末時計からは
+// 算出しない。falseの機能はUI・ドロップ・効果・オフライン精算のいずれにも影響させない。
+// スキルツリー/スキルブック・鑑定所/一次職の極みは設計のみ済みで未実装のためfalseのまま。
+const FEATURE_FLAGS = {
+  announcements: true,
+  skillTree: false,
+  skillBook: false,
+  appraisal: false,
+  jobMastery: false,
+};
+function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
+
 const JOB_MASTER_LEVEL = 50; // 上級職の解放に必要な、対応する基本職のレベル
 const JOBS = {
   warrior: {

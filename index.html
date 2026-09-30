@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0e0c16">
 <title>クエストパーティ</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 <div id="app">
@@ -17,6 +17,9 @@
   <section id="screen-title" class="screen title-screen">
     <div class="title-glow"></div>
     <div class="panel narrow title-panel">
+      <button class="announce-icon-btn hidden" id="btnTitleAnnounce" aria-label="お知らせ">
+        📢<span class="announce-badge hidden" id="titleAnnounceBadge"></span>
+      </button>
       <div class="title-emblem">⚔</div>
       <h1 class="title-logo">クエストパーティ</h1>
       <p class="title-logo-en">Quest Party</p>
@@ -38,8 +41,21 @@
           <span class="settings-label">バージョン</span>
           <span class="settings-value">プロトタイプ版</span>
         </div>
+        <button class="btn small ghost" id="btnSettingsAnnounce" style="margin-top:12px;">冒険者ギルドからのお知らせ</button>
         <p class="sub" style="margin-top:16px;">設定項目は今後ここに追加していく予定です。</p>
       </div>
+    </div>
+  </section>
+
+  <!-- 冒険者ギルドからのお知らせ -->
+  <section id="screen-announcements" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">冒険者ギルドからのお知らせ</div>
+        <button class="btn small ghost" id="btnAnnounceBack">もどる</button>
+      </div>
+      <div class="detail-tabs" id="announceTabs"></div>
+      <div id="announceBody" class="roster-body"></div>
     </div>
   </section>
 
@@ -202,6 +218,17 @@
     </div>
   </div>
 
+  <!-- お知らせ詳細モーダル -->
+  <div id="announcementModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-icon">📢</div>
+      <div class="modal-name" id="announceModalTitle">—</div>
+      <div class="sub" id="announceModalMeta" style="margin-bottom:4px;"></div>
+      <div class="modal-desc" id="announceModalBody"></div>
+      <button class="btn primary modal-ok" id="btnAnnounceModalClose">とじる</button>
+    </div>
+  </div>
+
   <!-- 装備強化モーダル -->
   <div id="enhanceModal" class="modal-overlay hidden">
     <div class="modal-card">
@@ -216,7 +243,9 @@
   </div>
 
 </div>
-<script src="js/data.js?v=1"></script>
-<script src="js/game.js?v=8"></script>
+<script src="data/announcements.js?v=1"></script>
+<script src="data/roadmap.js?v=1"></script>
+<script src="js/data.js?v=2"></script>
+<script src="js/game.js?v=9"></script>
 </body>
 </html>
