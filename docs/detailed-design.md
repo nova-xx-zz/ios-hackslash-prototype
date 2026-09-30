@@ -278,7 +278,7 @@ offlineClearChance(dungeon)
 | 設定 | `btnHubSettings`で表示、`btnSettingsBack`で探索へ戻る |
 | モンスター図鑑 | `renderDexScreen()`, `openDexDetail(key)` |
 | パーティ編成 | `renderJobsScreen()`, `buildPartyRow()`, `buildMemberCard()`, `attachMemberDrag()`（ドラッグ移動） |
-| 所持品一覧（未装備アイテム） | `renderInventoryScreen()`, `buildInventoryItemRow()`, `openEnhanceModal(item, onClose)`（一覧から直接強化） |
+| 所持品一覧（未装備アイテム・スキルブック） | `renderInventoryScreen()`, `buildInventoryItemRow()`, `openEnhanceModal(item, onClose)`（一覧から直接強化）, `buildInventorySkillBookRow()`（スキルブック本体の実装に先行した表示のみの行。§6.3参照） |
 | キャラ作成 | `renderCreateScreen()`, `renderPickModal()`, `confirmCreate()` |
 | キャラ詳細: 能力値 | `buildStatsTab()` |
 | キャラ詳細: 装備 | `buildEquipSection()`, `autoEquip()`, `openEnhanceModal()` |
@@ -373,7 +373,8 @@ jobLevels[jobId] = {
 - 条件付き効果・LRの低HP型のような特殊効果は未着手。固有・汎用とも、ノードは常時適用のパッシブ（＋固有ツリーのみアクティブ技）のみで構成する
 - UIは「本当の分岐図」として実装済み: `buildTreeGraph(c, scopeKey, treeDef, ranks)` がノードのx/y座標をもとにSVGの`<line>`で前提関係を結び、ノードを円形ボタンとして配置する。タップでノード詳細パネル（`buildTreeNodeDetail`）を表示し、そこから習得を確定する
 
-### 6.3 スキルブック個体・鑑定・使用（未実装）
+### 6.3 スキルブック個体・鑑定・使用（未実装。所持品一覧への表示枠のみ先行実装済み）
+所持品一覧画面（§3参照）に「スキルブック」フィルターと、`skillBooks`配列（常に空のまま）を表示するセクションを用意済み。`identified:false`のときはレア度のみ、`true`のときは`name`（未定義なら仮表示）を出す設計で、下記のドロップ・鑑定・使用ロジックが実装されて`skillBooks`に要素が入れば、そのまま表示される。
 ```js
 // セーブ内の共有配列skillBooksの要素
 {

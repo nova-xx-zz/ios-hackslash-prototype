@@ -2064,10 +2064,11 @@
   }
 
   // ---------- 所持品一覧 ----------
-  // 未装備のアイテム(inventory配列)をスロット種別で絞り込んで一覧表示する。
+  // 未装備のアイテム(inventory配列)と、スキルブック(skillBooks配列。ドロップ・鑑定・
+  // 使用はまだ未実装の予約フィールド)をスロット種別／スキルブックで絞り込んで一覧表示する。
   // 装備中のアイテムはinventoryから除外されており(equipItem/unequipSlot参照)、
   // 各キャラの装備タブからいつでも確認できるため、ここでは未装備分だけを扱う。
-  let inventoryFilterSlot = "all";
+  let inventoryFilterSlot = "all"; // "all" | SLOTS[].key | "skillBook"
 
   function openInventoryScreen() {
     inventoryFilterSlot = "all";
@@ -2078,7 +2079,7 @@
   function renderInventoryScreen() {
     const filterRow = document.getElementById("inventoryFilterRow");
     filterRow.innerHTML = "";
-    const filters = [{ key: "all", name: "すべて" }, ...SLOTS];
+    const filters = [{ key: "all", name: "すべて" }, ...SLOTS, { key: "skillBook", name: "スキルブック" }];
     for (const f of filters) {
       const btn = document.createElement("button");
       btn.className = "priority-chip" + (inventoryFilterSlot === f.key ? " tier-3" : "");
@@ -2087,15 +2088,20 @@
       filterRow.appendChild(btn);
     }
 
-    const shown = inventory.filter((i) => inventoryFilterSlot === "all" || i.slot === inventoryFilterSlot);
-    document.getElementById("inventoryCount").textContent = `所持品 ${inventory.length}個中 ${shown.length}個を表示`;
+    const totalCount = inventory.length + skillBooks.length;
+    const shownCount = inventoryFilterSlot === "all" ? totalCount
+      : inventoryFilterSlot === "skillBook" ? skillBooks.length
+      : inventory.filter((i) => i.slot === inventoryFilterSlot).length;
+    document.getElementById("inventoryCount").textContent = `所持品 ${totalCount}個中 ${shownCount}個を表示`;
 
     const body = document.getElementById("inventoryBody");
     body.innerHTML = "";
-    if (shown.length === 0) {
+    if (shownCount === 0) {
       const none = document.createElement("div");
       none.className = "sub-ability-row";
-      none.textContent = "未装備の所持品がありません（装備中のアイテムは各キャラの装備タブで確認できます）";
+      none.textContent = inventoryFilterSlot === "skillBook"
+        ? "スキルブックがありません（スキルブックの入手・鑑定・使用はまだ実装されていません）"
+        : "未装備の所持品がありません（装備中のアイテムは各キャラの装備タブで確認できます）";
       body.appendChild(none);
       return;
     }
@@ -2115,6 +2121,21 @@
       list.className = "skill-row-list";
       for (const item of items) list.appendChild(buildInventoryItemRow(item));
       body.appendChild(list);
+    }
+
+    if (inventoryFilterSlot === "all" || inventoryFilterSlot === "skillBook") {
+      const books = skillBooks.slice().sort((a, b) => {
+        const ra = RARITIES.findIndex((r) => r.key === a.rarity);
+        const rb = RARITIES.findIndex((r) => r.key === b.rarity);
+        return rb - ra;
+      });
+      if (books.length > 0) {
+        body.appendChild(sectionLabel(`スキルブック（${books.length}個）`));
+        const list = document.createElement("div");
+        list.className = "skill-row-list";
+        for (const book of books) list.appendChild(buildInventorySkillBookRow(book));
+        body.appendChild(list);
+      }
     }
   }
 
@@ -2139,6 +2160,30 @@
     enhance.textContent = "強化する";
     enhance.addEventListener("click", () => openEnhanceModal(item, () => renderInventoryScreen()));
     row.appendChild(enhance);
+
+    return row;
+  }
+
+  // スキルブックのドロップ・鑑定・使用は未実装のため、現状は一覧表示のみ（操作ボタンなし）。
+  // 未鑑定では詳細設計§6.3のとおりレア度だけを表示し、名称・効果・適性はUIに出さない
+  function buildInventorySkillBookRow(book) {
+    const row = document.createElement("div");
+    row.className = "skill-row";
+    const rarity = RARITIES.find((r) => r.key === book.rarity);
+    if (rarity) row.style.borderColor = rarity.color;
+
+    const icon = document.createElement("div");
+    icon.className = "skill-row-icon";
+    icon.textContent = "📖";
+    row.appendChild(icon);
+
+    const name = document.createElement("div");
+    name.className = "skill-row-name";
+    const rarityName = rarity ? rarity.name : book.rarity;
+    name.textContent = book.identified
+      ? `${book.name || "鑑定済みのスキルブック"}（${rarityName}）`
+      : `未鑑定のスキルブック（${rarityName}）`;
+    row.appendChild(name);
 
     return row;
   }
