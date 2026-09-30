@@ -309,8 +309,9 @@
         if (a.reqLevel === c.level) abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
       }
     }
-    // 転職してもレベルを保持できるよう、現在のジョブの進行を都度書き戻す
-    if (!c.isMonster) c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+    // 転職してもレベルを保持できるよう、現在のジョブの進行を都度書き戻す。
+    // スキルツリーの取得ノード等(skillTree)は丸ごと置換せずマージして保持する
+    if (!c.isMonster) c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level: c.level, exp: c.exp, expToNext: c.expToNext });
     return { levelUps, abilityUnlocks };
   }
 
@@ -337,7 +338,7 @@
       isMonster: opts.isMonster || false,
     };
     c.expToNext = expForLevel(c.level);
-    if (!c.isMonster && job) c.jobLevels[job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+    if (!c.isMonster && job) c.jobLevels[job] = Object.assign({}, c.jobLevels[job], { level: c.level, exp: c.exp, expToNext: c.expToNext });
     const s = computeStats(c);
     c.hp = s.maxHp; c.mp = s.maxMp;
     return c;
@@ -346,7 +347,7 @@
   // 転職: 直前のジョブの進行を保存し、切り替え先のジョブの保持レベルを復元する（無ければLv1から）
   function switchJob(c, jobId) {
     if (c.isMonster || c.job === jobId) return;
-    c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+    c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level: c.level, exp: c.exp, expToNext: c.expToNext });
     c.job = jobId;
     const saved = c.jobLevels[jobId] || { level: 1, exp: 0, expToNext: expForLevel(1) };
     c.jobLevels[jobId] = saved;
@@ -372,6 +373,79 @@
     return c.isMonster ? MONSTER_JOBS[c.race] : JOBS[c.job];
   }
 
+  // ---------- スキルツリー ----------
+  // ツリーは系統タグ単位（JOB_TAGS）で共有するが、進行(nodeRanks)はジョブごとに独立して
+  // jobLevels[jobId].skillTree に保持する（転職しても内容は同じツリーだが、進み具合は別管理）
+  function getCharacterTree(c) {
+    if (c.isMonster || !isFeatureEnabled("skillTree")) return null;
+    const tag = jobTag(c.job);
+    return tag ? getSkillTreeByTag(tag) : null;
+  }
+  function getTreeProgress(c) {
+    if (c.isMonster) return null;
+    if (!c.jobLevels[c.job]) c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
+    if (!c.jobLevels[c.job].skillTree) c.jobLevels[c.job].skillTree = { nodeRanks: {} };
+    return c.jobLevels[c.job].skillTree;
+  }
+  // SPは保存せず、そのジョブの現在レベルから都度算出する（獲得量と消費量の二重管理を避けるため）
+  function totalSp(c) { return Math.max(0, c.level - 1); }
+  function spentSp(tree, progress) {
+    let spent = 0;
+    for (const node of tree.nodes) {
+      const rank = progress.nodeRanks[node.id] || 0;
+      for (let r = 0; r < rank; r++) spent += node.costByRank[r];
+    }
+    return spent;
+  }
+  function availableSp(c) {
+    const tree = getCharacterTree(c);
+    if (!tree) return 0;
+    return totalSp(c) - spentSp(tree, getTreeProgress(c));
+  }
+  function canAcquireNode(c, node) {
+    if (c.team !== null && isTeamLocked(c.team)) return false;
+    const tree = getCharacterTree(c);
+    if (!tree) return false;
+    const progress = getTreeProgress(c);
+    const rank = progress.nodeRanks[node.id] || 0;
+    if (rank >= node.maxRank) return false;
+    if (availableSp(c) < node.costByRank[rank]) return false;
+    for (const pre of node.prerequisites) {
+      if ((progress.nodeRanks[pre.nodeId] || 0) < pre.minRank) return false;
+    }
+    if (node.exclusiveGroup) {
+      for (const other of tree.nodes) {
+        if (other.id !== node.id && other.exclusiveGroup === node.exclusiveGroup && (progress.nodeRanks[other.id] || 0) > 0) return false;
+      }
+    }
+    return true;
+  }
+  function acquireNode(c, node) {
+    if (!canAcquireNode(c, node)) return false;
+    const progress = getTreeProgress(c);
+    progress.nodeRanks[node.id] = (progress.nodeRanks[node.id] || 0) + 1;
+    return true;
+  }
+  // 取得済みパッシブノードの効果を集計する。加算系(能力値/会心率等)は0、乗算系(被ダメ/消費MP)は1を既定値にする
+  function treePassiveTotals(c) {
+    const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1 };
+    const tree = getCharacterTree(c);
+    if (!tree) return totals;
+    const progress = getTreeProgress(c);
+    for (const node of tree.nodes) {
+      if (node.kind !== "passive") continue;
+      const rank = progress.nodeRanks[node.id] || 0;
+      if (rank <= 0) continue;
+      for (const eff of node.effects) {
+        if (eff.type === "statAdd") totals[eff.stat] += eff.value * rank;
+        else if (eff.type === "passiveAdd") totals[eff.key] += eff.value * rank;
+        else if (eff.type === "passiveMult") totals[eff.key] *= eff.value;
+      }
+    }
+    return totals;
+  }
+  function treePassive(c, key) { return treePassiveTotals(c)[key]; }
+
   function computeStats(c) {
     const job = jobDef(c);
     const race = RACES[c.race] || RACES.human;
@@ -388,6 +462,8 @@
       const item = c.equip[slot.key];
       if (item) s[item.stat] += itemEffectiveValue(item);
     }
+    const tp = treePassiveTotals(c);
+    s.maxHp += tp.hp; s.maxMp += tp.mp; s.atk += tp.atk; s.mag += tp.mag; s.def += tp.def; s.spd += tp.spd;
     // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
     const teamRun = c.team !== null ? teamRuns[c.team] : null;
     if (teamRun && !teamRun.finished) {
@@ -423,6 +499,14 @@
         if (!id) continue;
         const sub = getAbilityById(id);
         if (sub && !list.find((a) => a.id === sub.id)) list.push(sub);
+      }
+      const tree = getCharacterTree(c);
+      if (tree) {
+        const progress = getTreeProgress(c);
+        for (const node of tree.nodes) {
+          if (node.kind !== "active" || !node.ability) continue;
+          if ((progress.nodeRanks[node.id] || 0) > 0 && !list.find((a) => a.id === node.ability.id)) list.push(node.ability);
+        }
       }
     }
     return list;
@@ -1332,6 +1416,7 @@
     { key: "stats", label: "能力値" },
     { key: "equip", label: "装備" },
     { key: "skill", label: "スキル" },
+    { key: "tree", label: "ツリー" },
     { key: "job", label: "ジョブ" },
   ];
 
@@ -1357,10 +1442,12 @@
       wrap.appendChild(notice);
     }
 
+    if (detailTab === "tree" && !getCharacterTree(c)) detailTab = "stats"; // モンスター等、ツリーの無いキャラでは表示しない
     const card = document.createElement("div");
     card.className = "job-char-card" + (locked ? " readonly" : "");
     if (detailTab === "equip") card.appendChild(buildEquipSection(c));
     else if (detailTab === "skill") card.appendChild(buildSkillTab(c));
+    else if (detailTab === "tree") card.appendChild(buildTreeTab(c));
     else if (detailTab === "job") card.appendChild(buildJobTab(c));
     else card.appendChild(buildStatsTab(c));
     wrap.appendChild(card);
@@ -1371,12 +1458,72 @@
     const tabs = document.getElementById("detailTabs");
     tabs.innerHTML = "";
     for (const t of DETAIL_TABS) {
+      if (t.key === "tree" && !getCharacterTree(c)) continue; // モンスターやツリー未対応ジョブでは非表示
       const btn = document.createElement("button");
       btn.className = "detail-tab" + (detailTab === t.key ? " active" : "");
       btn.textContent = t.key === "job" && c && c.isMonster ? "合成" : t.label;
       btn.addEventListener("click", () => { detailTab = t.key; renderCharDetail(); });
       tabs.appendChild(btn);
     }
+  }
+
+  // ---------- 詳細: ツリータブ ----------
+  function buildTreeTab(c) {
+    const wrap = document.createElement("div");
+    const tree = getCharacterTree(c);
+    if (!tree) {
+      const none = document.createElement("div");
+      none.className = "sub-ability-row";
+      none.textContent = "このジョブに対応するスキルツリーがありません";
+      wrap.appendChild(none);
+      return wrap;
+    }
+    const progress = getTreeProgress(c);
+    const total = totalSp(c);
+    const spent = spentSp(tree, progress);
+
+    const head = document.createElement("div");
+    head.className = "detail-section-head";
+    head.innerHTML = `<span>${tree.name}</span><span class="count">SP ${total - spent}/${total}</span>`;
+    wrap.appendChild(head);
+
+    const list = document.createElement("div");
+    list.className = "skill-row-list";
+    for (const node of tree.nodes) list.appendChild(buildTreeNodeRow(c, tree, progress, node));
+    wrap.appendChild(list);
+    return wrap;
+  }
+
+  function buildTreeNodeRow(c, tree, progress, node) {
+    const row = document.createElement("div");
+    const acquired = (progress.nodeRanks[node.id] || 0) > 0;
+    row.className = "skill-row";
+    row.title = node.desc || "";
+
+    const icon = document.createElement("div");
+    icon.className = "skill-row-icon";
+    icon.textContent = node.kind === "active" ? "⚔️" : "🔹";
+    row.appendChild(icon);
+
+    const name = document.createElement("div");
+    name.className = "skill-row-name";
+    name.textContent = node.desc ? `${node.name}（${node.desc}）` : node.name;
+    row.appendChild(name);
+
+    if (acquired) {
+      const on = document.createElement("div");
+      on.className = "skill-toggle-circle on static";
+      row.appendChild(on);
+    } else {
+      const canGet = canAcquireNode(c, node);
+      const btn = document.createElement("button");
+      btn.className = "priority-chip" + (canGet ? "" : " dim");
+      btn.textContent = `習得(SP${node.costByRank[progress.nodeRanks[node.id] || 0]})`;
+      btn.disabled = !canGet;
+      btn.addEventListener("click", () => { acquireNode(c, node); scheduleSave(); renderCharDetail(); });
+      row.appendChild(btn);
+    }
+    return row;
   }
 
   // ---------- 詳細: 能力値タブ ----------
@@ -2288,7 +2435,7 @@
 
   // ---------- Auto-battle AI ----------
   function mpCostFor(c, ability) {
-    const mult = racePassive(c, "mpCostMult") || 1;
+    const mult = (racePassive(c, "mpCostMult") || 1) * (treePassive(c, "mpCostMult") || 1);
     return Math.max(0, Math.round(ability.mpCost * mult));
   }
 
@@ -2361,12 +2508,12 @@
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
     else if (ability.target === "all-ally") targets = teamMembers(run.team).filter((p) => p.alive);
 
-    const lifesteal = racePassive(c, "lifesteal") + (ability.lifesteal || 0);
+    const lifesteal = racePassive(c, "lifesteal") + treePassive(c, "lifesteal") + (ability.lifesteal || 0);
     for (const t of targets) {
       for (let h = 0; h < ability.hits; h++) {
         if (ability.kind === "heal") {
           const s = computeStats(t);
-          const healMult = 1 + racePassive(c, "healBonus");
+          const healMult = 1 + racePassive(c, "healBonus") + treePassive(c, "healBonus");
           const amount = Math.max(1, Math.round(stats.mag * ability.power * healMult * rand(0.9, 1.1)));
           t.hp = Math.min(s.maxHp, t.hp + amount);
           logLine(run.team, `${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
@@ -2376,7 +2523,7 @@
           const mitig = isMagic ? 0.15 : 0.3;
           let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
           dmg = Math.round(dmg * rand(0.9, 1.15));
-          const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus");
+          const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus") + treePassive(c, "critBonus");
           if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
           t.hp -= dmg;
           let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
@@ -2418,7 +2565,7 @@
     const stats = computeStats(target);
     let dmg = Math.max(1, Math.round(e.atk - stats.def * 0.4));
     dmg = Math.round(dmg * rand(0.9, 1.15));
-    const dmgMult = racePassive(target, "dmgTakenMult") || 1;
+    const dmgMult = (racePassive(target, "dmgTakenMult") || 1) * (treePassive(target, "dmgTakenMult") || 1);
     dmg = Math.max(1, Math.round(dmg * dmgMult));
     target.hp -= dmg;
     logLine(run.team, `${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");

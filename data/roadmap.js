@@ -13,11 +13,11 @@ const ROADMAP = [
   },
   {
     id: "skill_tree",
-    status: "planned",
-    timingLabel: "公開時期未定",
-    disclosureStage: "teaser",
-    title: "？？？",
-    summary: "新たな育成要素を準備中です。",
+    status: "released",
+    timingLabel: "公開済み",
+    disclosureStage: "released",
+    title: "スキルツリー",
+    summary: "キャラ詳細の「ツリー」タブで確認できます。レベルアップで得るSPを消費して、ジョブの系統ごとに用意されたツリーのパッシブ・専用技を習得できます。",
   },
   {
     id: "skill_book",

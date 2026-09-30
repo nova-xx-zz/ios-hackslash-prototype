@@ -2,9 +2,9 @@
 
 > 更新日: 2026-09-30。現行実装の参照基点: `8f0e153`。
 > 本書では「現行実装」「採用済み・未実装」「将来構想」を区別する。
-> **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）はこの更新の直後のコミットで実装済みとなった。** §6.1〜6.3（スキルツリー・ブック・極みのデータ設計）は内容決定待ちのため未実装のまま。実装は`data/announcements.js`・`data/roadmap.js`（設計上の`.json`ではなく`js/data.js`と同じ素のJSグローバル定義）、`js/game.js`の`FEATURE_FLAGS`・お知らせ関連関数・`saveGame()`/`loadGame()`のschemaVersion対応を参照。
+> **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2のStage1〈標準ツリー＋SP〉範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（treeId交換・sourceRarity）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`SKILL_TREES`、`js/game.js`のツリー関連関数群（`getCharacterTree`/`getTreeProgress`/`totalSp`/`spentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeNodeRow`のUIを参照。
 
-対象コード: `js/data.js`, `js/game.js`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7は実装済み、§6.1〜6.3は採用済み・未実装の拡張設計。
+対象コード: `js/data.js`, `js/game.js`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2のStage1範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
 
 ## 1. データ構造定義
 
@@ -309,63 +309,54 @@ offlineClearChance(dungeon)
 
 `index.html` の `css/style.css`・`data/announcements.js`・`data/roadmap.js`・`js/data.js`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。参照コミット時点: `style.css?v=6`, `announcements.js?v=1`, `roadmap.js?v=1`, `data.js?v=2`, `game.js?v=9`。設計書のみの更新ではこれらの番号を変更しない。
 
-## 6. 採用済み拡張のデータ・処理設計（§6.4〜6.6は実装済み、他は未実装）
+## 6. 採用済み拡張のデータ・処理設計（§6.1・6.2はStage1〈標準ツリー〉の範囲で実装済み、§6.3〜6.6は§6.4〜6.6が実装済み、それ以外は未実装）
 
 ここからのフィールド・関数・キーは実装予定の設計名である。現行に存在する関数とは区別する。値・IDはスキーマ説明用の例であり、個別コンテンツの確定性能や公開日程を意味しない。
 
-### 6.1 キャラ・ジョブ別進行の追加フィールド（未実装）
+### 6.1 キャラ・ジョブ別進行の追加フィールド（Stage1の範囲で実装済み。ブック由来フィールド・masteryは未実装）
+実装済みの実際のスキーマ（`js/game.js` `getTreeProgress(c)`）:
 ```js
 jobLevels[jobId] = {
   level, exp, expToNext,             // 現行値を保持
   skillTree: {
-    treeId: null,                    // 適用中ツリー
-    spEarned: 0,
-    nodeRanks: {},                    // { [nodeId]: rank }
-    sourceRarity: null                // 標準ツリーはnull、ブック由来はn/r/sr/ur/lr
+    nodeRanks: {}                    // { [nodeId]: rank }。treeId自体は保存せず jobTag(jobId) から都度導出する
   },
-  mastery: { unlocked: false, level: 0 }
+  // mastery: { unlocked: false, level: 0 } は未実装（極み未着手のため）
 };
 ```
-- SP残量は「獲得SP＋公開済み・有効な適性補正－有効ノードの消費SP」で算出し、保存した残量との二重管理を避ける
-- 初期の獲得SP量・過去レベルへの補填方式・極みのlevel用途は調整事項。未公開状態で既定値を追加しても効果は発生しない
-- 現行の `gainExp()`、`newCharacter()`、転職の書き戻しでは `jobLevels[jobId]` を `{ level, exp, expToNext }` で置換している。新規フィールドを失わないよう、既存レコードを保持してレベル部分だけ更新する
-- 転職で対象ジョブのツリーと極み進行を復元する。現在使用中ジョブ以外のツリー／極み効果は戦闘へ持ち込まない
-- ツリー交換時のSP返還・取得ノードのリセット／保持は未確定。実装前に決定して確認画面へ明示し、異なるツリーのnodeIdをそのまま引き継がない
-- ノード振り直しと別ツリーへの交換は別操作。元のブック由来ツリーへ交換して戻すときも1冊を必要とする
+- SPは保存せず、`totalSp(c) = max(0, c.level - 1)` からの都度算出とし、消費済みSP（`spentSp(tree, progress)`＝取得済みノードの `costByRank` 合計）を差し引いて残量を出す。獲得SP・消費SPの二重管理を避ける設計どおりに実装した
+- 初期の獲得SP量（Lvごと1）・ノード費用は初期実装のための調整値であり、最終バランスではない
+- 現行の `gainExp()`、`newCharacter()`、転職の書き戻し（`switchJob()`）は、いずれも `jobLevels[jobId]` を丸ごと置換せず `Object.assign({}, c.jobLevels[c.job], { level, exp, expToNext })` でマージするよう修正済み。`skillTree` を含む追加フィールドは維持される
+- 転職で対象ジョブの `jobLevels[jobId].skillTree` を復元する。`getCharacterTree(c)` は現在のジョブの系統タグからツリーを都度解決するため、現在使用中ジョブ以外のツリー効果は戦闘へ持ち込まれない
+- **未実装のまま**: `treeId`／`sourceRarity`（ブック由来ツリーの区別）、ツリー交換時のSP返還・ノードリセット規則、`mastery`フィールド。標準ツリーは常に1本固定でジョブタグに紐づくため、交換操作自体が存在しない
 
-### 6.2 ツリー・ブック・極みマスター（未実装）
+### 6.2 ツリー・ブック・極みマスター（標準ツリー定義はStage1の範囲で実装済み。ブック／極みマスターは未実装）
+実装済みの実際のツリー定義（`js/data.js` `SKILL_TREES`。ジョブ系統タグ単位で1本固定、`allowedTags`/`allowedJobIds`/`rarity`は持たない簡略形）:
 ```js
-// ツリー定義の構造例
+// 実装済み: js/data.js の SKILL_TREES[tag]
 {
-  id: "berserker_sr",
-  name: "狂戦士",
-  rarity: "sr",
-  allowedTags: ["warrior", "dark"],
-  allowedJobIds: null,              // null=タグのみ。配列ならタグとジョブの両方を満たす
+  id: "warrior", tag: "warrior", name: "剛勇の心得",
   nodes: [
     {
-      id: "node_1",
-      kind: "passive",              // active / passive
-      maxRank: 1,
-      costByRank: [1],
-      prerequisites: [],            // { nodeId, minRank } の配列
+      id: "w1", kind: "passive",       // active / passive
+      name: "鍛えた腕", maxRank: 1, costByRank: [1],
+      prerequisites: [],                // { nodeId, minRank } の配列
       exclusiveGroup: null,
-      effects: []                    // 種別・条件・重複ルール・上限を定義
-    }
-  ]
+      effects: [{ type: "statAdd", stat: "atk", value: 3 }],
+      desc: "ATK+3",
+    },
+    // kind:"active" のノードは ability にアビリティと同形のオブジェクトを持つ
+  ],
 }
-// ブックマスターの構造例
-{ id: "book_berserker_sr", treeId: "berserker_sr", rarity: "sr" }
-// 鑑定費用はレア度別設定。20/50/120/300/800は調整案
-// 極みマスターの構造例
-{ jobId: "warrior", requiredLevel: 99, effects: [] }
+// 未実装（ブック・極みマスター）:
+// { id: "book_berserker_sr", treeId: "berserker_sr", rarity: "sr" }  // 鑑定費用はレア度別。20/50/120/300/800は調整案
+// { jobId: "warrior", requiredLevel: 99, effects: [] }
 ```
-- `canUseTree(c, tree)`: プレイヤーキャラ、関連機能が公開済み、現ジョブのタグが許可タグに一致、ジョブ制限があればそれも一致、必要マスターが有効であることを検証
-- モンスターへのブック適用は初期の対象に含めない。専用ツリーを採用する場合に別途要件化する
-- `canAcquireNode(c, node)`: 対象チーム未ロック、ランク上限、前提ランク、排他群、SP残量を検証する。UIの無効表示だけに頼らず確定処理でも再判定する
-- 効果は `statModifier`、`abilityUnlock`、`conditionalModifier` 等の種別で解決する。未対応の効果種別を持つマスターは公開しない
-- 条件付き効果は例えば `hpRatio <= threshold` として評価し、条件が外れたら解除する。効果ごとに加算／乗算・上限を定義する
-- LRの低HP型で例示した攻撃+60%・速度+25%・被ダメ+30%・回復-50%などは未確定。具体的な数値を既存ダメージ計算へ直接固定しない
+- `getCharacterTree(c)`: モンスター・機能フラグ無効・対応タグなしのいずれかならnullを返す。プレイヤーキャラかつ `jobTag(c.job)` が存在する場合のみツリーを返す（実装済み。ブック適性・ジョブ制限判定は未実装のまま）
+- モンスターへのツリー適用は対象外（`getCharacterTree`がisMonsterでnullを返すことで担保、実装済み）
+- `canAcquireNode(c, node)`: 対象チーム未ロック（`isTeamLocked`）、ランク上限、前提ランク（`prerequisites`）、排他群（`exclusiveGroup`）、SP残量（`availableSp`）を検証する。UIの無効表示（ボタンdisabled）と確定処理（`acquireNode`内の再判定）の両方で同じ関数を使う（実装済み）
+- 効果の種別は `statAdd`（能力値へ加算）／`passiveAdd`（会心率・吸収・回復量へ加算）／`passiveMult`（被ダメ倍率・消費MP倍率へ乗算）の3種のみ実装。`conditionalModifier`（条件付き効果）は**未実装**
+- 条件付き効果・LRの低HP型のような特殊効果は未着手。標準ツリーのノードは常時適用のパッシブとアクティブ技のみで構成する
 
 ### 6.3 スキルブック個体・鑑定・使用（未実装）
 ```js
