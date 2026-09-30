@@ -2,9 +2,9 @@
 
 > 更新日: 2026-09-30。現行実装の参照基点: `8f0e153`。
 > 本書では「現行実装」「採用済み・未実装」「将来構想」を区別する。
-> **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2のStage1〈標準ツリー＋SP〉範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（treeId交換・sourceRarity）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`SKILL_TREES`、`js/game.js`のツリー関連関数群（`getCharacterTree`/`getTreeProgress`/`totalSp`/`spentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeNodeRow`のUIを参照。
+> **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2の固有ツリー＋汎用3枠交換＋分岐図UIの範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（sourceRarity、ブック消費での交換）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`EXCLUSIVE_TREES`/`GENERAL_TREES`/`GENERAL_SLOTS`、`js/game.js`のツリー関連関数群（`getExclusiveTree`/`getTreeState`/`generalSlotTreeDef`/`totalSp`/`spentSpFor`/`totalSpentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`swapGeneralSlot`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeSection`/`buildTreeGraph`/`buildTreeNodeDetail`の分岐図UIを参照。
 
-対象コード: `js/data.js`, `js/game.js`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2のStage1範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
+対象コード: `js/data.js`, `js/game.js`, `css/style.css`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装・固有+汎用3枠実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2の固有＋汎用3枠交換の範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
 
 ## 1. データ構造定義
 
@@ -309,31 +309,38 @@ offlineClearChance(dungeon)
 
 `index.html` の `css/style.css`・`data/announcements.js`・`data/roadmap.js`・`js/data.js`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。参照コミット時点: `style.css?v=6`, `announcements.js?v=1`, `roadmap.js?v=1`, `data.js?v=2`, `game.js?v=9`。設計書のみの更新ではこれらの番号を変更しない。
 
-## 6. 採用済み拡張のデータ・処理設計（§6.1・6.2はStage1〈標準ツリー〉の範囲で実装済み、§6.3〜6.6は§6.4〜6.6が実装済み、それ以外は未実装）
+## 6. 採用済み拡張のデータ・処理設計（§6.1・6.2は固有＋汎用3枠交換の範囲で実装済み、§6.3〜6.6は§6.4〜6.6が実装済み、それ以外は未実装）
 
 ここからのフィールド・関数・キーは実装予定の設計名である。現行に存在する関数とは区別する。値・IDはスキーマ説明用の例であり、個別コンテンツの確定性能や公開日程を意味しない。
 
-### 6.1 キャラ・ジョブ別進行の追加フィールド（Stage1の範囲で実装済み。ブック由来フィールド・masteryは未実装）
-実装済みの実際のスキーマ（`js/game.js` `getTreeProgress(c)`）:
+### 6.1 キャラ・ジョブ別進行の追加フィールド（固有＋汎用3枠の範囲で実装済み。ブック由来フィールド・masteryは未実装）
+実装済みの実際のスキーマ（`js/game.js` `getTreeState(c)`）:
 ```js
 jobLevels[jobId] = {
   level, exp, expToNext,             // 現行値を保持
   skillTree: {
-    nodeRanks: {}                    // { [nodeId]: rank }。treeId自体は保存せず jobTag(jobId) から都度導出する
+    exclusiveRanks: {},              // { [nodeId]: rank } 固有ツリー分。treeId自体は保存せず jobTag(jobId) から都度導出
+    general: {
+      slot1: { treeId: "offense", ranks: {} },  // GENERAL_SLOTS[0].candidatesのいずれか
+      slot2: { treeId: "defense", ranks: {} },
+      slot3: { treeId: "support", ranks: {} },
+    },
   },
   // mastery: { unlocked: false, level: 0 } は未実装（極み未着手のため）
 };
 ```
-- SPは保存せず、`totalSp(c) = max(0, c.level - 1)` からの都度算出とし、消費済みSP（`spentSp(tree, progress)`＝取得済みノードの `costByRank` 合計）を差し引いて残量を出す。獲得SP・消費SPの二重管理を避ける設計どおりに実装した
+- SPは保存せず、`totalSp(c) = max(0, c.level - 1)` からの都度算出とし、固有＋汎用3枠の消費SP合計（`spentSpFor(treeDef, ranks)`の4本ぶんの和）を差し引いて共有の残量を出す（`totalSpentSp(c)`/`availableSp(c)`）。獲得SP・消費SPの二重管理を避ける設計どおりに実装した
 - 初期の獲得SP量（Lvごと1）・ノード費用は初期実装のための調整値であり、最終バランスではない
 - 現行の `gainExp()`、`newCharacter()`、転職の書き戻し（`switchJob()`）は、いずれも `jobLevels[jobId]` を丸ごと置換せず `Object.assign({}, c.jobLevels[c.job], { level, exp, expToNext })` でマージするよう修正済み。`skillTree` を含む追加フィールドは維持される
-- 転職で対象ジョブの `jobLevels[jobId].skillTree` を復元する。`getCharacterTree(c)` は現在のジョブの系統タグからツリーを都度解決するため、現在使用中ジョブ以外のツリー効果は戦闘へ持ち込まれない
-- **未実装のまま**: `treeId`／`sourceRarity`（ブック由来ツリーの区別）、ツリー交換時のSP返還・ノードリセット規則、`mastery`フィールド。標準ツリーは常に1本固定でジョブタグに紐づくため、交換操作自体が存在しない
+- 転職で対象ジョブの `jobLevels[jobId].skillTree` を復元する。`getExclusiveTree(c)` は現在のジョブの系統タグからツリーを都度解決するため、現在使用中ジョブ以外のツリー効果は戦闘へ持ち込まれない
+- Stage1（`{ nodeRanks: {} }` という平らな形、固有ツリーのみ）の旧セーブは `getTreeState(c)` が自動移行する。`nodeRanks` を `exclusiveRanks` としてそのまま引き継ぎ、`general` は各枠 `GENERAL_SLOTS[].defaultTreeId` で新規初期化する（データの欠落・二重付与なし）
+- 汎用枠の交換（`swapGeneralSlot(c, slotKey)`）は実装済み: 対象チーム未ロックなら、枠の交換候補2種のもう一方へ`treeId`を差し替え、その枠の`ranks`だけを空にする（固有ツリー・他の枠には影響しない）。現状は無償・即時（ブック消費なし）の簡易実装で、ブック経済の実装後にそちらへ置き換える
+- **未実装のまま**: `sourceRarity`（ブック由来ツリーの区別）、`mastery`フィールド、ブックを消費する交換への置き換え
 
-### 6.2 ツリー・ブック・極みマスター（標準ツリー定義はStage1の範囲で実装済み。ブック／極みマスターは未実装）
-実装済みの実際のツリー定義（`js/data.js` `SKILL_TREES`。ジョブ系統タグ単位で1本固定、`allowedTags`/`allowedJobIds`/`rarity`は持たない簡略形）:
+### 6.2 ツリー・ブック・極みマスター（固有＋汎用ツリー定義は実装済み。ブック／極みマスターは未実装）
+実装済みの実際のツリー定義（`js/data.js`）。固有ツリーはジョブ系統タグ単位で1本固定、汎用ツリーは全ジョブ共通プールから3つの固定枠で2択交換する（いずれも`allowedTags`/`allowedJobIds`/`rarity`は持たない簡略形）:
 ```js
-// 実装済み: js/data.js の SKILL_TREES[tag]
+// 実装済み: js/data.js の EXCLUSIVE_TREES[tag]（交換不可、系統タグに1本固定）
 {
   id: "warrior", tag: "warrior", name: "剛勇の心得",
   nodes: [
@@ -342,21 +349,28 @@ jobLevels[jobId] = {
       name: "鍛えた腕", maxRank: 1, costByRank: [1],
       prerequisites: [],                // { nodeId, minRank } の配列
       exclusiveGroup: null,
+      x: 50, y: 8,                      // 分岐図の表示座標（0-100%、手作業でレイアウト）
       effects: [{ type: "statAdd", stat: "atk", value: 3 }],
       desc: "ATK+3",
     },
     // kind:"active" のノードは ability にアビリティと同形のオブジェクトを持つ
   ],
 }
+// 実装済み: js/data.js の GENERAL_TREES[id]（全ジョブ共通、パッシブのみ、交換可能）
+{ id: "offense", name: "攻めの心得", nodes: [/* 同上のnode形、activeノードは持たない */] }
+// 実装済み: js/data.js の GENERAL_SLOTS（3つの固定枠、枠ごとに交換候補2種）
+{ key: "slot1", label: "汎用ツリー①", candidates: ["offense", "speed"], defaultTreeId: "offense" }
 // 未実装（ブック・極みマスター）:
 // { id: "book_berserker_sr", treeId: "berserker_sr", rarity: "sr" }  // 鑑定費用はレア度別。20/50/120/300/800は調整案
 // { jobId: "warrior", requiredLevel: 99, effects: [] }
 ```
-- `getCharacterTree(c)`: モンスター・機能フラグ無効・対応タグなしのいずれかならnullを返す。プレイヤーキャラかつ `jobTag(c.job)` が存在する場合のみツリーを返す（実装済み。ブック適性・ジョブ制限判定は未実装のまま）
-- モンスターへのツリー適用は対象外（`getCharacterTree`がisMonsterでnullを返すことで担保、実装済み）
-- `canAcquireNode(c, node)`: 対象チーム未ロック（`isTeamLocked`）、ランク上限、前提ランク（`prerequisites`）、排他群（`exclusiveGroup`）、SP残量（`availableSp`）を検証する。UIの無効表示（ボタンdisabled）と確定処理（`acquireNode`内の再判定）の両方で同じ関数を使う（実装済み）
+- `getExclusiveTree(c)`: モンスター・機能フラグ無効・対応タグなしのいずれかならnullを返す。プレイヤーキャラかつ `jobTag(c.job)` が存在する場合のみツリーを返す（実装済み。ブック適性・ジョブ制限判定は未実装のまま）
+- `generalSlotTreeDef(c, slotKey)`: `getTreeState(c).general[slotKey].treeId` から `GENERAL_TREES` を引く（実装済み）
+- モンスターへのツリー適用は対象外（`getExclusiveTree`がisMonsterでnullを返すことで担保、実装済み）
+- `canAcquireNode(c, treeDef, ranks, node)`: 対象チーム未ロック（`isTeamLocked`）、ランク上限、前提ランク（`prerequisites`）、排他群（`exclusiveGroup`）、SP残量（`availableSp`、固有＋汎用3枠の共有プール）を検証する。UIの無効表示（ボタンdisabled）と確定処理（`acquireNode`内の再判定）の両方で同じ関数を使う（実装済み）。固有ツリーと3つの汎用枠のそれぞれに対し、対象の`treeDef`/`ranks`を渡して同じ関数で判定する
 - 効果の種別は `statAdd`（能力値へ加算）／`passiveAdd`（会心率・吸収・回復量へ加算）／`passiveMult`（被ダメ倍率・消費MP倍率へ乗算）の3種のみ実装。`conditionalModifier`（条件付き効果）は**未実装**
-- 条件付き効果・LRの低HP型のような特殊効果は未着手。標準ツリーのノードは常時適用のパッシブとアクティブ技のみで構成する
+- 条件付き効果・LRの低HP型のような特殊効果は未着手。固有・汎用とも、ノードは常時適用のパッシブ（＋固有ツリーのみアクティブ技）のみで構成する
+- UIは「本当の分岐図」として実装済み: `buildTreeGraph(c, scopeKey, treeDef, ranks)` がノードのx/y座標をもとにSVGの`<line>`で前提関係を結び、ノードを円形ボタンとして配置する。タップでノード詳細パネル（`buildTreeNodeDetail`）を表示し、そこから習得を確定する
 
 ### 6.3 スキルブック個体・鑑定・使用（未実装）
 ```js

@@ -374,73 +374,128 @@
   }
 
   // ---------- スキルツリー ----------
-  // ツリーは系統タグ単位（JOB_TAGS）で共有するが、進行(nodeRanks)はジョブごとに独立して
-  // jobLevels[jobId].skillTree に保持する（転職しても内容は同じツリーだが、進み具合は別管理）
-  function getCharacterTree(c) {
+  // 1キャラは「固有ツリー(系統タグ単位、交換不可)」＋「汎用ツリー3枠(枠ごとに2択、交換可能)」の
+  // 計4本を同時に持つ。内容は系統タグ／枠の候補で共有するが、進行(ノードのランク)はジョブごとに
+  // 独立してjobLevels[jobId].skillTreeに保持する（転職しても内容は変わらないが進み具合は別管理）。
+  function getExclusiveTree(c) {
     if (c.isMonster || !isFeatureEnabled("skillTree")) return null;
     const tag = jobTag(c.job);
-    return tag ? getSkillTreeByTag(tag) : null;
+    return tag ? getExclusiveTreeByTag(tag) : null;
   }
-  function getTreeProgress(c) {
+  // ジョブ別のツリー進行データを取得・初期化する。Stage1(固有ツリー1本のみ)の旧セーブは
+  // { nodeRanks: {} } という平らな形だったため、そのまま固有ツリーの進行として引き継ぐ
+  function getTreeState(c) {
     if (c.isMonster) return null;
     if (!c.jobLevels[c.job]) c.jobLevels[c.job] = { level: c.level, exp: c.exp, expToNext: c.expToNext };
-    if (!c.jobLevels[c.job].skillTree) c.jobLevels[c.job].skillTree = { nodeRanks: {} };
-    return c.jobLevels[c.job].skillTree;
+    const rec = c.jobLevels[c.job];
+    if (!rec.skillTree) rec.skillTree = {};
+    const st = rec.skillTree;
+    if (st.nodeRanks && !st.exclusiveRanks) {
+      st.exclusiveRanks = st.nodeRanks;
+      delete st.nodeRanks;
+    }
+    if (!st.exclusiveRanks) st.exclusiveRanks = {};
+    if (!st.general) st.general = {};
+    for (const slot of GENERAL_SLOTS) {
+      if (!st.general[slot.key]) st.general[slot.key] = { treeId: slot.defaultTreeId, ranks: {} };
+      if (!st.general[slot.key].treeId) st.general[slot.key].treeId = slot.defaultTreeId;
+      if (!st.general[slot.key].ranks) st.general[slot.key].ranks = {};
+    }
+    return st;
   }
-  // SPは保存せず、そのジョブの現在レベルから都度算出する（獲得量と消費量の二重管理を避けるため）
+  function generalSlotTreeDef(c, slotKey) {
+    const st = getTreeState(c);
+    if (!st || !st.general[slotKey]) return null;
+    return getGeneralTree(st.general[slotKey].treeId);
+  }
+  // SPは保存せず、そのジョブの現在レベルから都度算出する（獲得量と消費量の二重管理を避けるため）。
+  // 固有ツリー＋汎用3枠の消費SPを合算した1つのプールを共有する
   function totalSp(c) { return Math.max(0, c.level - 1); }
-  function spentSp(tree, progress) {
+  function spentSpFor(treeDef, ranks) {
+    if (!treeDef) return 0;
     let spent = 0;
-    for (const node of tree.nodes) {
-      const rank = progress.nodeRanks[node.id] || 0;
+    for (const node of treeDef.nodes) {
+      const rank = ranks[node.id] || 0;
       for (let r = 0; r < rank; r++) spent += node.costByRank[r];
     }
     return spent;
   }
-  function availableSp(c) {
-    const tree = getCharacterTree(c);
-    if (!tree) return 0;
-    return totalSp(c) - spentSp(tree, getTreeProgress(c));
+  function totalSpentSp(c) {
+    const st = getTreeState(c);
+    if (!st) return 0;
+    let spent = spentSpFor(getExclusiveTree(c), st.exclusiveRanks);
+    for (const slot of GENERAL_SLOTS) {
+      const slotState = st.general[slot.key];
+      spent += spentSpFor(getGeneralTree(slotState.treeId), slotState.ranks);
+    }
+    return spent;
   }
-  function canAcquireNode(c, node) {
+  function availableSp(c) {
+    if (!getExclusiveTree(c)) return 0;
+    return totalSp(c) - totalSpentSp(c);
+  }
+  function canAcquireNode(c, treeDef, ranks, node) {
     if (c.team !== null && isTeamLocked(c.team)) return false;
-    const tree = getCharacterTree(c);
-    if (!tree) return false;
-    const progress = getTreeProgress(c);
-    const rank = progress.nodeRanks[node.id] || 0;
+    if (!treeDef) return false;
+    const rank = ranks[node.id] || 0;
     if (rank >= node.maxRank) return false;
     if (availableSp(c) < node.costByRank[rank]) return false;
     for (const pre of node.prerequisites) {
-      if ((progress.nodeRanks[pre.nodeId] || 0) < pre.minRank) return false;
+      if ((ranks[pre.nodeId] || 0) < pre.minRank) return false;
     }
     if (node.exclusiveGroup) {
-      for (const other of tree.nodes) {
-        if (other.id !== node.id && other.exclusiveGroup === node.exclusiveGroup && (progress.nodeRanks[other.id] || 0) > 0) return false;
+      for (const other of treeDef.nodes) {
+        if (other.id !== node.id && other.exclusiveGroup === node.exclusiveGroup && (ranks[other.id] || 0) > 0) return false;
       }
     }
     return true;
   }
-  function acquireNode(c, node) {
-    if (!canAcquireNode(c, node)) return false;
-    const progress = getTreeProgress(c);
-    progress.nodeRanks[node.id] = (progress.nodeRanks[node.id] || 0) + 1;
+  function acquireNode(c, treeDef, ranks, node) {
+    if (!canAcquireNode(c, treeDef, ranks, node)) return false;
+    ranks[node.id] = (ranks[node.id] || 0) + 1;
     return true;
   }
-  // 取得済みパッシブノードの効果を集計する。加算系(能力値/会心率等)は0、乗算系(被ダメ/消費MP)は1を既定値にする
+  function canSwapGeneralSlot(c) {
+    return c.team === null || !isTeamLocked(c.team);
+  }
+  // 汎用枠の交換候補2種を入れ替える。まだブック経済（ドロップ・鑑定・所持品消費）は実装していない
+  // ための簡易版で、条件を満たせば無償・即時に切り替えられる。交換した枠のSP配分はリセットされる
+  // （レベルアップで得たSPが別のノードへ再配分できなくなる事態を防ぐための既定仕様）
+  function swapGeneralSlot(c, slotKey) {
+    if (!canSwapGeneralSlot(c)) return false;
+    const st = getTreeState(c);
+    if (!st) return false;
+    const slotDef = getGeneralSlotDef(slotKey);
+    const slotState = st.general[slotKey];
+    if (!slotDef || !slotState) return false;
+    const nextId = slotDef.candidates.find((id) => id !== slotState.treeId) || slotDef.candidates[0];
+    slotState.treeId = nextId;
+    slotState.ranks = {};
+    return true;
+  }
+  // 取得済みパッシブノードの効果を、固有＋汎用3枠ぶん合算する。加算系(能力値/会心率等)は0、
+  // 乗算系(被ダメ/消費MP)は1を既定値にする
   function treePassiveTotals(c) {
     const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1 };
-    const tree = getCharacterTree(c);
-    if (!tree) return totals;
-    const progress = getTreeProgress(c);
-    for (const node of tree.nodes) {
-      if (node.kind !== "passive") continue;
-      const rank = progress.nodeRanks[node.id] || 0;
-      if (rank <= 0) continue;
-      for (const eff of node.effects) {
-        if (eff.type === "statAdd") totals[eff.stat] += eff.value * rank;
-        else if (eff.type === "passiveAdd") totals[eff.key] += eff.value * rank;
-        else if (eff.type === "passiveMult") totals[eff.key] *= eff.value;
+    const st = getTreeState(c);
+    if (!st) return totals;
+    const applyTree = (treeDef, ranks) => {
+      if (!treeDef) return;
+      for (const node of treeDef.nodes) {
+        if (node.kind !== "passive") continue;
+        const rank = ranks[node.id] || 0;
+        if (rank <= 0) continue;
+        for (const eff of node.effects) {
+          if (eff.type === "statAdd") totals[eff.stat] += eff.value * rank;
+          else if (eff.type === "passiveAdd") totals[eff.key] += eff.value * rank;
+          else if (eff.type === "passiveMult") totals[eff.key] *= eff.value;
+        }
       }
+    };
+    applyTree(getExclusiveTree(c), st.exclusiveRanks);
+    for (const slot of GENERAL_SLOTS) {
+      const slotState = st.general[slot.key];
+      applyTree(getGeneralTree(slotState.treeId), slotState.ranks);
     }
     return totals;
   }
@@ -500,12 +555,12 @@
         const sub = getAbilityById(id);
         if (sub && !list.find((a) => a.id === sub.id)) list.push(sub);
       }
-      const tree = getCharacterTree(c);
+      const tree = getExclusiveTree(c);
       if (tree) {
-        const progress = getTreeProgress(c);
+        const st = getTreeState(c);
         for (const node of tree.nodes) {
           if (node.kind !== "active" || !node.ability) continue;
-          if ((progress.nodeRanks[node.id] || 0) > 0 && !list.find((a) => a.id === node.ability.id)) list.push(node.ability);
+          if ((st.exclusiveRanks[node.id] || 0) > 0 && !list.find((a) => a.id === node.ability.id)) list.push(node.ability);
         }
       }
     }
@@ -921,6 +976,8 @@
   let detailTab = "stats";
   let fusionSelection = new Set(); // モンスター合成: 選択中の素材モンスターのid
   let fusionMessage = "";
+  let treeSelectedNode = null; // ツリータブ: 選択中ノード { scope: "exclusive"|スロットkey, nodeId }
+  let treeSwapConfirm = null; // ツリータブ: 交換ボタンを1回押して確認待ちの枠key
 
   function renderJobsScreen() {
     scheduleSave();
@@ -1408,6 +1465,8 @@
     detailTab = "stats";
     fusionSelection = new Set();
     fusionMessage = "";
+    treeSelectedNode = null;
+    treeSwapConfirm = null;
     renderCharDetail();
     showScreen("screen-chardetail");
   }
@@ -1442,7 +1501,7 @@
       wrap.appendChild(notice);
     }
 
-    if (detailTab === "tree" && !getCharacterTree(c)) detailTab = "stats"; // モンスター等、ツリーの無いキャラでは表示しない
+    if (detailTab === "tree" && !getExclusiveTree(c)) detailTab = "stats"; // モンスター等、ツリーの無いキャラでは表示しない
     const card = document.createElement("div");
     card.className = "job-char-card" + (locked ? " readonly" : "");
     if (detailTab === "equip") card.appendChild(buildEquipSection(c));
@@ -1458,7 +1517,7 @@
     const tabs = document.getElementById("detailTabs");
     tabs.innerHTML = "";
     for (const t of DETAIL_TABS) {
-      if (t.key === "tree" && !getCharacterTree(c)) continue; // モンスターやツリー未対応ジョブでは非表示
+      if (t.key === "tree" && !getExclusiveTree(c)) continue; // モンスターやツリー未対応ジョブでは非表示
       const btn = document.createElement("button");
       btn.className = "detail-tab" + (detailTab === t.key ? " active" : "");
       btn.textContent = t.key === "job" && c && c.isMonster ? "合成" : t.label;
@@ -1467,63 +1526,187 @@
     }
   }
 
-  // ---------- 詳細: ツリータブ ----------
+  // ---------- 詳細: ツリータブ（固有ツリー1本＋汎用ツリー3枠を分岐図で表示） ----------
   function buildTreeTab(c) {
     const wrap = document.createElement("div");
-    const tree = getCharacterTree(c);
-    if (!tree) {
+    const exclusiveTree = getExclusiveTree(c);
+    if (!exclusiveTree) {
       const none = document.createElement("div");
       none.className = "sub-ability-row";
       none.textContent = "このジョブに対応するスキルツリーがありません";
       wrap.appendChild(none);
       return wrap;
     }
-    const progress = getTreeProgress(c);
+    const st = getTreeState(c);
     const total = totalSp(c);
-    const spent = spentSp(tree, progress);
+    const spent = totalSpentSp(c);
 
     const head = document.createElement("div");
     head.className = "detail-section-head";
-    head.innerHTML = `<span>${tree.name}</span><span class="count">SP ${total - spent}/${total}</span>`;
+    head.innerHTML = `<span>スキルツリー</span><span class="count">SP ${total - spent}/${total}</span>`;
     wrap.appendChild(head);
 
-    const list = document.createElement("div");
-    list.className = "skill-row-list";
-    for (const node of tree.nodes) list.appendChild(buildTreeNodeRow(c, tree, progress, node));
-    wrap.appendChild(list);
+    wrap.appendChild(buildTreeSection(c, {
+      scopeKey: "exclusive",
+      title: `${exclusiveTree.name}（固有）`,
+      treeDef: exclusiveTree,
+      ranks: st.exclusiveRanks,
+      slotDef: null,
+    }));
+
+    for (const slot of GENERAL_SLOTS) {
+      const slotState = st.general[slot.key];
+      const treeDef = getGeneralTree(slotState.treeId);
+      wrap.appendChild(buildTreeSection(c, {
+        scopeKey: slot.key,
+        title: `${slot.label}: ${treeDef.name}`,
+        treeDef,
+        ranks: slotState.ranks,
+        slotDef: slot,
+      }));
+    }
     return wrap;
   }
 
-  function buildTreeNodeRow(c, tree, progress, node) {
-    const row = document.createElement("div");
-    const acquired = (progress.nodeRanks[node.id] || 0) > 0;
-    row.className = "skill-row";
-    row.title = node.desc || "";
+  // 1本ぶんのツリーを「見出し(＋交換ボタン)／分岐図／選択中ノードの詳細パネル」として組み立てる
+  function buildTreeSection(c, opts) {
+    const { scopeKey, title, treeDef, ranks, slotDef } = opts;
+    const locked = c.team !== null && isTeamLocked(c.team);
+    const section = document.createElement("div");
+    section.className = "tree-section";
 
-    const icon = document.createElement("div");
-    icon.className = "skill-row-icon";
-    icon.textContent = node.kind === "active" ? "⚔️" : "🔹";
-    row.appendChild(icon);
+    const headRow = document.createElement("div");
+    headRow.className = "tree-section-head";
+    const titleEl = document.createElement("span");
+    titleEl.className = "tree-section-title";
+    titleEl.textContent = title;
+    headRow.appendChild(titleEl);
+
+    if (slotDef) {
+      const otherId = slotDef.candidates.find((id) => id !== treeDef.id) || slotDef.candidates[0];
+      const otherName = getGeneralTree(otherId).name;
+      const confirming = treeSwapConfirm === slotDef.key;
+      const swapBtn = document.createElement("button");
+      swapBtn.className = "tree-swap-btn" + (confirming ? " confirming" : "");
+      swapBtn.textContent = confirming ? "本当に交換する？(SPリセット)" : `⇄ ${otherName}に交換`;
+      swapBtn.disabled = locked;
+      swapBtn.addEventListener("click", () => {
+        if (confirming) {
+          swapGeneralSlot(c, slotDef.key);
+          treeSwapConfirm = null;
+          treeSelectedNode = null;
+        } else {
+          treeSwapConfirm = slotDef.key;
+        }
+        scheduleSave();
+        renderCharDetail();
+      });
+      headRow.appendChild(swapBtn);
+    }
+    section.appendChild(headRow);
+
+    section.appendChild(buildTreeGraph(c, scopeKey, treeDef, ranks));
+
+    if (treeSelectedNode && treeSelectedNode.scope === scopeKey) {
+      const selNode = treeDef.nodes.find((n) => n.id === treeSelectedNode.nodeId);
+      if (selNode) section.appendChild(buildTreeNodeDetail(c, treeDef, ranks, selNode));
+      else treeSelectedNode = null;
+    }
+    return section;
+  }
+
+  // ノードをx/y座標で配置し、前提関係をSVGの線で結ぶ「本当の分岐図」を描画する
+  function buildTreeGraph(c, scopeKey, treeDef, ranks) {
+    const graph = document.createElement("div");
+    graph.className = "tree-graph " + (treeDef.nodes.length >= 5 ? "tree-graph-tall" : "tree-graph-short");
+
+    const svgNs = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNs, "svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.classList.add("tree-graph-lines");
+    const byId = {};
+    for (const node of treeDef.nodes) byId[node.id] = node;
+    for (const node of treeDef.nodes) {
+      for (const pre of node.prerequisites) {
+        const from = byId[pre.nodeId];
+        if (!from) continue;
+        const line = document.createElementNS(svgNs, "line");
+        line.setAttribute("x1", from.x);
+        line.setAttribute("y1", from.y);
+        line.setAttribute("x2", node.x);
+        line.setAttribute("y2", node.y);
+        const acquired = (ranks[node.id] || 0) > 0 && (ranks[from.id] || 0) > 0;
+        line.setAttribute("class", acquired ? "tree-edge acquired" : "tree-edge");
+        svg.appendChild(line);
+      }
+    }
+    graph.appendChild(svg);
+
+    for (const node of treeDef.nodes) {
+      const acquired = (ranks[node.id] || 0) > 0;
+      const canGet = canAcquireNode(c, treeDef, ranks, node);
+      const btn = document.createElement("button");
+      btn.className = "tree-node" + (node.kind === "active" ? " active-kind" : " passive-kind")
+        + (acquired ? " acquired" : canGet ? " available" : " locked")
+        + (treeSelectedNode && treeSelectedNode.scope === scopeKey && treeSelectedNode.nodeId === node.id ? " selected" : "");
+      btn.style.left = node.x + "%";
+      btn.style.top = node.y + "%";
+      btn.textContent = node.kind === "active" ? "⚔️" : "🔹";
+      btn.setAttribute("aria-label", node.name);
+      btn.addEventListener("click", () => {
+        treeSelectedNode = { scope: scopeKey, nodeId: node.id };
+        treeSwapConfirm = null;
+        renderCharDetail();
+      });
+      graph.appendChild(btn);
+
+      const label = document.createElement("div");
+      label.className = "tree-node-label";
+      label.style.left = node.x + "%";
+      label.style.top = node.y + "%";
+      label.textContent = node.name;
+      graph.appendChild(label);
+    }
+    return graph;
+  }
+
+  // 選択中ノードの詳細（説明・コスト・習得状況・習得ボタン）を分岐図の下に表示する
+  function buildTreeNodeDetail(c, treeDef, ranks, node) {
+    const panel = document.createElement("div");
+    panel.className = "tree-node-detail";
+    const rank = ranks[node.id] || 0;
+    const acquired = rank > 0;
 
     const name = document.createElement("div");
-    name.className = "skill-row-name";
-    name.textContent = node.desc ? `${node.name}（${node.desc}）` : node.name;
-    row.appendChild(name);
+    name.className = "tree-node-detail-name";
+    name.textContent = node.name;
+    panel.appendChild(name);
+
+    const desc = document.createElement("div");
+    desc.className = "tree-node-detail-desc";
+    desc.textContent = node.desc || "";
+    panel.appendChild(desc);
 
     if (acquired) {
-      const on = document.createElement("div");
-      on.className = "skill-toggle-circle on static";
-      row.appendChild(on);
+      const state = document.createElement("div");
+      state.className = "tree-node-detail-state";
+      state.textContent = "習得済み";
+      panel.appendChild(state);
     } else {
-      const canGet = canAcquireNode(c, node);
+      const canGet = canAcquireNode(c, treeDef, ranks, node);
       const btn = document.createElement("button");
-      btn.className = "priority-chip" + (canGet ? "" : " dim");
-      btn.textContent = `習得(SP${node.costByRank[progress.nodeRanks[node.id] || 0]})`;
+      btn.className = "btn primary small";
+      btn.textContent = `習得する (SP${node.costByRank[rank]})`;
       btn.disabled = !canGet;
-      btn.addEventListener("click", () => { acquireNode(c, node); scheduleSave(); renderCharDetail(); });
-      row.appendChild(btn);
+      btn.addEventListener("click", () => {
+        acquireNode(c, treeDef, ranks, node);
+        scheduleSave();
+        renderCharDetail();
+      });
+      panel.appendChild(btn);
     }
-    return row;
+    return panel;
   }
 
   // ---------- 詳細: 能力値タブ ----------
