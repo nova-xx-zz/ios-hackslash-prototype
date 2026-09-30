@@ -35,8 +35,10 @@ js/game.js    … 画面遷移・状態管理・戦闘エンジン・AI・永続
 |---|---|---|
 | `screen-title` | ロゴ・はじめる・サマリーの起動入口 | `renderTitle()` |
 | `screen-settings` | 設定 | 静的DOM表示（専用render関数なし） |
+| `screen-announcements` | 冒険者ギルドからのお知らせ・今後の予定 | `renderAnnouncementsScreen()` |
 | `screen-dex` | モンスター図鑑 | `renderDexScreen()` |
 | `screen-jobs` | パーティ編成（ロスター一覧） | `renderJobsScreen()` |
+| `screen-inventory` | 所持品一覧（未装備アイテム） | `renderInventoryScreen()` |
 | `screen-create` | キャラ作成 | `renderCreateScreen()` |
 | `screen-chardetail` | キャラ詳細（タブ切替） | `renderCharDetail()` |
 | `screen-map` | ダンジョン選択マップ | `renderMap()` |

@@ -2063,6 +2063,89 @@
     return wrap;
   }
 
+  // ---------- 所持品一覧 ----------
+  // 未装備のアイテム(inventory配列)をスロット種別で絞り込んで一覧表示する。
+  // 装備中のアイテムはinventoryから除外されており(equipItem/unequipSlot参照)、
+  // 各キャラの装備タブからいつでも確認できるため、ここでは未装備分だけを扱う。
+  let inventoryFilterSlot = "all";
+
+  function openInventoryScreen() {
+    inventoryFilterSlot = "all";
+    renderInventoryScreen();
+    showScreen("screen-inventory");
+  }
+
+  function renderInventoryScreen() {
+    const filterRow = document.getElementById("inventoryFilterRow");
+    filterRow.innerHTML = "";
+    const filters = [{ key: "all", name: "すべて" }, ...SLOTS];
+    for (const f of filters) {
+      const btn = document.createElement("button");
+      btn.className = "priority-chip" + (inventoryFilterSlot === f.key ? " tier-3" : "");
+      btn.textContent = f.name;
+      btn.addEventListener("click", () => { inventoryFilterSlot = f.key; renderInventoryScreen(); });
+      filterRow.appendChild(btn);
+    }
+
+    const shown = inventory.filter((i) => inventoryFilterSlot === "all" || i.slot === inventoryFilterSlot);
+    document.getElementById("inventoryCount").textContent = `所持品 ${inventory.length}個中 ${shown.length}個を表示`;
+
+    const body = document.getElementById("inventoryBody");
+    body.innerHTML = "";
+    if (shown.length === 0) {
+      const none = document.createElement("div");
+      none.className = "sub-ability-row";
+      none.textContent = "未装備の所持品がありません（装備中のアイテムは各キャラの装備タブで確認できます）";
+      body.appendChild(none);
+      return;
+    }
+
+    for (const slot of SLOTS) {
+      if (inventoryFilterSlot !== "all" && inventoryFilterSlot !== slot.key) continue;
+      const items = inventory
+        .filter((i) => i.slot === slot.key)
+        .sort((a, b) => {
+          const ra = RARITIES.findIndex((r) => r.key === a.rarity);
+          const rb = RARITIES.findIndex((r) => r.key === b.rarity);
+          return rb - ra || itemEffectiveValue(b) - itemEffectiveValue(a);
+        });
+      if (items.length === 0) continue;
+      body.appendChild(sectionLabel(`${slot.name}（${items.length}個）`));
+      const list = document.createElement("div");
+      list.className = "skill-row-list";
+      for (const item of items) list.appendChild(buildInventoryItemRow(item));
+      body.appendChild(list);
+    }
+  }
+
+  function buildInventoryItemRow(item) {
+    const row = document.createElement("div");
+    row.className = "skill-row";
+    row.style.borderColor = item.rarityColor;
+
+    const icon = document.createElement("div");
+    icon.className = "skill-row-icon";
+    icon.textContent = SLOT_ICONS[item.slot] || "❓";
+    row.appendChild(icon);
+
+    const name = document.createElement("div");
+    name.className = "skill-row-name";
+    const rarity = RARITIES.find((r) => r.key === item.rarity);
+    name.textContent = `${itemLabel(item)}（${rarity ? rarity.name : item.rarity}）`;
+    row.appendChild(name);
+
+    const enhance = document.createElement("button");
+    enhance.className = "priority-chip";
+    enhance.textContent = "強化する";
+    enhance.addEventListener("click", () => openEnhanceModal(item, () => renderInventoryScreen()));
+    row.appendChild(enhance);
+
+    return row;
+  }
+
+  document.getElementById("btnOpenInventory").addEventListener("click", () => { openInventoryScreen(); });
+  document.getElementById("btnInventoryBack").addEventListener("click", () => { showScreen("screen-jobs"); });
+
   // 装備セクション（スロットをタップで所持品から選ぶ）
   let openSlot = null; // "charId:slotKey"
 
@@ -2145,10 +2228,12 @@
   const SLOT_ICONS = { weapon: "⚔️", armor: "🛡️", accessory: "💍" };
   let enhanceItem = null;
   let enhanceMessage = "";
+  let enhanceOnClose = null; // 呼び出し元の画面を再描画するコールバック（未指定ならキャラ詳細を再描画）
 
-  function openEnhanceModal(item) {
+  function openEnhanceModal(item, onClose) {
     enhanceItem = item;
     enhanceMessage = "";
+    enhanceOnClose = onClose || null;
     renderEnhanceModal();
     document.getElementById("enhanceModal").classList.remove("hidden");
   }
@@ -2156,7 +2241,10 @@
   function closeEnhanceModal() {
     document.getElementById("enhanceModal").classList.add("hidden");
     enhanceItem = null;
-    renderCharDetail();
+    const onClose = enhanceOnClose;
+    enhanceOnClose = null;
+    if (onClose) onClose();
+    else renderCharDetail();
   }
 
   function renderEnhanceModal() {

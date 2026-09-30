@@ -245,8 +245,8 @@ html, body {
   gap: 8px; padding: 8px 2px 2px;
   border-top: 1px solid var(--border);
 }
-.roster-footer .btn { margin: 0; }
-.roster-count { font-size: 12px; color: var(--sub-text); }
+.roster-footer .btn { margin: 0; flex: 0 0 auto; white-space: nowrap; }
+.roster-count { font-size: 12px; color: var(--sub-text); flex: 1 1 auto; min-width: 0; }
 
 .roster-section {
   font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
@@ -698,6 +698,9 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .disassemble-filter-row { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 0 2px 8px; }
 .disassemble-filter-row.hidden { display: none; }
 .disassemble-filter-label { font-size: 10.5px; color: var(--sub-text); margin-right: 2px; }
+
+/* 所持品一覧画面: スロット種別フィルター */
+.inventory-filter-row { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 2px 2px 8px; }
 .disassemble-chip {
   border: 1px solid var(--border);
   background: rgba(255,255,255,0.05);

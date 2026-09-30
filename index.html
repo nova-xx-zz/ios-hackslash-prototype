@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#0e0c16">
 <title>クエストパーティ</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 <div id="app">
@@ -81,8 +81,22 @@
       <div id="rosterBody" class="roster-body"></div>
       <div class="roster-footer">
         <span id="rosterCount" class="roster-count"></span>
+        <button class="btn small ghost" id="btnOpenInventory">所持品</button>
         <button class="btn small ghost" id="btnRecruit">仲間を探す</button>
       </div>
+    </div>
+  </section>
+
+  <!-- 所持品一覧画面 -->
+  <section id="screen-inventory" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">所持品</div>
+        <button class="btn small ghost" id="btnInventoryBack">もどる</button>
+      </div>
+      <div class="inventory-filter-row" id="inventoryFilterRow"></div>
+      <div class="dex-count" id="inventoryCount"></div>
+      <div id="inventoryBody" class="roster-body"></div>
     </div>
   </section>
 
@@ -246,6 +260,6 @@
 <script src="data/announcements.js?v=2"></script>
 <script src="data/roadmap.js?v=2"></script>
 <script src="js/data.js?v=4"></script>
-<script src="js/game.js?v=11"></script>
+<script src="js/game.js?v=12"></script>
 </body>
 </html>

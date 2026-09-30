@@ -278,6 +278,7 @@ offlineClearChance(dungeon)
 | 設定 | `btnHubSettings`で表示、`btnSettingsBack`で探索へ戻る |
 | モンスター図鑑 | `renderDexScreen()`, `openDexDetail(key)` |
 | パーティ編成 | `renderJobsScreen()`, `buildPartyRow()`, `buildMemberCard()`, `attachMemberDrag()`（ドラッグ移動） |
+| 所持品一覧（未装備アイテム） | `renderInventoryScreen()`, `buildInventoryItemRow()`, `openEnhanceModal(item, onClose)`（一覧から直接強化） |
 | キャラ作成 | `renderCreateScreen()`, `renderPickModal()`, `confirmCreate()` |
 | キャラ詳細: 能力値 | `buildStatsTab()` |
 | キャラ詳細: 装備 | `buildEquipSection()`, `autoEquip()`, `openEnhanceModal()` |
