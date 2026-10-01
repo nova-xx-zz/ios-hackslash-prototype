@@ -315,6 +315,8 @@ offlineClearChance(dungeon)
 
 ## 4. localStorage キー一覧
 
+キー名は `js/core/storage.js` の `KEYS` に一元管理する。ゲーム本体（`game.js`）は `localStorage` を直接触らず、`QPCore.storage.createStorage(backend, { onWriteError })` で作った `store` の `getString/getInt/getJSON/set/setJSON/remove` だけを使う。読み込みの失敗・壊れた値は呼び出し側が渡す既定値になり、書き込みの失敗（容量超過など）は例外を出さずに `false` を返して `onWriteError`（保存失敗の警告帯）で知らせる。本番化では `backend` を差し替える（`docs/production-plan.md` §3）。
+
 | キー | 型 | 用途 |
 |---|---|---|
 | `jobquest_save_v1` | JSON | メインセーブデータ（§1.4） |

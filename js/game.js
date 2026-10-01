@@ -1,36 +1,18 @@
 (() => {
   "use strict";
 
-  const BEST_KEY = "jobquest_best_cleared";
-  const MATERIAL_KEY = "jobquest_material";
-  const AUTO_DISASSEMBLE_KEY = "jobquest_autodisassemble";
-  const AUTO_DISASSEMBLE_FILTER_KEY = "jobquest_autodisassemble_filter";
-  const AUTO_REPEAT_TARGET_KEY = "jobquest_autorepeat_target";
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
-  const DEX_SEEN_KEY = "jobquest_dex_seen";
-  const READ_ANNOUNCEMENTS_KEY = "jobquest_read_announcements";
-  // オフライン進行を精算済みのセーブのsavedAt。報酬を付与する前にこれを書き込み、同じセーブを二重に精算しないようにする
-  // （精算後のセーブ保存が容量不足などで失敗しても、次回起動時に同じ期間の報酬をもう一度付与しないため）
-  const OFFLINE_SETTLED_KEY = "jobquest_offline_settled";
-  const SAVE_KEY = "jobquest_save_v1"; // キー名は維持し、内部のschemaVersionで拡張フィールドを管理する
   const SAVE_SCHEMA_VERSION = 2;
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
   const TEAM_COUNT = 4;
 
-  // localStorageへの書き込みは容量超過（QuotaExceededError）などで例外になり得る。
-  // 例外のまま処理を中断するとゲーム進行（戦闘開始など）まで止まるため、必ずこのヘルパーを通し、
-  // 失敗したら画面上部に警告を出す（次に保存が成功した時点で警告は消える）
-  function safeSetItem(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) {
-      showSaveFailureBanner();
-      return false;
-    }
-  }
+  // 端末への保存はすべてjs/core/storage.jsを通す（本番化でbackendを差し替えられるようにするため）。
+  // 書き込みは容量超過などで失敗し得るが、例外を出さずにfalseを返すのでゲーム進行は止まらない。
+  // 失敗したら画面上部に警告を出す（次にメインセーブが成功した時点で警告は消える）
+  const KEYS = QPCore.storage.KEYS;
+  const store = QPCore.storage.createStorage(QPCore.storage.defaultBackend(), { onWriteError: showSaveFailureBanner });
   function showSaveFailureBanner() {
     let el = document.getElementById("saveErrorBanner");
     if (!el) {
@@ -48,45 +30,45 @@
     if (el) el.classList.add("hidden");
   }
 
-  function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
-  function setBestStage(n) { if (n > getBestStage()) safeSetItem(BEST_KEY, String(n)); }
+  function getBestStage() { return store.getInt(KEYS.bestCleared, 0); }
+  function setBestStage(n) { if (n > getBestStage()) store.set(KEYS.bestCleared, n); }
 
-  let material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
-  let autoDisassemble = localStorage.getItem(AUTO_DISASSEMBLE_KEY) === "1";
-  function addMaterial(n) { material += n; safeSetItem(MATERIAL_KEY, String(material)); }
+  let material = store.getInt(KEYS.material, 0);
+  let autoDisassemble = store.getString(KEYS.autoDisassemble) === "1";
+  function addMaterial(n) { material += n; store.set(KEYS.material, material); }
 
   // 自動分解の対象レア度（プレイヤーがフィルターで選択、端末に保存）
   let autoDisassembleRarities = new Set(DEFAULT_AUTO_DISASSEMBLE_RARITIES);
-  try {
-    const saved = JSON.parse(localStorage.getItem(AUTO_DISASSEMBLE_FILTER_KEY));
+  {
+    const saved = store.getJSON(KEYS.autoDisassembleFilter, null); // 壊れていたら既定値のまま
     if (Array.isArray(saved)) autoDisassembleRarities = new Set(saved);
-  } catch (e) { /* 保存値が壊れていたら既定値のまま */ }
+  }
   function saveAutoDisassembleFilter() {
-    safeSetItem(AUTO_DISASSEMBLE_FILTER_KEY, JSON.stringify([...autoDisassembleRarities]));
+    store.setJSON(KEYS.autoDisassembleFilter, [...autoDisassembleRarities]);
   }
 
   // モンスター図鑑（遭遇したモンスターのキーを端末に保存）
   let dexSeen = new Set();
-  try {
-    const savedDex = JSON.parse(localStorage.getItem(DEX_SEEN_KEY));
+  {
+    const savedDex = store.getJSON(KEYS.dexSeen, null); // 壊れていたら空のまま
     if (Array.isArray(savedDex)) dexSeen = new Set(savedDex);
-  } catch (e) { /* 保存値が壊れていたら空のまま */ }
+  }
   function markDexSeen(key) {
     if (dexSeen.has(key)) return;
     dexSeen.add(key);
-    safeSetItem(DEX_SEEN_KEY, JSON.stringify([...dexSeen]));
+    store.setJSON(KEYS.dexSeen, [...dexSeen]);
   }
 
   // ---------- 冒険者ギルドからのお知らせ ----------
   // 既読は { [告知id]: 既読済みrevision } で保存し、announcement.revision以上なら既読とみなす
   // （本文を重要な改訂をした場合はrevisionを上げれば自動的に未読へ戻る）
   let readAnnouncements = {};
-  try {
-    const savedRead = JSON.parse(localStorage.getItem(READ_ANNOUNCEMENTS_KEY));
+  {
+    const savedRead = store.getJSON(KEYS.readAnnouncements, null); // 壊れていたら空のまま
     if (savedRead && typeof savedRead === "object") readAnnouncements = savedRead;
-  } catch (e) { /* 保存値が壊れていたら空のまま */ }
+  }
   function saveReadAnnouncements() {
-    safeSetItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(readAnnouncements));
+    store.setJSON(KEYS.readAnnouncements, readAnnouncements);
   }
   function isAnnouncementRead(a) { return (readAnnouncements[a.id] || 0) >= a.revision; }
   function markAnnouncementRead(a) {
@@ -283,10 +265,10 @@
       };
       json = JSON.stringify(data);
     } catch (e) { return false; }
-    // 容量超過などで失敗した場合はsafeSetItemが警告を出す。成功したら以前の警告は消す
-    if (!safeSetItem(SAVE_KEY, json)) return false;
+    // 容量超過などで失敗した場合はstoreが警告を出す。成功したら以前の警告は消す
+    if (!store.set(KEYS.save, json)) return false;
     lastSavedAt = now;
-    safeSetItem(MATERIAL_KEY, String(material)); // 旧キーは互換ミラー
+    store.set(KEYS.material, material); // 旧キーは互換ミラー
     hideSaveFailureBanner();
     return true;
   }
@@ -304,11 +286,11 @@
   let offlineSettleFailed = false;
   // 精算前に「このsavedAtは精算済み」と記録する。記録できない（容量不足など）なら精算しない
   function claimOfflineSettlement(savedAt) {
-    return safeSetItem(OFFLINE_SETTLED_KEY, String(savedAt));
+    return store.set(KEYS.offlineSettled, savedAt);
   }
   function loadGame() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
+      const raw = store.getString(KEYS.save);
       if (!raw) return false;
       const data = JSON.parse(raw);
       if (!data || !Array.isArray(data.roster) || data.roster.length === 0) return false;
@@ -328,9 +310,9 @@
       if (!isLegacySave && typeof data.material === "number") {
         material = data.material;
       } else {
-        material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
+        material = store.getInt(KEYS.material, 0);
       }
-      safeSetItem(MATERIAL_KEY, String(material));
+      store.set(KEYS.material, material);
       // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
       for (const c of roster) {
         const s = computeStats(c);
@@ -342,7 +324,7 @@
       const savedAutoRepeat = Array.isArray(data.autoRepeat) ? data.autoRepeat : [];
       lastSavedAt = typeof data.savedAt === "number" ? data.savedAt : null;
       if (savedAutoRepeat.some((ar) => ar && ar.active)) {
-        if (localStorage.getItem(OFFLINE_SETTLED_KEY) === String(data.savedAt)) {
+        if (store.getString(KEYS.offlineSettled) === String(data.savedAt)) {
           // このセーブの離脱期間は精算済み（精算後の保存に失敗していた）。二重付与を避けて自動周回を止めたまま再開する
         } else if (claimOfflineSettlement(data.savedAt)) {
           pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
@@ -711,7 +693,7 @@
   function isTeamRunActive(i) { const r = teamRuns[i]; return !!(r && !r.finished); }
 
   // 自動周回（チームごとに独立して設定・進行する）
-  const defaultAutoRepeatTarget = clampAutoRepeatTarget(parseInt(localStorage.getItem(AUTO_REPEAT_TARGET_KEY) || "5", 10));
+  const defaultAutoRepeatTarget = clampAutoRepeatTarget(store.getInt(KEYS.autoRepeatTarget, 5));
   let autoRepeat = Array.from({ length: TEAM_COUNT }, () => ({ active: false, target: defaultAutoRepeatTarget, done: 0 }));
   function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
   // そのチームが探索中で、編成・装備・スキル・転職・合成などの変更を受け付けられない状態か
@@ -2803,7 +2785,7 @@
         chip.addEventListener("click", () => {
           if (isTeamLocked(i)) return;
           ar.target = n;
-          safeSetItem(AUTO_REPEAT_TARGET_KEY, String(n));
+          store.set(KEYS.autoRepeatTarget, n);
           renderAutoRepeatRow();
         });
         chips.appendChild(chip);
@@ -2860,7 +2842,7 @@
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
     autoDisassemble = !autoDisassemble;
-    safeSetItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
+    store.set(KEYS.autoDisassemble, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
   function renderDisassembleFilter() {

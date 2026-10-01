@@ -63,6 +63,7 @@ python3 -m http.server 8000
 
 - `index.html` — 画面構成（タイトル/マップ/パーティ編成/キャラ作成/キャラ詳細/探索）
 - `css/style.css` — スタイル
+- `js/core/storage.js` — 端末への保存の窓口（保存キーの一覧と読み書き。本番化で保存先を差し替えるための層。画面に依存しない）
 - `js/data.js` — ジョブ・アビリティ・敵・種族・ダンジョン・アイテムのデータ定義、機能フラグ(`FEATURE_FLAGS`)
 - `js/game.js` — 画面遷移・マップ描画・ダンジョン進行・オート戦闘AI・ATBエンジン・転職/装備ロジック・お知らせ表示
 - `data/announcements.js` — 冒険者ギルドからのお知らせのデータ
@@ -71,6 +72,7 @@ python3 -m http.server 8000
 - `docs/basic-design.md` — 基本設計書
 - `docs/detailed-design.md` — 詳細設計書（データ構造・計算式・関数マッピング）
 - `docs/production-plan.md` — 本番化・課金方針（技術構成・データの置き場所・課金の法務・既知の課題）
+- `tests/` — 画面に依存しない部分（`js/core/`）の単体テスト。リポジトリ直下で `node --test` を実行する（Node.js 18以上、追加のインストール不要）
 
 ## オート戦闘AIのロジック（現状）
 
