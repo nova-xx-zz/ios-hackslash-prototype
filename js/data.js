@@ -1,5 +1,8 @@
 // ゲームデータ定義（ジョブ / アビリティ / 敵 / アイテム）
 
+// ゲーム内の抽選はすべてこの共有乱数を通す（js/core/rng.js。テストではシード付きに差し替えられる）
+const RNG = QPCore.rng.shared;
+
 // 段階公開の機能フラグ（配布バージョンごとの運営設定）。告知の公開日時や端末時計からは
 // 算出しない。falseの機能はUI・ドロップ・効果・オフライン精算のいずれにも影響させない。
 // スキルツリーは「標準ツリー＋SP」の第1弾として実装済み。スキルブック・鑑定所・一次職の
@@ -551,10 +554,10 @@ const PLAYER_RACE_IDS = Object.keys(RACES).filter((k) => RACES[k].kind === "play
 const RECRUIT_NAME_POOL = ["カイ", "レン", "シオン", "ファナ", "トウカ", "ミル", "ジン", "エマ", "ロイ", "ニナ", "ソラ", "ユキ"];
 
 function rollNewRecruit() {
-  const race = PLAYER_RACE_IDS[Math.floor(Math.random() * PLAYER_RACE_IDS.length)];
+  const race = RNG.pick(PLAYER_RACE_IDS);
   const jobIds = BASIC_JOB_IDS;
-  const job = jobIds[Math.floor(Math.random() * jobIds.length)];
-  const name = RECRUIT_NAME_POOL[Math.floor(Math.random() * RECRUIT_NAME_POOL.length)];
+  const job = RNG.pick(jobIds);
+  const name = RNG.pick(RECRUIT_NAME_POOL);
   return { name, job, race };
 }
 
@@ -602,7 +605,7 @@ function buildEncounter(dungeon, battleIndex) {
   const list = [];
 
   for (let i = 0; i < count; i++) {
-    const key = dungeon.pool[Math.floor(Math.random() * dungeon.pool.length)];
+    const key = RNG.pick(dungeon.pool);
     list.push(makeEnemy(getEnemyTemplate(key), mult, false));
   }
   if (isBossBattle) {
@@ -620,7 +623,7 @@ function makeEnemy(t, mult, isBoss) {
     hp: Math.round(t.hp * mult), maxHp: Math.round(t.hp * mult),
     atk: Math.round(t.atk * mult), mag: t.mag, def: Math.round(t.def * mult),
     spd: t.spd, exp: Math.round(t.exp * mult),
-    atb: Math.random() * 30,
+    atb: RNG.float(0, 30),
   };
 }
 
@@ -639,15 +642,20 @@ const RARITIES = [
 // 自動分解フィルターの初期値（未設定時はN/Rのみ）。実際に使う対象はプレイヤーが画面上で変更でき、端末に保存される
 const DEFAULT_AUTO_DISASSEMBLE_RARITIES = ["n", "r"];
 
-function rollRarity() {
-  const total = RARITIES.reduce((s, r) => s + r.weight, 0);
-  let roll = Math.random() * total;
-  for (const r of RARITIES) {
-    if (roll < r.weight) return r;
-    roll -= r.weight;
-  }
-  return RARITIES[0];
-}
+function rollRarity() { return QPCore.rewards.rollRarity(RARITIES, RNG); }
+
+// 報酬まわりの数値（通常プレイとオフライン精算で共通。計算はjs/core/rewards.js）
+const REWARD_RULES = {
+  extraDropChance: 0.4, // 1戦闘のドロップは基本1個＋この確率で追加1個
+  eventChance: 0.6, // 戦闘と戦闘の間に道中イベントが起きる確率
+  events: [ // 道中イベントの種類と重み
+    { kind: "treasure", weight: 40 },
+    { kind: "trap", weight: 25 },
+    { kind: "spring", weight: 20 },
+    { kind: "shrine", weight: 15 },
+  ],
+  treasureEmptyChance: 0.35, // 宝箱が空っぽの確率
+};
 
 // ---------- 装備強化（+0〜+99） ----------
 // レア度が高いほど基礎成功率が低く、かつ+が上がるごとに減衰も速いので、
@@ -664,36 +672,25 @@ const ENHANCE_CONFIG = {
   lr: { baseRate: 0.15, decay: 0.965, cost: 150, costPerPlus: 350 / 98, rateFloor: 0.005 },
 };
 const ENHANCE_RATE_FLOOR = 0.03; // 何度失敗しても最低3%は残す（完全に詰まないように）
-
-function enhanceSuccessRate(item) {
-  const cfg = ENHANCE_CONFIG[item.rarity];
-  const rate = cfg.baseRate * Math.pow(cfg.decay, item.plus || 0);
-  return Math.max(cfg.rateFloor !== undefined ? cfg.rateFloor : ENHANCE_RATE_FLOOR, rate);
-}
-
-function enhanceCost(item) {
-  const cfg = ENHANCE_CONFIG[item.rarity];
-  return Math.round(cfg.cost + (item.plus || 0) * (cfg.costPerPlus || 0));
-}
-
-// 今の+値から1段上げるのに必要な強化石の期待値（1回の消費 ÷ 成功率）
-function enhanceExpectedCost(item) {
-  return enhanceCost(item) / enhanceSuccessRate(item);
-}
-
-// 天井: 今の+値で失敗に使った強化石(item.pity)がこの値に達したら、次の強化は必ず成功する。
-// 運が極端に悪い場合でも上限が見えるようにするため（成功・+値の変化でゲージは0に戻る）
+// 天井: 今の+値で失敗に使った強化石(item.pity)が期待消費のこの倍率に達したら、次の強化は必ず成功する
+// （運が極端に悪い場合でも上限が見えるようにするため。成功・+値の変化でゲージは0に戻る）
 const ENHANCE_PITY_MULT = 1.5;
-function enhancePityThreshold(item) {
-  return Math.ceil(enhanceExpectedCost(item) * ENHANCE_PITY_MULT);
-}
-
-// 確定強化石: 1個を強化石GUARANTEED_STONE_VALUE個ぶんとみなし、その段の期待消費に応じて必要個数が増える
+// 確定強化石: 1個を強化石この個数ぶんとみなし、その段の期待消費に応じて必要個数が増える
 // （N〜URの全段とLR+30付近までは1個、LR+98→+99は10個、LR+0→+99の合計は約300個）
 const GUARANTEED_STONE_VALUE = 10000;
-function guaranteedStonesRequired(item) {
-  return Math.max(1, Math.ceil(enhanceExpectedCost(item) / GUARANTEED_STONE_VALUE));
-}
+const ENHANCE_RULES = {
+  config: ENHANCE_CONFIG,
+  rateFloor: ENHANCE_RATE_FLOOR,
+  pityMult: ENHANCE_PITY_MULT,
+  guaranteedStoneValue: GUARANTEED_STONE_VALUE,
+};
+
+// 計算はjs/core/enhance.js。ここは装備オブジェクトを受け取る薄い窓口
+function enhanceSuccessRate(item) { return QPCore.enhance.successRate(ENHANCE_RULES, item.rarity, item.plus); }
+function enhanceCost(item) { return QPCore.enhance.cost(ENHANCE_RULES, item.rarity, item.plus); }
+function enhanceExpectedCost(item) { return QPCore.enhance.expectedCost(ENHANCE_RULES, item.rarity, item.plus); }
+function enhancePityThreshold(item) { return QPCore.enhance.pityThreshold(ENHANCE_RULES, item.rarity, item.plus); }
+function guaranteedStonesRequired(item) { return QPCore.enhance.guaranteedRequired(ENHANCE_RULES, item.rarity, item.plus); }
 
 // 強化値に応じてステータス上昇量を底上げする。装備の元の数値が小さい（2〜6）ため率ではなくレア度に応じた
 // 固定量をceilで積み上げる（+1でも必ず変化が見え、かつレア度が高いほど伸びが大きい＝+99で元の値の約4倍になる）
@@ -725,17 +722,5 @@ const STAT_LABELS = { hp: "HP", mp: "MP", atk: "ATK", mag: "MAG", def: "DEF", sp
 
 let itemSeq = 1;
 function rollItemDrop() {
-  const base = ITEM_BASES[Math.floor(Math.random() * ITEM_BASES.length)];
-  const rarity = rollRarity();
-  return {
-    id: "item_" + itemSeq++,
-    name: `${rarity.name}の${base.name}`,
-    slot: base.slot,
-    stat: base.stat,
-    value: Math.round(base.base * rarity.mult),
-    rarity: rarity.key,
-    rarityColor: rarity.color,
-    materialValue: rarity.material,
-    plus: 0,
-  };
+  return QPCore.rewards.rollItem(ITEM_BASES, RARITIES, RNG, () => "item_" + itemSeq++);
 }

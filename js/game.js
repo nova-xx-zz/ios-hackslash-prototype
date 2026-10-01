@@ -1,33 +1,18 @@
 (() => {
   "use strict";
 
-  const BEST_KEY = "jobquest_best_cleared";
-  const MATERIAL_KEY = "jobquest_material";
-  const AUTO_DISASSEMBLE_KEY = "jobquest_autodisassemble";
-  const AUTO_DISASSEMBLE_FILTER_KEY = "jobquest_autodisassemble_filter";
-  const AUTO_REPEAT_TARGET_KEY = "jobquest_autorepeat_target";
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
-  const DEX_SEEN_KEY = "jobquest_dex_seen";
-  const READ_ANNOUNCEMENTS_KEY = "jobquest_read_announcements";
-  const SAVE_KEY = "jobquest_save_v1"; // キー名は維持し、内部のschemaVersionで拡張フィールドを管理する
   const SAVE_SCHEMA_VERSION = 2;
-  const rand = (a, b) => a + Math.random() * (b - a);
+  const rand = (a, b) => RNG.float(a, b);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
   const TEAM_COUNT = 4;
 
-  // localStorageへの書き込みは容量超過（QuotaExceededError）などで例外になり得る。
-  // 例外のまま処理を中断するとゲーム進行（戦闘開始など）まで止まるため、必ずこのヘルパーを通し、
-  // 失敗したら画面上部に警告を出す（次に保存が成功した時点で警告は消える）
-  function safeSetItem(key, value) {
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (e) {
-      showSaveFailureBanner();
-      return false;
-    }
-  }
+  // 端末への保存はすべてjs/core/storage.jsを通す（本番化でbackendを差し替えられるようにするため）。
+  // 書き込みは容量超過などで失敗し得るが、例外を出さずにfalseを返すのでゲーム進行は止まらない。
+  // 失敗したら画面上部に警告を出す（次にメインセーブが成功した時点で警告は消える）
+  const KEYS = QPCore.storage.KEYS;
+  const store = QPCore.storage.createStorage(QPCore.storage.defaultBackend(), { onWriteError: showSaveFailureBanner });
   function showSaveFailureBanner() {
     let el = document.getElementById("saveErrorBanner");
     if (!el) {
@@ -45,45 +30,45 @@
     if (el) el.classList.add("hidden");
   }
 
-  function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
-  function setBestStage(n) { if (n > getBestStage()) safeSetItem(BEST_KEY, String(n)); }
+  function getBestStage() { return store.getInt(KEYS.bestCleared, 0); }
+  function setBestStage(n) { if (n > getBestStage()) store.set(KEYS.bestCleared, n); }
 
-  let material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
-  let autoDisassemble = localStorage.getItem(AUTO_DISASSEMBLE_KEY) === "1";
-  function addMaterial(n) { material += n; safeSetItem(MATERIAL_KEY, String(material)); }
+  let material = store.getInt(KEYS.material, 0);
+  let autoDisassemble = store.getString(KEYS.autoDisassemble) === "1";
+  function addMaterial(n) { material += n; store.set(KEYS.material, material); }
 
   // 自動分解の対象レア度（プレイヤーがフィルターで選択、端末に保存）
   let autoDisassembleRarities = new Set(DEFAULT_AUTO_DISASSEMBLE_RARITIES);
-  try {
-    const saved = JSON.parse(localStorage.getItem(AUTO_DISASSEMBLE_FILTER_KEY));
+  {
+    const saved = store.getJSON(KEYS.autoDisassembleFilter, null); // 壊れていたら既定値のまま
     if (Array.isArray(saved)) autoDisassembleRarities = new Set(saved);
-  } catch (e) { /* 保存値が壊れていたら既定値のまま */ }
+  }
   function saveAutoDisassembleFilter() {
-    safeSetItem(AUTO_DISASSEMBLE_FILTER_KEY, JSON.stringify([...autoDisassembleRarities]));
+    store.setJSON(KEYS.autoDisassembleFilter, [...autoDisassembleRarities]);
   }
 
   // モンスター図鑑（遭遇したモンスターのキーを端末に保存）
   let dexSeen = new Set();
-  try {
-    const savedDex = JSON.parse(localStorage.getItem(DEX_SEEN_KEY));
+  {
+    const savedDex = store.getJSON(KEYS.dexSeen, null); // 壊れていたら空のまま
     if (Array.isArray(savedDex)) dexSeen = new Set(savedDex);
-  } catch (e) { /* 保存値が壊れていたら空のまま */ }
+  }
   function markDexSeen(key) {
     if (dexSeen.has(key)) return;
     dexSeen.add(key);
-    safeSetItem(DEX_SEEN_KEY, JSON.stringify([...dexSeen]));
+    store.setJSON(KEYS.dexSeen, [...dexSeen]);
   }
 
   // ---------- 冒険者ギルドからのお知らせ ----------
   // 既読は { [告知id]: 既読済みrevision } で保存し、announcement.revision以上なら既読とみなす
   // （本文を重要な改訂をした場合はrevisionを上げれば自動的に未読へ戻る）
   let readAnnouncements = {};
-  try {
-    const savedRead = JSON.parse(localStorage.getItem(READ_ANNOUNCEMENTS_KEY));
+  {
+    const savedRead = store.getJSON(KEYS.readAnnouncements, null); // 壊れていたら空のまま
     if (savedRead && typeof savedRead === "object") readAnnouncements = savedRead;
-  } catch (e) { /* 保存値が壊れていたら空のまま */ }
+  }
   function saveReadAnnouncements() {
-    safeSetItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(readAnnouncements));
+    store.setJSON(KEYS.readAnnouncements, readAnnouncements);
   }
   function isAnnouncementRead(a) { return (readAnnouncements[a.id] || 0) >= a.revision; }
   function markAnnouncementRead(a) {
@@ -251,20 +236,17 @@
   // 資金決済法の残高計算で有償分だけを数えられるよう、無償分(free)と有償分(paid)を分けて持ち、消費は無償分から行う
   let guaranteedStones = { free: 0, paid: 0 };
   function guaranteedStoneTotal() { return guaranteedStones.free + guaranteedStones.paid; }
-  function consumeGuaranteedStones(n) {
-    const fromFree = Math.min(n, guaranteedStones.free);
-    guaranteedStones.free -= fromFree;
-    guaranteedStones.paid -= n - fromFree;
-  }
+  let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
   function saveGame() {
     let json;
+    const now = Date.now();
     try {
       const data = {
         schemaVersion: SAVE_SCHEMA_VERSION,
         roster, inventory, activeTeam,
         clearedDungeons: [...clearedDungeons],
         nextCharSeq,
-        savedAt: Date.now(),
+        savedAt: now,
         autoRepeat: autoRepeat.map((ar, i) => ({
           active: ar.active,
           target: ar.target,
@@ -278,9 +260,10 @@
       };
       json = JSON.stringify(data);
     } catch (e) { return false; }
-    // 容量超過などで失敗した場合はsafeSetItemが警告を出す。成功したら以前の警告は消す
-    if (!safeSetItem(SAVE_KEY, json)) return false;
-    safeSetItem(MATERIAL_KEY, String(material)); // 旧キーは互換ミラー
+    // 容量超過などで失敗した場合はstoreが警告を出す。成功したら以前の警告は消す
+    if (!store.set(KEYS.save, json)) return false;
+    lastSavedAt = now;
+    store.set(KEYS.material, material); // 旧キーは互換ミラー
     hideSaveFailureBanner();
     return true;
   }
@@ -295,9 +278,14 @@
   // 自動周回が稼働中のまま離れていたチームがあれば、離れていた時間分の周回をまとめて計算する
   // （チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある）
   let pendingOfflineSummaries = null;
+  let offlineSettleFailed = false;
+  // 精算前に「このsavedAtは精算済み」と記録する。記録できない（容量不足など）なら精算しない
+  function claimOfflineSettlement(savedAt) {
+    return store.set(KEYS.offlineSettled, savedAt);
+  }
   function loadGame() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
+      const raw = store.getString(KEYS.save);
       if (!raw) return false;
       const data = JSON.parse(raw);
       if (!data || !Array.isArray(data.roster) || data.roster.length === 0) return false;
@@ -317,9 +305,9 @@
       if (!isLegacySave && typeof data.material === "number") {
         material = data.material;
       } else {
-        material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
+        material = store.getInt(KEYS.material, 0);
       }
-      safeSetItem(MATERIAL_KEY, String(material));
+      store.set(KEYS.material, material);
       // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
       for (const c of roster) {
         const s = computeStats(c);
@@ -329,7 +317,16 @@
       // 旧バージョン（単一チームのみの自動周回）のデータはそのままでは形が合わないため、
       // 配列でない場合はオフライン進行の計算対象から外す（ロスター等の本体データは復元される）
       const savedAutoRepeat = Array.isArray(data.autoRepeat) ? data.autoRepeat : [];
-      pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
+      lastSavedAt = typeof data.savedAt === "number" ? data.savedAt : null;
+      if (savedAutoRepeat.some((ar) => ar && ar.active)) {
+        if (store.getString(KEYS.offlineSettled) === String(data.savedAt)) {
+          // このセーブの離脱期間は精算済み（精算後の保存に失敗していた）。二重付与を避けて自動周回を止めたまま再開する
+        } else if (claimOfflineSettlement(data.savedAt)) {
+          pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
+        } else {
+          offlineSettleFailed = true; // 保存できない状態で付与すると失われる/二重になるため、精算を見送る
+        }
+      }
       // 旧形式からの移行はその場で保存し直し、schemaVersion付きの内容が次回起動を待たず反映されるようにする
       if (pendingOfflineSummaries || isLegacySave) saveGame();
       return true;
@@ -691,7 +688,7 @@
   function isTeamRunActive(i) { const r = teamRuns[i]; return !!(r && !r.finished); }
 
   // 自動周回（チームごとに独立して設定・進行する）
-  const defaultAutoRepeatTarget = clampAutoRepeatTarget(parseInt(localStorage.getItem(AUTO_REPEAT_TARGET_KEY) || "5", 10));
+  const defaultAutoRepeatTarget = clampAutoRepeatTarget(store.getInt(KEYS.autoRepeatTarget, 5));
   let autoRepeat = Array.from({ length: TEAM_COUNT }, () => ({ active: false, target: defaultAutoRepeatTarget, done: 0 }));
   function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
   // そのチームが探索中で、編成・装備・スキル・転職・合成などの変更を受け付けられない状態か
@@ -701,12 +698,14 @@
   // ブラウザを閉じている・バックグラウンドの間は実際のATB戦闘を再現できないため、
   // 「経過時間内に何周できたはずか」を既存の報酬計算式を再利用して概算する
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000; // これを超えた経過時間は切り捨てる
-  const OFFLINE_SEC_PER_BATTLE = 5; // 1戦闘あたりの目安秒数(x1速度想定)
-  const OFFLINE_SEC_PER_GAP = 2; // 戦闘間の道中イベント・インターバルの目安
-  const OFFLINE_SEC_OVERHEAD = 2; // 出発〜踏破演出、周回間の待機の目安
-
+  const OFFLINE_TIMING = {
+    perBattle: 5, // 1戦闘あたりの目安秒数(x1速度想定)
+    perGap: 2, // 戦闘間の道中イベント・インターバルの目安
+    overhead: 2, // 出発〜踏破演出、周回間の待機の目安
+  };
+  // 計算そのものはjs/core/offline.js（画面に依存しない）。ここはゲームの状態との橋渡し
   function estimateOfflineRunSeconds(dungeon) {
-    return dungeon.battles * OFFLINE_SEC_PER_BATTLE + Math.max(0, dungeon.battles - 1) * OFFLINE_SEC_PER_GAP + OFFLINE_SEC_OVERHEAD;
+    return QPCore.offline.estimateRunSeconds(dungeon.battles, OFFLINE_TIMING);
   }
 
   // 実際の戦闘は行わず、パーティ平均Lvとダンジョン推奨Lvの差から踏破確率を概算する
@@ -714,66 +713,44 @@
     const party = teamMembers(teamIndex);
     if (party.length === 0) return 0;
     const avgLevel = party.reduce((s, c) => s + c.level, 0) / party.length;
-    return clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98);
+    return QPCore.offline.clearChance(avgLevel, dungeon.level);
   }
 
-  // 通常プレイと同じ扱いに揃える:
+  // 1周ぶんの結果をjs/core/offline.jsで計算し、ゲームの状態に反映する。通常プレイと同じ扱い:
   // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
   // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
   // - 遭遇した敵は図鑑に登録する
   // 個々の戦闘不能は再現しないため、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
   function simulateOfflineRun(dungeon, teamIndex) {
     const party = teamMembers(teamIndex);
-    const cleared = Math.random() < offlineClearChance(dungeon, teamIndex);
-    // 全滅する場合は、何戦目で力尽きたかを抽選する（その戦闘自体は敗北）
-    const battlesFought = cleared ? dungeon.battles : 1 + Math.floor(Math.random() * dungeon.battles);
-    const battlesWon = cleared ? battlesFought : battlesFought - 1;
+    const outcome = QPCore.offline.simulateRun({
+      battles: dungeon.battles,
+      clearChance: offlineClearChance(dungeon, teamIndex),
+      rng: RNG,
+      rules: REWARD_RULES,
+      buildEncounter: (i) => buildEncounter(dungeon, i),
+      isTamable: (key) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable); },
+      tameChanceOf: (key) => getEnemyTemplate(key).tameChance,
+      rollOne: rollItemDrop,
+    });
+    for (const key of outcome.encountered) markDexSeen(key);
     let expTotal = 0;
-    const drops = [];
-    const defeatedTamable = [];
-    for (let i = 0; i < battlesFought; i++) {
-      const enemies = buildEncounter(dungeon, i);
-      for (const e of enemies) markDexSeen(e.key);
-      if (i >= battlesWon) break; // 敗北した戦闘ではEXP・ドロップを得ない
-      let expGain = 0;
-      for (const e of enemies) {
-        expGain += e.exp;
-        const tpl = getEnemyTemplate(e.key);
-        if (tpl && tpl.tamable) defeatedTamable.push(e.key);
-      }
-      expTotal += expGain;
-      for (const c of party) gainExp(c, Math.round(expGain * RACES[c.race].expMult));
-      drops.push(rollItemDrop());
-      if (Math.random() < 0.4) drops.push(rollItemDrop());
-      // 戦闘間の道中イベント（約6割）のうち宝箱（重み40/100）で、空っぽ（35%）でなければアイテム1個
-      const isLast = i === dungeon.battles - 1;
-      if (!isLast && Math.random() < 0.6 && Math.random() < 0.4 && Math.random() >= 0.35) drops.push(rollItemDrop());
+    for (const exp of outcome.expByBattle) {
+      expTotal += exp;
+      for (const c of party) gainExp(c, QPCore.rewards.expForMember(exp, RACES[c.race].expMult));
     }
-    // 全滅した周は、実際のプレイと同じくドロップ・テイムを持ち帰れない（EXPは上で付与済み）
-    if (!cleared) return { cleared: false, expTotal };
+    if (!outcome.cleared) return { cleared: false, expTotal };
 
-    let itemsGained = 0;
-    for (const item of drops) {
-      if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
-        addMaterial(item.materialValue);
-      } else {
-        inventory.push(item);
-        itemsGained += 1;
-      }
-    }
+    const settled = QPCore.rewards.settleDrops(outcome.drops, { enabled: autoDisassemble, rarities: autoDisassembleRarities });
+    if (settled.materialGained > 0) addMaterial(settled.materialGained);
+    inventory.push(...settled.kept);
     let tamedName = null;
-    if (defeatedTamable.length > 0) {
-      const key = defeatedTamable[Math.floor(Math.random() * defeatedTamable.length)];
-      const tpl = getEnemyTemplate(key);
-      if (Math.random() < tpl.tameChance) {
-        const lvl = Math.max(1, currentMaxLevel() - 2);
-        roster.push(newCharacter(tpl.name, null, key, { level: lvl, isMonster: true }));
-        tamedName = tpl.name;
-      }
+    if (outcome.tame && outcome.tame.success) {
+      tamedName = addTamedMonster(outcome.tame.key).name;
     }
     clearedDungeons.add(dungeon.id);
     setBestStage(clearedDungeons.size);
-    return { cleared: true, expTotal, itemsGained, tamedName };
+    return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName };
   }
 
   // 保存されていたそのチームの自動周回状態と経過時間から、離れていた間の周回をまとめて計算する
@@ -781,13 +758,13 @@
     if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
     const dungeon = getDungeon(autoRepeatInfo.dungeonId);
     if (!dungeon) return null;
-    const elapsedMs = Math.min(Date.now() - savedAt, OFFLINE_MAX_MS);
-    if (elapsedMs < 5000) return null; // 数秒程度の中断では計算しない
-    const secPerRun = estimateOfflineRunSeconds(dungeon);
-    const maxRunsByTime = Math.floor((elapsedMs / 1000) / secPerRun);
-    const remainingTarget = Math.max(0, autoRepeatInfo.target - autoRepeatInfo.done);
-    const runsToAttempt = Math.min(maxRunsByTime, remainingTarget);
-    if (runsToAttempt <= 0) return null;
+    const runsToAttempt = QPCore.offline.planRuns({
+      elapsedMs: Date.now() - savedAt,
+      maxMs: OFFLINE_MAX_MS,
+      secPerRun: estimateOfflineRunSeconds(dungeon),
+      target: autoRepeatInfo.target,
+      done: autoRepeatInfo.done,
+    });
 
     let cleared = 0, expGained = 0, itemsGained = 0;
     const tamedNames = [];
@@ -806,8 +783,9 @@
     autoRepeat[teamIndex].target = autoRepeatInfo.target;
     autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
 
-    if (cleared === 0 && !wipedOut) return null;
-    return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut };
+    // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
+    const tooShort = runsToAttempt <= 0;
+    return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
   }
 
   // チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある
@@ -822,6 +800,9 @@
 
   function showOfflineModal(summaries) {
     const blocks = summaries.map((summary) => {
+      if (summary.tooShort) {
+        return `【${TEAM_LABELS[summary.team]}】「${summary.dungeonName}」: 離れていた時間が1周ぶんに満たなかったため、オフライン中の周回はありませんでした`;
+      }
       const lines = [`【${TEAM_LABELS[summary.team]}】「${summary.dungeonName}」を ${summary.cleared}周 クリアしました`];
       if (summary.cleared > 0 || summary.expGained > 0) {
         lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
@@ -832,6 +813,12 @@
     });
     blocks.push("自動周回は停止中です。続けるには各チームで「自動周回開始」を押してください");
     document.getElementById("offlineDesc").innerHTML = blocks.join("<br><br>");
+    document.getElementById("offlineModal").classList.remove("hidden");
+  }
+  function showOfflineSettleFailedModal() {
+    document.getElementById("offlineDesc").innerHTML =
+      "端末の保存容量が不足しているため、離れていた間の自動周回を精算できませんでした。<br><br>" +
+      "保存できるようになると、次回起動時に精算されます（自動分解の対象レア度を増やすと所持品を減らせます）。自動周回は停止中です";
     document.getElementById("offlineModal").classList.remove("hidden");
   }
   document.getElementById("btnOfflineClose").addEventListener("click", () => {
@@ -1034,6 +1021,7 @@
   let detailTab = "stats";
   let fusionSelection = new Set(); // モンスター合成: 選択中の素材モンスターのid
   let fusionMessage = "";
+  let fusionConfirm = false; // 合成ボタンを1回押して確認待ちか（素材の消滅は取り消せないため2回押しで確定）
   let treeSelectedNode = null; // ツリータブ: 選択中ノード { scope: "exclusive"|スロットkey, nodeId }
   let treeSwapConfirm = null; // ツリータブ: 交換ボタンを1回押して確認待ちの枠key
 
@@ -1522,6 +1510,7 @@
     detailCharId = c.id;
     detailTab = "stats";
     fusionSelection = new Set();
+    fusionConfirm = false;
     fusionMessage = "";
     treeSelectedNode = null;
     treeSwapConfirm = null;
@@ -1902,6 +1891,7 @@
         if (fusionSelection.has(m.id)) fusionSelection.delete(m.id);
         else fusionSelection.add(m.id);
         fusionMessage = "";
+        fusionConfirm = false;
         renderCharDetail();
       });
       row.appendChild(toggle);
@@ -1919,10 +1909,13 @@
 
     const btn = document.createElement("button");
     btn.className = "btn primary";
-    btn.textContent = selectedMonsters.length > 0 ? `${selectedMonsters.length}体を合成する` : "素材を選んでください";
+    btn.textContent = selectedMonsters.length === 0 ? "素材を選んでください"
+      : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する（取り消せません）` : `${selectedMonsters.length}体を合成する`);
     btn.disabled = selectedMonsters.length === 0;
     btn.addEventListener("click", () => {
       if (selectedMonsters.length === 0) return;
+      if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
+      fusionConfirm = false;
       const consumedNames = selectedMonsters.map((m) => m.name);
       let returnedItems = 0;
       for (const m of selectedMonsters) {
@@ -2418,18 +2411,15 @@
   document.getElementById("btnEnhanceGo").addEventListener("click", () => {
     const item = enhanceItem;
     if (!item || item.plus >= ENHANCE_MAX_PLUS) return;
-    const cost = enhanceCost(item);
-    if (material < cost) return;
-    addMaterial(-cost);
-    const pityHit = isPityReady(item);
-    if (pityHit || Math.random() < enhanceSuccessRate(item)) {
-      item.plus += 1;
-      item.pity = 0; // +値が変わったら天井ゲージは0から
-      enhanceMessage = `成功！ +${item.plus} になった` + (pityHit ? "（天井）" : "");
-    } else {
-      if (isFeatureEnabled("enhancePity")) item.pity = (item.pity || 0) + cost;
-      enhanceMessage = `失敗…（+${item.plus} のまま）`;
-    }
+    if (material < enhanceCost(item)) return;
+    // 判定はjs/core/enhance.js（状態は変えずに結果だけ返す）。ここで強化石・+値・天井ゲージに反映する
+    const result = QPCore.enhance.attempt(ENHANCE_RULES, item, { rng: RNG, pityEnabled: isFeatureEnabled("enhancePity") });
+    addMaterial(-result.cost);
+    item.plus = result.plus;
+    item.pity = result.pity;
+    enhanceMessage = result.success
+      ? `成功！ +${item.plus} になった` + (result.pityHit ? "（天井）" : "")
+      : `失敗…（+${item.plus} のまま）`;
     scheduleSave();
     renderEnhanceModal();
   });
@@ -2438,12 +2428,12 @@
   document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
     const item = enhanceItem;
     if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS) return;
-    const required = guaranteedStonesRequired(item);
-    if (guaranteedStoneTotal() < required) return;
-    consumeGuaranteedStones(required);
-    item.plus += 1;
-    item.pity = 0;
-    enhanceMessage = `成功！ +${item.plus} になった（確定強化石${required}個を使用）`;
+    const result = QPCore.enhance.useGuaranteed(ENHANCE_RULES, item, guaranteedStones);
+    if (!result.ok) return;
+    guaranteedStones = result.stones; // 消費は無償分から
+    item.plus = result.plus;
+    item.pity = result.pity;
+    enhanceMessage = `成功！ +${item.plus} になった（確定強化石${result.required}個を使用）`;
     saveGame();
     renderEnhanceModal();
   });
@@ -2769,7 +2759,7 @@
         chip.addEventListener("click", () => {
           if (isTeamLocked(i)) return;
           ar.target = n;
-          safeSetItem(AUTO_REPEAT_TARGET_KEY, String(n));
+          store.set(KEYS.autoRepeatTarget, n);
           renderAutoRepeatRow();
         });
         chips.appendChild(chip);
@@ -2826,7 +2816,7 @@
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
     autoDisassemble = !autoDisassemble;
-    safeSetItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
+    store.set(KEYS.autoDisassemble, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
   function renderDisassembleFilter() {
@@ -2910,7 +2900,7 @@
     const alive = battle.enemies.filter((e) => e.alive);
     if (alive.length === 0) return null;
     const mode = (c && c.targetPriority) || "weakest";
-    if (mode === "random") return alive[Math.floor(Math.random() * alive.length)];
+    if (mode === "random") return RNG.pick(alive);
     if (mode === "strongest") return alive.reduce((hi, e) => (e.hp > hi.hp ? e : hi), alive[0]);
     return alive.reduce((lowest, e) => (e.hp < lowest.hp ? e : lowest), alive[0]);
   }
@@ -2951,7 +2941,7 @@
           let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
           dmg = Math.round(dmg * rand(0.9, 1.15));
           const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus") + treePassive(c, "critBonus");
-          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
+          if (!isMagic && RNG.chance(critChance)) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
           t.hp -= dmg;
           let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
           if (lifesteal > 0) {
@@ -2988,7 +2978,7 @@
   function performEnemyAction(run, battle, e) {
     const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
-    const target = alive[Math.floor(Math.random() * alive.length)];
+    const target = RNG.pick(alive);
     const stats = computeStats(target);
     let dmg = Math.max(1, Math.round(e.atk - stats.def * 0.4));
     dmg = Math.round(dmg * rand(0.9, 1.15));
@@ -3052,21 +3042,26 @@
 
   // ---------- Taming（ダンジョンクリア時に判定） ----------
   function attemptTame(run) {
-    const candidates = run.defeatedTamable;
-    if (candidates.length === 0) return null;
-    const key = candidates[Math.floor(Math.random() * candidates.length)];
+    const result = QPCore.rewards.rollTame(run.defeatedTamable, (key) => getEnemyTemplate(key).tameChance, RNG);
+    if (!result) return null;
+    const tpl = getEnemyTemplate(result.key);
+    if (!result.success) return { success: false, name: tpl.name };
+    const mon = addTamedMonster(result.key);
+    return { success: true, name: tpl.name, char: mon };
+  }
+
+  // テイムに成功したモンスターをロスターに加える（通常プレイ・オフライン精算で共通）
+  function addTamedMonster(key) {
     const tpl = getEnemyTemplate(key);
-    const success = Math.random() < tpl.tameChance;
-    if (!success) return { success: false, name: tpl.name };
     const lvl = Math.max(1, currentMaxLevel() - 2);
     const mon = newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
     roster.push(mon);
-    return { success: true, name: tpl.name, char: mon };
+    return mon;
   }
 
   // ---------- Victory / rewards ----------
   function onVictory(run, battle) {
-    const expGain = battle.enemies.reduce((s, e) => s + e.exp, 0);
+    const expGain = QPCore.rewards.battleExp(battle.enemies);
     run.expTotal += expGain;
 
     for (const e of battle.enemies) {
@@ -3077,13 +3072,12 @@
     for (const c of teamMembers(run.team)) {
       if (!c.alive) continue;
       const race = RACES[c.race];
-      const result = gainExp(c, Math.round(expGain * race.expMult));
+      const result = gainExp(c, QPCore.rewards.expForMember(expGain, race.expMult));
       run.levelUps.push(...result.levelUps);
       run.abilityUnlocks.push(...result.abilityUnlocks);
     }
 
-    gainItem(run, rollItemDrop());
-    if (Math.random() < 0.4) gainItem(run, rollItemDrop());
+    for (const item of QPCore.rewards.rollBattleDrops(REWARD_RULES, rollItemDrop, RNG)) gainItem(run, item);
 
     logLine(run.team, `EXP +${expGain}`, "system");
 
@@ -3091,7 +3085,7 @@
     if (!isLast) {
       run.battleIndex += 1;
       scheduleNext(run.team, () => {
-        if (Math.random() < 0.6) rollDungeonEvent(run);
+        rollDungeonEvent(run);
         scheduleNext(run.team, () => startBattle(run), 700);
       }, 900);
     } else {
@@ -3115,28 +3109,25 @@
   }
 
   // ---------- 道中イベント ----------
-  const EVENT_WEIGHTS = [
-    { fn: (run) => rollTreasureEvent(run), weight: 40 },
-    { fn: (run) => rollTrapEvent(run), weight: 25 },
-    { fn: (run) => rollSpringEvent(run), weight: 20 },
-    { fn: (run) => rollShrineEvent(run), weight: 15 },
-  ];
+  // 起きるかどうかと種類の抽選はjs/core/rewards.js（確率と重みはdata.jsのREWARD_RULES。オフライン精算と共通）
+  const EVENT_HANDLERS = {
+    treasure: (run) => rollTreasureEvent(run),
+    trap: (run) => rollTrapEvent(run),
+    spring: (run) => rollSpringEvent(run),
+    shrine: (run) => rollShrineEvent(run),
+  };
 
   function rollDungeonEvent(run) {
-    const total = EVENT_WEIGHTS.reduce((s, e) => s + e.weight, 0);
-    let roll = Math.random() * total;
-    for (const e of EVENT_WEIGHTS) {
-      if (roll < e.weight) { e.fn(run); return; }
-      roll -= e.weight;
-    }
+    const kind = QPCore.rewards.rollEventKind(REWARD_RULES, RNG);
+    if (kind) EVENT_HANDLERS[kind](run);
   }
 
   function rollTreasureEvent(run) {
-    if (Math.random() < 0.35) {
+    const item = QPCore.rewards.rollTreasure(REWARD_RULES, rollItemDrop, RNG);
+    if (!item) {
       logEvent(run.team, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
       return;
     }
-    const item = rollItemDrop();
     gainItem(run, item);
     logEvent(run.team, "treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
   }
@@ -3144,8 +3135,8 @@
   function rollTrapEvent(run) {
     const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
-    const wide = Math.random() < 0.45;
-    const targets = wide ? alive : [alive[Math.floor(Math.random() * alive.length)]];
+    const wide = RNG.chance(0.45);
+    const targets = wide ? alive : [RNG.pick(alive)];
     const ratio = wide ? 0.1 : 0.18;
 
     logEvent(run.team, "trap", wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
@@ -3174,7 +3165,7 @@
   }
 
   function rollShrineEvent(run) {
-    const stat = ["atk", "def", "spd"][Math.floor(Math.random() * 3)];
+    const stat = RNG.pick(["atk", "def", "spd"]);
     run.buffs[stat] = (run.buffs[stat] || 0) + 0.12;
     logEvent(run.team, "blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
     logLine(run.team, `${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");
@@ -3191,16 +3182,12 @@
   // 出撃時にスナップショットした自動分解設定(run.autoDisassemble等)を使うため、
   // 探索中に設定画面で自動分解の設定を変えても、この周回の結果には影響しない
   function settlePendingDrops(run) {
-    for (const item of run.pendingDrops) {
-      if (run.autoDisassemble && run.autoDisassembleRarities.has(item.rarity)) {
-        addMaterial(item.materialValue);
-        run.disassembleCount += 1;
-        run.materialGained += item.materialValue;
-      } else {
-        run.drops.push(item);
-        inventory.push(item);
-      }
-    }
+    const settled = QPCore.rewards.settleDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
+    if (settled.materialGained > 0) addMaterial(settled.materialGained);
+    run.disassembleCount += settled.disassembled;
+    run.materialGained += settled.materialGained;
+    run.drops.push(...settled.kept);
+    inventory.push(...settled.kept);
   }
 
   function finishRun(run, info) {
@@ -3302,11 +3289,57 @@
   // タブを閉じる・バックグラウンドに回す・アプリを切り替えるなど、
   // ページが見えなくなるタイミングで必ず保存しておく（iOS Safariでは
   // beforeunload/pagehideが確実に発火しないことがあるため、visibilitychangeも併用）
+  // バックグラウンド中はrequestAnimationFrameが止まり戦闘が進まないため、ページを破棄されずに復帰した場合も
+  // 起動時と同じオフライン精算を行う。隠れる直前に保存したセーブのsavedAtを起点にするので、
+  // 復帰せずにページが破棄された場合（次回起動時に精算）と二重に精算されることはない
+  let hiddenSaveAt = null;
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) saveGame();
+    if (document.hidden) {
+      hiddenSaveAt = saveGame() ? lastSavedAt : null;
+      return;
+    }
+    const since = hiddenSaveAt;
+    hiddenSaveAt = null;
+    if (since) settleAfterBackground(since);
   });
+
+  function settleAfterBackground(savedAt) {
+    const elapsedMs = Date.now() - savedAt;
+    // 1周ぶんの時間も経っていないチームは、中断せずそのまま続きから再開する
+    const targets = [];
+    for (let i = 0; i < TEAM_COUNT; i++) {
+      const run = teamRuns[i];
+      if (!autoRepeat[i].active || !run || !run.dungeon) continue;
+      if (elapsedMs / 1000 < estimateOfflineRunSeconds(run.dungeon)) continue;
+      targets.push(i);
+    }
+    if (targets.length === 0) return;
+    if (!claimOfflineSettlement(savedAt)) { enqueueModal(showOfflineSettleFailedModal); processModalQueue(); return; }
+
+    const infos = new Array(TEAM_COUNT).fill(null);
+    for (const i of targets) {
+      const run = teamRuns[i];
+      infos[i] = { active: true, target: autoRepeat[i].target, done: autoRepeat[i].done, dungeonId: run.dungeon.id };
+      // 離れる直前の周回は途中で止まっているため打ち切り、離れていた時間ぶんはまとめて精算する
+      // （起動時の精算で途中の周回を破棄するのと同じ扱い。この周の未確定ドロップは持ち帰れない）
+      clearTimeout(nextBattleTimer[i]);
+      if (!run.finished) {
+        run.finished = true;
+        if (teamBattles[i]) teamBattles[i].active = false;
+        logEvent(i, "wipe", "アプリを離れていたため、この周回を中断した", "離れていた間の自動周回はまとめて精算しました");
+      }
+      restoreTeamParty(i);
+    }
+    const summaries = runOfflineProgress(infos, savedAt);
+    saveGame();
+    buildPartyDock();
+    renderDock();
+    if (summaries) { enqueueModal(() => showOfflineModal(summaries)); processModalQueue(); }
+  }
   window.addEventListener("pagehide", saveGame);
-  setInterval(saveGame, 20000);
+  // バックグラウンド中は定期保存しない（保存済みのsavedAtを「離れた時刻」として固定し、復帰時の精算と
+  // 次回起動時の精算が同じ期間を二重に数えないようにするため。隠れる直前には必ず保存している）
+  setInterval(() => { if (!document.hidden) saveGame(); }, 20000);
 
   loadGame();
   renderTitle();
@@ -3319,5 +3352,6 @@
     if (startupAnnouncement) enqueueModal(() => openAnnouncementModal(startupAnnouncement));
   }
   if (pendingOfflineSummaries) enqueueModal(() => showOfflineModal(pendingOfflineSummaries));
+  if (offlineSettleFailed) enqueueModal(showOfflineSettleFailedModal);
   processModalQueue();
 })();
