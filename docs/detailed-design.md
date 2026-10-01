@@ -313,6 +313,10 @@ offlineClearChance(dungeon)
 | セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()` |
 | オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `simulateOfflineRun()`, `showOfflineModal()` |
 
+## 3.1 乱数（`js/core/rng.js`）
+
+ゲーム内の抽選（ドロップ・レア度・敵の編成・会心・テイム・強化・道中イベント・オフライン精算など）は `Math.random` を直接呼ばず、`data.js` 冒頭で定義する共有乱数 `RNG`（`QPCore.rng.shared`）の `next() / float(a, b) / int(n) / chance(p) / pick(arr)` を使う。`QPCore.rng.setSharedSeed(seed)` でシード付き（mulberry32）に差し替えると抽選結果を再現でき、`setSharedSeed(undefined)` で通常の乱数に戻る。本番化で抽選をサーバーへ移す際は、同じ関数をサーバー側の乱数で動かす。
+
 ## 4. localStorage キー一覧
 
 キー名は `js/core/storage.js` の `KEYS` に一元管理する。ゲーム本体（`game.js`）は `localStorage` を直接触らず、`QPCore.storage.createStorage(backend, { onWriteError })` で作った `store` の `getString/getInt/getJSON/set/setJSON/remove` だけを使う。読み込みの失敗・壊れた値は呼び出し側が渡す既定値になり、書き込みの失敗（容量超過など）は例外を出さずに `false` を返して `onWriteError`（保存失敗の警告帯）で知らせる。本番化では `backend` を差し替える（`docs/production-plan.md` §3）。

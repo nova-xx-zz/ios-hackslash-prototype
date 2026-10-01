@@ -3,7 +3,7 @@
 
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
   const SAVE_SCHEMA_VERSION = 2;
-  const rand = (a, b) => a + Math.random() * (b - a);
+  const rand = (a, b) => RNG.float(a, b);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
   const TEAM_COUNT = 4;
@@ -726,9 +726,9 @@
   // 個々の戦闘不能は再現しないため、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
   function simulateOfflineRun(dungeon, teamIndex) {
     const party = teamMembers(teamIndex);
-    const cleared = Math.random() < offlineClearChance(dungeon, teamIndex);
+    const cleared = RNG.chance(offlineClearChance(dungeon, teamIndex));
     // 全滅する場合は、何戦目で力尽きたかを抽選する（その戦闘自体は敗北）
-    const battlesFought = cleared ? dungeon.battles : 1 + Math.floor(Math.random() * dungeon.battles);
+    const battlesFought = cleared ? dungeon.battles : 1 + RNG.int(dungeon.battles);
     const battlesWon = cleared ? battlesFought : battlesFought - 1;
     let expTotal = 0;
     const drops = [];
@@ -746,10 +746,10 @@
       expTotal += expGain;
       for (const c of party) gainExp(c, Math.round(expGain * RACES[c.race].expMult));
       drops.push(rollItemDrop());
-      if (Math.random() < 0.4) drops.push(rollItemDrop());
+      if (RNG.chance(0.4)) drops.push(rollItemDrop());
       // 戦闘間の道中イベント（約6割）のうち宝箱（重み40/100）で、空っぽ（35%）でなければアイテム1個
       const isLast = i === dungeon.battles - 1;
-      if (!isLast && Math.random() < 0.6 && Math.random() < 0.4 && Math.random() >= 0.35) drops.push(rollItemDrop());
+      if (!isLast && RNG.chance(0.6) && RNG.chance(0.4) && !RNG.chance(0.35)) drops.push(rollItemDrop());
     }
     // 全滅した周は、実際のプレイと同じくドロップ・テイムを持ち帰れない（EXPは上で付与済み）
     if (!cleared) return { cleared: false, expTotal };
@@ -765,9 +765,9 @@
     }
     let tamedName = null;
     if (defeatedTamable.length > 0) {
-      const key = defeatedTamable[Math.floor(Math.random() * defeatedTamable.length)];
+      const key = RNG.pick(defeatedTamable);
       const tpl = getEnemyTemplate(key);
-      if (Math.random() < tpl.tameChance) {
+      if (RNG.chance(tpl.tameChance)) {
         const lvl = Math.max(1, currentMaxLevel() - 2);
         roster.push(newCharacter(tpl.name, null, key, { level: lvl, isMonster: true }));
         tamedName = tpl.name;
@@ -2438,7 +2438,7 @@
     if (material < cost) return;
     addMaterial(-cost);
     const pityHit = isPityReady(item);
-    if (pityHit || Math.random() < enhanceSuccessRate(item)) {
+    if (pityHit || RNG.chance(enhanceSuccessRate(item))) {
       item.plus += 1;
       item.pity = 0; // +値が変わったら天井ゲージは0から
       enhanceMessage = `成功！ +${item.plus} になった` + (pityHit ? "（天井）" : "");
@@ -2926,7 +2926,7 @@
     const alive = battle.enemies.filter((e) => e.alive);
     if (alive.length === 0) return null;
     const mode = (c && c.targetPriority) || "weakest";
-    if (mode === "random") return alive[Math.floor(Math.random() * alive.length)];
+    if (mode === "random") return RNG.pick(alive);
     if (mode === "strongest") return alive.reduce((hi, e) => (e.hp > hi.hp ? e : hi), alive[0]);
     return alive.reduce((lowest, e) => (e.hp < lowest.hp ? e : lowest), alive[0]);
   }
@@ -2967,7 +2967,7 @@
           let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
           dmg = Math.round(dmg * rand(0.9, 1.15));
           const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus") + treePassive(c, "critBonus");
-          if (!isMagic && Math.random() < critChance) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
+          if (!isMagic && RNG.chance(critChance)) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
           t.hp -= dmg;
           let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
           if (lifesteal > 0) {
@@ -3004,7 +3004,7 @@
   function performEnemyAction(run, battle, e) {
     const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
-    const target = alive[Math.floor(Math.random() * alive.length)];
+    const target = RNG.pick(alive);
     const stats = computeStats(target);
     let dmg = Math.max(1, Math.round(e.atk - stats.def * 0.4));
     dmg = Math.round(dmg * rand(0.9, 1.15));
@@ -3070,9 +3070,9 @@
   function attemptTame(run) {
     const candidates = run.defeatedTamable;
     if (candidates.length === 0) return null;
-    const key = candidates[Math.floor(Math.random() * candidates.length)];
+    const key = RNG.pick(candidates);
     const tpl = getEnemyTemplate(key);
-    const success = Math.random() < tpl.tameChance;
+    const success = RNG.chance(tpl.tameChance);
     if (!success) return { success: false, name: tpl.name };
     const lvl = Math.max(1, currentMaxLevel() - 2);
     const mon = newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
@@ -3099,7 +3099,7 @@
     }
 
     gainItem(run, rollItemDrop());
-    if (Math.random() < 0.4) gainItem(run, rollItemDrop());
+    if (RNG.chance(0.4)) gainItem(run, rollItemDrop());
 
     logLine(run.team, `EXP +${expGain}`, "system");
 
@@ -3107,7 +3107,7 @@
     if (!isLast) {
       run.battleIndex += 1;
       scheduleNext(run.team, () => {
-        if (Math.random() < 0.6) rollDungeonEvent(run);
+        if (RNG.chance(0.6)) rollDungeonEvent(run);
         scheduleNext(run.team, () => startBattle(run), 700);
       }, 900);
     } else {
@@ -3140,7 +3140,7 @@
 
   function rollDungeonEvent(run) {
     const total = EVENT_WEIGHTS.reduce((s, e) => s + e.weight, 0);
-    let roll = Math.random() * total;
+    let roll = RNG.float(0, total);
     for (const e of EVENT_WEIGHTS) {
       if (roll < e.weight) { e.fn(run); return; }
       roll -= e.weight;
@@ -3148,7 +3148,7 @@
   }
 
   function rollTreasureEvent(run) {
-    if (Math.random() < 0.35) {
+    if (RNG.chance(0.35)) {
       logEvent(run.team, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
       return;
     }
@@ -3160,8 +3160,8 @@
   function rollTrapEvent(run) {
     const alive = teamMembers(run.team).filter((p) => p.alive);
     if (alive.length === 0) return;
-    const wide = Math.random() < 0.45;
-    const targets = wide ? alive : [alive[Math.floor(Math.random() * alive.length)]];
+    const wide = RNG.chance(0.45);
+    const targets = wide ? alive : [RNG.pick(alive)];
     const ratio = wide ? 0.1 : 0.18;
 
     logEvent(run.team, "trap", wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
@@ -3190,7 +3190,7 @@
   }
 
   function rollShrineEvent(run) {
-    const stat = ["atk", "def", "spd"][Math.floor(Math.random() * 3)];
+    const stat = RNG.pick(["atk", "def", "spd"]);
     run.buffs[stat] = (run.buffs[stat] || 0) + 0.12;
     logEvent(run.team, "blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
     logLine(run.team, `${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");

@@ -1,5 +1,8 @@
 // ゲームデータ定義（ジョブ / アビリティ / 敵 / アイテム）
 
+// ゲーム内の抽選はすべてこの共有乱数を通す（js/core/rng.js。テストではシード付きに差し替えられる）
+const RNG = QPCore.rng.shared;
+
 // 段階公開の機能フラグ（配布バージョンごとの運営設定）。告知の公開日時や端末時計からは
 // 算出しない。falseの機能はUI・ドロップ・効果・オフライン精算のいずれにも影響させない。
 // スキルツリーは「標準ツリー＋SP」の第1弾として実装済み。スキルブック・鑑定所・一次職の
@@ -551,10 +554,10 @@ const PLAYER_RACE_IDS = Object.keys(RACES).filter((k) => RACES[k].kind === "play
 const RECRUIT_NAME_POOL = ["カイ", "レン", "シオン", "ファナ", "トウカ", "ミル", "ジン", "エマ", "ロイ", "ニナ", "ソラ", "ユキ"];
 
 function rollNewRecruit() {
-  const race = PLAYER_RACE_IDS[Math.floor(Math.random() * PLAYER_RACE_IDS.length)];
+  const race = RNG.pick(PLAYER_RACE_IDS);
   const jobIds = BASIC_JOB_IDS;
-  const job = jobIds[Math.floor(Math.random() * jobIds.length)];
-  const name = RECRUIT_NAME_POOL[Math.floor(Math.random() * RECRUIT_NAME_POOL.length)];
+  const job = RNG.pick(jobIds);
+  const name = RNG.pick(RECRUIT_NAME_POOL);
   return { name, job, race };
 }
 
@@ -602,7 +605,7 @@ function buildEncounter(dungeon, battleIndex) {
   const list = [];
 
   for (let i = 0; i < count; i++) {
-    const key = dungeon.pool[Math.floor(Math.random() * dungeon.pool.length)];
+    const key = RNG.pick(dungeon.pool);
     list.push(makeEnemy(getEnemyTemplate(key), mult, false));
   }
   if (isBossBattle) {
@@ -620,7 +623,7 @@ function makeEnemy(t, mult, isBoss) {
     hp: Math.round(t.hp * mult), maxHp: Math.round(t.hp * mult),
     atk: Math.round(t.atk * mult), mag: t.mag, def: Math.round(t.def * mult),
     spd: t.spd, exp: Math.round(t.exp * mult),
-    atb: Math.random() * 30,
+    atb: RNG.float(0, 30),
   };
 }
 
@@ -641,7 +644,7 @@ const DEFAULT_AUTO_DISASSEMBLE_RARITIES = ["n", "r"];
 
 function rollRarity() {
   const total = RARITIES.reduce((s, r) => s + r.weight, 0);
-  let roll = Math.random() * total;
+  let roll = RNG.float(0, total);
   for (const r of RARITIES) {
     if (roll < r.weight) return r;
     roll -= r.weight;
@@ -725,7 +728,7 @@ const STAT_LABELS = { hp: "HP", mp: "MP", atk: "ATK", mag: "MAG", def: "DEF", sp
 
 let itemSeq = 1;
 function rollItemDrop() {
-  const base = ITEM_BASES[Math.floor(Math.random() * ITEM_BASES.length)];
+  const base = RNG.pick(ITEM_BASES);
   const rarity = rollRarity();
   return {
     id: "item_" + itemSeq++,
