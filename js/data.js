@@ -11,6 +11,7 @@ const FEATURE_FLAGS = {
   appraisal: false,
   jobMastery: false,
   guaranteedStone: false, // 確定強化石（成功率100%の有償アイテム）。入手経路（アプリ内課金）が整うまで無効
+  enhancePity: true, // 強化の天井（失敗で使った強化石が期待消費の1.5倍に達したら次は必ず成功）
 };
 function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 
@@ -673,6 +674,25 @@ function enhanceSuccessRate(item) {
 function enhanceCost(item) {
   const cfg = ENHANCE_CONFIG[item.rarity];
   return Math.round(cfg.cost + (item.plus || 0) * (cfg.costPerPlus || 0));
+}
+
+// 今の+値から1段上げるのに必要な強化石の期待値（1回の消費 ÷ 成功率）
+function enhanceExpectedCost(item) {
+  return enhanceCost(item) / enhanceSuccessRate(item);
+}
+
+// 天井: 今の+値で失敗に使った強化石(item.pity)がこの値に達したら、次の強化は必ず成功する。
+// 運が極端に悪い場合でも上限が見えるようにするため（成功・+値の変化でゲージは0に戻る）
+const ENHANCE_PITY_MULT = 1.5;
+function enhancePityThreshold(item) {
+  return Math.ceil(enhanceExpectedCost(item) * ENHANCE_PITY_MULT);
+}
+
+// 確定強化石: 1個を強化石GUARANTEED_STONE_VALUE個ぶんとみなし、その段の期待消費に応じて必要個数が増える
+// （N〜URの全段とLR+30付近までは1個、LR+98→+99は10個、LR+0→+99の合計は約300個）
+const GUARANTEED_STONE_VALUE = 10000;
+function guaranteedStonesRequired(item) {
+  return Math.max(1, Math.ceil(enhanceExpectedCost(item) / GUARANTEED_STONE_VALUE));
 }
 
 // 強化値に応じてステータス上昇量を底上げする。装備の元の数値が小さい（2〜6）ため率ではなくレア度に応じた

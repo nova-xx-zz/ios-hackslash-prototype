@@ -48,6 +48,7 @@
   rarityColor,
   materialValue,        // 自動分解で得る強化石量
   plus: 0,               // 強化値（0〜99）
+  pity: 0,               // 天井ゲージ（今の+値で失敗に使った強化石。未設定は0扱い）
 }
 ```
 
@@ -231,7 +232,18 @@ cost = round(cost + item.plus * (costPerPlus ?? 0))   // enhanceCost(item)
 
 強化石は失敗しても消費される。`ENHANCE_MAX_PLUS = 99`。LRの+98→+99は成功率0.5%・1回500個で、期待消費は約10万個（`cost / rate`）。LR +0→+99の期待消費の合計は約250万個。
 
-**確定強化石**（`FEATURE_FLAGS.guaranteedStone`、既定OFF）: 所持数はセーブの `guaranteedStones` に保存する。強化モーダルの「確定強化石で強化する」で1個消費し、通常の強化石を消費せずに必ず+1する。消費後は即時保存する。入手経路（アプリ内課金）は未実装で、本番ではサーバーを正本にする（`docs/production-plan.md`）。
+**天井**（`FEATURE_FLAGS.enhancePity`、既定ON）:
+```
+enhanceExpectedCost(item)   = enhanceCost(item) / enhanceSuccessRate(item)
+enhancePityThreshold(item)  = ceil(enhanceExpectedCost(item) * 1.5)   // ENHANCE_PITY_MULT
+```
+失敗するたびに消費した強化石を `item.pity` に加算し、`item.pity >= enhancePityThreshold(item)` なら次の強化は乱数を引かずに成功させる。成功（確定強化石を含む）で `item.pity = 0` に戻す。`item.pity` は装備オブジェクトに保存される（未設定は0扱い）。
+
+**確定強化石**（`FEATURE_FLAGS.guaranteedStone`、既定OFF）:
+```
+guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))   // GUARANTEED_STONE_VALUE
+```
+所持数はセーブの `guaranteedStones: { free, paid }`（無償分・有償分）に保存し、消費は無償分から行う。強化モーダルの「確定強化石◯個で強化する」で必要個数を消費し、通常の強化石を消費せずに必ず+1する。消費後は即時保存する。数値で保存された旧形式は無償分として読み込む。入手経路（アプリ内課金）は未実装で、本番ではサーバーを正本にする（`docs/production-plan.md`）。
 
 ### 2.11 オフライン進行シミュレーション
 
@@ -471,7 +483,7 @@ jobLevels[jobId] = {
   savedAt, autoRepeat,              // 現行フィールドを保持
   skillBooks: [],
   material: 0,                     // 拡張移行後の正本
-  guaranteedStones: 0,             // 確定強化石の所持数（未設定なら0。機能フラグguaranteedStoneは既定OFF）
+  guaranteedStones: { free: 0, paid: 0 }, // 確定強化石の所持数（無償分・有償分。機能フラグguaranteedStoneは既定OFF）
   enabledFeaturesAtSave: []         // 離脱時の有効機能。オフライン精算に利用
 }
 ```

@@ -246,9 +246,16 @@
   // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
   // 1回の保存でまとめて確定させるため）。skillBooksはスキルブック機能(未実装)向けの予約フィールド
   let skillBooks = [];
-  // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金）は未実装で、
-  // FEATURE_FLAGS.guaranteedStone が無効の間はUIにも出ない。本番ではサーバーを正本にする（docs/production-plan.md）
-  let guaranteedStones = 0;
+  // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金・無料配布）は未実装で、
+  // FEATURE_FLAGS.guaranteedStone が無効の間はUIにも出ない。本番ではサーバーを正本にする（docs/production-plan.md）。
+  // 資金決済法の残高計算で有償分だけを数えられるよう、無償分(free)と有償分(paid)を分けて持ち、消費は無償分から行う
+  let guaranteedStones = { free: 0, paid: 0 };
+  function guaranteedStoneTotal() { return guaranteedStones.free + guaranteedStones.paid; }
+  function consumeGuaranteedStones(n) {
+    const fromFree = Math.min(n, guaranteedStones.free);
+    guaranteedStones.free -= fromFree;
+    guaranteedStones.paid -= n - fromFree;
+  }
   function saveGame() {
     let json;
     try {
@@ -300,7 +307,10 @@
       clearedDungeons = new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []);
       nextCharSeq = typeof data.nextCharSeq === "number" ? data.nextCharSeq : 1;
       skillBooks = Array.isArray(data.skillBooks) ? data.skillBooks : [];
-      guaranteedStones = typeof data.guaranteedStones === "number" ? data.guaranteedStones : 0;
+      const gs = data.guaranteedStones;
+      guaranteedStones = (gs && typeof gs === "object")
+        ? { free: Number(gs.free) || 0, paid: Number(gs.paid) || 0 }
+        : { free: typeof gs === "number" ? gs : 0, paid: 0 }; // 区別のない旧形式は無償分として扱う
       // schemaVersion 2以降はこのセーブのmaterialを正本として使う。それ未満（旧形式）の
       // セーブでは jobquest_material キーが正本だったため、そちらから一度だけ引き継ぐ
       const isLegacySave = !(typeof data.schemaVersion === "number" && data.schemaVersion >= 2);
@@ -2367,8 +2377,9 @@
       <div class="pm-stat-row"><span class="pm-stat-label">強化値</span><span>+${item.plus} / +${ENHANCE_MAX_PLUS}</span></div>
       <div class="pm-stat-row"><span class="pm-stat-label">成功率</span><span>${formatEnhanceRate(rate)}</span></div>
       <div class="pm-stat-row"><span class="pm-stat-label">消費強化石</span><span>${cost}（所持 ${material}）</span></div>` +
-      (isFeatureEnabled("guaranteedStone")
-        ? `<div class="pm-stat-row"><span class="pm-stat-label">確定強化石</span><span>所持 ${guaranteedStones}</span></div>`
+      (isFeatureEnabled("enhancePity") && !maxed ? buildPityRow(item) : "") +
+      (isFeatureEnabled("guaranteedStone") && !maxed
+        ? `<div class="pm-stat-row"><span class="pm-stat-label">確定強化石</span><span>必要 ${guaranteedStonesRequired(item)}個（所持 ${guaranteedStoneTotal()}：無償${guaranteedStones.free}／有償${guaranteedStones.paid}）</span></div>`
         : "");
 
     const resultBox = document.getElementById("enResult");
@@ -2381,8 +2392,21 @@
 
     const gBtn = document.getElementById("btnEnhanceGuaranteed");
     gBtn.classList.toggle("hidden", !isFeatureEnabled("guaranteedStone"));
-    gBtn.disabled = maxed || guaranteedStones < 1;
-    gBtn.textContent = guaranteedStones < 1 ? "確定強化石がありません" : "確定強化石で強化する（成功率100%）";
+    const required = maxed ? 0 : guaranteedStonesRequired(item);
+    const enough = guaranteedStoneTotal() >= required;
+    gBtn.disabled = maxed || !enough;
+    gBtn.textContent = maxed ? "強化値が上限です"
+      : (enough ? `確定強化石${required}個で強化する（成功率100%）` : `確定強化石が足りません（あと${required - guaranteedStoneTotal()}個）`);
+  }
+
+  function isPityReady(item) {
+    return isFeatureEnabled("enhancePity") && (item.pity || 0) >= enhancePityThreshold(item);
+  }
+  function buildPityRow(item) {
+    const threshold = enhancePityThreshold(item);
+    const pity = Math.min(item.pity || 0, threshold);
+    const text = isPityReady(item) ? "次の強化は必ず成功" : `${pity} / ${threshold}`;
+    return `<div class="pm-stat-row"><span class="pm-stat-label">天井</span><span>${text}</span></div>`;
   }
 
   // 成功率は低い帯（LRの終盤は0.5%）でも0%と表示されないよう、10%未満は小数第1位まで出す
@@ -2397,21 +2421,29 @@
     const cost = enhanceCost(item);
     if (material < cost) return;
     addMaterial(-cost);
-    if (Math.random() < enhanceSuccessRate(item)) {
+    const pityHit = isPityReady(item);
+    if (pityHit || Math.random() < enhanceSuccessRate(item)) {
       item.plus += 1;
-      enhanceMessage = `成功！ +${item.plus} になった`;
+      item.pity = 0; // +値が変わったら天井ゲージは0から
+      enhanceMessage = `成功！ +${item.plus} になった` + (pityHit ? "（天井）" : "");
     } else {
+      if (isFeatureEnabled("enhancePity")) item.pity = (item.pity || 0) + cost;
       enhanceMessage = `失敗…（+${item.plus} のまま）`;
     }
+    scheduleSave();
     renderEnhanceModal();
   });
-  // 確定強化石: 1個消費で必ず+1する（通常の強化石は消費しない）。消費は取り消せないため即時保存する
+  // 確定強化石: その段の期待消費に応じた個数を消費して必ず+1する（通常の強化石は消費しない）。
+  // 消費は取り消せないため即時保存する
   document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
     const item = enhanceItem;
-    if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS || guaranteedStones < 1) return;
-    guaranteedStones -= 1;
+    if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS) return;
+    const required = guaranteedStonesRequired(item);
+    if (guaranteedStoneTotal() < required) return;
+    consumeGuaranteedStones(required);
     item.plus += 1;
-    enhanceMessage = `成功！ +${item.plus} になった（確定強化石を使用）`;
+    item.pity = 0;
+    enhanceMessage = `成功！ +${item.plus} になった（確定強化石${required}個を使用）`;
     saveGame();
     renderEnhanceModal();
   });
