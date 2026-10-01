@@ -321,9 +321,11 @@ offlineClearChance(dungeon)
 | `rng.js` | `shared`, `createRng(seed)`, `setSharedSeed(seed)` | 乱数（§3.1） |
 | `enhance.js` | `successRate / cost / expectedCost / pityThreshold / guaranteedRequired`, `attempt(rules, item, { rng, pityEnabled })`, `useGuaranteed(rules, item, stones)` | 装備強化（§2.10）。`attempt` / `useGuaranteed` は判定後の+値・天井ゲージ・確定強化石の残数を返すだけで、装備や所持数は変更しない |
 | `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
+| `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは game.js の `computeStats` |
+| `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `chooseAction`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
 | `offline.js` | `estimateRunSeconds`, `clearChance`, `planRuns`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返し、図鑑登録・EXP付与・所持品への追加は game.js の `simulateOfflineRun` が行う |
 
-数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。
+数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 
 ## 3.1 乱数（`js/core/rng.js`）
 

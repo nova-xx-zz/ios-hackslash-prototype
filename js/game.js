@@ -13,21 +13,34 @@
   // 失敗したら画面上部に警告を出す（次にメインセーブが成功した時点で警告は消える）
   const KEYS = QPCore.storage.KEYS;
   const store = QPCore.storage.createStorage(QPCore.storage.defaultBackend(), { onWriteError: showSaveFailureBanner });
+  // 容量不足の間は書き込みのたびに失敗するため、警告帯が画面上部のボタンを覆い続けないよう
+  // 8秒で自動的に隠し、タップで閉じた後は5分間は出し直さない
+  const SAVE_BANNER_AUTO_HIDE_MS = 8000;
+  const SAVE_BANNER_SNOOZE_MS = 5 * 60 * 1000;
+  let saveBannerSnoozeUntil = 0;
+  let saveBannerTimer = null;
   function showSaveFailureBanner() {
+    if (Date.now() < saveBannerSnoozeUntil) return;
     let el = document.getElementById("saveErrorBanner");
     if (!el) {
       el = document.createElement("div");
       el.id = "saveErrorBanner";
       el.className = "save-error-banner";
       el.textContent = "端末への保存に失敗しました。保存容量が不足している可能性があります（自動分解の対象レア度を増やすと所持品を減らせます）。タップで閉じる";
-      el.addEventListener("click", () => el.classList.add("hidden"));
+      el.addEventListener("click", () => {
+        el.classList.add("hidden");
+        saveBannerSnoozeUntil = Date.now() + SAVE_BANNER_SNOOZE_MS;
+      });
       document.body.appendChild(el);
     }
     el.classList.remove("hidden");
+    clearTimeout(saveBannerTimer);
+    saveBannerTimer = setTimeout(() => el.classList.add("hidden"), SAVE_BANNER_AUTO_HIDE_MS);
   }
   function hideSaveFailureBanner() {
     const el = document.getElementById("saveErrorBanner");
     if (el) el.classList.add("hidden");
+    saveBannerSnoozeUntil = 0; // 保存できるようになったら、次に失敗した時はすぐ知らせる
   }
 
   function getBestStage() { return store.getInt(KEYS.bestCleared, 0); }
@@ -548,17 +561,7 @@
   function treePassive(c, key) { return treePassiveTotals(c)[key]; }
 
   function computeStats(c) {
-    const job = jobDef(c);
-    const race = RACES[c.race] || RACES.human;
-    const growth = 1 + 0.12 * (c.level - 1);
-    const s = {
-      maxHp: Math.round(job.base.hp * growth * race.mult.hp),
-      maxMp: Math.round(job.base.mp * growth * race.mult.mp),
-      atk: Math.round(job.base.atk * growth * race.mult.atk),
-      mag: Math.round(job.base.mag * growth * race.mult.mag),
-      def: Math.round(job.base.def * growth * race.mult.def),
-      spd: job.base.spd * race.mult.spd,
-    };
+    const s = QPCore.stats.baseStats(jobDef(c), RACES[c.race] || RACES.human, c.level);
     for (const slot of SLOTS) {
       const item = c.equip[slot.key];
       if (item) s[item.stat] += itemEffectiveValue(item);
@@ -567,12 +570,7 @@
     s.maxHp += tp.hp; s.maxMp += tp.mp; s.atk += tp.atk; s.mag += tp.mag; s.def += tp.def; s.spd += tp.spd;
     // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
     const teamRun = c.team !== null ? teamRuns[c.team] : null;
-    if (teamRun && !teamRun.finished) {
-      for (const stat of ["atk", "mag", "def", "spd"]) {
-        const buff = teamRun.buffs[stat];
-        if (buff) s[stat] = Math.round(s[stat] * (1 + buff) * 10) / 10;
-      }
-    }
+    if (teamRun && !teamRun.finished) QPCore.stats.applyBuffs(s, teamRun.buffs);
     return s;
   }
 
@@ -2464,7 +2462,7 @@
 
   // ---------- Battle ----------
   const ATB_RATE = 7;
-  const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
+  const BASIC_ATTACK = QPCore.battle.BASIC_ATTACK;
 
   let partyEls = {};
   let nextBattleTimer = new Array(TEAM_COUNT).fill(null);
@@ -2879,122 +2877,51 @@
     { value: "random", label: "ランダム" },
   ];
 
-  function chooseAction(c, teamIndex) {
-    const abilities = availableAbilities(c).filter((a) => isSkillActive(c, a.id) && c.mp >= mpCostFor(c, a));
-    const usable = abilities.filter((a) => {
-      if (a.kind !== "heal") return true;
-      if (a.target === "single-ally") return teamMembers(teamIndex).some((p) => p.alive && p.hp < computeStats(p).maxHp * 0.8);
-      if (a.target === "all-ally") return teamMembers(teamIndex).filter((p) => p.alive).some((p) => p.hp < computeStats(p).maxHp * 0.7);
-      return true;
-    });
-    if (usable.length === 0) return BASIC_ATTACK;
-    usable.sort((a, b) => {
-      const tierDiff = getAbilityTier(c, b.id) - getAbilityTier(c, a.id);
-      if (tierDiff !== 0) return tierDiff;
-      return b.reqLevel - a.reqLevel;
-    });
-    return usable[0];
+  // 戦闘の計算はjs/core/battle.js（画面に依存しない）。ここではキャラの能力値・技・パッシブを渡し、
+  // 返ってきたイベントをログの文章にする
+  function battleEnv() {
+    return {
+      rng: RNG,
+      atbRate: ATB_RATE,
+      stats: computeStats,
+      abilities: (c) => availableAbilities(c).filter((a) => isSkillActive(c, a.id)),
+      mpCost: mpCostFor,
+      tier: getAbilityTier,
+      passives: (c) => ({
+        lifesteal: racePassive(c, "lifesteal") + treePassive(c, "lifesteal"),
+        healBonus: racePassive(c, "healBonus") + treePassive(c, "healBonus"),
+        critBonus: racePassive(c, "critBonus") + treePassive(c, "critBonus"),
+        dmgTakenMult: (racePassive(c, "dmgTakenMult") || 1) * (treePassive(c, "dmgTakenMult") || 1),
+      }),
+    };
   }
 
-  function pickEnemyTarget(c, battle) {
-    const alive = battle.enemies.filter((e) => e.alive);
-    if (alive.length === 0) return null;
-    const mode = (c && c.targetPriority) || "weakest";
-    if (mode === "random") return RNG.pick(alive);
-    if (mode === "strongest") return alive.reduce((hi, e) => (e.hp > hi.hp ? e : hi), alive[0]);
-    return alive.reduce((lowest, e) => (e.hp < lowest.hp ? e : lowest), alive[0]);
-  }
-
-  function pickAllyTarget(teamIndex) {
-    const alive = teamMembers(teamIndex).filter((p) => p.alive);
-    if (alive.length === 0) return null;
-    return alive.reduce((lowest, p) => {
-      const lr = lowest.hp / computeStats(lowest).maxHp;
-      const pr = p.hp / computeStats(p).maxHp;
-      return pr < lr ? p : lowest;
-    }, alive[0]);
-  }
-
-  function performCharacterAction(run, battle, c) {
-    const ability = chooseAction(c, run.team);
-    c.mp = Math.max(0, c.mp - mpCostFor(c, ability));
-    const stats = computeStats(c);
-    let targets = [];
-    if (ability.target === "single") { const t = pickEnemyTarget(c, battle); if (t) targets = [t]; }
-    else if (ability.target === "single-ally") { const t = pickAllyTarget(run.team); if (t) targets = [t]; }
-    else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
-    else if (ability.target === "all-ally") targets = teamMembers(run.team).filter((p) => p.alive);
-
-    const lifesteal = racePassive(c, "lifesteal") + treePassive(c, "lifesteal") + (ability.lifesteal || 0);
-    for (const t of targets) {
-      for (let h = 0; h < ability.hits; h++) {
-        if (ability.kind === "heal") {
-          const s = computeStats(t);
-          const healMult = 1 + racePassive(c, "healBonus") + treePassive(c, "healBonus");
-          const amount = Math.max(1, Math.round(stats.mag * ability.power * healMult * rand(0.9, 1.1)));
-          t.hp = Math.min(s.maxHp, t.hp + amount);
-          logLine(run.team, `${c.name} の${ability.name}！ ${t.name}のHPが${amount}かいふく！`, "heal");
-        } else {
-          const isMagic = ability.kind === "magic";
-          const atkStat = isMagic ? stats.mag : stats.atk;
-          const mitig = isMagic ? 0.15 : 0.3;
-          let dmg = Math.max(1, Math.round(atkStat * ability.power - t.def * mitig));
-          dmg = Math.round(dmg * rand(0.9, 1.15));
-          const critChance = isMagic ? 0 : 0.1 + racePassive(c, "critBonus") + treePassive(c, "critBonus");
-          if (!isMagic && RNG.chance(critChance)) { dmg = Math.round(dmg * 1.5); logLine(run.team, "かいしんの一撃！", ""); }
-          t.hp -= dmg;
-          let line = `${c.name} の${ability.name}！ ${t.name}に${dmg}のダメージ！`;
-          if (lifesteal > 0) {
-            const heal = Math.max(1, Math.round(dmg * lifesteal));
-            const cs = computeStats(c);
-            c.hp = Math.min(cs.maxHp, c.hp + heal);
-            line += `（${heal}吸収）`;
-          }
-          logLine(run.team, line, "hit");
-          checkEnemyDeath(run, battle, t);
-        }
-      }
+  function logBattleEvent(run, battle, ev) {
+    const t = run.team;
+    switch (ev.type) {
+      case "heal":
+        logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}のHPが${ev.amount}かいふく！`, "heal");
+        break;
+      case "crit":
+        logLine(t, "かいしんの一撃！", "");
+        break;
+      case "damage":
+        logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}に${ev.dmg}のダメージ！` + (ev.drained > 0 ? `（${ev.drained}吸収）` : ""), "hit");
+        break;
+      case "enemyDown":
+        logLine(t, `${ev.enemy.name} をたおした！`, "system");
+        updateCardSubtitle(t, enemyRoster(battle));
+        break;
+      case "acted":
+        ev.actor.actedFlash = 0.35;
+        break;
+      case "enemyAttack":
+        logLine(t, `${ev.enemy.name} のこうげき！ ${ev.target.name}に${ev.dmg}のダメージ！`, "hit");
+        break;
+      case "memberDown":
+        logLine(t, `${ev.member.name} はたおれた！`, "down");
+        break;
     }
-    c.actedFlash = 0.35;
-    c.atb = 0;
-  }
-
-  function checkEnemyDeath(run, battle, e) {
-    if (battle.enemies.includes(e) && e.alive && e.hp <= 0) {
-      e.alive = false;
-      e.hp = 0;
-      logLine(run.team, `${e.name} をたおした！`, "system");
-      updateCardSubtitle(run.team, enemyRoster(battle));
-    }
-  }
-  function checkPartyDown(run, p) {
-    if (roster.includes(p) && p.hp <= 0 && p.alive) {
-      p.alive = false;
-      p.hp = 0;
-      logLine(run.team, `${p.name} はたおれた！`, "down");
-    }
-  }
-
-  function performEnemyAction(run, battle, e) {
-    const alive = teamMembers(run.team).filter((p) => p.alive);
-    if (alive.length === 0) return;
-    const target = RNG.pick(alive);
-    const stats = computeStats(target);
-    let dmg = Math.max(1, Math.round(e.atk - stats.def * 0.4));
-    dmg = Math.round(dmg * rand(0.9, 1.15));
-    const dmgMult = (racePassive(target, "dmgTakenMult") || 1) * (treePassive(target, "dmgTakenMult") || 1);
-    dmg = Math.max(1, Math.round(dmg * dmgMult));
-    target.hp -= dmg;
-    logLine(run.team, `${e.name} のこうげき！ ${target.name}に${dmg}のダメージ！`, "hit");
-    checkPartyDown(run, target);
-    e.atb = 0;
-  }
-
-  function checkBattleEnd(run, battle) {
-    if (!battle.active) return false;
-    if (battle.enemies.every((e) => !e.alive)) { battle.active = false; onVictory(run, battle); return true; }
-    if (teamMembers(run.team).every((p) => !p.alive)) { battle.active = false; onDefeat(run); return true; }
-    return false;
   }
 
   // ---------- Main ATB loop ----------
@@ -3018,22 +2945,14 @@
   function tickTeam(i, dt) {
     const run = teamRuns[i];
     const battle = teamBattles[i];
-    for (const c of teamMembers(i)) {
-      if (c.actedFlash > 0) c.actedFlash -= dt;
-      if (!c.alive) continue;
-      c.atb = Math.min(100, c.atb + computeStats(c).spd * ATB_RATE * dt);
-      if (c.atb >= 100) {
-        performCharacterAction(run, battle, c);
-        if (checkBattleEnd(run, battle)) { if (i === activeTeam) updateBattleDOM(); return; }
-      }
-    }
-    for (const e of battle.enemies) {
-      if (!e.alive) continue;
-      e.atb = Math.min(100, e.atb + e.spd * ATB_RATE * dt);
-      if (e.atb >= 100) {
-        performEnemyAction(run, battle, e);
-        if (checkBattleEnd(run, battle)) { if (i === activeTeam) updateBattleDOM(); return; }
-      }
+    const party = teamMembers(i);
+    for (const c of party) if (c.actedFlash > 0) c.actedFlash -= dt;
+    const { events, result } = QPCore.battle.step(battle, party, dt, battleEnv());
+    for (const ev of events) logBattleEvent(run, battle, ev);
+    if (result) {
+      battle.active = false;
+      if (result === "victory") onVictory(run, battle);
+      else onDefeat(run);
     }
     if (i === activeTeam) updateBattleDOM();
   }

@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const rewards = require("../js/core/rewards.js");
 const { createRng } = require("../js/core/rng.js");
-const data = require("./helpers/load-data.js").loadGameData();
+const data = require("../tools/lib/load-data.js").loadGameData();
 
 test("レア度の出現比率は重みどおり（N約71%・R約22%・LR約0.15%）", () => {
   const rng = createRng(11);

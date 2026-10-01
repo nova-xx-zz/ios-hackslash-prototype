@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const enhance = require("../js/core/enhance.js");
 const { createRng } = require("../js/core/rng.js");
-const { ENHANCE_RULES: R } = require("./helpers/load-data.js").loadGameData();
+const { ENHANCE_RULES: R } = require("../tools/lib/load-data.js").loadGameData();
 
 const item = (rarity, plus, pity) => ({ rarity, plus, pity });
 const alwaysFail = { chance: () => false };
