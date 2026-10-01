@@ -311,7 +311,19 @@ offlineClearChance(dungeon)
 | ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
 | ログ（チームごとに履歴保持） | `logEvent(teamIndex, ...)`, `logLine(teamIndex, ...)`, `renderLogFeed(teamIndex)`（タブ切替時にDOM再構築） |
 | セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()` |
-| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `simulateOfflineRun()`, `showOfflineModal()` |
+| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `simulateOfflineRun()`（計算は `QPCore.offline.planRuns()` / `simulateRun()`、game.js は結果を状態に反映）, `showOfflineModal()` |
+
+## 3.0 画面に依存しない計算部分（`js/core/`）
+
+| ファイル | 主な関数 | 内容 |
+|---|---|---|
+| `storage.js` | `createStorage(backend, { onWriteError })`, `KEYS` | 端末への保存の窓口（§4） |
+| `rng.js` | `shared`, `createRng(seed)`, `setSharedSeed(seed)` | 乱数（§3.1） |
+| `enhance.js` | `successRate / cost / expectedCost / pityThreshold / guaranteedRequired`, `attempt(rules, item, { rng, pityEnabled })`, `useGuaranteed(rules, item, stones)` | 装備強化（§2.10）。`attempt` / `useGuaranteed` は判定後の+値・天井ゲージ・確定強化石の残数を返すだけで、装備や所持数は変更しない |
+| `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
+| `offline.js` | `estimateRunSeconds`, `clearChance`, `planRuns`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返し、図鑑登録・EXP付与・所持品への追加は game.js の `simulateOfflineRun` が行う |
+
+数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。
 
 ## 3.1 乱数（`js/core/rng.js`）
 

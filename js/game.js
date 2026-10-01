@@ -236,11 +236,6 @@
   // 資金決済法の残高計算で有償分だけを数えられるよう、無償分(free)と有償分(paid)を分けて持ち、消費は無償分から行う
   let guaranteedStones = { free: 0, paid: 0 };
   function guaranteedStoneTotal() { return guaranteedStones.free + guaranteedStones.paid; }
-  function consumeGuaranteedStones(n) {
-    const fromFree = Math.min(n, guaranteedStones.free);
-    guaranteedStones.free -= fromFree;
-    guaranteedStones.paid -= n - fromFree;
-  }
   let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
   function saveGame() {
     let json;
@@ -703,12 +698,14 @@
   // ブラウザを閉じている・バックグラウンドの間は実際のATB戦闘を再現できないため、
   // 「経過時間内に何周できたはずか」を既存の報酬計算式を再利用して概算する
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000; // これを超えた経過時間は切り捨てる
-  const OFFLINE_SEC_PER_BATTLE = 5; // 1戦闘あたりの目安秒数(x1速度想定)
-  const OFFLINE_SEC_PER_GAP = 2; // 戦闘間の道中イベント・インターバルの目安
-  const OFFLINE_SEC_OVERHEAD = 2; // 出発〜踏破演出、周回間の待機の目安
-
+  const OFFLINE_TIMING = {
+    perBattle: 5, // 1戦闘あたりの目安秒数(x1速度想定)
+    perGap: 2, // 戦闘間の道中イベント・インターバルの目安
+    overhead: 2, // 出発〜踏破演出、周回間の待機の目安
+  };
+  // 計算そのものはjs/core/offline.js（画面に依存しない）。ここはゲームの状態との橋渡し
   function estimateOfflineRunSeconds(dungeon) {
-    return dungeon.battles * OFFLINE_SEC_PER_BATTLE + Math.max(0, dungeon.battles - 1) * OFFLINE_SEC_PER_GAP + OFFLINE_SEC_OVERHEAD;
+    return QPCore.offline.estimateRunSeconds(dungeon.battles, OFFLINE_TIMING);
   }
 
   // 実際の戦闘は行わず、パーティ平均Lvとダンジョン推奨Lvの差から踏破確率を概算する
@@ -716,66 +713,44 @@
     const party = teamMembers(teamIndex);
     if (party.length === 0) return 0;
     const avgLevel = party.reduce((s, c) => s + c.level, 0) / party.length;
-    return clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98);
+    return QPCore.offline.clearChance(avgLevel, dungeon.level);
   }
 
-  // 通常プレイと同じ扱いに揃える:
+  // 1周ぶんの結果をjs/core/offline.jsで計算し、ゲームの状態に反映する。通常プレイと同じ扱い:
   // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
   // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
   // - 遭遇した敵は図鑑に登録する
   // 個々の戦闘不能は再現しないため、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
   function simulateOfflineRun(dungeon, teamIndex) {
     const party = teamMembers(teamIndex);
-    const cleared = RNG.chance(offlineClearChance(dungeon, teamIndex));
-    // 全滅する場合は、何戦目で力尽きたかを抽選する（その戦闘自体は敗北）
-    const battlesFought = cleared ? dungeon.battles : 1 + RNG.int(dungeon.battles);
-    const battlesWon = cleared ? battlesFought : battlesFought - 1;
+    const outcome = QPCore.offline.simulateRun({
+      battles: dungeon.battles,
+      clearChance: offlineClearChance(dungeon, teamIndex),
+      rng: RNG,
+      rules: REWARD_RULES,
+      buildEncounter: (i) => buildEncounter(dungeon, i),
+      isTamable: (key) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable); },
+      tameChanceOf: (key) => getEnemyTemplate(key).tameChance,
+      rollOne: rollItemDrop,
+    });
+    for (const key of outcome.encountered) markDexSeen(key);
     let expTotal = 0;
-    const drops = [];
-    const defeatedTamable = [];
-    for (let i = 0; i < battlesFought; i++) {
-      const enemies = buildEncounter(dungeon, i);
-      for (const e of enemies) markDexSeen(e.key);
-      if (i >= battlesWon) break; // 敗北した戦闘ではEXP・ドロップを得ない
-      let expGain = 0;
-      for (const e of enemies) {
-        expGain += e.exp;
-        const tpl = getEnemyTemplate(e.key);
-        if (tpl && tpl.tamable) defeatedTamable.push(e.key);
-      }
-      expTotal += expGain;
-      for (const c of party) gainExp(c, Math.round(expGain * RACES[c.race].expMult));
-      drops.push(rollItemDrop());
-      if (RNG.chance(0.4)) drops.push(rollItemDrop());
-      // 戦闘間の道中イベント（約6割）のうち宝箱（重み40/100）で、空っぽ（35%）でなければアイテム1個
-      const isLast = i === dungeon.battles - 1;
-      if (!isLast && RNG.chance(0.6) && RNG.chance(0.4) && !RNG.chance(0.35)) drops.push(rollItemDrop());
+    for (const exp of outcome.expByBattle) {
+      expTotal += exp;
+      for (const c of party) gainExp(c, QPCore.rewards.expForMember(exp, RACES[c.race].expMult));
     }
-    // 全滅した周は、実際のプレイと同じくドロップ・テイムを持ち帰れない（EXPは上で付与済み）
-    if (!cleared) return { cleared: false, expTotal };
+    if (!outcome.cleared) return { cleared: false, expTotal };
 
-    let itemsGained = 0;
-    for (const item of drops) {
-      if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
-        addMaterial(item.materialValue);
-      } else {
-        inventory.push(item);
-        itemsGained += 1;
-      }
-    }
+    const settled = QPCore.rewards.settleDrops(outcome.drops, { enabled: autoDisassemble, rarities: autoDisassembleRarities });
+    if (settled.materialGained > 0) addMaterial(settled.materialGained);
+    inventory.push(...settled.kept);
     let tamedName = null;
-    if (defeatedTamable.length > 0) {
-      const key = RNG.pick(defeatedTamable);
-      const tpl = getEnemyTemplate(key);
-      if (RNG.chance(tpl.tameChance)) {
-        const lvl = Math.max(1, currentMaxLevel() - 2);
-        roster.push(newCharacter(tpl.name, null, key, { level: lvl, isMonster: true }));
-        tamedName = tpl.name;
-      }
+    if (outcome.tame && outcome.tame.success) {
+      tamedName = addTamedMonster(outcome.tame.key).name;
     }
     clearedDungeons.add(dungeon.id);
     setBestStage(clearedDungeons.size);
-    return { cleared: true, expTotal, itemsGained, tamedName };
+    return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName };
   }
 
   // 保存されていたそのチームの自動周回状態と経過時間から、離れていた間の周回をまとめて計算する
@@ -783,11 +758,13 @@
     if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
     const dungeon = getDungeon(autoRepeatInfo.dungeonId);
     if (!dungeon) return null;
-    const elapsedMs = clamp(Date.now() - savedAt, 0, OFFLINE_MAX_MS); // 端末の時計が戻っていても負にしない
-    const secPerRun = estimateOfflineRunSeconds(dungeon);
-    const maxRunsByTime = Math.floor((elapsedMs / 1000) / secPerRun);
-    const remainingTarget = Math.max(0, autoRepeatInfo.target - autoRepeatInfo.done);
-    const runsToAttempt = Math.min(maxRunsByTime, remainingTarget);
+    const runsToAttempt = QPCore.offline.planRuns({
+      elapsedMs: Date.now() - savedAt,
+      maxMs: OFFLINE_MAX_MS,
+      secPerRun: estimateOfflineRunSeconds(dungeon),
+      target: autoRepeatInfo.target,
+      done: autoRepeatInfo.done,
+    });
 
     let cleared = 0, expGained = 0, itemsGained = 0;
     const tamedNames = [];
@@ -2434,18 +2411,15 @@
   document.getElementById("btnEnhanceGo").addEventListener("click", () => {
     const item = enhanceItem;
     if (!item || item.plus >= ENHANCE_MAX_PLUS) return;
-    const cost = enhanceCost(item);
-    if (material < cost) return;
-    addMaterial(-cost);
-    const pityHit = isPityReady(item);
-    if (pityHit || RNG.chance(enhanceSuccessRate(item))) {
-      item.plus += 1;
-      item.pity = 0; // +値が変わったら天井ゲージは0から
-      enhanceMessage = `成功！ +${item.plus} になった` + (pityHit ? "（天井）" : "");
-    } else {
-      if (isFeatureEnabled("enhancePity")) item.pity = (item.pity || 0) + cost;
-      enhanceMessage = `失敗…（+${item.plus} のまま）`;
-    }
+    if (material < enhanceCost(item)) return;
+    // 判定はjs/core/enhance.js（状態は変えずに結果だけ返す）。ここで強化石・+値・天井ゲージに反映する
+    const result = QPCore.enhance.attempt(ENHANCE_RULES, item, { rng: RNG, pityEnabled: isFeatureEnabled("enhancePity") });
+    addMaterial(-result.cost);
+    item.plus = result.plus;
+    item.pity = result.pity;
+    enhanceMessage = result.success
+      ? `成功！ +${item.plus} になった` + (result.pityHit ? "（天井）" : "")
+      : `失敗…（+${item.plus} のまま）`;
     scheduleSave();
     renderEnhanceModal();
   });
@@ -2454,12 +2428,12 @@
   document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
     const item = enhanceItem;
     if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS) return;
-    const required = guaranteedStonesRequired(item);
-    if (guaranteedStoneTotal() < required) return;
-    consumeGuaranteedStones(required);
-    item.plus += 1;
-    item.pity = 0;
-    enhanceMessage = `成功！ +${item.plus} になった（確定強化石${required}個を使用）`;
+    const result = QPCore.enhance.useGuaranteed(ENHANCE_RULES, item, guaranteedStones);
+    if (!result.ok) return;
+    guaranteedStones = result.stones; // 消費は無償分から
+    item.plus = result.plus;
+    item.pity = result.pity;
+    enhanceMessage = `成功！ +${item.plus} になった（確定強化石${result.required}個を使用）`;
     saveGame();
     renderEnhanceModal();
   });
@@ -3068,21 +3042,26 @@
 
   // ---------- Taming（ダンジョンクリア時に判定） ----------
   function attemptTame(run) {
-    const candidates = run.defeatedTamable;
-    if (candidates.length === 0) return null;
-    const key = RNG.pick(candidates);
+    const result = QPCore.rewards.rollTame(run.defeatedTamable, (key) => getEnemyTemplate(key).tameChance, RNG);
+    if (!result) return null;
+    const tpl = getEnemyTemplate(result.key);
+    if (!result.success) return { success: false, name: tpl.name };
+    const mon = addTamedMonster(result.key);
+    return { success: true, name: tpl.name, char: mon };
+  }
+
+  // テイムに成功したモンスターをロスターに加える（通常プレイ・オフライン精算で共通）
+  function addTamedMonster(key) {
     const tpl = getEnemyTemplate(key);
-    const success = RNG.chance(tpl.tameChance);
-    if (!success) return { success: false, name: tpl.name };
     const lvl = Math.max(1, currentMaxLevel() - 2);
     const mon = newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
     roster.push(mon);
-    return { success: true, name: tpl.name, char: mon };
+    return mon;
   }
 
   // ---------- Victory / rewards ----------
   function onVictory(run, battle) {
-    const expGain = battle.enemies.reduce((s, e) => s + e.exp, 0);
+    const expGain = QPCore.rewards.battleExp(battle.enemies);
     run.expTotal += expGain;
 
     for (const e of battle.enemies) {
@@ -3093,13 +3072,12 @@
     for (const c of teamMembers(run.team)) {
       if (!c.alive) continue;
       const race = RACES[c.race];
-      const result = gainExp(c, Math.round(expGain * race.expMult));
+      const result = gainExp(c, QPCore.rewards.expForMember(expGain, race.expMult));
       run.levelUps.push(...result.levelUps);
       run.abilityUnlocks.push(...result.abilityUnlocks);
     }
 
-    gainItem(run, rollItemDrop());
-    if (RNG.chance(0.4)) gainItem(run, rollItemDrop());
+    for (const item of QPCore.rewards.rollBattleDrops(REWARD_RULES, rollItemDrop, RNG)) gainItem(run, item);
 
     logLine(run.team, `EXP +${expGain}`, "system");
 
@@ -3107,7 +3085,7 @@
     if (!isLast) {
       run.battleIndex += 1;
       scheduleNext(run.team, () => {
-        if (RNG.chance(0.6)) rollDungeonEvent(run);
+        rollDungeonEvent(run);
         scheduleNext(run.team, () => startBattle(run), 700);
       }, 900);
     } else {
@@ -3131,28 +3109,25 @@
   }
 
   // ---------- 道中イベント ----------
-  const EVENT_WEIGHTS = [
-    { fn: (run) => rollTreasureEvent(run), weight: 40 },
-    { fn: (run) => rollTrapEvent(run), weight: 25 },
-    { fn: (run) => rollSpringEvent(run), weight: 20 },
-    { fn: (run) => rollShrineEvent(run), weight: 15 },
-  ];
+  // 起きるかどうかと種類の抽選はjs/core/rewards.js（確率と重みはdata.jsのREWARD_RULES。オフライン精算と共通）
+  const EVENT_HANDLERS = {
+    treasure: (run) => rollTreasureEvent(run),
+    trap: (run) => rollTrapEvent(run),
+    spring: (run) => rollSpringEvent(run),
+    shrine: (run) => rollShrineEvent(run),
+  };
 
   function rollDungeonEvent(run) {
-    const total = EVENT_WEIGHTS.reduce((s, e) => s + e.weight, 0);
-    let roll = RNG.float(0, total);
-    for (const e of EVENT_WEIGHTS) {
-      if (roll < e.weight) { e.fn(run); return; }
-      roll -= e.weight;
-    }
+    const kind = QPCore.rewards.rollEventKind(REWARD_RULES, RNG);
+    if (kind) EVENT_HANDLERS[kind](run);
   }
 
   function rollTreasureEvent(run) {
-    if (RNG.chance(0.35)) {
+    const item = QPCore.rewards.rollTreasure(REWARD_RULES, rollItemDrop, RNG);
+    if (!item) {
       logEvent(run.team, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
       return;
     }
-    const item = rollItemDrop();
     gainItem(run, item);
     logEvent(run.team, "treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
   }
@@ -3207,16 +3182,12 @@
   // 出撃時にスナップショットした自動分解設定(run.autoDisassemble等)を使うため、
   // 探索中に設定画面で自動分解の設定を変えても、この周回の結果には影響しない
   function settlePendingDrops(run) {
-    for (const item of run.pendingDrops) {
-      if (run.autoDisassemble && run.autoDisassembleRarities.has(item.rarity)) {
-        addMaterial(item.materialValue);
-        run.disassembleCount += 1;
-        run.materialGained += item.materialValue;
-      } else {
-        run.drops.push(item);
-        inventory.push(item);
-      }
-    }
+    const settled = QPCore.rewards.settleDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
+    if (settled.materialGained > 0) addMaterial(settled.materialGained);
+    run.disassembleCount += settled.disassembled;
+    run.materialGained += settled.materialGained;
+    run.drops.push(...settled.kept);
+    inventory.push(...settled.kept);
   }
 
   function finishRun(run, info) {
