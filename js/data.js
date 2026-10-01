@@ -10,6 +10,7 @@ const FEATURE_FLAGS = {
   skillBook: false,
   appraisal: false,
   jobMastery: false,
+  guaranteedStone: false, // 確定強化石（成功率100%の有償アイテム）。入手経路（アプリ内課金）が整うまで無効
 };
 function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 
@@ -650,24 +651,28 @@ function rollRarity() {
 // ---------- 装備強化（+0〜+99） ----------
 // レア度が高いほど基礎成功率が低く、かつ+が上がるごとに減衰も速いので、
 // 上位レア度ほど「なかなか+が上がらない」体感になる（周回して素材を貯める意味を持たせるため）。
+// costPerPlus: +1ごとに1回あたりの消費強化石が増える量 / rateFloor: 成功率の下限（未指定ならENHANCE_RATE_FLOOR）
+// LRは+99に近づくほど成功率が0.5%まで沈み、1回の消費も増えるため、+98→+99の期待消費は約10万個になる
+// （確定強化石＝成功率100%の有償アイテムの価値が最も高くなる帯）
 const ENHANCE_MAX_PLUS = 99;
 const ENHANCE_CONFIG = {
   n: { baseRate: 0.90, decay: 0.995, cost: 3 },
   r: { baseRate: 0.75, decay: 0.990, cost: 8 },
   sr: { baseRate: 0.55, decay: 0.985, cost: 20 },
   ur: { baseRate: 0.35, decay: 0.978, cost: 60 },
-  lr: { baseRate: 0.15, decay: 0.965, cost: 150 },
+  lr: { baseRate: 0.15, decay: 0.965, cost: 150, costPerPlus: 350 / 98, rateFloor: 0.005 },
 };
 const ENHANCE_RATE_FLOOR = 0.03; // 何度失敗しても最低3%は残す（完全に詰まないように）
 
 function enhanceSuccessRate(item) {
   const cfg = ENHANCE_CONFIG[item.rarity];
   const rate = cfg.baseRate * Math.pow(cfg.decay, item.plus || 0);
-  return Math.max(ENHANCE_RATE_FLOOR, rate);
+  return Math.max(cfg.rateFloor !== undefined ? cfg.rateFloor : ENHANCE_RATE_FLOOR, rate);
 }
 
 function enhanceCost(item) {
-  return ENHANCE_CONFIG[item.rarity].cost;
+  const cfg = ENHANCE_CONFIG[item.rarity];
+  return Math.round(cfg.cost + (item.plus || 0) * (cfg.costPerPlus || 0));
 }
 
 // 強化値に応じてステータス上昇量を底上げする。装備の元の数値が小さい（2〜6）ため率ではなくレア度に応じた

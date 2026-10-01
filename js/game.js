@@ -16,12 +16,41 @@
   const MAX_ACTIVE = 5;
   const TEAM_COUNT = 4;
 
+  // localStorageへの書き込みは容量超過（QuotaExceededError）などで例外になり得る。
+  // 例外のまま処理を中断するとゲーム進行（戦闘開始など）まで止まるため、必ずこのヘルパーを通し、
+  // 失敗したら画面上部に警告を出す（次に保存が成功した時点で警告は消える）
+  function safeSetItem(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      showSaveFailureBanner();
+      return false;
+    }
+  }
+  function showSaveFailureBanner() {
+    let el = document.getElementById("saveErrorBanner");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "saveErrorBanner";
+      el.className = "save-error-banner";
+      el.textContent = "端末への保存に失敗しました。保存容量が不足している可能性があります（自動分解の対象レア度を増やすと所持品を減らせます）。タップで閉じる";
+      el.addEventListener("click", () => el.classList.add("hidden"));
+      document.body.appendChild(el);
+    }
+    el.classList.remove("hidden");
+  }
+  function hideSaveFailureBanner() {
+    const el = document.getElementById("saveErrorBanner");
+    if (el) el.classList.add("hidden");
+  }
+
   function getBestStage() { return parseInt(localStorage.getItem(BEST_KEY) || "0", 10); }
-  function setBestStage(n) { if (n > getBestStage()) localStorage.setItem(BEST_KEY, String(n)); }
+  function setBestStage(n) { if (n > getBestStage()) safeSetItem(BEST_KEY, String(n)); }
 
   let material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
   let autoDisassemble = localStorage.getItem(AUTO_DISASSEMBLE_KEY) === "1";
-  function addMaterial(n) { material += n; localStorage.setItem(MATERIAL_KEY, String(material)); }
+  function addMaterial(n) { material += n; safeSetItem(MATERIAL_KEY, String(material)); }
 
   // 自動分解の対象レア度（プレイヤーがフィルターで選択、端末に保存）
   let autoDisassembleRarities = new Set(DEFAULT_AUTO_DISASSEMBLE_RARITIES);
@@ -30,7 +59,7 @@
     if (Array.isArray(saved)) autoDisassembleRarities = new Set(saved);
   } catch (e) { /* 保存値が壊れていたら既定値のまま */ }
   function saveAutoDisassembleFilter() {
-    localStorage.setItem(AUTO_DISASSEMBLE_FILTER_KEY, JSON.stringify([...autoDisassembleRarities]));
+    safeSetItem(AUTO_DISASSEMBLE_FILTER_KEY, JSON.stringify([...autoDisassembleRarities]));
   }
 
   // モンスター図鑑（遭遇したモンスターのキーを端末に保存）
@@ -42,7 +71,7 @@
   function markDexSeen(key) {
     if (dexSeen.has(key)) return;
     dexSeen.add(key);
-    localStorage.setItem(DEX_SEEN_KEY, JSON.stringify([...dexSeen]));
+    safeSetItem(DEX_SEEN_KEY, JSON.stringify([...dexSeen]));
   }
 
   // ---------- 冒険者ギルドからのお知らせ ----------
@@ -54,7 +83,7 @@
     if (savedRead && typeof savedRead === "object") readAnnouncements = savedRead;
   } catch (e) { /* 保存値が壊れていたら空のまま */ }
   function saveReadAnnouncements() {
-    try { localStorage.setItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(readAnnouncements)); } catch (e) { /* 既読保存の失敗はゲーム進行に影響させない */ }
+    safeSetItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(readAnnouncements));
   }
   function isAnnouncementRead(a) { return (readAnnouncements[a.id] || 0) >= a.revision; }
   function markAnnouncementRead(a) {
@@ -217,7 +246,11 @@
   // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
   // 1回の保存でまとめて確定させるため）。skillBooksはスキルブック機能(未実装)向けの予約フィールド
   let skillBooks = [];
+  // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金）は未実装で、
+  // FEATURE_FLAGS.guaranteedStone が無効の間はUIにも出ない。本番ではサーバーを正本にする（docs/production-plan.md）
+  let guaranteedStones = 0;
   function saveGame() {
+    let json;
     try {
       const data = {
         schemaVersion: SAVE_SCHEMA_VERSION,
@@ -233,11 +266,16 @@
         })),
         skillBooks,
         material,
+        guaranteedStones,
         enabledFeaturesAtSave: Object.keys(FEATURE_FLAGS).filter((k) => FEATURE_FLAGS[k]),
       };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      localStorage.setItem(MATERIAL_KEY, String(material)); // 旧キーは互換ミラー
-    } catch (e) { /* 保存に失敗しても致命的ではないので無視 */ }
+      json = JSON.stringify(data);
+    } catch (e) { return false; }
+    // 容量超過などで失敗した場合はsafeSetItemが警告を出す。成功したら以前の警告は消す
+    if (!safeSetItem(SAVE_KEY, json)) return false;
+    safeSetItem(MATERIAL_KEY, String(material)); // 旧キーは互換ミラー
+    hideSaveFailureBanner();
+    return true;
   }
 
   let saveTimer = null;
@@ -262,6 +300,7 @@
       clearedDungeons = new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []);
       nextCharSeq = typeof data.nextCharSeq === "number" ? data.nextCharSeq : 1;
       skillBooks = Array.isArray(data.skillBooks) ? data.skillBooks : [];
+      guaranteedStones = typeof data.guaranteedStones === "number" ? data.guaranteedStones : 0;
       // schemaVersion 2以降はこのセーブのmaterialを正本として使う。それ未満（旧形式）の
       // セーブでは jobquest_material キーが正本だったため、そちらから一度だけ引き継ぐ
       const isLegacySave = !(typeof data.schemaVersion === "number" && data.schemaVersion >= 2);
@@ -270,7 +309,7 @@
       } else {
         material = parseInt(localStorage.getItem(MATERIAL_KEY) || "0", 10);
       }
-      localStorage.setItem(MATERIAL_KEY, String(material));
+      safeSetItem(MATERIAL_KEY, String(material));
       // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
       for (const c of roster) {
         const s = computeStats(c);
@@ -668,32 +707,41 @@
     return clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98);
   }
 
+  // 通常プレイと同じ扱いに揃える:
+  // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
+  // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
+  // - 遭遇した敵は図鑑に登録する
+  // 個々の戦闘不能は再現しないため、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
   function simulateOfflineRun(dungeon, teamIndex) {
     const party = teamMembers(teamIndex);
     const cleared = Math.random() < offlineClearChance(dungeon, teamIndex);
-    const battlesToRun = cleared ? dungeon.battles : 1 + Math.floor(Math.random() * dungeon.battles);
+    // 全滅する場合は、何戦目で力尽きたかを抽選する（その戦闘自体は敗北）
+    const battlesFought = cleared ? dungeon.battles : 1 + Math.floor(Math.random() * dungeon.battles);
+    const battlesWon = cleared ? battlesFought : battlesFought - 1;
     let expTotal = 0;
     const drops = [];
     const defeatedTamable = [];
-    for (let i = 0; i < battlesToRun; i++) {
+    for (let i = 0; i < battlesFought; i++) {
       const enemies = buildEncounter(dungeon, i);
+      for (const e of enemies) markDexSeen(e.key);
+      if (i >= battlesWon) break; // 敗北した戦闘ではEXP・ドロップを得ない
+      let expGain = 0;
       for (const e of enemies) {
-        expTotal += e.exp;
+        expGain += e.exp;
         const tpl = getEnemyTemplate(e.key);
         if (tpl && tpl.tamable) defeatedTamable.push(e.key);
       }
-      if (cleared) {
-        drops.push(rollItemDrop());
-        if (Math.random() < 0.4) drops.push(rollItemDrop());
-      }
+      expTotal += expGain;
+      for (const c of party) gainExp(c, Math.round(expGain * RACES[c.race].expMult));
+      drops.push(rollItemDrop());
+      if (Math.random() < 0.4) drops.push(rollItemDrop());
+      // 戦闘間の道中イベント（約6割）のうち宝箱（重み40/100）で、空っぽ（35%）でなければアイテム1個
+      const isLast = i === dungeon.battles - 1;
+      if (!isLast && Math.random() < 0.6 && Math.random() < 0.4 && Math.random() >= 0.35) drops.push(rollItemDrop());
     }
-    // 全滅した周は、実際のプレイと同じくドロップ・EXPを持ち帰れない
-    if (!cleared) return { cleared: false };
+    // 全滅した周は、実際のプレイと同じくドロップ・テイムを持ち帰れない（EXPは上で付与済み）
+    if (!cleared) return { cleared: false, expTotal };
 
-    for (const c of party) {
-      const race = RACES[c.race];
-      gainExp(c, Math.round(expTotal * race.expMult));
-    }
     let itemsGained = 0;
     for (const item of drops) {
       if (autoDisassemble && autoDisassembleRarities.has(item.rarity)) {
@@ -736,9 +784,9 @@
     let wipedOut = false;
     for (let i = 0; i < runsToAttempt; i++) {
       const result = simulateOfflineRun(dungeon, teamIndex);
+      expGained += result.expTotal;
       if (!result.cleared) { wipedOut = true; break; }
       cleared += 1;
-      expGained += result.expTotal;
       itemsGained += result.itemsGained;
       if (result.tamedName) tamedNames.push(result.tamedName);
     }
@@ -746,7 +794,7 @@
     // 自動周回はここで一旦停止し、プレイヤーが結果を確認してから再開できるようにする
     autoRepeat[teamIndex].active = false;
     autoRepeat[teamIndex].target = autoRepeatInfo.target;
-    autoRepeat[teamIndex].done = wipedOut ? 0 : autoRepeatInfo.done + cleared;
+    autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
 
     if (cleared === 0 && !wipedOut) return null;
     return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut };
@@ -765,7 +813,7 @@
   function showOfflineModal(summaries) {
     const blocks = summaries.map((summary) => {
       const lines = [`【${TEAM_LABELS[summary.team]}】「${summary.dungeonName}」を ${summary.cleared}周 クリアしました`];
-      if (summary.cleared > 0) {
+      if (summary.cleared > 0 || summary.expGained > 0) {
         lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
       }
       if (summary.tamedNames.length) lines.push(`テイム: ${summary.tamedNames.join("・")}`);
@@ -1800,7 +1848,7 @@
     const wrap = document.createElement("div");
     const desc = document.createElement("div");
     desc.className = "sub-ability-row";
-    desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。チームに編成中のモンスターは選べません）";
+    desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターは選べません）";
     wrap.appendChild(desc);
 
     const candidates = roster.filter((m) => m.isMonster && m.id !== c.id && m.team === null);
@@ -1866,15 +1914,22 @@
     btn.addEventListener("click", () => {
       if (selectedMonsters.length === 0) return;
       const consumedNames = selectedMonsters.map((m) => m.name);
+      let returnedItems = 0;
       for (const m of selectedMonsters) {
+        // 素材が装備していたアイテムは消滅させず、所持品へ戻してから素材を取り除く
+        for (const slot of SLOTS) {
+          if (m.equip[slot.key]) { unequipSlot(m, slot.key); returnedItems += 1; }
+        }
         const idx = roster.findIndex((x) => x.id === m.id);
         if (idx !== -1) roster.splice(idx, 1);
       }
       fusionSelection = new Set();
       const result = gainExp(c, totalExpGain);
       fusionMessage = `${consumedNames.join("・")}を合成し、${c.name}はEXP+${totalExpGain}を獲得した` +
+        (returnedItems ? `／素材の装備${returnedItems}個は所持品に戻した` : "") +
         (result.levelUps.length ? "／" + result.levelUps.join("・") : "") +
         (result.abilityUnlocks.length ? "／" + result.abilityUnlocks.join("・") : "");
+      saveGame(); // 素材の消滅は取り消せないため、遅延保存を待たずに確定させる
       renderCharDetail();
     });
     wrap.appendChild(btn);
@@ -2310,8 +2365,11 @@
     const statsBox = document.getElementById("enStats");
     statsBox.innerHTML = `
       <div class="pm-stat-row"><span class="pm-stat-label">強化値</span><span>+${item.plus} / +${ENHANCE_MAX_PLUS}</span></div>
-      <div class="pm-stat-row"><span class="pm-stat-label">成功率</span><span>${Math.round(rate * 100)}%</span></div>
-      <div class="pm-stat-row"><span class="pm-stat-label">消費強化石</span><span>${cost}（所持 ${material}）</span></div>`;
+      <div class="pm-stat-row"><span class="pm-stat-label">成功率</span><span>${formatEnhanceRate(rate)}</span></div>
+      <div class="pm-stat-row"><span class="pm-stat-label">消費強化石</span><span>${cost}（所持 ${material}）</span></div>` +
+      (isFeatureEnabled("guaranteedStone")
+        ? `<div class="pm-stat-row"><span class="pm-stat-label">確定強化石</span><span>所持 ${guaranteedStones}</span></div>`
+        : "");
 
     const resultBox = document.getElementById("enResult");
     resultBox.textContent = enhanceMessage;
@@ -2320,6 +2378,17 @@
     const btn = document.getElementById("btnEnhanceGo");
     btn.disabled = maxed || material < cost;
     btn.textContent = maxed ? "強化値が上限です" : (material < cost ? "強化石が足りません" : "強化する");
+
+    const gBtn = document.getElementById("btnEnhanceGuaranteed");
+    gBtn.classList.toggle("hidden", !isFeatureEnabled("guaranteedStone"));
+    gBtn.disabled = maxed || guaranteedStones < 1;
+    gBtn.textContent = guaranteedStones < 1 ? "確定強化石がありません" : "確定強化石で強化する（成功率100%）";
+  }
+
+  // 成功率は低い帯（LRの終盤は0.5%）でも0%と表示されないよう、10%未満は小数第1位まで出す
+  function formatEnhanceRate(rate) {
+    const pct = rate * 100;
+    return (pct < 10 ? pct.toFixed(1) : String(Math.round(pct))) + "%";
   }
 
   document.getElementById("btnEnhanceGo").addEventListener("click", () => {
@@ -2334,6 +2403,16 @@
     } else {
       enhanceMessage = `失敗…（+${item.plus} のまま）`;
     }
+    renderEnhanceModal();
+  });
+  // 確定強化石: 1個消費で必ず+1する（通常の強化石は消費しない）。消費は取り消せないため即時保存する
+  document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
+    const item = enhanceItem;
+    if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS || guaranteedStones < 1) return;
+    guaranteedStones -= 1;
+    item.plus += 1;
+    enhanceMessage = `成功！ +${item.plus} になった（確定強化石を使用）`;
+    saveGame();
     renderEnhanceModal();
   });
   document.getElementById("btnEnhanceClose").addEventListener("click", closeEnhanceModal);
@@ -2658,7 +2737,7 @@
         chip.addEventListener("click", () => {
           if (isTeamLocked(i)) return;
           ar.target = n;
-          localStorage.setItem(AUTO_REPEAT_TARGET_KEY, String(n));
+          safeSetItem(AUTO_REPEAT_TARGET_KEY, String(n));
           renderAutoRepeatRow();
         });
         chips.appendChild(chip);
@@ -2715,7 +2794,7 @@
   }
   document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
     autoDisassemble = !autoDisassemble;
-    localStorage.setItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
+    safeSetItem(AUTO_DISASSEMBLE_KEY, autoDisassemble ? "1" : "0");
     updateAutoDisassembleButton();
   });
   function renderDisassembleFilter() {

@@ -131,7 +131,7 @@ expForLevel(level) = 30 + level * 15
 ```
 totalExpInvested(c) = c.exp + Σ_{n=1}^{level-1} expForLevel(n)
 ```
-選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する。素材は `roster` から削除（`splice`）される。
+選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成直後に `saveGame()` で即時保存する。
 
 ### 2.5 ATB戦闘ループ（4チーム並行）
 
@@ -217,18 +217,21 @@ weight合計 = 10000。体感値として「1戦闘平均1.4個・1ダンジョ�
 
 ```
 rate = ENHANCE_CONFIG[rarity].baseRate * ENHANCE_CONFIG[rarity].decay ^ item.plus
-rate = max(0.03, rate)   // 下限3%
+rate = max(rateFloor ?? 0.03, rate)   // 下限は既定3%、LRのみ0.5%
+cost = round(cost + item.plus * (costPerPlus ?? 0))   // enhanceCost(item)
 ```
 
-| rarity | baseRate | decay | cost（強化石/回） |
-|---|---|---|---|
-| n | 0.90 | 0.995 | 3 |
-| r | 0.75 | 0.990 | 8 |
-| sr | 0.55 | 0.985 | 20 |
-| ur | 0.35 | 0.978 | 60 |
-| lr | 0.15 | 0.965 | 150 |
+| rarity | baseRate | decay | cost（+0時の強化石/回） | costPerPlus | rateFloor |
+|---|---|---|---|---|---|
+| n | 0.90 | 0.995 | 3 | 0 | 0.03 |
+| r | 0.75 | 0.990 | 8 | 0 | 0.03 |
+| sr | 0.55 | 0.985 | 20 | 0 | 0.03 |
+| ur | 0.35 | 0.978 | 60 | 0 | 0.03 |
+| lr | 0.15 | 0.965 | 150 | 350/98（+98で500） | 0.005 |
 
-強化石は失敗しても消費される。`ENHANCE_MAX_PLUS = 99`。
+強化石は失敗しても消費される。`ENHANCE_MAX_PLUS = 99`。LRの+98→+99は成功率0.5%・1回500個で、期待消費は約10万個（`cost / rate`）。LR +0→+99の期待消費の合計は約250万個。
+
+**確定強化石**（`FEATURE_FLAGS.guaranteedStone`、既定OFF）: 所持数はセーブの `guaranteedStones` に保存する。強化モーダルの「確定強化石で強化する」で1個消費し、通常の強化石を消費せずに必ず+1する。消費後は即時保存する。入手経路（アプリ内課金）は未実装で、本番ではサーバーを正本にする（`docs/production-plan.md`）。
 
 ### 2.11 オフライン進行シミュレーション
 
@@ -249,7 +252,7 @@ offlineClearChance(dungeon)
 3. `runsToAttempt = min(maxRunsByTime, target - done)`
 4. `runsToAttempt` 回、`simulateOfflineRun(dungeon, teamIndex)` を実行。全滅（`cleared:false`）が出た時点でループを打ち切り、それ以前の成功分のみ結果に反映する
 
-`simulateOfflineRun(dungeon, teamIndex)` は `offlineClearChance` で踏破/全滅を1回抽選し、踏破時のみ全戦闘分のEXP・ドロップ（1戦闘あたり基本1個＋40%で追加1個、`rollItemDrop()`）・テイム抽選（該当種のいずれか1体、`tameChance`で判定）を通常プレイと同じ処理で反映する。全滅時は何も反映せずその周を打ち切る（オフライン中も「全滅時は持ち帰れない」仕様を維持）。
+`simulateOfflineRun(dungeon, teamIndex)` は `offlineClearChance` で踏破/全滅を1回抽選する。全滅の場合は何戦目で力尽きたかを抽選し、その戦闘は敗北扱いにする。戦闘ごとに、遭遇した敵を図鑑に登録（`markDexSeen`）し、勝利した戦闘ではEXPをパーティ全員に即時付与する（通常プレイと同じく全滅してもそれまでのEXPは残る。個々の戦闘不能は再現しないため全員に付与）。ドロップ（1戦闘あたり基本1個＋40%で追加1個、戦闘間は道中イベント60%×宝箱40%×中身あり65%で1個）とテイム抽選（該当種のいずれか1体、`tameChance`で判定）は踏破した周だけ反映する。全滅した周の完了周回数は通常プレイと同じく戻さない。
 
 `runOfflineProgress(savedAutoRepeatArray, savedAt)` は上記をチーム0〜3それぞれに対して呼び出し、結果が出たチームの summary だけを配列にまとめて返す（1チームも該当しなければ `null`）。複数チームが同時にオフライン進行していた場合、`showOfflineModal()` がこの配列をチームごとのブロックとして並べて表示する。
 
@@ -468,6 +471,7 @@ jobLevels[jobId] = {
   savedAt, autoRepeat,              // 現行フィールドを保持
   skillBooks: [],
   material: 0,                     // 拡張移行後の正本
+  guaranteedStones: 0,             // 確定強化石の所持数（未設定なら0。機能フラグguaranteedStoneは既定OFF）
   enabledFeaturesAtSave: []         // 離脱時の有効機能。オフライン精算に利用
 }
 ```
