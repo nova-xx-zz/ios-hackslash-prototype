@@ -9,6 +9,9 @@
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
   const DEX_SEEN_KEY = "jobquest_dex_seen";
   const READ_ANNOUNCEMENTS_KEY = "jobquest_read_announcements";
+  // オフライン進行を精算済みのセーブのsavedAt。報酬を付与する前にこれを書き込み、同じセーブを二重に精算しないようにする
+  // （精算後のセーブ保存が容量不足などで失敗しても、次回起動時に同じ期間の報酬をもう一度付与しないため）
+  const OFFLINE_SETTLED_KEY = "jobquest_offline_settled";
   const SAVE_KEY = "jobquest_save_v1"; // キー名は維持し、内部のschemaVersionで拡張フィールドを管理する
   const SAVE_SCHEMA_VERSION = 2;
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -256,15 +259,17 @@
     guaranteedStones.free -= fromFree;
     guaranteedStones.paid -= n - fromFree;
   }
+  let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
   function saveGame() {
     let json;
+    const now = Date.now();
     try {
       const data = {
         schemaVersion: SAVE_SCHEMA_VERSION,
         roster, inventory, activeTeam,
         clearedDungeons: [...clearedDungeons],
         nextCharSeq,
-        savedAt: Date.now(),
+        savedAt: now,
         autoRepeat: autoRepeat.map((ar, i) => ({
           active: ar.active,
           target: ar.target,
@@ -280,6 +285,7 @@
     } catch (e) { return false; }
     // 容量超過などで失敗した場合はsafeSetItemが警告を出す。成功したら以前の警告は消す
     if (!safeSetItem(SAVE_KEY, json)) return false;
+    lastSavedAt = now;
     safeSetItem(MATERIAL_KEY, String(material)); // 旧キーは互換ミラー
     hideSaveFailureBanner();
     return true;
@@ -295,6 +301,11 @@
   // 自動周回が稼働中のまま離れていたチームがあれば、離れていた時間分の周回をまとめて計算する
   // （チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある）
   let pendingOfflineSummaries = null;
+  let offlineSettleFailed = false;
+  // 精算前に「このsavedAtは精算済み」と記録する。記録できない（容量不足など）なら精算しない
+  function claimOfflineSettlement(savedAt) {
+    return safeSetItem(OFFLINE_SETTLED_KEY, String(savedAt));
+  }
   function loadGame() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
@@ -329,7 +340,16 @@
       // 旧バージョン（単一チームのみの自動周回）のデータはそのままでは形が合わないため、
       // 配列でない場合はオフライン進行の計算対象から外す（ロスター等の本体データは復元される）
       const savedAutoRepeat = Array.isArray(data.autoRepeat) ? data.autoRepeat : [];
-      pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
+      lastSavedAt = typeof data.savedAt === "number" ? data.savedAt : null;
+      if (savedAutoRepeat.some((ar) => ar && ar.active)) {
+        if (localStorage.getItem(OFFLINE_SETTLED_KEY) === String(data.savedAt)) {
+          // このセーブの離脱期間は精算済み（精算後の保存に失敗していた）。二重付与を避けて自動周回を止めたまま再開する
+        } else if (claimOfflineSettlement(data.savedAt)) {
+          pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
+        } else {
+          offlineSettleFailed = true; // 保存できない状態で付与すると失われる/二重になるため、精算を見送る
+        }
+      }
       // 旧形式からの移行はその場で保存し直し、schemaVersion付きの内容が次回起動を待たず反映されるようにする
       if (pendingOfflineSummaries || isLegacySave) saveGame();
       return true;
@@ -781,13 +801,11 @@
     if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
     const dungeon = getDungeon(autoRepeatInfo.dungeonId);
     if (!dungeon) return null;
-    const elapsedMs = Math.min(Date.now() - savedAt, OFFLINE_MAX_MS);
-    if (elapsedMs < 5000) return null; // 数秒程度の中断では計算しない
+    const elapsedMs = clamp(Date.now() - savedAt, 0, OFFLINE_MAX_MS); // 端末の時計が戻っていても負にしない
     const secPerRun = estimateOfflineRunSeconds(dungeon);
     const maxRunsByTime = Math.floor((elapsedMs / 1000) / secPerRun);
     const remainingTarget = Math.max(0, autoRepeatInfo.target - autoRepeatInfo.done);
     const runsToAttempt = Math.min(maxRunsByTime, remainingTarget);
-    if (runsToAttempt <= 0) return null;
 
     let cleared = 0, expGained = 0, itemsGained = 0;
     const tamedNames = [];
@@ -806,8 +824,9 @@
     autoRepeat[teamIndex].target = autoRepeatInfo.target;
     autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
 
-    if (cleared === 0 && !wipedOut) return null;
-    return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut };
+    // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
+    const tooShort = runsToAttempt <= 0;
+    return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
   }
 
   // チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある
@@ -822,6 +841,9 @@
 
   function showOfflineModal(summaries) {
     const blocks = summaries.map((summary) => {
+      if (summary.tooShort) {
+        return `【${TEAM_LABELS[summary.team]}】「${summary.dungeonName}」: 離れていた時間が1周ぶんに満たなかったため、オフライン中の周回はありませんでした`;
+      }
       const lines = [`【${TEAM_LABELS[summary.team]}】「${summary.dungeonName}」を ${summary.cleared}周 クリアしました`];
       if (summary.cleared > 0 || summary.expGained > 0) {
         lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
@@ -832,6 +854,12 @@
     });
     blocks.push("自動周回は停止中です。続けるには各チームで「自動周回開始」を押してください");
     document.getElementById("offlineDesc").innerHTML = blocks.join("<br><br>");
+    document.getElementById("offlineModal").classList.remove("hidden");
+  }
+  function showOfflineSettleFailedModal() {
+    document.getElementById("offlineDesc").innerHTML =
+      "端末の保存容量が不足しているため、離れていた間の自動周回を精算できませんでした。<br><br>" +
+      "保存できるようになると、次回起動時に精算されます（自動分解の対象レア度を増やすと所持品を減らせます）。自動周回は停止中です";
     document.getElementById("offlineModal").classList.remove("hidden");
   }
   document.getElementById("btnOfflineClose").addEventListener("click", () => {
@@ -1034,6 +1062,7 @@
   let detailTab = "stats";
   let fusionSelection = new Set(); // モンスター合成: 選択中の素材モンスターのid
   let fusionMessage = "";
+  let fusionConfirm = false; // 合成ボタンを1回押して確認待ちか（素材の消滅は取り消せないため2回押しで確定）
   let treeSelectedNode = null; // ツリータブ: 選択中ノード { scope: "exclusive"|スロットkey, nodeId }
   let treeSwapConfirm = null; // ツリータブ: 交換ボタンを1回押して確認待ちの枠key
 
@@ -1522,6 +1551,7 @@
     detailCharId = c.id;
     detailTab = "stats";
     fusionSelection = new Set();
+    fusionConfirm = false;
     fusionMessage = "";
     treeSelectedNode = null;
     treeSwapConfirm = null;
@@ -1902,6 +1932,7 @@
         if (fusionSelection.has(m.id)) fusionSelection.delete(m.id);
         else fusionSelection.add(m.id);
         fusionMessage = "";
+        fusionConfirm = false;
         renderCharDetail();
       });
       row.appendChild(toggle);
@@ -1919,10 +1950,13 @@
 
     const btn = document.createElement("button");
     btn.className = "btn primary";
-    btn.textContent = selectedMonsters.length > 0 ? `${selectedMonsters.length}体を合成する` : "素材を選んでください";
+    btn.textContent = selectedMonsters.length === 0 ? "素材を選んでください"
+      : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する（取り消せません）` : `${selectedMonsters.length}体を合成する`);
     btn.disabled = selectedMonsters.length === 0;
     btn.addEventListener("click", () => {
       if (selectedMonsters.length === 0) return;
+      if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
+      fusionConfirm = false;
       const consumedNames = selectedMonsters.map((m) => m.name);
       let returnedItems = 0;
       for (const m of selectedMonsters) {
@@ -3302,11 +3336,57 @@
   // タブを閉じる・バックグラウンドに回す・アプリを切り替えるなど、
   // ページが見えなくなるタイミングで必ず保存しておく（iOS Safariでは
   // beforeunload/pagehideが確実に発火しないことがあるため、visibilitychangeも併用）
+  // バックグラウンド中はrequestAnimationFrameが止まり戦闘が進まないため、ページを破棄されずに復帰した場合も
+  // 起動時と同じオフライン精算を行う。隠れる直前に保存したセーブのsavedAtを起点にするので、
+  // 復帰せずにページが破棄された場合（次回起動時に精算）と二重に精算されることはない
+  let hiddenSaveAt = null;
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) saveGame();
+    if (document.hidden) {
+      hiddenSaveAt = saveGame() ? lastSavedAt : null;
+      return;
+    }
+    const since = hiddenSaveAt;
+    hiddenSaveAt = null;
+    if (since) settleAfterBackground(since);
   });
+
+  function settleAfterBackground(savedAt) {
+    const elapsedMs = Date.now() - savedAt;
+    // 1周ぶんの時間も経っていないチームは、中断せずそのまま続きから再開する
+    const targets = [];
+    for (let i = 0; i < TEAM_COUNT; i++) {
+      const run = teamRuns[i];
+      if (!autoRepeat[i].active || !run || !run.dungeon) continue;
+      if (elapsedMs / 1000 < estimateOfflineRunSeconds(run.dungeon)) continue;
+      targets.push(i);
+    }
+    if (targets.length === 0) return;
+    if (!claimOfflineSettlement(savedAt)) { enqueueModal(showOfflineSettleFailedModal); processModalQueue(); return; }
+
+    const infos = new Array(TEAM_COUNT).fill(null);
+    for (const i of targets) {
+      const run = teamRuns[i];
+      infos[i] = { active: true, target: autoRepeat[i].target, done: autoRepeat[i].done, dungeonId: run.dungeon.id };
+      // 離れる直前の周回は途中で止まっているため打ち切り、離れていた時間ぶんはまとめて精算する
+      // （起動時の精算で途中の周回を破棄するのと同じ扱い。この周の未確定ドロップは持ち帰れない）
+      clearTimeout(nextBattleTimer[i]);
+      if (!run.finished) {
+        run.finished = true;
+        if (teamBattles[i]) teamBattles[i].active = false;
+        logEvent(i, "wipe", "アプリを離れていたため、この周回を中断した", "離れていた間の自動周回はまとめて精算しました");
+      }
+      restoreTeamParty(i);
+    }
+    const summaries = runOfflineProgress(infos, savedAt);
+    saveGame();
+    buildPartyDock();
+    renderDock();
+    if (summaries) { enqueueModal(() => showOfflineModal(summaries)); processModalQueue(); }
+  }
   window.addEventListener("pagehide", saveGame);
-  setInterval(saveGame, 20000);
+  // バックグラウンド中は定期保存しない（保存済みのsavedAtを「離れた時刻」として固定し、復帰時の精算と
+  // 次回起動時の精算が同じ期間を二重に数えないようにするため。隠れる直前には必ず保存している）
+  setInterval(() => { if (!document.hidden) saveGame(); }, 20000);
 
   loadGame();
   renderTitle();
@@ -3319,5 +3399,6 @@
     if (startupAnnouncement) enqueueModal(() => openAnnouncementModal(startupAnnouncement));
   }
   if (pendingOfflineSummaries) enqueueModal(() => showOfflineModal(pendingOfflineSummaries));
+  if (offlineSettleFailed) enqueueModal(showOfflineSettleFailedModal);
   processModalQueue();
 })();

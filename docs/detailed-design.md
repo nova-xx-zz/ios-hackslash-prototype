@@ -132,7 +132,7 @@ expForLevel(level) = 30 + level * 15
 ```
 totalExpInvested(c) = c.exp + Σ_{n=1}^{level-1} expForLevel(n)
 ```
-選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成直後に `saveGame()` で即時保存する。
+選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成ボタンは2回押しで確定し（`fusionConfirm`。素材の選択を変えると解除）、合成直後に `saveGame()` で即時保存する。
 
 ### 2.5 ATB戦闘ループ（4チーム並行）
 
@@ -259,12 +259,18 @@ offlineClearChance(dungeon)
 ```
 
 `runOfflineProgressForTeam(teamIndex, autoRepeatInfo, savedAt)`:
-1. `elapsedMs = min(now - savedAt, OFFLINE_MAX_MS)`。5秒未満なら計算しない（何もしなかったとみなす）
+1. `elapsedMs = clamp(now - savedAt, 0, OFFLINE_MAX_MS)`
 2. `maxRunsByTime = floor(elapsedMs/1000 / estimateOfflineRunSeconds(dungeon))`
 3. `runsToAttempt = min(maxRunsByTime, target - done)`
 4. `runsToAttempt` 回、`simulateOfflineRun(dungeon, teamIndex)` を実行。全滅（`cleared:false`）が出た時点でループを打ち切り、それ以前の成功分のみ結果に反映する
 
 `simulateOfflineRun(dungeon, teamIndex)` は `offlineClearChance` で踏破/全滅を1回抽選する。全滅の場合は何戦目で力尽きたかを抽選し、その戦闘は敗北扱いにする。戦闘ごとに、遭遇した敵を図鑑に登録（`markDexSeen`）し、勝利した戦闘ではEXPをパーティ全員に即時付与する（通常プレイと同じく全滅してもそれまでのEXPは残る。個々の戦闘不能は再現しないため全員に付与）。ドロップ（1戦闘あたり基本1個＋40%で追加1個、戦闘間は道中イベント60%×宝箱40%×中身あり65%で1個）とテイム抽選（該当種のいずれか1体、`tameChance`で判定）は踏破した周だけ反映する。全滅した周の完了周回数は通常プレイと同じく戻さない。
+
+`runsToAttempt` が0（1周ぶんの時間も経っていない）の場合も、自動周回を停止したうえで `tooShort: true` の summary を返し、モーダルで「オフライン中の周回はありませんでした」と知らせる。
+
+**二重精算の防止**: 精算の前に `claimOfflineSettlement(savedAt)` で `jobquest_offline_settled` に精算対象セーブの `savedAt` を書き込む。起動時にこの値がセーブの `savedAt` と一致すれば精算済みとして何もしない（精算後の保存に失敗していたケース）。書き込みに失敗した場合は報酬を付与せず、「保存容量不足のため精算できなかった」旨のモーダルを出す（`savedAt` は更新されないため、保存できるようになった次回起動時に精算される）。
+
+**バックグラウンド復帰時の精算**（`settleAfterBackground(savedAt)`）: `visibilitychange` で隠れる直前に `saveGame()` し、保存できたセーブの `savedAt`（`lastSavedAt`）を控える。復帰時、自動周回中で、経過時間が `estimateOfflineRunSeconds` 以上のチームについて、進行中の周回を中断（未確定ドロップは破棄、ログに中断カードを出す）し、控えた `savedAt` を起点に起動時と同じ `runOfflineProgress` で精算する。バックグラウンド中は20秒ごとの定期保存を行わないため、復帰せずにページが破棄された場合も次回起動時に同じ `savedAt` から精算され、マーカーにより二重には数えない。
 
 `runOfflineProgress(savedAutoRepeatArray, savedAt)` は上記をチーム0〜3それぞれに対して呼び出し、結果が出たチームの summary だけを配列にまとめて返す（1チームも該当しなければ `null`）。複数チームが同時にオフライン進行していた場合、`showOfflineModal()` がこの配列をチームごとのブロックとして並べて表示する。
 
@@ -314,6 +320,7 @@ offlineClearChance(dungeon)
 | `jobquest_save_v1` | JSON | メインセーブデータ（§1.4） |
 | `jobquest_best_cleared` | 数値文字列 | 最大クリア済みダンジョン数 |
 | `jobquest_material` | 数値文字列 | 強化石所持数 |
+| `jobquest_offline_settled` | 数値文字列 | オフライン進行を精算済みのセーブの `savedAt`（二重精算の防止） |
 | `jobquest_autodisassemble` | `"0"`/`"1"` | 自動分解ON/OFF |
 | `jobquest_autodisassemble_filter` | JSON配列 | 自動分解対象レア度キーの配列（既定 `["n","r"]`） |
 | `jobquest_autorepeat_target` | 数値文字列 | 自動周回の選択回数（1/3/5/10/20/50のいずれか） |
