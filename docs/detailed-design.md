@@ -186,17 +186,20 @@ dmg = max(1, round(dmg * (race.passive.dmgTakenMult || 1)))
 ### 2.7 敵エンカウント生成（`buildEncounter(dungeon, battleIndex)`）
 
 ```
-mult  = (1 + (dungeon.level - 1) * 0.16) * (1 + battleIndex * 0.06)
+mult  = enemyStatMult(dungeon, battleIndex)
+      = (1 + (dungeon.level - 1) * ENEMY_LEVEL_GROWTH(0.12)) * (1 + battleIndex * ENEMY_BATTLE_GROWTH(0.06))
 count = min(5, 3 + floor(dungeon.level / 5))
 ```
+`ENEMY_LEVEL_GROWTH` は味方の能力値の伸び（`baseStats`: 1Lvごとに+12%）と揃えている（以前は0.16で、奥のダンジョンほど敵との差が開き続けていた）。敵のEXPも同じ倍率で伸びるため、変更前より奥のダンジョンの獲得EXPはやや少ない（遺跡で約15%減）。
 `count` 体を `dungeon.pool` からランダム抽出。最終戦闘（`battleIndex === battles - 1`）ではボス（`dungeon.boss`）を `mult * BOSS_MULT(1.7)` で先頭に追加する。個体のステータスは `makeEnemy(template, mult, isBoss)` で `round(base * mult)` により算出。
 
-### 2.8 オート戦闘AIの技選択（`chooseAction(c)`）
+### 2.8 オート戦闘AIの技選択（`QPCore.battle.chooseAction(c, party, env, enemies)`）
 
-1. `availableAbilities(c)`（レベル習得済み＋サブアビリティ）のうち、ON（`isSkillActive`）かつMPが足りる技を候補にする
+1. `availableAbilities(c)`（レベル習得済み＋サブアビリティ＋ツリーの技）のうち、ON（`isSkillActive`）かつMPが足りる技を候補にする
 2. 回復技は無条件で候補にせず、`target === "single-ally"` なら「誰かがHP80%未満」、`all-ally` なら「誰かがHP70%未満」の場合のみ候補に残す（無駄撃ち防止）
 3. 候補が0件なら通常攻撃（`BASIC_ATTACK`, power 1.0）
-4. 候補は `(優先度降順, 要求レベル降順)` でソートし先頭を採用。優先度は `getAbilityTier`（既定2=通常）
+4. 優先度（`getAbilityTier`、既定2=通常）が最も高い技のグループに絞る。優先度2のグループでは通常攻撃も比較対象に加える
+5. その中で期待効果（`expectedValue`: 実際のダメージ式で見積もった与ダメージ。乱数は平均1.025倍、会心は期待値。回復技は回復量。敵の残りHP・味方の減ったHPを超える分は数えない）が最大の技を採用し、同値なら消費MPが少ない方
 
 ターゲット選択（`pickEnemyTarget`）は `targetPriority` に応じ、`weakest`=残HP最小、`strongest`=残HP最大、`random`=ランダム。回復対象（`pickAllyTarget`）は常に残HP割合最小の味方。
 
@@ -322,6 +325,8 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | `offline.js` | `estimateRunSeconds`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は戦闘を `ctx.fight`（game.js が戦闘エンジンで実際に戦わせる）に任せ、所要時間・遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返す。図鑑登録・EXP付与・所持品への追加は game.js の `applyOfflineRun` が行う |
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
+
+**難易度の基準**（`tools/lib/difficulty.js`、`tests/difficulty.test.js`、`node tools/simulate.js --check`）: 装備なしの初期パーティで、(1) レベルを上げても踏破率が下がらない（許容5%）、(2) 推奨Lv+6までに踏破率80%以上に届く、(3) ダンジョンの並び順どおりに難しくなる（80%に届くLvが前のダンジョン以上）、(4) 最初のダンジョンはLv1で踏破できる。`DUNGEONS` の `challenge: true`（やり込み枠。現状は竜骨の山頂）は(2)(3)の対象外。シミュレーションは装備・ツリーなしで深い階層ほど実際より厳しく出るため、「推奨Lvちょうどで何%」ではなく、装備に左右されにくい性質を基準にしている。
 
 ## 3.1 乱数（`js/core/rng.js`）
 

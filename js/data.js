@@ -588,6 +588,9 @@ const DUNGEONS = [
     id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
     pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", unlocks: [],
     desc: "巨大な骨が眠る山頂。最も危険な領域。",
+    // やり込み向けの高難度ダンジョン。難易度の基準（tests/difficulty.test.js）の
+    // 「推奨Lv+6までに踏破率80%」の対象から外す（ボスの強さは意図的に据え置き）
+    challenge: true,
   },
 ];
 
@@ -596,11 +599,21 @@ function getDungeon(id) {
 }
 
 const BOSS_MULT = 1.7;
+// 敵のHP・ATK・DEF・EXPがダンジョンの推奨Lvに応じて伸びる割合（1Lvごと）。
+// 味方の能力値の伸び（js/core/stats.js の baseStats: 1Lvごとに+12%）と揃えておくことで、
+// 推奨Lvで挑んだ時の手応えが奥のダンジョンでも変わらないようにする
+// （以前は+16%で、奥のダンジョンほど敵との差が開き続けていた。Lv30では味方4.48倍に対して敵5.64倍）
+const ENEMY_LEVEL_GROWTH = 0.12;
+const ENEMY_BATTLE_GROWTH = 0.06; // 同じダンジョン内で1戦進むごとの伸び
+
+function enemyStatMult(dungeon, battleIndex) {
+  return (1 + (dungeon.level - 1) * ENEMY_LEVEL_GROWTH) * (1 + battleIndex * ENEMY_BATTLE_GROWTH);
+}
 
 function buildEncounter(dungeon, battleIndex) {
   const isBossBattle = battleIndex === dungeon.battles - 1;
   // ダンジョン内で進むほど少しずつ強くなる
-  const mult = (1 + (dungeon.level - 1) * 0.16) * (1 + battleIndex * 0.06);
+  const mult = enemyStatMult(dungeon, battleIndex);
   const count = Math.min(5, 3 + Math.floor(dungeon.level / 5));
   const list = [];
 
