@@ -190,7 +190,7 @@ mult  = enemyStatMult(dungeon, battleIndex)
       = (1 + (dungeon.level - 1) * ENEMY_LEVEL_GROWTH(0.12)) * (1 + battleIndex * ENEMY_BATTLE_GROWTH(0.06))
 count = min(5, 3 + floor(dungeon.level / 5))
 ```
-`ENEMY_LEVEL_GROWTH` は味方の能力値の伸び（`baseStats`: 1Lvごとに+12%）と揃えている（以前は0.16で、奥のダンジョンほど敵との差が開き続けていた）。敵のEXPも同じ倍率で伸びるため、変更前より奥のダンジョンの獲得EXPはやや少ない（遺跡で約15%減）。
+`makeEnemy(template, mult, isBoss, dungeon.power)` は HP・ATK・DEF に `mult × power`、EXP に `mult` を掛ける（`power` はダンジョンごとの強さ倍率、省略時1）。`ENEMY_LEVEL_GROWTH` は味方の能力値の伸び（`baseStats`: 1Lvごとに+12%）と揃えている（以前は0.16で、奥のダンジョンほど敵との差が開き続けていた）。敵のEXPも同じ倍率で伸びるため、変更前より奥のダンジョンの獲得EXPはやや少ない（遺跡で約15%減）。
 `count` 体を `dungeon.pool` からランダム抽出。最終戦闘（`battleIndex === battles - 1`）ではボス（`dungeon.boss`）を `mult * BOSS_MULT(1.7)` で先頭に追加する。個体のステータスは `makeEnemy(template, mult, isBoss)` で `round(base * mult)` により算出。
 
 ### 2.8 オート戦闘AIの技選択（`QPCore.battle.chooseAction(c, party, env, enemies)`）
@@ -326,7 +326,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 
-**難易度の基準**（`tools/lib/difficulty.js`、`tests/difficulty.test.js`、`node tools/simulate.js --check`）: 装備なしの初期パーティで、(1) レベルを上げても踏破率が下がらない（許容5%）、(2) 推奨Lv+6までに踏破率80%以上に届く、(3) ダンジョンの並び順どおりに難しくなる（80%に届くLvが前のダンジョン以上）、(4) 最初のダンジョンはLv1で踏破できる。`DUNGEONS` の `challenge: true`（やり込み枠。現状は竜骨の山頂）は(2)(3)の対象外。シミュレーションは装備・ツリーなしで深い階層ほど実際より厳しく出るため、「推奨Lvちょうどで何%」ではなく、装備に左右されにくい性質を基準にしている。
+**難易度の基準**（`tools/lib/difficulty.js`、`tests/difficulty.test.js`、`node tools/simulate.js --check`）: 想定プレイヤー（初期パーティ構成＋`DUNGEONS[].benchmarkGear` の適正装備＋素直なスキル振り。`tools/lib/sim.js` の `standardGear` / `standardTreeRanks`）で、(1) 推奨Lvで踏破率80〜95%、(2) 推奨Lv−2で30%以上、(3) 推奨Lvで装備なし（スキルのみ）だと80%未満、(4) レベルを上げても踏破率が下がらない（許容5%）、(5) 最初のダンジョンはLv1・装備なし・スキルなしで90%以上。`challenge: true`（やり込み枠）は(4)のみ。調整つまみは `DUNGEONS[].power`（敵の強さの倍率。`makeEnemy` でHP・ATK・DEFに掛け、EXPには掛けない）で、`node tools/simulate.js --calibrate` が推奨Lvで踏破率88%になる値を二分探索で提案する。手順は `docs/production-plan.md` §8.6。
 
 ## 3.1 乱数（`js/core/rng.js`）
 
