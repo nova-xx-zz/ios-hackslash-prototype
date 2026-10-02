@@ -79,8 +79,9 @@ python3 -m http.server 8000
 - `docs/basic-design.md` — 基本設計書
 - `docs/detailed-design.md` — 詳細設計書（データ構造・計算式・関数マッピング）
 - `docs/production-plan.md` — 本番化・課金方針（技術構成・データの置き場所・課金の法務・既知の課題）
-- `tools/simulate.js` — 戦闘シミュレーション。画面なしでダンジョンごと・レベルごとの踏破率を計算し、オフライン進行の踏破確率と比較する（`node tools/simulate.js [試行回数]`）
-- `tests/` — 画面に依存しない部分（`js/core/`）の単体テスト。リポジトリ直下で `node --test` を実行する（Node.js 18以上、追加のインストール不要）
+- `tools/simulate.js` — 戦闘シミュレーション。画面なしでダンジョンごと・レベルごとの踏破率と1周の戦闘時間を計算する（`node tools/simulate.js [試行回数]`）。`--check` を付けると難易度の基準を満たすか確認する
+- `tools/lib/` — シミュレーション・難易度の基準（`difficulty.js`）など、テストとツールで共用する部品
+- `tests/` — 画面に依存しない部分（`js/core/`）の単体テストと、ダンジョンの難易度の基準のテスト（`difficulty.test.js`。ダンジョンを追加・調整した時に、難しすぎ・易しすぎ・レベルを上げると弱くなる逆転を検出する）。リポジトリ直下で `node --test` を実行する（Node.js 18以上、追加のインストール不要）
 
 ## オート戦闘AIのロジック（現状）
 
