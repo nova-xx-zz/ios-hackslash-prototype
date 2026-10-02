@@ -27,26 +27,48 @@ const fire = { id: "fire", name: "ファイア", reqLevel: 1, mpCost: 4, kind: "
 const bigFire = { id: "big", name: "だいばくれつ", reqLevel: 15, mpCost: 16, kind: "magic", target: "all-enemy", power: 1.6, hits: 1 };
 const heal = { id: "heal", name: "ヒール", reqLevel: 1, mpCost: 4, kind: "heal", target: "single-ally", power: 1.8, hits: 1 };
 
-test("技は優先度→要求レベルの順で選び、MPが足りなければ使わない", () => {
+test("技は優先度で絞り込み、その中で今の敵に対する期待効果が大きい技を選ぶ。MPが足りなければ使わない", () => {
   const env = envWith();
   const c = member("A", S, { abilities: [fire, bigFire] });
-  assert.equal(battle.chooseAction(c, [c], env).id, "big"); // 同じ優先度なら要求レベルが高い方
+  const three = () => [enemy("a", 100), enemy("b", 100), enemy("c", 100)];
+  assert.equal(battle.chooseAction(c, [c], env, three()).id, "big"); // 敵が多いので全体技
   c.tiers = { fire: 3 };
-  assert.equal(battle.chooseAction(c, [c], env).id, "fire"); // 「優先」が勝つ
+  assert.equal(battle.chooseAction(c, [c], env, three()).id, "fire"); // 「優先」が勝つ
   c.tiers = {};
   c.mp = 10;
-  assert.equal(battle.chooseAction(c, [c], env).id, "fire"); // MP不足の技は候補外
+  assert.equal(battle.chooseAction(c, [c], env, three()).id, "fire"); // MP不足の技は候補外
   c.mp = 0;
-  assert.equal(battle.chooseAction(c, [c], env).id, "attack"); // 何も使えなければ通常攻撃
+  assert.equal(battle.chooseAction(c, [c], env, three()).id, "attack"); // 何も使えなければ通常攻撃
+});
+
+test("後から覚える技でも、今の敵に効きにくければ使わない（多段技は1回ごとに防御で減る）", () => {
+  const env = envWith();
+  const strong = { id: "crit", name: "かいしんのいちげき", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 2.1, hits: 1 };
+  const multi = { id: "multi", name: "みだれづき", reqLevel: 10, mpCost: 0, kind: "physical", target: "single", power: 0.55, hits: 3 };
+  const c = member("A", { ...S, atk: 40 }, { abilities: [strong, multi] });
+  assert.equal(battle.chooseAction(c, [c], env, [enemy("golem", 500, { def: 60 })]).id, "crit");
+});
+
+test("敵の残りHPを超える分は数えない（残り少ない敵1体なら全体技を使わず、MPの少ない技にする）", () => {
+  const env = envWith();
+  const c = member("A", S, { abilities: [fire, bigFire] });
+  assert.equal(battle.chooseAction(c, [c], env, [enemy("a", 5)]).id, "attack");
+});
+
+test("「温存」の技は、他に使える技が無い時だけ使う", () => {
+  const env = envWith();
+  const c = member("A", S, { abilities: [fire], tiers: { fire: 1 } });
+  assert.equal(battle.chooseAction(c, [c], env, [enemy("a", 100)]).id, "fire");
 });
 
 test("回復技は誰かのHPが8割未満の時だけ使う", () => {
   const env = envWith();
   const healer = member("H", S, { abilities: [heal] });
   const ally = member("B", S);
-  assert.equal(battle.chooseAction(healer, [healer, ally], env).id, "attack");
-  ally.hp = 79;
-  assert.equal(battle.chooseAction(healer, [healer, ally], env).id, "heal");
+  const es = [enemy("a", 100)];
+  assert.equal(battle.chooseAction(healer, [healer, ally], env, es).id, "attack");
+  ally.hp = 70;
+  assert.equal(battle.chooseAction(healer, [healer, ally], env, es).id, "heal");
 });
 
 test("攻撃対象は設定に従う（弱い敵から／強い敵から）", () => {
