@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const offline = require("../js/core/offline.js");
 const { createRng } = require("../js/core/rng.js");
-const data = require("./helpers/load-data.js").loadGameData();
+const data = require("../tools/lib/load-data.js").loadGameData();
 
 const TIMING = { perBattle: 5, perGap: 2, overhead: 2 };
 const HOUR = 3600 * 1000;
