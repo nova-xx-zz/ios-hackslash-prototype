@@ -568,21 +568,25 @@ const DUNGEONS = [
     id: "plains", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
     pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", unlocks: ["forest"],
     desc: "見晴らしのよい草原。弱い魔物しかいない。",
+    benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "forest", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
     pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
+    benchmarkGear: { rarity: "r", plus: 0 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "cave", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
     pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
+    benchmarkGear: { rarity: "r", plus: 20 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "ruins", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
     pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
+    benchmarkGear: { rarity: "sr", plus: 30 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
@@ -591,6 +595,7 @@ const DUNGEONS = [
     // やり込み向けの高難度ダンジョン。難易度の基準（tests/difficulty.test.js）の
     // 「推奨Lv+6までに踏破率80%」の対象から外す（ボスの強さは意図的に据え置き）
     challenge: true,
+    benchmarkGear: { rarity: "ur", plus: 40 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
 ];
 
@@ -606,8 +611,10 @@ const BOSS_MULT = 1.7;
 const ENEMY_LEVEL_GROWTH = 0.12;
 const ENEMY_BATTLE_GROWTH = 0.06; // 同じダンジョン内で1戦進むごとの伸び
 
+// dungeon.power: ダンジョンごとの敵の強さの倍率（省略時1）。想定プレイヤー（tools/lib/sim.js）で
+// 目標の踏破率に合わせるための調整つまみ。値の決め方は docs/production-plan.md §8.6
 function enemyStatMult(dungeon, battleIndex) {
-  return (1 + (dungeon.level - 1) * ENEMY_LEVEL_GROWTH) * (1 + battleIndex * ENEMY_BATTLE_GROWTH);
+  return (1 + (dungeon.level - 1) * ENEMY_LEVEL_GROWTH) * (1 + battleIndex * ENEMY_BATTLE_GROWTH) * (dungeon.power || 1);
 }
 
 function buildEncounter(dungeon, battleIndex) {

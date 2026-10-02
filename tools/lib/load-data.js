@@ -17,7 +17,8 @@ function loadGameData() {
   // data.js はトップレベルのconstで定義しているため、同じスクリプト内の最後の式で取り出す
   return vm.runInContext(code + `
 ;({ RNG, RARITIES, ITEM_BASES, DUNGEONS, ENHANCE_RULES, ENHANCE_MAX_PLUS, REWARD_RULES, FEATURE_FLAGS,
-   JOBS, RACES, buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, enhanceSuccessRate, guaranteedStonesRequired })`, context);
+   JOBS, RACES, SLOTS, ITEM_BASES, itemEffectiveValue, jobTag, getExclusiveTreeByTag, getGeneralTree, GENERAL_SLOTS,
+   buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, enhanceSuccessRate, guaranteedStonesRequired })`, context);
 }
 
 module.exports = { loadGameData };

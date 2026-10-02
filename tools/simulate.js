@@ -3,6 +3,7 @@
 // （ただしここでは装備・スキルツリー・道中イベントなしなので、実際のプレイより厳しめに出る）。
 // 実行: node tools/simulate.js [試行回数=200]
 //       node tools/simulate.js --check   … 難易度の基準（tools/lib/difficulty.js）を満たすか確認する
+//       node tools/simulate.js --build   … 想定プレイヤー（適正装備・スキル）で、装備とスキルの効き具合を比べる
 const { data, clearRate } = require("./lib/sim.js");
 
 if (process.argv.includes("--check")) {
@@ -20,6 +21,22 @@ if (process.argv.includes("--check")) {
     if (r.problems.length) ng += 1;
   }
   process.exit(ng ? 1 : 0);
+}
+
+if (process.argv.includes("--build")) {
+  // 想定プレイヤー（適正装備・素直なスキル振り）で、装備とスキルがそれぞれどれだけ効いているかを比べる
+  const n = parseInt(process.argv.find((a) => /^\d+$/.test(a)) || "200", 10);
+  console.log(`試行回数: ${n}回／適正装備はダンジョンごとの benchmarkGear、スキルは素直な振り方（tools/lib/sim.js）`);
+  for (const d of data.DUNGEONS) {
+    const g = d.benchmarkGear;
+    const confs = [["なし", {}], ["装備のみ", { gear: g }], ["スキルのみ", { tree: true }], ["装備+スキル", { gear: g, tree: true }]];
+    const levels = [d.level - 4, d.level - 3, d.level - 2, d.level - 1, d.level].filter((l) => l >= 1);
+    console.log(`\n${d.name}（推奨Lv${d.level}・適正装備 ${g ? g.rarity.toUpperCase() + "+" + g.plus : "なし"}${d.power ? "・強さ倍率" + d.power : ""}）`);
+    for (const [name, o] of confs) {
+      console.log("  " + name.padEnd(7), levels.map((l) => `Lv${l}:${String(Math.round(clearRate(d.id, l, n, 100 + l, o).rate * 100)).padStart(3)}%`).join(" "));
+    }
+  }
+  process.exit(0);
 }
 
 const trials = parseInt(process.argv[2] || "200", 10);
