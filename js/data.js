@@ -568,21 +568,28 @@ const DUNGEONS = [
     id: "plains", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
     pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", unlocks: ["forest"],
     desc: "見晴らしのよい草原。弱い魔物しかいない。",
+    benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "forest", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
     pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
+    power: 1.64, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 0 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "cave", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
     pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
+    power: 1.37, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 20 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "ruins", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
     pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
+    power: 1.02, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 30 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
@@ -591,6 +598,7 @@ const DUNGEONS = [
     // やり込み向けの高難度ダンジョン。難易度の基準（tests/difficulty.test.js）の
     // 「推奨Lv+6までに踏破率80%」の対象から外す（ボスの強さは意図的に据え置き）
     challenge: true,
+    benchmarkGear: { rarity: "ur", plus: 40 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
   },
 ];
 
@@ -619,22 +627,25 @@ function buildEncounter(dungeon, battleIndex) {
 
   for (let i = 0; i < count; i++) {
     const key = RNG.pick(dungeon.pool);
-    list.push(makeEnemy(getEnemyTemplate(key), mult, false));
+    list.push(makeEnemy(getEnemyTemplate(key), mult, false, dungeon.power));
   }
   if (isBossBattle) {
-    list.unshift(makeEnemy(getEnemyTemplate(dungeon.boss), mult * BOSS_MULT, true));
+    list.unshift(makeEnemy(getEnemyTemplate(dungeon.boss), mult * BOSS_MULT, true, dungeon.power));
   }
   return list;
 }
 
-function makeEnemy(t, mult, isBoss) {
+// power: ダンジョンごとの敵の強さの倍率（DUNGEONS[].power、省略時1）。HP・ATK・DEFだけに掛け、EXPには掛けない
+// （難易度の調整でレベル上げのペースが変わらないようにするため）
+function makeEnemy(t, mult, isBoss, power) {
+  const p = mult * (power || 1);
   return {
     key: t.key,
     name: isBoss ? `${t.name}の主` : t.name,
     color: t.color,
     isBoss: !!isBoss,
-    hp: Math.round(t.hp * mult), maxHp: Math.round(t.hp * mult),
-    atk: Math.round(t.atk * mult), mag: t.mag, def: Math.round(t.def * mult),
+    hp: Math.round(t.hp * p), maxHp: Math.round(t.hp * p),
+    atk: Math.round(t.atk * p), mag: t.mag, def: Math.round(t.def * p),
     spd: t.spd, exp: Math.round(t.exp * mult),
     atb: RNG.float(0, 30),
   };
