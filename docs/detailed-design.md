@@ -247,26 +247,22 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 ### 2.11 オフライン進行シミュレーション
 
-定数: `OFFLINE_MAX_MS = 8時間`, `OFFLINE_SEC_PER_BATTLE = 5秒`, `OFFLINE_SEC_PER_GAP = 2秒`, `OFFLINE_SEC_OVERHEAD = 2秒`
+定数: `OFFLINE_MAX_MS = 8時間`, `OFFLINE_TIMING = { perBattle: 5秒, perGap: 2秒, overhead: 2秒 }`, `OFFLINE_BATTLE_MAX_SECONDS = 300秒`
 
-```
-estimateOfflineRunSeconds(dungeon)
-  = dungeon.battles * 5 + max(0, dungeon.battles - 1) * 2 + 2
-
-offlineClearChance(dungeon)
-  avgLevel = パーティ平均レベル
-  = clamp(0.85 + (avgLevel - dungeon.level) * 0.03, 0.05, 0.98)
-```
+各周回の勝敗は確率では決めず、通常プレイと同じ戦闘エンジン（`QPCore.battle.simulate`）で実際に戦わせて決める（以前はパーティ平均Lvと推奨Lvの差から踏破確率を概算していたが、戦闘シミュレーションと比べて大幅に楽観的だった）。
 
 `runOfflineProgressForTeam(teamIndex, autoRepeatInfo, savedAt)`:
-1. `elapsedMs = clamp(now - savedAt, 0, OFFLINE_MAX_MS)`
-2. `maxRunsByTime = floor(elapsedMs/1000 / estimateOfflineRunSeconds(dungeon))`
-3. `runsToAttempt = min(maxRunsByTime, target - done)`
-4. `runsToAttempt` 回、`simulateOfflineRun(dungeon, teamIndex)` を実行。全滅（`cleared:false`）が出た時点でループを打ち切り、それ以前の成功分のみ結果に反映する
+1. `budget = clamp(now - savedAt, 0, OFFLINE_MAX_MS) / 1000` 秒、残り周回数 `target - done`
+2. 残り周回数ぶん、`computeOfflineRun(dungeon, teamIndex)` で1周を計算する。その周の所要時間が `budget` を超えたら（時間内に終わらなかった周）結果を反映せずに終える。収まれば `budget` から差し引き、`applyOfflineRun` で反映する
+3. 全滅した周（`cleared:false`）が出た時点で打ち切る
 
-`simulateOfflineRun(dungeon, teamIndex)` は `offlineClearChance` で踏破/全滅を1回抽選する。全滅の場合は何戦目で力尽きたかを抽選し、その戦闘は敗北扱いにする。戦闘ごとに、遭遇した敵を図鑑に登録（`markDexSeen`）し、勝利した戦闘ではEXPをパーティ全員に即時付与する（通常プレイと同じく全滅してもそれまでのEXPは残る。個々の戦闘不能は再現しないため全員に付与）。ドロップ（1戦闘あたり基本1個＋40%で追加1個、戦闘間は道中イベント60%×宝箱40%×中身あり65%で1個）とテイム抽選（該当種のいずれか1体、`tameChance`で判定）は踏破した周だけ反映する。全滅した周の完了周回数は通常プレイと同じく戻さない。
+`computeOfflineRun(dungeon, teamIndex)` は、チームのキャラの写し（`Object.assign({}, c, { hp, mp, atb, alive })`。装備・スキルツリー・技の設定は本体と共有）を作り、`QPCore.offline.simulateRun` に `fight`（写しを `battleEnv()` で実際に戦わせる。300秒で決着しなければ負け）と `onEvent`（泉: HP30%・MP25%回復、罠: 全員10%か1人18%のダメージで戦闘不能にはならない。石碑の加護は省略）を渡す。写しのHP/MPは周回内の戦闘間で持ち越す。所要時間は「戦闘ごとの秒数の合計＋戦闘間 `perGap`＋出発〜踏破 `overhead`」（x1速度）。ゲームの状態は変更しない。
 
-`runsToAttempt` が0（1周ぶんの時間も経っていない）の場合も、自動周回を停止したうえで `tooShort: true` の summary を返し、モーダルで「オフライン中の周回はありませんでした」と知らせる。
+`applyOfflineRun(outcome, dungeon, teamIndex)` は、遭遇した敵を図鑑に登録（`markDexSeen`）し、勝利した戦闘ごとのEXPをパーティ全員に付与する（通常プレイと同じく全滅してもそれまでのEXPは残る。戦闘中に倒れたメンバーにも付与）。ドロップ（1戦闘あたり基本1個＋40%で追加1個、戦闘間は道中イベント60%×宝箱40%×中身あり65%で1個）とテイム抽選（該当種のいずれか1体、`tameChance`で判定）は踏破した周だけ反映する。全滅した周の完了周回数は通常プレイと同じく戻さない。
+
+`estimateOfflineRunSeconds(dungeon)`（`battles×5 + (battles−1)×2 + 2`）は、バックグラウンド復帰時に「1周ぶんの時間が経ったか」を判断する目安にだけ使う。
+
+1周も時間内に終わらなかった場合も、自動周回を停止したうえで `tooShort: true` の summary を返し、モーダルで「オフライン中の周回はありませんでした」と知らせる。
 
 **二重精算の防止**: 精算の前に `claimOfflineSettlement(savedAt)` で `jobquest_offline_settled` に精算対象セーブの `savedAt` を書き込む。起動時にこの値がセーブの `savedAt` と一致すれば精算済みとして何もしない（精算後の保存に失敗していたケース）。書き込みに失敗した場合は報酬を付与せず、「保存容量不足のため精算できなかった」旨のモーダルを出す（`savedAt` は更新されないため、保存できるようになった次回起動時に精算される）。
 
@@ -311,7 +307,7 @@ offlineClearChance(dungeon)
 | ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
 | ログ（チームごとに履歴保持） | `logEvent(teamIndex, ...)`, `logLine(teamIndex, ...)`, `renderLogFeed(teamIndex)`（タブ切替時にDOM再構築） |
 | セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()` |
-| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `simulateOfflineRun()`（計算は `QPCore.offline.planRuns()` / `simulateRun()`、game.js は結果を状態に反映）, `showOfflineModal()` |
+| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `computeOfflineRun()`（`QPCore.offline.simulateRun()` と戦闘エンジンで1周を計算）, `applyOfflineRun()`（結果を状態に反映）, `showOfflineModal()` |
 
 ## 3.0 画面に依存しない計算部分（`js/core/`）
 
@@ -322,8 +318,8 @@ offlineClearChance(dungeon)
 | `enhance.js` | `successRate / cost / expectedCost / pityThreshold / guaranteedRequired`, `attempt(rules, item, { rng, pityEnabled })`, `useGuaranteed(rules, item, stones)` | 装備強化（§2.10）。`attempt` / `useGuaranteed` は判定後の+値・天井ゲージ・確定強化石の残数を返すだけで、装備や所持数は変更しない |
 | `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
 | `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは game.js の `computeStats` |
-| `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `chooseAction`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
-| `offline.js` | `estimateRunSeconds`, `clearChance`, `planRuns`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返し、図鑑登録・EXP付与・所持品への追加は game.js の `simulateOfflineRun` が行う |
+| `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `chooseAction(c, party, env, enemies)`, `expectedValue`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。`chooseAction` は優先度が最も高い技のグループに絞り、その中で期待効果（実際のダメージ式で見積もった与ダメージ／回復量。敵の残りHP・味方の減ったHPを超える分は数えない。会心は期待値）が最大の技を選ぶ（通常の優先度では通常攻撃とも比較し、同値なら消費MPが少ない方）。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
+| `offline.js` | `estimateRunSeconds`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は戦闘を `ctx.fight`（game.js が戦闘エンジンで実際に戦わせる）に任せ、所要時間・遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返す。図鑑登録・EXP付与・所持品への追加は game.js の `applyOfflineRun` が行う |
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 

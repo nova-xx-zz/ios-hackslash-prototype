@@ -26,9 +26,50 @@
 
   const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
 
-  // 使える技の中から、優先度→要求レベルの順で一番上の技を選ぶ（無ければ通常攻撃）。
+  // ---- 技の期待効果（AIの技選び用。乱数は平均値で見積もる） ----
+  const AVG_DAMAGE_ROLL = 1.025; // ダメージ乱数 0.9〜1.15 の平均
+  const CRIT_MULT = 1.5;
+
+  // 1回のヒットで与える見込みダメージ（実際の計算式と同じ。乱数は平均、会心は期待値）
+  function expectedHitDamage(c, ability, target, env) {
+    const stats = env.stats(c);
+    const isMagic = ability.kind === "magic";
+    const atkStat = isMagic ? stats.mag : stats.atk;
+    const mitig = isMagic ? 0.15 : 0.3;
+    const base = Math.max(1, Math.round(atkStat * ability.power - target.def * mitig)) * AVG_DAMAGE_ROLL;
+    const critChance = isMagic ? 0 : 0.1 + env.passives(c).critBonus;
+    return base * (1 + critChance * (CRIT_MULT - 1));
+  }
+
+  // その技を今使った時の期待効果（与ダメージ、または回復量。敵の残りHP・味方の減ったHPを超える分は数えない）
+  function expectedValue(c, ability, party, enemies, env) {
+    const aliveEnemies = enemies.filter((e) => e.alive);
+    const onEnemy = (t) => Math.min(t.hp, expectedHitDamage(c, ability, t, env) * ability.hits);
+    if (ability.kind === "heal") {
+      const amount = env.stats(c).mag * ability.power * (1 + env.passives(c).healBonus) * ability.hits;
+      const missing = (p) => Math.max(0, env.stats(p).maxHp - p.hp);
+      if (ability.target === "all-ally") return party.filter((p) => p.alive).reduce((s, p) => s + Math.min(missing(p), amount), 0);
+      const t = pickAllyTarget(party, env);
+      return t ? Math.min(missing(t), amount) : 0;
+    }
+    if (aliveEnemies.length === 0) return 0;
+    if (ability.target === "all-enemy") return aliveEnemies.reduce((s, t) => s + onEnemy(t), 0);
+    // 単体: 実際に狙う敵で見積もる（ランダム狙いなら平均）
+    if (c.targetPriority === "random") return aliveEnemies.reduce((s, t) => s + onEnemy(t), 0) / aliveEnemies.length;
+    return onEnemy(pickEnemyTarget(c, aliveEnemies, null));
+  }
+
+  // 使う技を選ぶ。
+  // 1) プレイヤーが設定した優先度（優先 > 通常 > 温存）が最も高い技のグループだけを候補にする
+  //    （温存の技は、他に使える技が無い時だけ使う）
+  // 2) そのグループの中で、今の敵・味方の状況に対する期待効果が最も大きい技を選ぶ。
+  //    通常の優先度のグループでは通常攻撃も比べ、MPを使う技が通常攻撃より弱ければ通常攻撃にする
+  // 3) 期待効果が同じなら、消費MPが少ない方を選ぶ
   // 回復技は誰かのHPが減っている時だけ候補にする（単体: 8割未満、全体: 7割未満）
-  function chooseAction(c, party, env) {
+  // （以前は「要求レベルが高い技ほど強い」前提で選んでいたため、後から覚える技が弱い場合や、
+  //   多段技が防御の高い敵にほぼ効かない場合に弱い技を使い続けていた）
+  function chooseAction(c, party, env, enemies) {
+    enemies = enemies || [];
     const abilities = env.abilities(c).filter((a) => c.mp >= env.mpCost(c, a));
     const usable = abilities.filter((a) => {
       if (a.kind !== "heal") return true;
@@ -37,12 +78,18 @@
       return true;
     });
     if (usable.length === 0) return BASIC_ATTACK;
-    usable.sort((a, b) => {
-      const tierDiff = env.tier(c, b.id) - env.tier(c, a.id);
-      if (tierDiff !== 0) return tierDiff;
-      return b.reqLevel - a.reqLevel;
-    });
-    return usable[0];
+    const topTier = Math.max(...usable.map((a) => env.tier(c, a.id)));
+    const candidates = usable.filter((a) => env.tier(c, a.id) === topTier);
+    if (topTier === 2) candidates.push(BASIC_ATTACK);
+    let best = null, bestValue = -Infinity, bestCost = Infinity;
+    for (const a of candidates) {
+      const value = expectedValue(c, a, party, enemies, env);
+      const cost = env.mpCost(c, a);
+      if (value > bestValue + 1e-9 || (Math.abs(value - bestValue) <= 1e-9 && cost < bestCost)) {
+        best = a; bestValue = value; bestCost = cost;
+      }
+    }
+    return best;
   }
 
   // 攻撃対象: キャラごとの設定（弱い敵から＝既定 / 強い敵から / ランダム）
@@ -77,7 +124,7 @@
   // 味方1人の行動（ATBが満タンになった時）
   function performCharacterAction(c, party, battle, env, events) {
     const rng = env.rng;
-    const ability = chooseAction(c, party, env);
+    const ability = chooseAction(c, party, env, battle.enemies);
     c.mp = Math.max(0, c.mp - env.mpCost(c, ability));
     const stats = env.stats(c);
     const pas = env.passives(c);
@@ -184,7 +231,7 @@
   }
 
   const exported = {
-    BASIC_ATTACK, chooseAction, pickEnemyTarget, pickAllyTarget,
+    BASIC_ATTACK, chooseAction, expectedValue, pickEnemyTarget, pickAllyTarget,
     performCharacterAction, performEnemyAction, battleResult, step, simulate,
   };
   root.QPCore = root.QPCore || {};

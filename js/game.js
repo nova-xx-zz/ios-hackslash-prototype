@@ -706,31 +706,62 @@
     return QPCore.offline.estimateRunSeconds(dungeon.battles, OFFLINE_TIMING);
   }
 
-  // 実際の戦闘は行わず、パーティ平均Lvとダンジョン推奨Lvの差から踏破確率を概算する
-  function offlineClearChance(dungeon, teamIndex) {
-    const party = teamMembers(teamIndex);
-    if (party.length === 0) return 0;
-    const avgLevel = party.reduce((s, c) => s + c.level, 0) / party.length;
-    return QPCore.offline.clearChance(avgLevel, dungeon.level);
-  }
+  const OFFLINE_BATTLE_MAX_SECONDS = 300; // これを超えて決着しない戦闘は負け扱い（お互い倒しきれない場合の打ち切り）
 
-  // 1周ぶんの結果をjs/core/offline.jsで計算し、ゲームの状態に反映する。通常プレイと同じ扱い:
-  // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
-  // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
-  // - 遭遇した敵は図鑑に登録する
-  // 個々の戦闘不能は再現しないため、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
-  function simulateOfflineRun(dungeon, teamIndex) {
-    const party = teamMembers(teamIndex);
-    const outcome = QPCore.offline.simulateRun({
+  // 1周ぶんの結果をjs/core/offline.jsで計算する（ゲームの状態はまだ変えない）。
+  // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
+  // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
+  function computeOfflineRun(dungeon, teamIndex) {
+    const party = teamMembers(teamIndex).map((c) => {
+      const s = computeStats(c);
+      return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
+    });
+    const env = battleEnv();
+    return QPCore.offline.simulateRun({
       battles: dungeon.battles,
-      clearChance: offlineClearChance(dungeon, teamIndex),
       rng: RNG,
       rules: REWARD_RULES,
+      timing: OFFLINE_TIMING,
       buildEncounter: (i) => buildEncounter(dungeon, i),
+      fight: (enemies) => {
+        if (party.length === 0) return { won: false, seconds: 0 };
+        const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
+        for (const c of party) { c.atb = rand(0, 25); c.defending = false; }
+        const r = QPCore.battle.simulate(battle, party, env, { maxSeconds: OFFLINE_BATTLE_MAX_SECONDS });
+        return { won: r.result === "victory", seconds: r.seconds };
+      },
+      // 泉と罠は戦闘に影響するので写しに反映する（石碑の加護は省略。実際のプレイよりわずかに厳しめになる）
+      onEvent: (kind) => {
+        const alive = party.filter((c) => c.alive);
+        if (alive.length === 0) return;
+        if (kind === "spring") {
+          for (const c of alive) {
+            const st = computeStats(c);
+            c.hp = Math.min(st.maxHp, c.hp + Math.round(st.maxHp * 0.3));
+            c.mp = Math.min(st.maxMp, c.mp + Math.round(st.maxMp * 0.25));
+          }
+        } else if (kind === "trap") {
+          const wide = RNG.chance(0.45);
+          const targets = wide ? alive : [RNG.pick(alive)];
+          for (const c of targets) {
+            const dmg = Math.max(1, Math.round(computeStats(c).maxHp * (wide ? 0.1 : 0.18) * rand(0.85, 1.15)));
+            c.hp = Math.max(1, c.hp - dmg); // 罠では戦闘不能にならない
+          }
+        }
+      },
       isTamable: (key) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable); },
       tameChanceOf: (key) => getEnemyTemplate(key).tameChance,
       rollOne: rollItemDrop,
     });
+  }
+
+  // computeOfflineRunの結果をゲームの状態に反映する。通常プレイと同じ扱い:
+  // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
+  // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
+  // - 遭遇した敵は図鑑に登録する
+  // 戦闘中に倒れたメンバーも含め、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
+  function applyOfflineRun(outcome, dungeon, teamIndex) {
+    const party = teamMembers(teamIndex);
     for (const key of outcome.encountered) markDexSeen(key);
     let expTotal = 0;
     for (const exp of outcome.expByBattle) {
@@ -756,19 +787,20 @@
     if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
     const dungeon = getDungeon(autoRepeatInfo.dungeonId);
     if (!dungeon) return null;
-    const runsToAttempt = QPCore.offline.planRuns({
-      elapsedMs: Date.now() - savedAt,
-      maxMs: OFFLINE_MAX_MS,
-      secPerRun: estimateOfflineRunSeconds(dungeon),
-      target: autoRepeatInfo.target,
-      done: autoRepeatInfo.done,
-    });
+    // 離れていた時間（最大8時間。端末の時計が戻っていても負にしない）を、実際に戦った時間で使い切るまで周回する。
+    // 時間内に終わらなかった周は数えない（その周の結果は反映しない）
+    let budgetSeconds = clamp(Date.now() - savedAt, 0, OFFLINE_MAX_MS) / 1000;
+    const remainingTarget = Math.max(0, autoRepeatInfo.target - autoRepeatInfo.done);
 
-    let cleared = 0, expGained = 0, itemsGained = 0;
+    let cleared = 0, expGained = 0, itemsGained = 0, runsDone = 0;
     const tamedNames = [];
     let wipedOut = false;
-    for (let i = 0; i < runsToAttempt; i++) {
-      const result = simulateOfflineRun(dungeon, teamIndex);
+    for (let i = 0; i < remainingTarget; i++) {
+      const outcome = computeOfflineRun(dungeon, teamIndex);
+      if (outcome.seconds > budgetSeconds) break;
+      budgetSeconds -= outcome.seconds;
+      runsDone += 1;
+      const result = applyOfflineRun(outcome, dungeon, teamIndex);
       expGained += result.expTotal;
       if (!result.cleared) { wipedOut = true; break; }
       cleared += 1;
@@ -782,7 +814,7 @@
     autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
 
     // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
-    const tooShort = runsToAttempt <= 0;
+    const tooShort = runsDone === 0;
     return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
   }
 
