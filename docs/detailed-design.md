@@ -123,8 +123,9 @@ effectiveValue = max(1, item.value + bonus)
 ### 2.3 経験値・レベルアップ（`expForLevel(level)`, `gainExp(c, amount)`）
 
 ```
-expForLevel(level) = 30 + level * 15
+expForLevel(level) = round(200 + 2 * level^3.3)   // js/data.js（tools/progression.js と共有）
 ```
+各ダンジョンに着く頃に適正装備（`DUNGEONS[].benchmarkGear`）がそろうペースに合わせた曲線（根拠は `docs/production-plan.md` §8.6）。セーブの `expToNext` は保存値を使わず、`loadGame` で `syncExpToNext` により曲線から計算し直す（キャラ本体と `jobLevels` の各ジョブ。`exp` は新しい必要量未満に丸める）。
 `gainExp` は `exp` に `amount` を加算し、`exp >= expToNext` の間ループでレベルを1ずつ上げ、都度 `computeStats` でHP/MPを全回復、習得アビリティ（`reqLevel === level`）があれば通知リストに積む。ループ終了後、モンスターでなければ `jobLevels[job]` に現在の進行を書き戻す。戦闘勝利時（`onVictory`）とモンスター合成（`buildFusionTab`）の両方から共用される。
 
 ### 2.4 モンスター合成のEXP還元（`totalExpInvested(c)`, 合成確定処理）

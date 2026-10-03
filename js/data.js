@@ -18,6 +18,11 @@ const FEATURE_FLAGS = {
 };
 function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 
+// レベルアップに必要なEXP（Lv.level → level+1）。game.js と tools/progression.js で共有する。
+// 各ダンジョンに着く頃の累計周回が 森10・洞窟20・遺跡45・山頂95 前後になるよう
+// tools/progression.js で合わせた（＝その頃に適正装備 benchmarkGear がそろう。docs/production-plan.md §8.6）
+function expForLevel(level) { return Math.round(200 + 2 * Math.pow(level, 3.3)); }
+
 const JOB_MASTER_LEVEL = 50; // 上級職の解放に必要な、対応する基本職のレベル
 const JOBS = {
   warrior: {
@@ -568,28 +573,28 @@ const DUNGEONS = [
     id: "plains", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
     pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", unlocks: ["forest"],
     desc: "見晴らしのよい草原。弱い魔物しかいない。",
-    benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
+    benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "forest", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
     pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
-    power: 1.64, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "r", plus: 0 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
+    power: 1.69, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "cave", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
     pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
-    power: 1.37, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "r", plus: 20 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
+    power: 1.28, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 2 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "ruins", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
     pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
-    power: 1.02, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 30 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
+    power: 0.96, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 3 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
@@ -598,7 +603,7 @@ const DUNGEONS = [
     // やり込み向けの高難度ダンジョン。難易度の基準（tests/difficulty.test.js）の
     // 「推奨Lv+6までに踏破率80%」の対象から外す（ボスの強さは意図的に据え置き）
     challenge: true,
-    benchmarkGear: { rarity: "ur", plus: 40 }, // 想定プレイヤーの適正装備（仮。難易度の調整用でゲーム内には影響しない）
+    benchmarkGear: { rarity: "sr", plus: 6 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
 ];
 

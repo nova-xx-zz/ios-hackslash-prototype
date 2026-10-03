@@ -17,7 +17,6 @@ const enhance = require("../js/core/enhance.js");
 const R = data.ENHANCE_RULES;
 const RARITY_ORDER = data.RARITIES.map((r) => r.key); // n, r, sr, ur, lr
 const rank = (k) => RARITY_ORDER.indexOf(k);
-const expForLevel = (lv) => 30 + lv * 15; // js/game.js と同じ
 const SLOTS = data.SLOTS.map((s) => s.key);
 const MEMBERS = 5;
 
@@ -59,7 +58,7 @@ function enhanceAll(items, stones) {
   return stones;
 }
 
-function simulate(seed) {
+function simulate(seed, expForLevel = data.expForLevel) {
   rngLib.setSharedSeed(seed);
   let level = 1, exp = 0, stones = 0, totalRuns = 0;
   let pool = [];

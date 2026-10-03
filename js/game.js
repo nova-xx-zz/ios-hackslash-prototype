@@ -323,6 +323,9 @@
       store.set(KEYS.material, material);
       // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
       for (const c of roster) {
+        // 必要EXPは保存値ではなく現在の曲線(expForLevel)から計算し直す（曲線を見直したときの移行を兼ねる）
+        syncExpToNext(c);
+        for (const rec of Object.values(c.jobLevels || {})) syncExpToNext(rec);
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
         c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
@@ -350,7 +353,12 @@
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
-  function expForLevel(level) { return 30 + level * 15; }
+  // 必要EXPの曲線(expForLevel)は data.js で定義（tools/progression.js と共有）
+  function syncExpToNext(rec) {
+    if (!rec || typeof rec.level !== "number") return;
+    rec.expToNext = expForLevel(rec.level);
+    rec.exp = Math.max(0, Math.min(Number(rec.exp) || 0, rec.expToNext - 1));
+  }
 
   // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
   function gainExp(c, amount) {
@@ -390,7 +398,7 @@
       skillActive: {}, // abilityId -> bool (default true when unlocked)
       abilityPriority: {}, // abilityId -> 1(温存)/2(通常)/3(優先)、既定2
       targetPriority: "weakest", // weakest / strongest / random
-      level: opts.level || 1, exp: 0, expToNext: 30,
+      level: opts.level || 1, exp: 0, expToNext: expForLevel(opts.level || 1),
       equip: { weapon: null, armor: null, accessory: null },
       atb: 0, defending: false, alive: true,
       team: opts.team !== undefined ? opts.team : null, // 0..3 所属チーム / null は控え
