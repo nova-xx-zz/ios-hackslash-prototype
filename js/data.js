@@ -22,6 +22,13 @@ function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 // 各ダンジョンに着く頃の累計周回が 森10・洞窟20・遺跡45・山頂95 前後になるよう
 // tools/progression.js で合わせた（＝その頃に適正装備 benchmarkGear がそろう。docs/production-plan.md §8.6）
 function expForLevel(level) { return Math.round(200 + 2 * Math.pow(level, 3.3)); }
+// セーブのレベル記録（キャラ本体・jobLevelsの各ジョブ）の必要EXPを曲線から計算し直す（読み込み時に使用）。
+// レベルは据え置き、exp は新しい必要量未満に丸める
+function syncExpToNext(rec) {
+  if (!rec || typeof rec.level !== "number") return;
+  rec.expToNext = expForLevel(rec.level);
+  rec.exp = Math.max(0, Math.min(Number(rec.exp) || 0, rec.expToNext - 1));
+}
 
 const JOB_MASTER_LEVEL = 50; // 上級職の解放に必要な、対応する基本職のレベル
 const JOBS = {

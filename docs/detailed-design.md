@@ -125,7 +125,7 @@ effectiveValue = max(1, item.value + bonus)
 ```
 expForLevel(level) = round(200 + 2 * level^3.3)   // js/data.js（tools/progression.js と共有）
 ```
-各ダンジョンに着く頃に適正装備（`DUNGEONS[].benchmarkGear`）がそろうペースに合わせた曲線（根拠は `docs/production-plan.md` §8.6）。セーブの `expToNext` は保存値を使わず、`loadGame` で `syncExpToNext` により曲線から計算し直す（キャラ本体と `jobLevels` の各ジョブ。`exp` は新しい必要量未満に丸める）。
+各ダンジョンに着く頃に適正装備（`DUNGEONS[].benchmarkGear`）がそろうペースに合わせた曲線（根拠は `docs/production-plan.md` §8.6）。セーブの `expToNext` は保存値を使わず、`loadGame` で `syncExpToNext`（`js/data.js`）により曲線から計算し直す（キャラ本体と `jobLevels` の各ジョブ。`exp` は新しい必要量未満に丸める）。
 `gainExp` は `exp` に `amount` を加算し、`exp >= expToNext` の間ループでレベルを1ずつ上げ、都度 `computeStats` でHP/MPを全回復、習得アビリティ（`reqLevel === level`）があれば通知リストに積む。ループ終了後、モンスターでなければ `jobLevels[job]` に現在の進行を書き戻す。戦闘勝利時（`onVictory`）とモンスター合成（`buildFusionTab`）の両方から共用される。
 
 ### 2.4 モンスター合成のEXP還元（`totalExpInvested(c)`, 合成確定処理）
@@ -328,6 +328,8 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 
 **難易度の基準**（`tools/lib/difficulty.js`、`tests/difficulty.test.js`、`node tools/simulate.js --check`）: 想定プレイヤー（初期パーティ構成＋`DUNGEONS[].benchmarkGear` の適正装備＋素直なスキル振り。`tools/lib/sim.js` の `standardGear` / `standardTreeRanks`）で、(1) 推奨Lvで踏破率80〜95%、(2) 推奨Lv−2で30%以上、(3) 推奨Lvで装備なし（スキルのみ）だと80%未満、(4) レベルを上げても踏破率が下がらない（許容5%）、(5) 最初のダンジョンはLv1・装備なし・スキルなしで90%以上。`challenge: true`（やり込み枠）は(4)のみ。調整つまみは `DUNGEONS[].power`（敵の強さの倍率。`makeEnemy` でHP・ATK・DEFに掛け、EXPには掛けない）で、`node tools/simulate.js --calibrate` が推奨Lvで踏破率88%になる値を二分探索で提案する。手順は `docs/production-plan.md` §8.6。
+
+**進行ペース**（`tests/progression.test.js`、`node tools/progression.js`）: ふつうに遊んだ時の各ダンジョンへの到着周回（中央値）が目標（森10・洞窟20・遺跡45・山頂95）の±30%に入り、その頃の装備の代表値が適正装備と同じレア度・+値±2であること。あわせて `expForLevel` の単調増加と `syncExpToNext`（セーブ移行）を確認する。
 
 ## 3.1 乱数（`js/core/rng.js`）
 

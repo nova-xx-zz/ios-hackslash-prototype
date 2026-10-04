@@ -353,12 +353,7 @@
 
   // ---------- Roster ----------
   let nextCharSeq = 1;
-  // 必要EXPの曲線(expForLevel)は data.js で定義（tools/progression.js と共有）
-  function syncExpToNext(rec) {
-    if (!rec || typeof rec.level !== "number") return;
-    rec.expToNext = expForLevel(rec.level);
-    rec.exp = Math.max(0, Math.min(Number(rec.exp) || 0, rec.expToNext - 1));
-  }
+  // 必要EXPの曲線(expForLevel)とセーブ読み込み時の再計算(syncExpToNext)は data.js で定義
 
   // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
   function gainExp(c, amount) {
