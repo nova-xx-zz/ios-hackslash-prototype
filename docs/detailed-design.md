@@ -310,7 +310,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | 戦闘進行（4チーム並行） | `startDungeon(teamIndex, id, opts)`, `startBattle(run)`, `loop()`/`tick()`/`tickTeam(i, dt)`, `onVictory(run, battle)`, `onDefeat(run)`, `finishRun(run, info)` |
 | ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
 | ログ（チームごとに履歴保持） | `logEvent(teamIndex, ...)`, `logLine(teamIndex, ...)`, `renderLogFeed(teamIndex)`（タブ切替時にDOM再構築） |
-| セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()` |
+| セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()`（セーブデータの形と移行は `QPModel.save.serialize` / `deserialize`。§3.0a） |
 | オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `computeOfflineRun()`（`QPCore.offline.simulateRun()` と戦闘エンジンで1周を計算）, `applyOfflineRun()`（結果を状態に反映）, `showOfflineModal()` |
 
 ## 3.0 画面に依存しない計算部分（`js/core/`）
@@ -324,6 +324,27 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは game.js の `computeStats` |
 | `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `chooseAction(c, party, env, enemies)`, `expectedValue`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。`chooseAction` は優先度が最も高い技のグループに絞り、その中で期待効果（実際のダメージ式で見積もった与ダメージ／回復量。敵の残りHP・味方の減ったHPを超える分は数えない。会心は期待値）が最大の技を選ぶ（通常の優先度では通常攻撃とも比較し、同値なら消費MPが少ない方）。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
 | `offline.js` | `estimateRunSeconds`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は戦闘を `ctx.fight`（game.js が戦闘エンジンで実際に戦わせる）に任せ、所要時間・遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返す。図鑑登録・EXP付与・所持品への追加は game.js の `applyOfflineRun` が行う |
+
+## 3.0a ゲームの状態とセーブ（`js/model/`）
+
+UI分離（`docs/production-plan.md` §4）の工程1。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
+
+| 項目 | 内容 |
+|---|---|
+| `S.roster` / `S.inventory` | キャラ一覧・未装備のアイテム |
+| `S.activeTeam` | 表示中のチーム |
+| `S.clearedDungeons` | 踏破済みダンジョン（Set） |
+| `S.nextCharSeq` | 次のキャラid の連番 |
+| `S.autoRepeat` | チームごとの自動周回の設定と進行 |
+| `S.skillBooks` | スキルブック（未実装の予約） |
+| `S.material` | 強化石 |
+| `S.guaranteedStones` | 確定強化石（無償分・有償分） |
+
+| ファイル | 主な関数 | 内容 |
+|---|---|---|
+| `model/save.js` | `createState(opts)`, `serialize(state, { now, runDungeonIds, enabledFeatures })`, `deserialize(data, { legacyMaterial, syncExpToNext })`, `SCHEMA_VERSION` | セーブデータの書き出しと、読み込み・旧形式からの移行（schemaVersion 2未満の強化石は旧キーから、確定強化石の数値は無償分として、必要EXPは現在の曲線で計算し直す）。使えないデータは `null`。端末への書き込み・オフライン精算・HP/MPのリセットは game.js の `saveGame` / `loadGame` が行う |
+
+戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js` で検証する。
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 

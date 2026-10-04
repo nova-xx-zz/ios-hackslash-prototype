@@ -2,7 +2,6 @@
   "use strict";
 
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
-  const SAVE_SCHEMA_VERSION = 2;
   const rand = (a, b) => RNG.float(a, b);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
@@ -13,6 +12,9 @@
   // 失敗したら画面上部に警告を出す（次にメインセーブが成功した時点で警告は消える）
   const KEYS = QPCore.storage.KEYS;
   const store = QPCore.storage.createStorage(QPCore.storage.defaultBackend(), { onWriteError: showSaveFailureBanner });
+  // 保存対象のゲームの状態（ロスター・所持品・強化石・踏破済みダンジョン・自動周回など）は、
+  // すべてこの1つのオブジェクトに持つ（js/model/save.js。セーブの書き出し・読み込みもそちら）
+  const S = QPModel.save.createState({ teamCount: TEAM_COUNT });
   // 容量不足の間は書き込みのたびに失敗するため、警告帯が画面上部のボタンを覆い続けないよう
   // 8秒で自動的に隠し、タップで閉じた後は5分間は出し直さない
   const SAVE_BANNER_AUTO_HIDE_MS = 8000;
@@ -46,9 +48,9 @@
   function getBestStage() { return store.getInt(KEYS.bestCleared, 0); }
   function setBestStage(n) { if (n > getBestStage()) store.set(KEYS.bestCleared, n); }
 
-  let material = store.getInt(KEYS.material, 0);
+  S.material = store.getInt(KEYS.material, 0);
   let autoDisassemble = store.getString(KEYS.autoDisassemble) === "1";
-  function addMaterial(n) { material += n; store.set(KEYS.material, material); }
+  function addMaterial(n) { S.material += n; store.set(KEYS.material, S.material); }
 
   // 自動分解の対象レア度（プレイヤーがフィルターで選択、端末に保存）
   let autoDisassembleRarities = new Set(DEFAULT_AUTO_DISASSEMBLE_RARITIES);
@@ -237,46 +239,25 @@
   });
 
   // ---------- セーブ/ロード ----------
-  // ロスター・所持品・出撃中チーム・クリア済みダンジョンを端末に保存する。
-  // 戦闘中の一時的な状態(run/battle)や画面表示用の状態は保存しない。
-  // 自動周回はチームごとに独立しているため、配列として保存する。
-  // schemaVersion 2からは、このメインセーブのmaterialを正本とし、旧jobquest_materialキーは
-  // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
-  // 1回の保存でまとめて確定させるため）。skillBooksはスキルブック機能(未実装)向けの予約フィールド
-  let skillBooks = [];
-  // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金・無料配布）は未実装で、
-  // FEATURE_FLAGS.guaranteedStone が無効の間はUIにも出ない。本番ではサーバーを正本にする（docs/production-plan.md）。
-  // 資金決済法の残高計算で有償分だけを数えられるよう、無償分(free)と有償分(paid)を分けて持ち、消費は無償分から行う
-  let guaranteedStones = { free: 0, paid: 0 };
-  function guaranteedStoneTotal() { return guaranteedStones.free + guaranteedStones.paid; }
+  // ゲームの状態(S)を端末に保存する。セーブデータの形と旧形式からの移行は js/model/save.js。
+  // 旧jobquest_materialキーは互換ミラーとして更新するのみ（正本はメインセーブのmaterial）
+  function guaranteedStoneTotal() { return S.guaranteedStones.free + S.guaranteedStones.paid; }
   let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
   function saveGame() {
     let json;
     const now = Date.now();
     try {
-      const data = {
-        schemaVersion: SAVE_SCHEMA_VERSION,
-        roster, inventory, activeTeam,
-        clearedDungeons: [...clearedDungeons],
-        nextCharSeq,
-        savedAt: now,
-        autoRepeat: autoRepeat.map((ar, i) => ({
-          active: ar.active,
-          target: ar.target,
-          done: ar.done,
-          dungeonId: (teamRuns[i] && teamRuns[i].dungeon) ? teamRuns[i].dungeon.id : null,
-        })),
-        skillBooks,
-        material,
-        guaranteedStones,
-        enabledFeaturesAtSave: Object.keys(FEATURE_FLAGS).filter((k) => FEATURE_FLAGS[k]),
-      };
+      const data = QPModel.save.serialize(S, {
+        now,
+        runDungeonIds: teamRuns.map((r) => (r && r.dungeon) ? r.dungeon.id : null),
+        enabledFeatures: Object.keys(FEATURE_FLAGS).filter((k) => FEATURE_FLAGS[k]),
+      });
       json = JSON.stringify(data);
     } catch (e) { return false; }
     // 容量超過などで失敗した場合はstoreが警告を出す。成功したら以前の警告は消す
     if (!store.set(KEYS.save, json)) return false;
     lastSavedAt = now;
-    store.set(KEYS.material, material); // 旧キーは互換ミラー
+    store.set(KEYS.material, S.material); // 旧キーは互換ミラー
     hideSaveFailureBanner();
     return true;
   }
@@ -300,51 +281,33 @@
     try {
       const raw = store.getString(KEYS.save);
       if (!raw) return false;
-      const data = JSON.parse(raw);
-      if (!data || !Array.isArray(data.roster) || data.roster.length === 0) return false;
-      roster = data.roster;
-      inventory = Array.isArray(data.inventory) ? data.inventory : [];
-      activeTeam = typeof data.activeTeam === "number" ? data.activeTeam : 0;
-      clearedDungeons = new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []);
-      nextCharSeq = typeof data.nextCharSeq === "number" ? data.nextCharSeq : 1;
-      skillBooks = Array.isArray(data.skillBooks) ? data.skillBooks : [];
-      const gs = data.guaranteedStones;
-      guaranteedStones = (gs && typeof gs === "object")
-        ? { free: Number(gs.free) || 0, paid: Number(gs.paid) || 0 }
-        : { free: typeof gs === "number" ? gs : 0, paid: 0 }; // 区別のない旧形式は無償分として扱う
-      // schemaVersion 2以降はこのセーブのmaterialを正本として使う。それ未満（旧形式）の
-      // セーブでは jobquest_material キーが正本だったため、そちらから一度だけ引き継ぐ
-      const isLegacySave = !(typeof data.schemaVersion === "number" && data.schemaVersion >= 2);
-      if (!isLegacySave && typeof data.material === "number") {
-        material = data.material;
-      } else {
-        material = store.getInt(KEYS.material, 0);
-      }
-      store.set(KEYS.material, material);
+      const loaded = QPModel.save.deserialize(JSON.parse(raw), {
+        legacyMaterial: store.getInt(KEYS.material, 0),
+        syncExpToNext,
+      });
+      if (!loaded) return false;
+      Object.assign(S, loaded.state);
+      store.set(KEYS.material, S.material);
       // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
-      for (const c of roster) {
-        // 必要EXPは保存値ではなく現在の曲線(expForLevel)から計算し直す（曲線を見直したときの移行を兼ねる）
-        syncExpToNext(c);
-        for (const rec of Object.values(c.jobLevels || {})) syncExpToNext(rec);
+      for (const c of S.roster) {
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
         c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
       }
-      // 旧バージョン（単一チームのみの自動周回）のデータはそのままでは形が合わないため、
-      // 配列でない場合はオフライン進行の計算対象から外す（ロスター等の本体データは復元される）
-      const savedAutoRepeat = Array.isArray(data.autoRepeat) ? data.autoRepeat : [];
-      lastSavedAt = typeof data.savedAt === "number" ? data.savedAt : null;
+      const savedAutoRepeat = loaded.savedAutoRepeat;
+      const savedAt = loaded.savedAt;
+      lastSavedAt = typeof savedAt === "number" ? savedAt : null;
       if (savedAutoRepeat.some((ar) => ar && ar.active)) {
-        if (store.getString(KEYS.offlineSettled) === String(data.savedAt)) {
+        if (store.getString(KEYS.offlineSettled) === String(savedAt)) {
           // このセーブの離脱期間は精算済み（精算後の保存に失敗していた）。二重付与を避けて自動周回を止めたまま再開する
-        } else if (claimOfflineSettlement(data.savedAt)) {
-          pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, data.savedAt);
+        } else if (claimOfflineSettlement(savedAt)) {
+          pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, savedAt);
         } else {
           offlineSettleFailed = true; // 保存できない状態で付与すると失われる/二重になるため、精算を見送る
         }
       }
       // 旧形式からの移行はその場で保存し直し、schemaVersion付きの内容が次回起動を待たず反映されるようにする
-      if (pendingOfflineSummaries || isLegacySave) saveGame();
+      if (pendingOfflineSummaries || loaded.isLegacy) saveGame();
       return true;
     } catch (e) {
       return false;
@@ -352,7 +315,6 @@
   }
 
   // ---------- Roster ----------
-  let nextCharSeq = 1;
   // 必要EXPの曲線(expForLevel)とセーブ読み込み時の再計算(syncExpToNext)は data.js で定義
 
   // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
@@ -387,7 +349,7 @@
   function newCharacter(name, job, race, opts) {
     opts = opts || {};
     const c = {
-      id: "c" + nextCharSeq++, name, job, race: race || "human",
+      id: "c" + S.nextCharSeq++, name, job, race: race || "human",
       subAbilityIds: [null, null],
       jobLevels: {}, // ジョブID -> {level, exp, expToNext}（転職してもレベルを保持するため）
       skillActive: {}, // abilityId -> bool (default true when unlocked)
@@ -635,20 +597,17 @@
 
   const TEAM_NAMES = ["第一のパーティ", "第二のパーティ", "第三のパーティ", "第四のパーティ"];
   const TEAM_LABELS = ["I", "II", "III", "IV"];
-  let activeTeam = 0; // 探索画面/編成画面で「表示中」のチーム（探索の進行そのものとは独立）
 
-  function teamMembers(i) { return roster.filter((c) => c.team === i); }
-  function activeParty() { return teamMembers(activeTeam); }
-  function currentMaxLevel() { return roster.reduce((m, c) => Math.max(m, c.level), 1); }
+  function teamMembers(i) { return S.roster.filter((c) => c.team === i); }
+  function activeParty() { return teamMembers(S.activeTeam); }
+  function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
   // ---------- Inventory ----------
-  let inventory = [];
-
   function equipItem(c, item) {
-    const idx = inventory.indexOf(item);
-    if (idx >= 0) inventory.splice(idx, 1);
+    const idx = S.inventory.indexOf(item);
+    if (idx >= 0) S.inventory.splice(idx, 1);
     const old = c.equip[item.slot];
-    if (old) inventory.push(old);
+    if (old) S.inventory.push(old);
     c.equip[item.slot] = item;
     clampVitals(c);
   }
@@ -656,14 +615,14 @@
   function unequipSlot(c, slotKey) {
     const item = c.equip[slotKey];
     if (!item) return;
-    inventory.push(item);
+    S.inventory.push(item);
     c.equip[slotKey] = null;
     clampVitals(c);
   }
 
   function autoEquip(c) {
     for (const slot of SLOTS) {
-      const candidates = inventory.filter((i) => i.slot === slot.key);
+      const candidates = S.inventory.filter((i) => i.slot === slot.key);
       const current = c.equip[slot.key];
       if (candidates.length === 0) continue;
       const best = candidates.reduce((a, b) => (itemScore(c, b) > itemScore(c, a) ? b : a));
@@ -682,7 +641,6 @@
   // 自動周回状態はすべてチームごとの配列で管理し、全チームが常に並行して進行する
   let teamRuns = new Array(TEAM_COUNT).fill(null);
   let teamBattles = new Array(TEAM_COUNT).fill(null);
-  let clearedDungeons = new Set();
   let selectedDungeonId = null;
   let jobsReturnScreen = "screen-battle"; // タイトルは常設ナビを持たないスプラッシュのため、既定の戻り先は探索画面にする
   let speedMult = 1;
@@ -690,10 +648,10 @@
 
   // 自動周回（チームごとに独立して設定・進行する）
   const defaultAutoRepeatTarget = clampAutoRepeatTarget(store.getInt(KEYS.autoRepeatTarget, 5));
-  let autoRepeat = Array.from({ length: TEAM_COUNT }, () => ({ active: false, target: defaultAutoRepeatTarget, done: 0 }));
+  for (const ar of S.autoRepeat) ar.target = defaultAutoRepeatTarget;
   function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
   // そのチームが探索中で、編成・装備・スキル・転職・合成などの変更を受け付けられない状態か
-  function isTeamLocked(i) { return isTeamRunActive(i) || autoRepeat[i].active; }
+  function isTeamLocked(i) { return isTeamRunActive(i) || S.autoRepeat[i].active; }
 
   // ---------- 自動周回のオフライン進行 ----------
   // ブラウザを閉じている・バックグラウンドの間は実際のATB戦闘を再現できないため、
@@ -775,13 +733,13 @@
 
     const settled = QPCore.rewards.settleDrops(outcome.drops, { enabled: autoDisassemble, rarities: autoDisassembleRarities });
     if (settled.materialGained > 0) addMaterial(settled.materialGained);
-    inventory.push(...settled.kept);
+    S.inventory.push(...settled.kept);
     let tamedName = null;
     if (outcome.tame && outcome.tame.success) {
       tamedName = addTamedMonster(outcome.tame.key).name;
     }
-    clearedDungeons.add(dungeon.id);
-    setBestStage(clearedDungeons.size);
+    S.clearedDungeons.add(dungeon.id);
+    setBestStage(S.clearedDungeons.size);
     return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName };
   }
 
@@ -812,9 +770,9 @@
     }
 
     // 自動周回はここで一旦停止し、プレイヤーが結果を確認してから再開できるようにする
-    autoRepeat[teamIndex].active = false;
-    autoRepeat[teamIndex].target = autoRepeatInfo.target;
-    autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
+    S.autoRepeat[teamIndex].active = false;
+    S.autoRepeat[teamIndex].target = autoRepeatInfo.target;
+    S.autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
 
     // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
     const tooShort = runsDone === 0;
@@ -859,7 +817,7 @@
     processModalQueue();
   });
 
-  let roster = [
+  S.roster = [
     newCharacter("アレン", "warrior", "human", { team: 0 }),
     newCharacter("ガイ", "warrior", "beastkin", { team: 0 }),
     newCharacter("ミナ", "mage", "sylvan", { team: 0 }),
@@ -868,9 +826,9 @@
   ];
 
   function isDungeonOpen(d) {
-    if (clearedDungeons.has(d.id)) return true;
+    if (S.clearedDungeons.has(d.id)) return true;
     if (d.id === DUNGEONS[0].id) return true;
-    return DUNGEONS.some((src) => clearedDungeons.has(src.id) && src.unlocks.includes(d.id));
+    return DUNGEONS.some((src) => S.clearedDungeons.has(src.id) && src.unlocks.includes(d.id));
   }
 
   // ---------- Screen management ----------
@@ -886,8 +844,8 @@
     const best = getBestStage();
     const bits = [];
     if (best > 0) bits.push(`クリア済みダンジョン: ${best}`);
-    bits.push(`所持なかま: ${roster.length}人`);
-    bits.push(`強化石: ${material}`);
+    bits.push(`所持なかま: ${S.roster.length}人`);
+    bits.push(`強化石: ${S.material}`);
     document.getElementById("bestClearText").textContent = bits.join("　/　");
     document.getElementById("btnTitleAnnounce").classList.toggle("hidden", !isFeatureEnabled("announcements"));
     updateAnnounceBadge();
@@ -995,13 +953,13 @@
         line.setAttribute("y1", d.y);
         line.setAttribute("x2", next.x);
         line.setAttribute("y2", next.y);
-        if (clearedDungeons.has(d.id)) line.classList.add("open");
+        if (S.clearedDungeons.has(d.id)) line.classList.add("open");
         svg.appendChild(line);
       }
     }
 
     for (const d of DUNGEONS) {
-      const cleared = clearedDungeons.has(d.id);
+      const cleared = S.clearedDungeons.has(d.id);
       const open = isDungeonOpen(d);
       const btn = document.createElement("button");
       btn.className = "map-node " + (cleared ? "cleared" : open ? "open" : "locked") +
@@ -1025,7 +983,7 @@
     const el = document.getElementById("dungeonInfo");
     const party = activeParty();
     el.innerHTML = `
-      <div class="dname">${d.name}${clearedDungeons.has(d.id) ? "　クリア済み" : ""}</div>
+      <div class="dname">${d.name}${S.clearedDungeons.has(d.id) ? "　クリア済み" : ""}</div>
       <div class="dmeta">
         ${d.desc}<br>
         戦闘数: ${d.battles}回（最後はボス戦）
@@ -1034,11 +992,11 @@
     btn.className = "btn primary";
     btn.id = "btnEnterDungeon";
     if (party.length === 0) {
-      btn.textContent = `${TEAM_NAMES[activeTeam]}が空です（編成してください）`;
+      btn.textContent = `${TEAM_NAMES[S.activeTeam]}が空です（編成してください）`;
       btn.disabled = true;
     } else {
-      btn.textContent = `${TEAM_NAMES[activeTeam]}で出発する`;
-      btn.addEventListener("click", () => startDungeon(activeTeam, d.id, { navigate: true }));
+      btn.textContent = `${TEAM_NAMES[S.activeTeam]}で出発する`;
+      btn.addEventListener("click", () => startDungeon(S.activeTeam, d.id, { navigate: true }));
     }
     el.appendChild(btn);
   }
@@ -1070,7 +1028,7 @@
         key: "t" + i,
         name: `${TEAM_NAMES[i]}（${TEAM_LABELS[i]}）`,
         meta: `${members.length}/${MAX_ACTIVE}人`,
-        viewed: i === activeTeam,
+        viewed: i === S.activeTeam,
         exploring: isTeamRunActive(i),
         locked: isTeamLocked(i),
         expanded: expandedTeams.has(i),
@@ -1079,7 +1037,7 @@
           renderJobsScreen();
         },
         onView: () => {
-          activeTeam = i;
+          S.activeTeam = i;
           scheduleSave();
           renderJobsScreen();
         },
@@ -1090,7 +1048,7 @@
     }
 
     wrap.appendChild(sectionLabel("未編成"));
-    const bench = roster.filter((c) => c.team === null);
+    const bench = S.roster.filter((c) => c.team === null);
     wrap.appendChild(buildPartyRow({
       key: "bench",
       name: "控え",
@@ -1103,7 +1061,7 @@
     }));
 
     document.getElementById("rosterCount").textContent = rosterMessage ||
-      `所持なかま ${roster.length}人　/　所持品 ${inventory.length}個　（カードを長押しでドラッグ移動）`;
+      `所持なかま ${S.roster.length}人　/　所持品 ${S.inventory.length}個　（カードを長押しでドラッグ移動）`;
   }
 
   let rosterMessage = "";
@@ -1520,7 +1478,7 @@
   function confirmCreate() {
     const name = (draft.name || "").trim() || "ななし";
     const c = newCharacter(name, draft.job, draft.race, { level: createStartLevel() });
-    roster.push(c);
+    S.roster.push(c);
     benchExpanded = true;
     renderJobsScreen();
     showScreen("screen-jobs");
@@ -1561,7 +1519,7 @@
 
   function renderCharDetail() {
     scheduleSave();
-    const c = roster.find((x) => x.id === detailCharId);
+    const c = S.roster.find((x) => x.id === detailCharId);
     if (!c) { showScreen("screen-jobs"); return; }
     document.getElementById("detailName").textContent =
       `${c.name}${c.isMonster ? "（テイム）" : ""}`;
@@ -1593,7 +1551,7 @@
   }
 
   function renderDetailTabs() {
-    const c = roster.find((x) => x.id === detailCharId);
+    const c = S.roster.find((x) => x.id === detailCharId);
     const tabs = document.getElementById("detailTabs");
     tabs.innerHTML = "";
     for (const t of DETAIL_TABS) {
@@ -1883,7 +1841,7 @@
     desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターは選べません）";
     wrap.appendChild(desc);
 
-    const candidates = roster.filter((m) => m.isMonster && m.id !== c.id && m.team === null);
+    const candidates = S.roster.filter((m) => m.isMonster && m.id !== c.id && m.team === null);
     for (const id of [...fusionSelection]) {
       if (!candidates.some((m) => m.id === id)) fusionSelection.delete(id);
     }
@@ -1956,8 +1914,8 @@
         for (const slot of SLOTS) {
           if (m.equip[slot.key]) { unequipSlot(m, slot.key); returnedItems += 1; }
         }
-        const idx = roster.findIndex((x) => x.id === m.id);
-        if (idx !== -1) roster.splice(idx, 1);
+        const idx = S.roster.findIndex((x) => x.id === m.id);
+        if (idx !== -1) S.roster.splice(idx, 1);
       }
       fusionSelection = new Set();
       const result = gainExp(c, totalExpGain);
@@ -2179,10 +2137,10 @@
       filterRow.appendChild(btn);
     }
 
-    const totalCount = inventory.length + skillBooks.length;
+    const totalCount = S.inventory.length + S.skillBooks.length;
     const shownCount = inventoryFilterSlot === "all" ? totalCount
-      : inventoryFilterSlot === "skillBook" ? skillBooks.length
-      : inventory.filter((i) => i.slot === inventoryFilterSlot).length;
+      : inventoryFilterSlot === "skillBook" ? S.skillBooks.length
+      : S.inventory.filter((i) => i.slot === inventoryFilterSlot).length;
     document.getElementById("inventoryCount").textContent = `所持品 ${totalCount}個中 ${shownCount}個を表示`;
 
     const body = document.getElementById("inventoryBody");
@@ -2199,7 +2157,7 @@
 
     for (const slot of SLOTS) {
       if (inventoryFilterSlot !== "all" && inventoryFilterSlot !== slot.key) continue;
-      const items = inventory
+      const items = S.inventory
         .filter((i) => i.slot === slot.key)
         .sort((a, b) => {
           const ra = RARITIES.findIndex((r) => r.key === a.rarity);
@@ -2215,7 +2173,7 @@
     }
 
     if (inventoryFilterSlot === "all" || inventoryFilterSlot === "skillBook") {
-      const books = skillBooks.slice().sort((a, b) => {
+      const books = S.skillBooks.slice().sort((a, b) => {
         const ra = RARITIES.findIndex((r) => r.key === a.rarity);
         const rb = RARITIES.findIndex((r) => r.key === b.rarity);
         return rb - ra;
@@ -2290,7 +2248,7 @@
 
     const head = document.createElement("div");
     head.className = "sub-ability-row";
-    head.textContent = `装備（所持品 ${inventory.length}個）`;
+    head.textContent = `装備（所持品 ${S.inventory.length}個）`;
     wrap.appendChild(head);
 
     const row = document.createElement("div");
@@ -2323,7 +2281,7 @@
     if (opened) {
       const list = document.createElement("div");
       list.className = "equip-choice-list";
-      const candidates = inventory
+      const candidates = S.inventory
         .filter((i) => i.slot === opened.key)
         .sort((a, b) => itemScore(c, b) - itemScore(c, a));
 
@@ -2402,10 +2360,10 @@
     statsBox.innerHTML = `
       <div class="pm-stat-row"><span class="pm-stat-label">強化値</span><span>+${item.plus} / +${ENHANCE_MAX_PLUS}</span></div>
       <div class="pm-stat-row"><span class="pm-stat-label">成功率</span><span>${formatEnhanceRate(rate)}</span></div>
-      <div class="pm-stat-row"><span class="pm-stat-label">消費強化石</span><span>${cost}（所持 ${material}）</span></div>` +
+      <div class="pm-stat-row"><span class="pm-stat-label">消費強化石</span><span>${cost}（所持 ${S.material}）</span></div>` +
       (isFeatureEnabled("enhancePity") && !maxed ? buildPityRow(item) : "") +
       (isFeatureEnabled("guaranteedStone") && !maxed
-        ? `<div class="pm-stat-row"><span class="pm-stat-label">確定強化石</span><span>必要 ${guaranteedStonesRequired(item)}個（所持 ${guaranteedStoneTotal()}：無償${guaranteedStones.free}／有償${guaranteedStones.paid}）</span></div>`
+        ? `<div class="pm-stat-row"><span class="pm-stat-label">確定強化石</span><span>必要 ${guaranteedStonesRequired(item)}個（所持 ${guaranteedStoneTotal()}：無償${S.guaranteedStones.free}／有償${S.guaranteedStones.paid}）</span></div>`
         : "");
 
     const resultBox = document.getElementById("enResult");
@@ -2413,8 +2371,8 @@
     resultBox.className = "enhance-result" + (enhanceMessage.startsWith("成功") ? " success" : enhanceMessage ? " fail" : "");
 
     const btn = document.getElementById("btnEnhanceGo");
-    btn.disabled = maxed || material < cost;
-    btn.textContent = maxed ? "強化値が上限です" : (material < cost ? "強化石が足りません" : "強化する");
+    btn.disabled = maxed || S.material < cost;
+    btn.textContent = maxed ? "強化値が上限です" : (S.material < cost ? "強化石が足りません" : "強化する");
 
     const gBtn = document.getElementById("btnEnhanceGuaranteed");
     gBtn.classList.toggle("hidden", !isFeatureEnabled("guaranteedStone"));
@@ -2444,7 +2402,7 @@
   document.getElementById("btnEnhanceGo").addEventListener("click", () => {
     const item = enhanceItem;
     if (!item || item.plus >= ENHANCE_MAX_PLUS) return;
-    if (material < enhanceCost(item)) return;
+    if (S.material < enhanceCost(item)) return;
     // 判定はjs/core/enhance.js（状態は変えずに結果だけ返す）。ここで強化石・+値・天井ゲージに反映する
     const result = QPCore.enhance.attempt(ENHANCE_RULES, item, { rng: RNG, pityEnabled: isFeatureEnabled("enhancePity") });
     addMaterial(-result.cost);
@@ -2461,9 +2419,9 @@
   document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
     const item = enhanceItem;
     if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS) return;
-    const result = QPCore.enhance.useGuaranteed(ENHANCE_RULES, item, guaranteedStones);
+    const result = QPCore.enhance.useGuaranteed(ENHANCE_RULES, item, S.guaranteedStones);
     if (!result.ok) return;
-    guaranteedStones = result.stones; // 消費は無償分から
+    S.guaranteedStones = result.stones; // 消費は無償分から
     item.plus = result.plus;
     item.pity = result.pity;
     enhanceMessage = `成功！ +${item.plus} になった（確定強化石${result.required}個を使用）`;
@@ -2522,7 +2480,7 @@
     }
     logEvent(teamIndex, "start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
     trimTeamLog(teamIndex);
-    if (teamIndex === activeTeam) {
+    if (teamIndex === S.activeTeam) {
       buildPartyDock();
       renderDock();
     }
@@ -2543,7 +2501,7 @@
     for (const c of teamMembers(run.team)) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
 
     logEvent(run.team, "encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster(battle));
-    if (run.team === activeTeam) renderDock();
+    if (run.team === S.activeTeam) renderDock();
   }
 
   // 敵の残り状況をテキストで表示（敵パネルの代わり）
@@ -2580,7 +2538,7 @@
         startCount += 1;
         if (startCount > LOG_HISTORY_RUNS) {
           entries.splice(0, i + 1);
-          if (teamIndex === activeTeam) renderLogFeed(teamIndex);
+          if (teamIndex === S.activeTeam) renderLogFeed(teamIndex);
           return;
         }
       }
@@ -2590,7 +2548,7 @@
   function logEvent(teamIndex, type, title, subtitle) {
     const entry = { type, title, subtitle: subtitle || "", lines: [] };
     teamLogs[teamIndex].push(entry);
-    if (teamIndex === activeTeam) appendLogCardDOM(entry);
+    if (teamIndex === S.activeTeam) appendLogCardDOM(entry);
     return entry;
   }
 
@@ -2599,14 +2557,14 @@
     if (entries.length === 0) entries.push({ type: "encounter", title: "戦闘", subtitle: "", lines: [] });
     const entry = entries[entries.length - 1];
     entry.lines.push({ text, cls: cls || "" });
-    if (teamIndex === activeTeam) appendLogLineDOM(text, cls);
+    if (teamIndex === S.activeTeam) appendLogLineDOM(text, cls);
   }
 
   function logDropLine(teamIndex, item) {
     const entries = teamLogs[teamIndex];
     if (entries.length === 0) return;
     entries[entries.length - 1].lines.push({ drop: item });
-    if (teamIndex === activeTeam) {
+    if (teamIndex === S.activeTeam) {
       const feed = document.getElementById("logFeed");
       const card = feed.lastElementChild;
       if (card) card.querySelector(".lc-lines").appendChild(buildDropRow(item));
@@ -2617,7 +2575,7 @@
     const entries = teamLogs[teamIndex];
     if (entries.length === 0) return;
     entries[entries.length - 1].subtitle = text || "";
-    if (teamIndex !== activeTeam) return;
+    if (teamIndex !== S.activeTeam) return;
     const feed = document.getElementById("logFeed");
     const card = feed.lastElementChild;
     if (!card) return;
@@ -2703,11 +2661,11 @@
   }
 
   function renderDock() {
-    document.getElementById("teamName").textContent = TEAM_NAMES[activeTeam];
-    document.getElementById("materialLine").textContent = `強化石 ${material}`;
-    const run = teamRuns[activeTeam];
-    const running = isTeamRunActive(activeTeam);
-    const locked = isTeamLocked(activeTeam);
+    document.getElementById("teamName").textContent = TEAM_NAMES[S.activeTeam];
+    document.getElementById("materialLine").textContent = `強化石 ${S.material}`;
+    const run = teamRuns[S.activeTeam];
+    const running = isTeamRunActive(S.activeTeam);
+    const locked = isTeamLocked(S.activeTeam);
     const d = run ? run.dungeon : null;
 
     const buffText = run
@@ -2720,7 +2678,7 @@
       ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
       : "ダンジョン未選択";
     document.getElementById("dockDungeon").textContent = d ? d.name : "—";
-    renderLogFeed(activeTeam);
+    renderLogFeed(S.activeTeam);
     document.getElementById("dockStatus").textContent = !d
       ? ""
       : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
@@ -2737,11 +2695,11 @@
     tabs.innerHTML = "";
     TEAM_LABELS.forEach((label, i) => {
       const btn = document.createElement("button");
-      btn.className = "team-tab" + (i === activeTeam ? " active" : "") + (isTeamRunActive(i) ? " exploring" : "");
+      btn.className = "team-tab" + (i === S.activeTeam ? " active" : "") + (isTeamRunActive(i) ? " exploring" : "");
       btn.innerHTML = `${label}<span class="count">${teamMembers(i).length}人</span>`;
       btn.addEventListener("click", () => {
-        if (i === activeTeam) return;
-        activeTeam = i;
+        if (i === S.activeTeam) return;
+        S.activeTeam = i;
         buildPartyDock();
         renderDock();
         scheduleSave();
@@ -2765,8 +2723,8 @@
     const row = document.getElementById("autoRepeatRow");
     if (!row) return;
     row.innerHTML = "";
-    const i = activeTeam;
-    const ar = autoRepeat[i];
+    const i = S.activeTeam;
+    const ar = S.autoRepeat[i];
     const run = teamRuns[i];
     const locked = isTeamLocked(i);
     const canStart = !!(run && run.dungeon);
@@ -2875,9 +2833,9 @@
   updateAutoDisassembleButton();
   renderAutoRepeatRow();
   document.getElementById("btnRedeploy").addEventListener("click", () => {
-    const run = teamRuns[activeTeam];
-    if (isTeamLocked(activeTeam) || !run) return;
-    startDungeon(activeTeam, run.dungeon.id, { navigate: true });
+    const run = teamRuns[S.activeTeam];
+    if (isTeamLocked(S.activeTeam) || !run) return;
+    startDungeon(S.activeTeam, run.dungeon.id, { navigate: true });
   });
   document.getElementById("btnDockMap").addEventListener("click", () => {
     openMap();
@@ -2989,7 +2947,7 @@
       if (result === "victory") onVictory(run, battle);
       else onDefeat(run);
     }
-    if (i === activeTeam) updateBattleDOM();
+    if (i === S.activeTeam) updateBattleDOM();
   }
 
   requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
@@ -3009,7 +2967,7 @@
     const tpl = getEnemyTemplate(key);
     const lvl = Math.max(1, currentMaxLevel() - 2);
     const mon = newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
-    roster.push(mon);
+    S.roster.push(mon);
     return mon;
   }
 
@@ -3043,9 +3001,9 @@
         scheduleNext(run.team, () => startBattle(run), 700);
       }, 900);
     } else {
-      const firstClear = !clearedDungeons.has(run.dungeon.id);
-      clearedDungeons.add(run.dungeon.id);
-      setBestStage(clearedDungeons.size);
+      const firstClear = !S.clearedDungeons.has(run.dungeon.id);
+      S.clearedDungeons.add(run.dungeon.id);
+      setBestStage(S.clearedDungeons.size);
       const unlocked = firstClear
         ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean)
         : [];
@@ -3100,7 +3058,7 @@
       c.hp = Math.max(1, c.hp - dmg); // 罠では戦闘不能にならない
       logLine(run.team, `${c.name} は ${dmg} のダメージを受けた`, "down");
     }
-    if (run.team === activeTeam) updateBattleDOM();
+    if (run.team === S.activeTeam) updateBattleDOM();
   }
 
   function rollSpringEvent(run) {
@@ -3115,7 +3073,7 @@
       c.mp = Math.min(s.maxMp, c.mp + mp);
       logLine(run.team, `${c.name} のHPが${hp}、MPが${mp}かいふく`, "heal");
     }
-    if (run.team === activeTeam) updateBattleDOM();
+    if (run.team === S.activeTeam) updateBattleDOM();
   }
 
   function rollShrineEvent(run) {
@@ -3123,7 +3081,7 @@
     run.buffs[stat] = (run.buffs[stat] || 0) + 0.12;
     logEvent(run.team, "blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
     logLine(run.team, `${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");
-    if (run.team === activeTeam) { renderDock(); updateBattleDOM(); }
+    if (run.team === S.activeTeam) { renderDock(); updateBattleDOM(); }
   }
 
   // ドロップは即座に所持品化・分解せず、ダンジョンを踏破した時だけ確定させる
@@ -3141,14 +3099,14 @@
     run.disassembleCount += settled.disassembled;
     run.materialGained += settled.materialGained;
     run.drops.push(...settled.kept);
-    inventory.push(...settled.kept);
+    S.inventory.push(...settled.kept);
   }
 
   function finishRun(run, info) {
     run.finished = true;
     run.wiped = !info.cleared;
     if (info.cleared) settlePendingDrops(run);
-    const isViewed = run.team === activeTeam;
+    const isViewed = run.team === S.activeTeam;
 
     logEvent(run.team,
       info.cleared ? "clear" : "wipe",
@@ -3176,7 +3134,7 @@
       for (const item of run.drops) logDropLine(run.team, item);
     }
     if (run.disassembleCount > 0) {
-      logLine(run.team, `自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${material}`, "system");
+      logLine(run.team, `自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${S.material}`, "system");
     }
     if (run.wiped && run.pendingDrops.length > 0) {
       logLine(run.team, `全滅したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
@@ -3192,19 +3150,19 @@
       renderDock();
     }
 
-    if (autoRepeat[run.team].active) {
+    if (S.autoRepeat[run.team].active) {
       if (run.wiped) {
-        autoRepeat[run.team].active = false;
+        S.autoRepeat[run.team].active = false;
         logLine(run.team, "パーティが全滅したため自動周回を停止しました", "system");
         if (isViewed) renderDock();
       } else {
-        autoRepeat[run.team].done += 1;
-        if (autoRepeat[run.team].done >= autoRepeat[run.team].target) {
-          autoRepeat[run.team].active = false;
-          logLine(run.team, `自動周回が完了しました（${autoRepeat[run.team].done}周）`, "system");
+        S.autoRepeat[run.team].done += 1;
+        if (S.autoRepeat[run.team].done >= S.autoRepeat[run.team].target) {
+          S.autoRepeat[run.team].active = false;
+          logLine(run.team, `自動周回が完了しました（${S.autoRepeat[run.team].done}周）`, "system");
           if (isViewed) renderDock();
         } else {
-          logLine(run.team, `自動周回 ${autoRepeat[run.team].done}/${autoRepeat[run.team].target} 周完了。次のダンジョンへ出発します…`, "system");
+          logLine(run.team, `自動周回 ${S.autoRepeat[run.team].done}/${S.autoRepeat[run.team].target} 周完了。次のダンジョンへ出発します…`, "system");
           if (isViewed) renderAutoRepeatRow();
           const nextId = run.dungeon.id;
           scheduleNext(run.team, () => startDungeon(run.team, nextId), 1400);
@@ -3263,7 +3221,7 @@
     const targets = [];
     for (let i = 0; i < TEAM_COUNT; i++) {
       const run = teamRuns[i];
-      if (!autoRepeat[i].active || !run || !run.dungeon) continue;
+      if (!S.autoRepeat[i].active || !run || !run.dungeon) continue;
       if (elapsedMs / 1000 < estimateOfflineRunSeconds(run.dungeon)) continue;
       targets.push(i);
     }
@@ -3273,7 +3231,7 @@
     const infos = new Array(TEAM_COUNT).fill(null);
     for (const i of targets) {
       const run = teamRuns[i];
-      infos[i] = { active: true, target: autoRepeat[i].target, done: autoRepeat[i].done, dungeonId: run.dungeon.id };
+      infos[i] = { active: true, target: S.autoRepeat[i].target, done: S.autoRepeat[i].done, dungeonId: run.dungeon.id };
       // 離れる直前の周回は途中で止まっているため打ち切り、離れていた時間ぶんはまとめて精算する
       // （起動時の精算で途中の周回を破棄するのと同じ扱い。この周の未確定ドロップは持ち帰れない）
       clearTimeout(nextBattleTimer[i]);
