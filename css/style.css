@@ -6,15 +6,17 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
-  --bg: #0e0c16;
-  --panel-bg: rgba(20, 17, 30, 0.94);
-  --accent: #7c5cff;
+  /* タイトル・探索画面と共通の、青緑の暗色と古金色のテーマ（ギルドの世界観） */
+  --bg: #071015;
+  --panel-bg: rgba(9, 20, 26, 0.93);
+  --accent: #c9a463;
+  --on-accent: #171a1a; /* 古金色の上に載せる文字の色 */
   --hp: #ff4d5e;
   --mp: #4dc3ff;
   --atb: #ffd24d;
-  --text: #f2f2f7;
-  --sub-text: rgba(242, 242, 247, 0.65);
-  --border: rgba(255, 255, 255, 0.12);
+  --text: #f3eee2;
+  --sub-text: #bac4c6;
+  --border: rgba(201, 164, 99, 0.22);
   --rarity-n: #cfd8dc;
   --rarity-r: #4dc3ff;
   --rarity-sr: #7c5cff;
@@ -33,7 +35,10 @@ html, body {
 
 #app {
   position: fixed; inset: 0;
-  background: radial-gradient(ellipse at top, #1c1830 0%, #0e0c16 70%);
+  /* 全画面共通の背景: 探索画面と同じギルドの入口のイラストを暗く敷く（タイトル・探索画面は各自の背景で覆う） */
+  background:
+    linear-gradient(180deg, rgba(4, 12, 17, 0.8), rgba(4, 12, 17, 0.88) 45%, rgba(7, 16, 21, 0.95)),
+    #071015 url("../icons/explore-guild.jpg") center 35% / cover no-repeat;
   overflow: hidden;
 }
 /* 画面下に置くもの（ドック）は、この #app の枠を基準にする。
@@ -76,7 +81,7 @@ html, body {
   border-radius: 10px; border: none;
   cursor: pointer;
 }
-.btn.primary { background: var(--accent); color: white; }
+.btn.primary { background: linear-gradient(180deg, #dbc28a, #b38b4b); color: var(--on-accent); }
 .btn.ghost { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid var(--border); }
 .btn:active { opacity: 0.75; }
 .btn:disabled { opacity: 0.35; cursor: default; }
@@ -249,7 +254,7 @@ html, body {
   color: var(--text);
   cursor: pointer;
 }
-.hub-nav-btn.active { background: rgba(124,92,255,0.22); border-color: var(--accent); }
+.hub-nav-btn.active { background: rgba(201, 164, 99, 0.22); border-color: var(--accent); }
 .hub-nav-btn:active { opacity: 0.75; }
 .hub-nav-icon { font-size: 17px; line-height: 1; }
 .hub-nav-label { font-size: 10px; font-weight: 700; }
@@ -300,7 +305,7 @@ html, body {
   color: var(--text);
   cursor: pointer;
 }
-.announce-row.unread { border-color: var(--accent); background: rgba(124,92,255,0.12); }
+.announce-row.unread { border-color: var(--accent); background: rgba(201, 164, 99, 0.12); }
 .announce-row-meta { font-size: 10px; color: var(--sub-text); }
 .announce-row-title { font-size: 13px; font-weight: 700; margin-top: 2px; }
 .roadmap-row {
@@ -349,7 +354,7 @@ html, body {
   font-size: 12px;
   cursor: pointer;
 }
-.job-pick.active { background: var(--accent); border-color: var(--accent); }
+.job-pick.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .job-pick.disabled { opacity: 0.35; cursor: default; }
 .sub-ability-row { margin-top: 8px; font-size: 12px; color: var(--sub-text); }
 .sub-pick-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
@@ -408,7 +413,7 @@ html, body {
 .party-row-head .pmeta { margin-left: auto; font-size: 11px; color: var(--sub-text); }
 .party-row-head .deployed {
   font-size: 10px; font-weight: 700;
-  background: var(--accent); color: #fff;
+  background: var(--accent); color: var(--on-accent);
   border-radius: 6px; padding: 2px 6px;
 }
 .party-row-head .exploring-badge {
@@ -448,7 +453,7 @@ html, body {
   display: flex; gap: 8px; margin-top: 8px;
   font-size: 10px; color: var(--sub-text);
 }
-.member-card.monster { border-color: rgba(124,92,255,0.5); }
+.member-card.monster { border-color: rgba(201, 164, 99, 0.5); }
 .member-card.empty {
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; color: var(--sub-text);
@@ -512,7 +517,7 @@ html, body {
   padding: 7px 10px;
   cursor: pointer;
 }
-.pick-chip.active { background: var(--accent); border-color: var(--accent); }
+.pick-chip.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 .preview-box {
   background: rgba(255,255,255,0.05);
@@ -542,6 +547,10 @@ html, body {
   box-shadow: 0 12px 32px rgba(0,0,0,0.5);
 }
 .modal-icon { font-size: 34px; text-align: center; line-height: 1; }
+.modal-icon.is-insignia { color: #e0c185; }
+.modal-icon .job-insignia { width: 40px; height: 40px; }
+.pm-chip.is-insignia { color: #d9b979; display: inline-flex; align-items: center; justify-content: center; }
+.pm-chip .job-insignia { width: 22px; height: 22px; }
 .modal-name { font-size: 17px; font-weight: 700; text-align: center; margin-top: 8px; }
 .modal-desc { font-size: 12px; color: var(--sub-text); line-height: 1.6; margin-top: 10px; text-align: center; }
 .modal-stats {
@@ -571,7 +580,7 @@ html, body {
   border-radius: 10px;
   cursor: pointer;
 }
-.pm-chip.active { border-color: var(--accent); background: rgba(124,92,255,0.18); }
+.pm-chip.active { border-color: var(--accent); background: rgba(201, 164, 99, 0.18); }
 .modal-ok { width: 100%; margin-top: 16px; }
 
 /* drag & drop */
@@ -640,9 +649,11 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   color: var(--text);
   cursor: pointer;
 }
-.job-card.active { background: rgba(77,195,122,0.16); border-color: #4dc37a; }
+.job-card.active { background: rgba(201, 164, 99, 0.16); border-color: #c9a463; box-shadow: inset 0 0 0 1px rgba(201, 164, 99, 0.35); }
 .job-card.locked { opacity: 0.4; cursor: default; }
-.job-card-icon { font-size: 22px; line-height: 1; }
+.job-card-icon { height: 26px; display: flex; align-items: center; justify-content: center; color: #d9b979; }
+.job-card-icon .job-insignia { width: 24px; height: 24px; }
+.job-card.active .job-card-icon { color: #f1dfb0; }
 .job-card-level { font-size: 10px; color: var(--sub-text); font-weight: 700; }
 .job-card-level .star { color: var(--atb); }
 .job-card-name { font-size: 12px; font-weight: 700; text-align: center; }
@@ -681,6 +692,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .priority-chip.dim { opacity: 0.4; }
 .priority-chip.tier-3 { background: rgba(77, 195, 122, 0.25); color: #7dffb0; border-color: #4dc37a; }
+/* 所持品の絞り込みは、戦闘AIの優先度の色（緑）ではなくテーマの古金色で選択中を示す */
+.priority-chip.inv-filter.tier-3 { background: rgba(201, 164, 99, 0.22); color: #f1dfb0; border-color: var(--accent); }
 .priority-chip.tier-2 { background: rgba(255,255,255,0.05); color: var(--sub-text); }
 .priority-chip.tier-1 { background: rgba(255, 210, 77, 0.18); color: var(--atb); border-color: rgba(255,210,77,0.5); }
 
@@ -728,7 +741,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .tree-node.locked { opacity: 0.4; }
-.tree-node.available { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,92,255,0.25); }
+.tree-node.available { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(201, 164, 99, 0.25); }
 .tree-node.acquired { border-color: #4dc37a; background: rgba(77,195,122,0.25); }
 .tree-node.selected { box-shadow: 0 0 0 3px rgba(255,210,77,0.5); }
 .tree-node-label {
@@ -775,7 +788,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .map-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .map-lines line { stroke: rgba(255,255,255,0.18); stroke-width: 0.5; stroke-dasharray: 2 1.5; }
-.map-lines line.open { stroke: rgba(124,92,255,0.6); stroke-dasharray: none; }
+.map-lines line.open { stroke: rgba(201, 164, 99, 0.6); stroke-dasharray: none; }
 
 .map-node {
   position: absolute;
@@ -799,7 +812,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .map-node.locked { opacity: 0.4; cursor: default; }
 .map-node.locked .dot { border-style: dashed; }
-.map-node.open .dot { background: var(--accent); border-color: #cbbcff; box-shadow: 0 0 12px rgba(124,92,255,0.6); }
+.map-node.open .dot { background: var(--accent); border-color: #f1dfb0; box-shadow: 0 0 12px rgba(201, 164, 99, 0.6); }
 .map-node.cleared .dot { background: #2f7d54; border-color: #7dffb0; }
 .map-node.selected .dot { outline: 2px solid var(--atb); outline-offset: 3px; }
 
@@ -848,7 +861,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .disassemble-chip.active { color: #0b0b12; border-color: transparent; }
 .disassemble-chip:disabled { opacity: 0.4; cursor: default; }
-.btn.toggle-on { background: rgba(124,92,255,0.35); border-color: var(--accent); color: var(--text); }
+.btn.toggle-on { background: rgba(201, 164, 99, 0.35); border-color: var(--accent); color: var(--text); }
 
 .log-feed {
   flex: 1;
@@ -878,7 +891,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .log-card.treasure { border-left-color: #3aa88a; background: rgba(42, 120, 100, 0.16); }
 .log-card.trap { border-left-color: #c9782f; background: rgba(150, 90, 30, 0.16); }
 .log-card.blessing { border-left-color: #4dc3ff; background: rgba(40, 110, 150, 0.16); }
-.log-card.clear { border-left-color: var(--accent); background: rgba(124, 92, 255, 0.14); }
+.log-card.clear { border-left-color: var(--accent); background: rgba(201, 164, 99, 0.14); }
 .log-card.wipe { border-left-color: #7a7a86; background: rgba(0,0,0,0.35); }
 .log-card.start { border-left-color: var(--atb); background: rgba(255, 210, 77, 0.10); }
 
@@ -901,7 +914,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   font-weight: 700;
   cursor: pointer;
 }
-.auto-repeat-chip.active { background: var(--accent); border-color: transparent; color: white; }
+.auto-repeat-chip.active { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 .auto-repeat-chip:disabled { opacity: 0.4; cursor: default; }
 .auto-repeat-status { flex: 1; font-size: 12px; font-weight: 700; color: var(--accent); }
 .auto-repeat-row .btn { width: auto; margin: 0; padding: 6px 12px; font-size: 12px; }
@@ -927,7 +940,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   content: "●"; color: var(--rarity-ur); font-size: 8px;
   margin-left: 3px; vertical-align: middle;
 }
-.team-tab.active { background: rgba(124,92,255,0.22); color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
+.team-tab.active { background: rgba(201, 164, 99, 0.22); color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
 .team-tab:disabled { opacity: 0.4; cursor: default; }
 
 .detail-tabs { display: flex; border-top: 1px solid var(--border); margin-top: 4px; }
@@ -941,7 +954,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .detail-tab:last-child { border-right: none; }
-.detail-tab.active { background: rgba(124,92,255,0.22); color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
+.detail-tab.active { background: rgba(201, 164, 99, 0.22); color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
 
 .detail-stat-box {
   border: 1px solid var(--border);
@@ -997,13 +1010,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .stat-num { font-size: 8px; color: var(--sub-text); text-align: right; }
 
 /* 探索画面: タイトルと共通の青緑・古金色。HP/MP/レア度の意味色は保持する。 */
-#screen-battle {
-  --accent: #c9a463;
-  --border: rgba(201, 164, 99, 0.22);
-  --sub-text: #bac4c6;
-  --text: #f3eee2;
-  isolation: isolate;
-}
+#screen-battle { isolation: isolate; }
 .explore-backdrop {
   position: absolute; z-index: 0; pointer-events: none;
   top: calc(-1 * var(--safe-top)); bottom: calc(-1 * var(--safe-bottom));
@@ -1146,7 +1153,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   color: var(--text);
   cursor: pointer;
 }
-.equip-slot.open { background: rgba(124,92,255,0.22); }
+.equip-slot.open { background: rgba(201, 164, 99, 0.22); }
 .equip-slot .slot-name { display: block; font-size: 9px; color: var(--sub-text); }
 .equip-slot .slot-item { display: block; font-size: 10px; line-height: 1.35; margin-top: 2px; }
 .equip-slot:not(.filled) .slot-item { color: var(--sub-text); }
@@ -1187,7 +1194,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   color: var(--text);
   cursor: pointer;
 }
-.equip-pick.done { background: rgba(124,92,255,0.4); }
+.equip-pick.done { background: rgba(201, 164, 99, 0.4); }
 
 .log-card .drop-row { flex-wrap: wrap; margin: 5px 0; padding: 5px 7px; }
 .log-card .equip-pick-row { gap: 3px; }
