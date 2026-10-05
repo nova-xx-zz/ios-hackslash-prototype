@@ -36,13 +36,8 @@ html, body {
   background: radial-gradient(ellipse at top, #1c1830 0%, #0e0c16 70%);
   overflow: hidden;
 }
-/* ホーム画面から起動した時（PWA）は、iOSが「画面下端」をステータスバーの高さぶん上に計算することがあり、
-   下に約60ptの余白ができる（iPhone 16 で確認）。画面全体の高さ（100vh）で枠を決め直す。
-   画面下に置くもの（ドック・モーダル）は、この #app の枠を基準にする */
-@media all and (display-mode: standalone) {
-  #app { bottom: auto; height: 100vh; }
-  .modal-overlay { bottom: auto; height: 100vh; }
-}
+/* 画面下に置くもの（ドック）は、この #app の枠を基準にする。
+   ホーム画面から起動した時の表示の高さは、index.html のステータスバーの設定（black）で正しくなる */
 
 /* 各画面は安全領域の内側に置く（position: absolute は親の padding を無視するため、位置そのものを余白分ずらす） */
 .screen {
