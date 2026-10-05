@@ -2,7 +2,7 @@
 
 > 更新日: 2026-09-30。現行実装の参照基点: `8f0e153`。
 > 本書では「現行実装」「採用済み・未実装」「将来構想」を区別する。
-> **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2の固有ツリー＋汎用3枠交換＋分岐図UIの範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（sourceRarity、ブック消費での交換）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`EXCLUSIVE_TREES`/`GENERAL_TREES`/`GENERAL_SLOTS`、`js/game.js`のツリー関連関数群（`getExclusiveTree`/`getTreeState`/`generalSlotTreeDef`/`totalSp`/`spentSpFor`/`totalSpentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`swapGeneralSlot`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeSection`/`buildTreeGraph`/`buildTreeNodeDetail`の分岐図UIを参照。
+> **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2の固有ツリー＋汎用3枠交換＋分岐図UIの範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（sourceRarity、ブック消費での交換）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`EXCLUSIVE_TREES`/`GENERAL_TREES`/`GENERAL_SLOTS`、`js/model/roster.js`のツリー関連関数群（`getExclusiveTree`/`getTreeState`/`generalSlotTreeDef`/`totalSp`/`spentSpFor`/`totalSpentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`swapGeneralSlot`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeSection`/`buildTreeGraph`/`buildTreeNodeDetail`の分岐図UIを参照。
 
 対象コード: `js/data.js`, `js/game.js`, `css/style.css`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装・固有+汎用3枠実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2の固有＋汎用3枠交換の範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
 
@@ -321,13 +321,13 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | `rng.js` | `shared`, `createRng(seed)`, `setSharedSeed(seed)` | 乱数（§3.1） |
 | `enhance.js` | `successRate / cost / expectedCost / pityThreshold / guaranteedRequired`, `attempt(rules, item, { rng, pityEnabled })`, `useGuaranteed(rules, item, stones)` | 装備強化（§2.10）。`attempt` / `useGuaranteed` は判定後の+値・天井ゲージ・確定強化石の残数を返すだけで、装備や所持数は変更しない |
 | `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
-| `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは game.js の `computeStats` |
+| `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは model/roster.js の `computeStats` |
 | `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `chooseAction(c, party, env, enemies)`, `expectedValue`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。`chooseAction` は優先度が最も高い技のグループに絞り、その中で期待効果（実際のダメージ式で見積もった与ダメージ／回復量。敵の残りHP・味方の減ったHPを超える分は数えない。会心は期待値）が最大の技を選ぶ（通常の優先度では通常攻撃とも比較し、同値なら消費MPが少ない方）。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
 | `offline.js` | `estimateRunSeconds`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は戦闘を `ctx.fight`（game.js が戦闘エンジンで実際に戦わせる）に任せ、所要時間・遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返す。図鑑登録・EXP付与・所持品への追加は game.js の `applyOfflineRun` が行う |
 
 ## 3.0a ゲームの状態とセーブ（`js/model/`）
 
-UI分離（`docs/production-plan.md` §4）の工程1。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
+UI分離（`docs/production-plan.md` §4）の工程1〜2。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
 
 | 項目 | 内容 |
 |---|---|
@@ -344,7 +344,9 @@ UI分離（`docs/production-plan.md` §4）の工程1。保存対象のゲーム
 |---|---|---|
 | `model/save.js` | `createState(opts)`, `serialize(state, { now, runDungeonIds, enabledFeatures })`, `deserialize(data, { legacyMaterial, syncExpToNext })`, `SCHEMA_VERSION` | セーブデータの書き出しと、読み込み・旧形式からの移行（schemaVersion 2未満の強化石は旧キーから、確定強化石の数値は無償分として、必要EXPは現在の曲線で計算し直す）。使えないデータは `null`。端末への書き込み・オフライン精算・HP/MPのリセットは game.js の `saveGame` / `loadGame` が行う |
 
-戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js` で検証する。
+| `model/roster.js` | `createRoster({ data, state, runBuffs, isTeamLocked })` → `newCharacter`, `gainExp`, `totalExpInvested`, `switchJob`, `jobUnlocked`, `jobDef`, `getTreeState`, `totalSp` / `availableSp`, `canAcquireNode` / `acquireNode`, `swapGeneralSlot`, `treePassiveTotals`, `computeStats`, `itemScore`, `availableAbilities`, `subAbilityCandidates`, `teamMembers`, `currentMaxLevel` ほか | キャラまわりのルール（§2.3 EXP、§2.12 スキルツリーなど）。ゲームのデータ（js/data.js）と状態 `S` は引数で受け取り、グローバルを直接参照しない。石碑の加護は `runBuffs(team)`、探索中かどうかは `isTeamLocked(team)` で game.js に問い合わせる。game.js は `createRoster` の戻り値を同じ関数名で受け取って使う |
+
+戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js`・`tests/roster.test.js` で検証する。
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 
