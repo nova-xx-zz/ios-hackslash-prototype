@@ -20,7 +20,7 @@
   //   buildEncounter(i) → 敵の配列,
   //   fight(enemies, i) → { won, seconds }（HP/MPはfight側のパーティで戦闘間に持ち越す）,
   //   onEvent(kind)（任意。泉・罠など、戦闘に影響する道中イベントをfight側のパーティに反映する）,
-  //   isTamable(key), tameChanceOf(key), rollOne() → 装備1個
+  //   isTamable(key), tameChanceOf(key), rollOne() → 装備1個, rollRareOne() → レア敵が落とす装備1個（省略可）
   // 戻り値:
   //   cleared, seconds（この周にかかったゲーム内時間。x1速度）, encountered（図鑑に登録する敵キー）,
   //   expByBattle（勝利した戦闘ごとのEXP）, drops（踏破時に持ち帰るドロップ。全滅時は空）,
@@ -42,6 +42,7 @@
       expByBattle.push(rewards.battleExp(enemies));
       for (const e of enemies) if (ctx.isTamable(e.key)) defeatedTamable.push(e.key);
       drops.push(...rewards.rollBattleDrops(ctx.rules, ctx.rollOne, rng));
+      if (ctx.rollRareOne) drops.push(...rewards.rollRareDrops(enemies, ctx.rollRareOne));
       const isLast = i === ctx.battles - 1;
       if (!isLast) {
         seconds += ctx.timing.perGap;

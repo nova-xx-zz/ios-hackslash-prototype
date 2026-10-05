@@ -106,9 +106,34 @@ function openExploreHub() {
 }
 
 // ---------- Map screen ----------
+// 地方: マップは地方ごとに表示する。開いた時は、行ける中で一番奥のダンジョンがある地方を表示する
+let mapRegionId = null;
+function regionReached(region) {
+  return DUNGEONS.some((d) => d.region === region.id && isDungeonOpen(d));
+}
 function openMap() {
+  const selected = selectedDungeonId && getDungeon(selectedDungeonId);
+  const furthest = DUNGEONS.filter((d) => isDungeonOpen(d)).pop();
+  mapRegionId = (selected || furthest || DUNGEONS[0]).region;
   renderMap();
   showScreen("screen-map");
+}
+function renderRegionTabs() {
+  const tabs = document.getElementById("mapRegionTabs");
+  tabs.innerHTML = "";
+  const regions = REGIONS.filter((r) => DUNGEONS.some((d) => d.region === r.id));
+  tabs.classList.toggle("hidden", regions.length < 2); // 地方が1つだけの間は切り替えを出さない
+  for (const region of regions) {
+    const reached = regionReached(region);
+    const btn = document.createElement("button");
+    btn.className = "map-region-tab" + (region.id === mapRegionId ? " active" : "");
+    btn.textContent = reached ? region.name : "？？？";
+    btn.disabled = !reached;
+    btn.addEventListener("click", () => { mapRegionId = region.id; renderMap(); });
+    tabs.appendChild(btn);
+  }
+  const current = REGIONS.find((r) => r.id === mapRegionId);
+  document.getElementById("mapRegionDesc").textContent = current ? `${current.name}　${current.desc}` : "";
 }
 
 function renderMap() {
@@ -116,11 +141,14 @@ function renderMap() {
   const svg = document.getElementById("mapLines");
   nodes.innerHTML = "";
   svg.innerHTML = "";
+  if (!mapRegionId) mapRegionId = DUNGEONS[0].region;
+  renderRegionTabs();
+  const inRegion = DUNGEONS.filter((d) => d.region === mapRegionId);
 
-  for (const d of DUNGEONS) {
+  for (const d of inRegion) {
     for (const nextId of d.unlocks) {
       const next = getDungeon(nextId);
-      if (!next) continue;
+      if (!next || next.region !== mapRegionId) continue; // 次の地方へのつながりは線を引かない
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", d.x);
       line.setAttribute("y1", d.y);
@@ -131,7 +159,7 @@ function renderMap() {
     }
   }
 
-  for (const d of DUNGEONS) {
+  for (const d of inRegion) {
     const cleared = S.clearedDungeons.has(d.id);
     const open = isDungeonOpen(d);
     const btn = document.createElement("button");

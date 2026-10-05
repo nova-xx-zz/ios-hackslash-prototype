@@ -82,3 +82,60 @@ test("EXPは敵の合計に種族補正をかけて四捨五入", () => {
   assert.equal(rewards.battleExp([{ exp: 6 }, { exp: 7 }]), 13);
   assert.equal(rewards.expForMember(13, 1.1), 14);
 });
+
+test("装備のレベル: 拾ったダンジョンの推奨Lvで能力値が伸びる（1Lvごとに+12%）", () => {
+  const base = data.ITEM_BASES.find((b) => b.key === "sword");
+  const sr = data.RARITIES.find((r) => r.key === "sr");
+  const lv1 = rewards.createItem(base, sr, "a");
+  const lv11 = rewards.createItem(base, sr, "b", { level: 11, levelGrowth: data.ITEM_LEVEL_GROWTH });
+  assert.equal(lv1.level, 1);
+  assert.equal(lv1.value, Math.round(base.base * sr.mult));
+  assert.equal(lv11.level, 11);
+  assert.equal(lv11.value, Math.round(base.base * sr.mult * (1 + 10 * data.ITEM_LEVEL_GROWTH)));
+  assert.ok(lv11.value > lv1.value);
+});
+
+test("レア敵: 倒したレア敵1体につき1個、SR以上の装備を落とす", () => {
+  const drops = rewards.rollRareDrops([{ isRare: true }, {}, { isRare: true }], () => data.rollItemDrop(5, data.RARE_DROP_MIN_RARITY));
+  assert.equal(drops.length, 2);
+  for (const it of drops) {
+    assert.ok(["sr", "ur", "lr"].includes(it.rarity), it.rarity);
+    assert.equal(it.level, 5);
+  }
+  assert.deepEqual(rewards.rollRareDrops([{}, {}], () => ({})), []);
+});
+
+test("レア敵の出現: ボス戦以外で、たまに1体だけそのダンジョンのレア敵に入れ替わる", () => {
+  const rngLib = require("../js/core/rng.js");
+  rngLib.setSharedSeed(99);
+  const d = data.getDungeon("plains");
+  let battles = 0, withRare = 0;
+  for (let n = 0; n < 4000; n++) {
+    const enemies = data.buildEncounter(d, 0);
+    const rares = enemies.filter((e) => e.isRare);
+    assert.ok(rares.length <= 1);
+    for (const e of rares) {
+      assert.ok(d.rares.includes(e.key));
+      assert.ok(e.name.startsWith("★"));
+    }
+    battles += 1;
+    if (rares.length) withRare += 1;
+    assert.ok(data.buildEncounter(d, d.battles - 1).every((e) => !e.isRare), "ボス戦には出ない");
+  }
+  rngLib.setSharedSeed(undefined);
+  const rate = withRare / battles;
+  assert.ok(rate > 0.025 && rate < 0.06, `出現率 ${rate}`);
+});
+
+test("地方: すべてのダンジョンは定義された地方に属し、地方の順に並ぶ", () => {
+  const order = data.REGIONS.map((r) => r.id);
+  let last = 0;
+  for (const d of data.DUNGEONS) {
+    const i = order.indexOf(d.region);
+    assert.ok(i >= 0, `${d.id} の地方 ${d.region} が REGIONS に無い`);
+    assert.ok(i >= last, `${d.id} が地方の順に並んでいない`);
+    last = i;
+    for (const k of [...d.pool, d.boss, ...(d.rares || [])]) assert.ok(data.getEnemyTemplate(k), `${d.id} の ${k} が未定義`);
+    for (const k of d.rares || []) assert.equal(data.getEnemyTemplate(k).rare, true, `${k} に rare: true が無い`);
+  }
+});

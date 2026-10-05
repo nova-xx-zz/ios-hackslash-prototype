@@ -18,7 +18,7 @@ function loadGameData() {
   return vm.runInContext(code + `
 ;({ RNG, RARITIES, ITEM_BASES, DUNGEONS, ENHANCE_RULES, ENHANCE_MAX_PLUS, REWARD_RULES, FEATURE_FLAGS,
    JOBS, RACES, SLOTS, ITEM_BASES, itemEffectiveValue, jobTag, getExclusiveTreeByTag, getGeneralTree, GENERAL_SLOTS,
-   buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, enhanceSuccessRate, guaranteedStonesRequired, expForLevel, syncExpToNext, MONSTER_JOBS, getGeneralSlotDef, getAbilityById, isFeatureEnabled })`, context);
+   buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, RARE_DROP_MIN_RARITY, ITEM_LEVEL_GROWTH, REGIONS, enhanceSuccessRate, guaranteedStonesRequired, expForLevel, syncExpToNext, MONSTER_JOBS, getGeneralSlotDef, getAbilityById, isFeatureEnabled })`, context);
 }
 
 module.exports = { loadGameData };

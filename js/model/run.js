@@ -4,7 +4,7 @@
 // 自動周回の継続判定）・オフライン精算（離れていた間の周回の計算と反映）。画面には依存しない。
 // ログの文章・画面の更新・次の処理までの待ち時間（setTimeout）は game.js が受け持ち、ここは「何が起きたか」を返す。
 //   createRunner({ data, state, roster, inventory, rng, teamCount, battleEnv, autoDisassemble, markDexSeen, setBestStage, now })
-//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES }
+//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES, RARE_DROP_MIN_RARITY }
 //     冒険の記録（ダンジョン別に出会った敵・手に入れた装備・潜った履歴）は state.records に書く（js/model/records.js）
 //     roster / inventory: js/model/roster.js・inventory.js の戻り値
 //     battleEnv(): 戦闘エンジンに渡す env（game.js の battleEnv）
@@ -37,6 +37,10 @@
     const rng = deps.rng;
     const teamCount = deps.teamCount || 4;
     const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop } = deps.data;
+    const RARE_DROP_MIN_RARITY = deps.data.RARE_DROP_MIN_RARITY || "sr";
+    // 装備はそのダンジョンの推奨Lvを装備のレベルにして抽選する
+    const dropFor = (d) => () => rollItemDrop(d.level);
+    const rareDropFor = (d) => () => rollItemDrop(d.level, RARE_DROP_MIN_RARITY);
     const markDexSeen = deps.markDexSeen || (() => {});
     const setBestStage = deps.setBestStage || (() => {});
     const now = deps.now || (() => Date.now());
@@ -124,7 +128,8 @@
         run.abilityUnlocks.push(...result.abilityUnlocks);
       }
       // ドロップは即座に所持品化・分解せず、ダンジョンを踏破した時だけ確定させる（全滅した場合は持ち帰れない）
-      run.pendingDrops.push(...rewards.rollBattleDrops(REWARD_RULES, rollItemDrop, rng));
+      run.pendingDrops.push(...rewards.rollBattleDrops(REWARD_RULES, dropFor(run.dungeon), rng));
+      run.pendingDrops.push(...rewards.rollRareDrops(battle.enemies, rareDropFor(run.dungeon)));
 
       const isLast = run.battleIndex + 1 >= run.dungeon.battles;
       if (!isLast) {
@@ -191,7 +196,7 @@
       const kind = rewards.rollEventKind(REWARD_RULES, rng);
       if (!kind) return null;
       if (kind === "treasure") {
-        const item = rewards.rollTreasure(REWARD_RULES, rollItemDrop, rng);
+        const item = rewards.rollTreasure(REWARD_RULES, dropFor(run.dungeon), rng);
         if (item) run.pendingDrops.push(item);
         return { kind, item: item || null };
       }
@@ -290,7 +295,8 @@
         },
         isTamable: (key) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable); },
         tameChanceOf: (key) => getEnemyTemplate(key).tameChance,
-        rollOne: rollItemDrop,
+        rollOne: dropFor(dungeon),
+        rollRareOne: rareDropFor(dungeon),
       });
     }
 

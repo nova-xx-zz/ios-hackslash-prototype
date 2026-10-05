@@ -21,7 +21,14 @@ function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 // レベルアップに必要なEXP（Lv.level → level+1）。game.js と tools/progression.js で共有する。
 // 各ダンジョンに着く頃の累計周回が 森10・洞窟20・遺跡45・山頂95 前後になるよう
 // tools/progression.js で合わせた（＝その頃に適正装備 benchmarkGear がそろう。docs/production-plan.md §8.6）
-function expForLevel(level) { return Math.round(200 + 2 * Math.pow(level, 3.3)); }
+// Lv15より先（ヴェルデ地方の後、推奨Lv100までのダンジョン）は伸び方をゆるめ（Lvの2.3乗）、1レベルに要る周回数が
+// 奥へ行くほどゆっくり増えるようにする（Lv15→16で約7周、Lv99→100で約80周の見込み。地方を足すたびに tools/progression.js で確認）
+const EXP_CURVE_KNEE = 15;
+function expForLevel(level) {
+  const steep = (lv) => Math.round(200 + 2 * Math.pow(lv, 3.3));
+  if (level <= EXP_CURVE_KNEE) return steep(level);
+  return Math.round(steep(EXP_CURVE_KNEE) * Math.pow(level / EXP_CURVE_KNEE, 2.3));
+}
 // セーブのレベル記録（キャラ本体・jobLevelsの各ジョブ）の必要EXPを曲線から計算し直す（読み込み時に使用）。
 // レベルは据え置き、exp は新しい必要量未満に丸める
 function syncExpToNext(rec) {
@@ -478,6 +485,18 @@ const ENEMY_TEMPLATES = [
   { key: "mountain_troll", name: "マウンテントロール", hp: 70, atk: 19, mag: 0, def: 8, spd: 4, exp: 28, color: "#6a7a4a", icon: "🧌", element: "無", tamable: false, tameChance: 0, desc: "山肌に住む巨躯の魔物。傷を負ってもすぐに再生してしまう。" },
   { key: "bone_drake", name: "ボーンドレイク", hp: 45, atk: 20, mag: 0, def: 7, spd: 9, exp: 27, color: "#cfc6b0", icon: "🐉", element: "闇", tamable: false, tameChance: 0, desc: "竜の骨が魔力で動き出した小竜。牙も爪も古びてなお鋭い。" },
   { key: "ancient_wyvern", name: "エンシェントワイバーン", hp: 95, atk: 24, mag: 0, def: 14, spd: 8, exp: 40, color: "#8a2a3a", icon: "🐲", element: "火", tamable: false, tameChance: 0, desc: "竜骨の山頂に棲まう古き翼竜。伝説の中でしか語られぬ最強格の魔物。" },
+
+  // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
+  { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
+  { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
+  { key: "gem_beetle", name: "ジェムビートル", hp: 30, atk: 9, mag: 0, def: 10, spd: 8, exp: 12, color: "#5ad1c9", icon: "💎", element: "土", rare: true, tamable: false, tameChance: 0, desc: "背中に宝石を背負った甲虫。殻は硬く、宝石目当ての冒険者を返り討ちにする。" },
+  { key: "white_stag", name: "ホワイトスタッグ", hp: 34, atk: 11, mag: 0, def: 5, spd: 12, exp: 13, color: "#f4f1e8", icon: "🦌", element: "光", rare: true, tamable: false, tameChance: 0, desc: "森の奥で一瞬だけ姿を見せる白い鹿。森の守り神とも言われる。" },
+  { key: "crystal_lizard", name: "クリスタルリザード", hp: 34, atk: 11, mag: 0, def: 12, spd: 10, exp: 15, color: "#8fd3ff", icon: "🔷", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "水晶の鱗を持つトカゲ。洞窟の奥で鉱石を食べて育つ。" },
+  { key: "gold_crab", name: "ゴールドクラブ", hp: 40, atk: 11, mag: 0, def: 11, spd: 5, exp: 15, color: "#e0b040", icon: "🦀", element: "水", rare: true, tamable: false, tameChance: 0, desc: "金色の甲殻を持つカニ。地底湖の宝物を集める習性がある。" },
+  { key: "golden_guardian", name: "ゴールデンガーディアン", hp: 56, atk: 16, mag: 0, def: 13, spd: 5, exp: 22, color: "#d4af37", icon: "🗽", element: "光", rare: true, tamable: false, tameChance: 0, desc: "遺跡の宝物庫を守っていた黄金の像。今も侵入者を許さない。" },
+  { key: "phantom_lord", name: "ファントムロード", hp: 44, atk: 18, mag: 0, def: 6, spd: 10, exp: 22, color: "#7a4a9a", icon: "🎭", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "遺跡を治めていた王の亡霊。仮面の奥から生者を見下ろしている。" },
+  { key: "frost_phoenix", name: "フロストフェニックス", hp: 52, atk: 20, mag: 0, def: 7, spd: 14, exp: 30, color: "#bfe9ff", icon: "🦅", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "吹雪とともに現れる氷の霊鳥。その羽は溶けることがないという。" },
+  { key: "dragon_hatchling", name: "ドラゴンの幼体", hp: 64, atk: 19, mag: 0, def: 10, spd: 9, exp: 30, color: "#d8604a", icon: "🐣", element: "火", rare: true, tamable: false, tameChance: 0, desc: "山頂の巣からはぐれた竜の子。幼くとも竜の力は侮れない。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -575,41 +594,45 @@ function rollNewRecruit() {
 
 // ---------- ダンジョン ----------
 // x/y はマップ上の配置(％)。unlocks はクリア時に解放されるダンジョンID。
+// 地方: ダンジョンを地方ごとにまとめ、マップは地方ごとに切り替えて表示する。地方の最後のダンジョンを踏破すると
+// 次の地方の最初のダンジョンが解放される（DUNGEONS[].unlocks でつなぐ）。x・y は地方のマップ上の位置（%）
+const REGIONS = [
+  { id: "verde", name: "ヴェルデ地方", desc: "冒険者ギルドのある緑豊かな地方。駆け出しの冒険者が腕を磨く。" },
+];
+
 const DUNGEONS = [
   {
-    id: "plains", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
-    pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", unlocks: ["forest"],
+    id: "plains", region: "verde", name: "はじまりの草原", x: 20, y: 78, level: 1, battles: 3,
+    pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", rares: ["gold_slime", "lucky_hare"], unlocks: ["forest"],
     desc: "見晴らしのよい草原。弱い魔物しかいない。",
     benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
-    id: "forest", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
-    pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", unlocks: ["cave"],
+    id: "forest", region: "verde", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
+    pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", rares: ["gem_beetle", "white_stag"], unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
     power: 1.69, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "r", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
-    id: "cave", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
-    pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", unlocks: ["ruins"],
+    id: "cave", region: "verde", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
+    pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", rares: ["crystal_lizard", "gold_crab"], unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
-    power: 1.28, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 1.34, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "r", plus: 2 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
-    id: "ruins", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
-    pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", unlocks: ["peak"],
+    id: "ruins", region: "verde", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
+    pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", rares: ["golden_guardian", "phantom_lord"], unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
-    power: 0.96, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 1.08, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 3 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
-    id: "peak", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
-    pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", unlocks: [],
-    desc: "巨大な骨が眠る山頂。最も危険な領域。",
-    // やり込み向けの高難度ダンジョン。難易度の基準（tests/difficulty.test.js）の
-    // 「推奨Lv+6までに踏破率80%」の対象から外す（ボスの強さは意図的に据え置き）
-    challenge: true,
+    id: "peak", region: "verde", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
+    pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", rares: ["frost_phoenix", "dragon_hatchling"], unlocks: [],
+    desc: "巨大な骨が眠る山頂。ヴェルデ地方で最も危険な領域。",
+    power: 0.74, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
 ];
@@ -619,6 +642,11 @@ function getDungeon(id) {
 }
 
 const BOSS_MULT = 1.7;
+// レア敵（ダンジョンごとの DUNGEONS[].rares）: ボス戦以外の1戦闘ごとにこの確率で、敵1体がレア敵に入れ替わる
+// （1周4戦ならおよそ1割強の周回で出会う）。能力値は少し強く、EXPは多い。倒すとレア度の高い装備を必ず1個落とす
+const RARE_ENCOUNTER_CHANCE = 0.04;
+const RARE_STAT_MULT = 1.3;
+const RARE_EXP_MULT = 5;
 // 敵のHP・ATK・DEF・EXPがダンジョンの推奨Lvに応じて伸びる割合（1Lvごと）。
 // 味方の能力値の伸び（js/core/stats.js の baseStats: 1Lvごとに+12%）と揃えておくことで、
 // 推奨Lvで挑んだ時の手応えが奥のダンジョンでも変わらないようにする
@@ -643,22 +671,26 @@ function buildEncounter(dungeon, battleIndex) {
   }
   if (isBossBattle) {
     list.unshift(makeEnemy(getEnemyTemplate(dungeon.boss), mult * BOSS_MULT, true, dungeon.power));
+  } else if (dungeon.rares && dungeon.rares.length && RNG.chance(RARE_ENCOUNTER_CHANCE)) {
+    const i = Math.floor(RNG.float(0, list.length));
+    list[i] = makeEnemy(getEnemyTemplate(RNG.pick(dungeon.rares)), mult, false, dungeon.power, true);
   }
   return list;
 }
 
 // power: ダンジョンごとの敵の強さの倍率（DUNGEONS[].power、省略時1）。HP・ATK・DEFだけに掛け、EXPには掛けない
 // （難易度の調整でレベル上げのペースが変わらないようにするため）
-function makeEnemy(t, mult, isBoss, power) {
-  const p = mult * (power || 1);
+function makeEnemy(t, mult, isBoss, power, isRare) {
+  const p = mult * (power || 1) * (isRare ? RARE_STAT_MULT : 1);
   return {
     key: t.key,
-    name: isBoss ? `${t.name}の主` : t.name,
+    name: isBoss ? `${t.name}の主` : isRare ? `★${t.name}` : t.name,
     color: t.color,
     isBoss: !!isBoss,
+    isRare: !!isRare,
     hp: Math.round(t.hp * p), maxHp: Math.round(t.hp * p),
     atk: Math.round(t.atk * p), mag: t.mag, def: Math.round(t.def * p),
-    spd: t.spd, exp: Math.round(t.exp * mult),
+    spd: t.spd, exp: Math.round(t.exp * mult * (isRare ? RARE_EXP_MULT : 1)),
     atb: RNG.float(0, 30),
   };
 }
@@ -756,7 +788,16 @@ const ITEM_BASES = [
 
 const STAT_LABELS = { hp: "HP", mp: "MP", atk: "ATK", mag: "MAG", def: "DEF", spd: "SPD" };
 
+// 装備のレベル: 拾ったダンジョンの推奨Lvを装備のレベルにし、能力値は1Lvごとに基礎値の+12%伸びる
+// （キャラの能力値の伸び js/core/stats.js と同じ割合。奥のダンジョンほど装備も強くなり、装備を集め直す意味が続く）
+const ITEM_LEVEL_GROWTH = 0.12;
+
 let itemSeq = 1;
-function rollItemDrop() {
-  return QPCore.rewards.rollItem(ITEM_BASES, RARITIES, RNG, () => "item_" + itemSeq++);
+// level: 装備のレベル（拾ったダンジョンの推奨Lv）。minRarity: このレア度以上だけから抽選する（レア敵のドロップ）
+function rollItemDrop(level, minRarity) {
+  const from = minRarity ? RARITIES.findIndex((r) => r.key === minRarity) : 0;
+  return QPCore.rewards.rollItem(ITEM_BASES, RARITIES.slice(Math.max(0, from)), RNG, () => "item_" + itemSeq++,
+    { level: level || 1, levelGrowth: ITEM_LEVEL_GROWTH });
 }
+// レア敵が落とす装備の下限のレア度（SR以上。重みの比でSR約93%・UR約5%・LR約2%）
+const RARE_DROP_MIN_RARITY = "sr";

@@ -24,10 +24,12 @@ function runOnce(dungeon) {
   let exp = 0;
   const drops = [];
   for (let i = 0; i < dungeon.battles; i++) {
-    exp += rewards.battleExp(data.buildEncounter(dungeon, i));
-    drops.push(...rewards.rollBattleDrops(data.REWARD_RULES, data.rollItemDrop, rngLib.shared));
+    const enemies = data.buildEncounter(dungeon, i);
+    exp += rewards.battleExp(enemies);
+    drops.push(...rewards.rollBattleDrops(data.REWARD_RULES, () => data.rollItemDrop(dungeon.level), rngLib.shared));
+    drops.push(...rewards.rollRareDrops(enemies, () => data.rollItemDrop(dungeon.level, data.RARE_DROP_MIN_RARITY)));
     if (i < dungeon.battles - 1 && rewards.rollEventKind(data.REWARD_RULES, rngLib.shared) === "treasure") {
-      const it = rewards.rollTreasure(data.REWARD_RULES, data.rollItemDrop, rngLib.shared);
+      const it = rewards.rollTreasure(data.REWARD_RULES, () => data.rollItemDrop(dungeon.level), rngLib.shared);
       if (it) drops.push(it);
     }
   }
