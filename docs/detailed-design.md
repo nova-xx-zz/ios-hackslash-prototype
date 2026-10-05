@@ -133,7 +133,7 @@ expForLevel(level) = round(200 + 2 * level^3.3)   // js/data.js（tools/progress
 ```
 totalExpInvested(c) = c.exp + Σ_{n=1}^{level-1} expForLevel(n)
 ```
-選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成ボタンは2回押しで確定し（`fusionConfirm`。素材の選択を変えると解除）、合成直後に `saveGame()` で即時保存する。
+選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し（`fusionExpGain`）、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する（`fuse`。いずれも `js/model/inventory.js`）。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成ボタンは2回押しで確定し（`fusionConfirm`。素材の選択を変えると解除）、合成直後に `saveGame()` で即時保存する。
 
 ### 2.5 ATB戦闘ループ（4チーム並行）
 
@@ -327,7 +327,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 ## 3.0a ゲームの状態とセーブ（`js/model/`）
 
-UI分離（`docs/production-plan.md` §4）の工程1〜2。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
+UI分離（`docs/production-plan.md` §4）の工程1〜3。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
 
 | 項目 | 内容 |
 |---|---|
@@ -345,8 +345,9 @@ UI分離（`docs/production-plan.md` §4）の工程1〜2。保存対象のゲ�
 | `model/save.js` | `createState(opts)`, `serialize(state, { now, runDungeonIds, enabledFeatures })`, `deserialize(data, { legacyMaterial, syncExpToNext })`, `SCHEMA_VERSION` | セーブデータの書き出しと、読み込み・旧形式からの移行（schemaVersion 2未満の強化石は旧キーから、確定強化石の数値は無償分として、必要EXPは現在の曲線で計算し直す）。使えないデータは `null`。端末への書き込み・オフライン精算・HP/MPのリセットは game.js の `saveGame` / `loadGame` が行う |
 
 | `model/roster.js` | `createRoster({ data, state, runBuffs, isTeamLocked })` → `newCharacter`, `gainExp`, `totalExpInvested`, `switchJob`, `jobUnlocked`, `jobDef`, `getTreeState`, `totalSp` / `availableSp`, `canAcquireNode` / `acquireNode`, `swapGeneralSlot`, `treePassiveTotals`, `computeStats`, `itemScore`, `availableAbilities`, `subAbilityCandidates`, `teamMembers`, `currentMaxLevel` ほか | キャラまわりのルール（§2.3 EXP、§2.12 スキルツリーなど）。ゲームのデータ（js/data.js）と状態 `S` は引数で受け取り、グローバルを直接参照しない。石碑の加護は `runBuffs(team)`、探索中かどうかは `isTeamLocked(team)` で game.js に問い合わせる。game.js は `createRoster` の戻り値を同じ関数名で受け取って使う |
+| `model/inventory.js` | `createInventory({ data, state, roster, rng, isFeatureEnabled, onMaterialChange })` → `equipItem`, `unequipSlot`, `autoEquip`, `clampVitals`, `addMaterial`, `guaranteedStoneTotal`, `enhanceCost`, `canEnhance`, `isPityReady`, `enhanceItem(item)`, `enhanceWithGuaranteed(item)`, `receiveDrops(drops, filter)`, `fusionCandidates`, `fusionExpGain`, `fuse(target, materials)` | 所持品まわりのルール（§2.4 合成、§2.10 強化など）。判定は core（enhance.js / rewards.js）で行い、結果を状態に反映して返す（強化: `{ success, plus, pityHit, cost }`、確定強化石: `{ plus, required }`、合成: `{ expGain, consumedNames, returnedItems, levelUps, abilityUnlocks }`。できない場合は `null`）。メッセージの文章・即時保存は game.js。強化石が変わると `onMaterialChange` で旧キーへの互換ミラーを書く |
 
-戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js`・`tests/roster.test.js` で検証する。
+戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js`・`tests/roster.test.js`・`tests/inventory.test.js` で検証する。
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 
