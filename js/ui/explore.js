@@ -162,7 +162,7 @@ function rollDungeonEvent(run) {
 
 function finishRun(run, info) {
   // ドロップの確定（出撃時の自動分解設定で振り分け）とチームの回復は js/model/run.js
-  Runner.finishRun(run, info.cleared);
+  Runner.finishRun(run, info.cleared, { tamed: info.tameResult && info.tameResult.success ? info.tameResult.name : null });
   const isViewed = run.team === S.activeTeam;
 
   logEvent(run.team,

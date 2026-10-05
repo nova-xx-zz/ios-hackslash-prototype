@@ -63,6 +63,7 @@ function loadGame() {
     const loaded = QPModel.save.deserialize(JSON.parse(raw), {
       legacyMaterial: store.getInt(KEYS.material, 0),
       syncExpToNext,
+      itemBases: ITEM_BASES,
     });
     if (!loaded) return false;
     Object.assign(S, loaded.state);
@@ -133,7 +134,7 @@ const {
 // js/model/run.js。ここではログの文章・画面の更新・次の処理までの待ち時間を受け持つ。
 // computeStats が石碑の加護(teamRuns[].buffs)を参照するため、roster を組み立てる前に用意しておく
 const Runner = QPModel.run.createRunner({
-  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop },
+  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES },
   state: S,
   roster: Roster,
   inventory: Inventory,

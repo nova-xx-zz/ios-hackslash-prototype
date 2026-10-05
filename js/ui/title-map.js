@@ -65,43 +65,14 @@ document.getElementById("btnHubJobs").addEventListener("click", () => {
 document.getElementById("btnHubExplore").addEventListener("click", () => {
   openExploreHub();
 });
-document.getElementById("btnHubDex").addEventListener("click", () => {
-  renderDexScreen();
-  showScreen("screen-dex");
-});
+document.getElementById("btnHubDex").addEventListener("click", () => openBook()); // 書物（js/ui/book.js）
 document.getElementById("btnHubSettings").addEventListener("click", () => openSettings("screen-battle"));
 document.getElementById("btnSettingsBack").addEventListener("click", () => {
   if (settingsReturnScreen === "screen-title") { renderTitle(); showScreen("screen-title"); }
   else openExploreHub();
 });
-document.getElementById("btnDexBack").addEventListener("click", () => {
-  openExploreHub();
-});
 
-function renderDexScreen() {
-  document.getElementById("dexCount").textContent =
-    `発見済み ${dexSeen.size} / ${ENEMY_TEMPLATES.length} 体`;
-  const body = document.getElementById("dexBody");
-  body.innerHTML = "";
-  const grid = document.createElement("div");
-  grid.className = "dex-card-grid";
-  for (const t of ENEMY_TEMPLATES) {
-    const seen = dexSeen.has(t.key);
-    const card = document.createElement("button");
-    card.className = "dex-card" + (seen ? "" : " locked");
-    card.innerHTML = seen
-      ? `<div class="dex-card-icon">${t.icon || "❓"}</div>
-         <div class="dex-card-name">${t.name}</div>
-         <div class="dex-card-element">${t.element}</div>`
-      : `<div class="dex-card-icon">❓</div>
-         <div class="dex-card-name">？？？</div>
-         <div class="dex-card-element">&nbsp;</div>`;
-    if (seen) card.addEventListener("click", () => openDexDetail(t.key));
-    grid.appendChild(card);
-  }
-  body.appendChild(grid);
-}
-
+// モンスターの詳細（書物のモンスター辞典から開く）
 function openDexDetail(key) {
   const t = getEnemyTemplate(key);
   document.getElementById("dexIcon").textContent = t.icon || "❓";

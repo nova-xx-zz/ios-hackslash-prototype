@@ -4,7 +4,8 @@
 // 自動周回の継続判定）・オフライン精算（離れていた間の周回の計算と反映）。画面には依存しない。
 // ログの文章・画面の更新・次の処理までの待ち時間（setTimeout）は game.js が受け持ち、ここは「何が起きたか」を返す。
 //   createRunner({ data, state, roster, inventory, rng, teamCount, battleEnv, autoDisassemble, markDexSeen, setBestStage, now })
-//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop }
+//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES }
+//     冒険の記録（ダンジョン別に出会った敵・手に入れた装備・潜った履歴）は state.records に書く（js/model/records.js）
 //     roster / inventory: js/model/roster.js・inventory.js の戻り値
 //     battleEnv(): 戦闘エンジンに渡す env（game.js の battleEnv）
 //     autoDisassemble(): いまの自動分解の設定 { enabled, rarities }
@@ -16,6 +17,7 @@
   const rewards = core.rewards || (typeof require === "function" ? require("../core/rewards.js") : null);
   const battleCore = core.battle || (typeof require === "function" ? require("../core/battle.js") : null);
   const offline = core.offline || (typeof require === "function" ? require("../core/offline.js") : null);
+  const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
 
   // オフライン精算: これを超えた経過時間は切り捨てる
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;
@@ -39,6 +41,8 @@
     const setBestStage = deps.setBestStage || (() => {});
     const now = deps.now || (() => Date.now());
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const ITEM_BASES = deps.data.ITEM_BASES || [];
+    function records() { return S.records || (S.records = recordsMod.createRecords()); }
 
     // チームごとの進行状態(run)・戦闘状態(battle)。4チームがそれぞれ独立にダンジョンへ出撃できる
     const teamRuns = new Array(teamCount).fill(null);
@@ -90,7 +94,7 @@
         active: true,
       };
       teamBattles[run.team] = battle;
-      for (const e of battle.enemies) markDexSeen(e.key);
+      for (const e of battle.enemies) { markDexSeen(e.key); recordsMod.recordEncounter(records(), d.id, e.key); }
       for (const c of R.teamMembers(run.team)) { c.atb = rng.float(0, 25); c.defending = false; c.actedFlash = 0; }
       return { battle, isBoss };
     }
@@ -205,15 +209,23 @@
     // ---------- 周回の終了 ----------
     // 踏破なら保留していたドロップを確定し（出撃時の自動分解設定で振り分け）、チームを回復する。
     // 全滅・クリアで回復するのは「このチームのメンバー」だけ（他チームの戦闘状態を壊さない）
-    function finishRun(run, cleared) {
+    // extra: { tamed（テイムしたモンスターの名前。冒険の記録に残す） }
+    function finishRun(run, cleared, extra) {
       run.finished = true;
       run.wiped = !cleared;
       if (cleared) {
+        recordsMod.recordItemsFound(records(), run.pendingDrops, ITEM_BASES); // 自動分解する物も「手に入れた」に数える
         const settled = Inv.receiveDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
         run.disassembleCount += settled.disassembled;
         run.materialGained += settled.materialGained;
         run.drops.push(...settled.kept);
       }
+      recordsMod.addRunHistory(records(), {
+        at: now(), team: run.team, dungeonId: run.dungeon.id, cleared,
+        battlesWon: cleared ? run.dungeon.battles : run.battleIndex, battles: run.dungeon.battles,
+        exp: run.expTotal, items: run.drops.length, disassembled: run.disassembleCount, material: run.materialGained,
+        tamed: (extra && extra.tamed) || null,
+      });
       restoreTeamParty(run.team);
     }
 
@@ -289,7 +301,7 @@
     // 戦闘中に倒れたメンバーも含め、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
     function applyOfflineRun(outcome, dungeon, teamIndex) {
       const party = R.teamMembers(teamIndex);
-      for (const key of outcome.encountered) markDexSeen(key);
+      for (const key of outcome.encountered) { markDexSeen(key); recordsMod.recordEncounter(records(), dungeon.id, key); }
       let expTotal = 0;
       for (const exp of outcome.expByBattle) {
         expTotal += exp;
@@ -298,6 +310,7 @@
       if (!outcome.cleared) return { cleared: false, expTotal };
 
       const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
+      recordsMod.recordItemsFound(records(), outcome.drops, ITEM_BASES);
       const settled = Inv.receiveDrops(outcome.drops, filter);
       let tamedName = null;
       if (outcome.tame && outcome.tame.success) tamedName = addTamedMonster(outcome.tame.key).name;
@@ -336,6 +349,15 @@
       S.autoRepeat[teamIndex].active = false;
       S.autoRepeat[teamIndex].target = autoRepeatInfo.target;
       S.autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
+
+      // 離れていた間の周回は、まとめて1件の履歴にする
+      if (runsDone > 0) {
+        recordsMod.addRunHistory(records(), {
+          at: now(), team: teamIndex, dungeonId: dungeon.id, cleared: !wipedOut, offline: true,
+          runs: runsDone, clears: cleared, exp: expGained, items: itemsGained,
+          tamed: tamedNames.length ? tamedNames.join("、") : null,
+        });
+      }
 
       // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
       const tooShort = runsDone === 0;
