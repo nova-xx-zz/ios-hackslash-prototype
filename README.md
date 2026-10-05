@@ -84,6 +84,22 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - アプリアイコンは `icons/icon-1024.png`、起動画面は `icons/splash-2732.png`（透明なし）を `ios/App/App/Assets.xcassets/` にコピーしている
 - Service Worker（`sw.js`）はアプリ内では動かない（`js/pwa.js` が https 以外では登録しない）。アプリにはファイルが最初から入っているので、オフライン対応は不要
 
+## クラウドセーブ（Firebase）
+
+進行は Firebase（プロジェクト `sword-crest-jp`）に自動でバックアップする。プレイヤーの操作は不要で、起動すると匿名ログイン（Firebase Authentication）し、セーブデータを Firestore（東京リージョン）の `saves/{ユーザーID}` に置く。
+
+- 送るタイミング: セーブのたびに最大1分おき、アプリを離れる時（画面が隠れた時）はすぐ。オフラインの間は送らず、つながったら送り直す
+- 設定画面の「クラウドセーブ」から、状態の確認・「今すぐバックアップ」・「クラウドから復元」ができる。復元は2回押しで、内容（日時・なかまの数・最高Lv・踏破数・強化石）を見せ、端末のほうが新しい時は警告する。復元したセーブの自動周回は止めた状態にする（古いセーブを戻すたびにオフライン報酬が入るのを防ぐ）
+- 匿名ログインは端末ごとなので、**別の端末への引き継ぎはまだできない**（今後 Apple / Google アカウントとの連携で対応予定）。ホーム画面のアプリとSafariも別のユーザーになる
+- セキュリティルール（Firebase コンソールの Firestore →「ルール」）で、ログインした本人の `saves/{uid}` だけを読み書きできるようにしている:
+  ```
+  match /saves/{uid} {
+    allow read, write: if request.auth != null && request.auth.uid == uid;
+  }
+  ```
+- `js/firebase-config.js` の apiKey などは公開して問題ない値（アクセスの制限はセキュリティルールで行う）
+- Firebase の SDK は CDN から読まずに `js/vendor/firebase.js` に同梱している（使う関数だけを esbuild でまとめたもの。ゲームの起動を遅らせないよう、起動の1.5秒後に読み込む）。SDK を更新する時は `package.json` の firebase のバージョンを変えて `npm install && npm run build:firebase`（使う関数を増やす時は `tools/firebase-entry.js` に足す）
+
 ## ファイル構成
 
 - `index.html` — 画面構成（タイトル/マップ/パーティ編成/キャラ作成/キャラ詳細/探索）
@@ -103,8 +119,11 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `js/model/run.js` — ダンジョン1周の進行（チームごとの探索の状態、出発・戦闘・勝利の処理・道中イベント・テイム・周回の終了と自動周回の継続判定・オフライン精算。画面に依存しない）
 - `js/ui/` — 画面の処理（元は1つの game.js だったものを画面ごとに分けたもの。`index.html` の読み込み順のまま、トップレベルの関数・変数を共有する）
   - `state.js`（定数・端末への保存の窓口・ゲームの状態 `S`・保存失敗の警告・自動分解と図鑑の設定）／`announcements.js`（お知らせ・今後の予定・モーダルの順番待ち）／`models.js`（セーブ/ロードと `js/model/` の組み立て）／`offline.js`（オフライン精算の結果表示・スターターロスター）
-  - `title-map.js`（画面の切り替え・タイトル・マップ）／`party.js`（編成画面・メンバーカードのドラッグ）／`create.js`（キャラ作成）／`detail.js`・`detail-tree.js`・`detail-tabs.js`（キャラ詳細と各タブ）／`inventory.js`（所持品一覧・装備強化モーダル）
+  - `title-map.js`（画面の切り替え・タイトル・マップ）／`settings.js`（設定画面・クラウドセーブの表示と操作）／`party.js`（編成画面・メンバーカードのドラッグ）／`create.js`（キャラ作成）／`detail.js`・`detail-tree.js`・`detail-tabs.js`（キャラ詳細と各タブ）／`inventory.js`（所持品一覧・装備強化モーダル）
   - `battle.js`（出発・戦闘の開始）／`log.js`（ログ）／`dock.js`（ドック・チーム切り替え・自動周回・自動分解）／`explore.js`（戦闘AIの設定・ATBの時間進行・勝利・道中イベント・周回の終了）
+- `js/firebase-config.js` — Firebase プロジェクトの接続情報
+- `js/cloud.js` — クラウドセーブ（匿名ログイン・Firestore へのバックアップと読み込み。`window.QPCloud`）。Firebase が使えない時は何もせず、ゲームは端末への保存だけで動く
+- `js/vendor/firebase.js` — Firebase SDK（`npm run build:firebase` で生成。手で編集しない）
 - `js/pwa.js` — Service Worker（`sw.js`）の登録。使えない環境では何もしない
 - `sw.js` — オフライン対応（ネットワーク優先、つながらない時だけキャッシュを使う。同じファイルの古い `?v=` 版はキャッシュから消す）
 - `manifest.webmanifest` — ホーム画面に追加した時のアプリ名・アイコン・表示方法
@@ -115,6 +134,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
   - App Store 用のアイコンは透明（アルファチャンネル）があると受け付けられないため、すべて透明なしの PNG で書き出す
 - `package.json` / `capacitor.config.json` — Capacitor（iOSアプリ化）の設定とコマンド
 - `ios/` — Capacitor で生成した Xcode プロジェクト
+- `tools/firebase-entry.js` — `js/vendor/firebase.js` に入れる Firebase の関数の一覧
 - `tools/build-www.js` — アプリに入れるファイルを `www/` にまとめる（index.html から読み込むファイルがすべて入ったかも確認する）
 - `js/game.js` — 起動処理（アプリを離れる・戻る時の保存とバックグラウンド復帰時の精算、起動時の読み込みとモーダル）
 - `data/announcements.js` — 冒険者ギルドからのお知らせのデータ
