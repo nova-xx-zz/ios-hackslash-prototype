@@ -36,6 +36,13 @@ html, body {
   background: radial-gradient(ellipse at top, #1c1830 0%, #0e0c16 70%);
   overflow: hidden;
 }
+/* ホーム画面から起動した時（PWA）は、iOSが「画面下端」をステータスバーの高さぶん上に計算することがあり、
+   下に約60ptの余白ができる（iPhone 16 で確認）。画面全体の高さ（100vh）で枠を決め直す。
+   画面下に置くもの（ドック・モーダル）は、この #app の枠を基準にする */
+@media all and (display-mode: standalone) {
+  #app { bottom: auto; height: 100vh; }
+  .modal-overlay { bottom: auto; height: 100vh; }
+}
 
 /* 各画面は安全領域の内側に置く（position: absolute は親の padding を無視するため、位置そのものを余白分ずらす） */
 .screen {
@@ -834,8 +841,10 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .detail-stat-row span:last-child { font-weight: 700; }
 
 .bottom-dock {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
+  /* 画面（.screen、安全領域の内側）から、安全領域ぶん外へはみ出して #app の下端・左右端に付ける。
+     position: fixed だとホーム画面起動時のiOSの不具合で下端が浮くため、#app の枠を基準にする */
+  position: absolute;
+  left: calc(-1 * var(--safe-left)); right: calc(-1 * var(--safe-right)); bottom: calc(-1 * var(--safe-bottom));
   background: rgba(0,0,0,0.35);
   border-top: 1px solid var(--border);
   padding-bottom: var(--safe-bottom);
