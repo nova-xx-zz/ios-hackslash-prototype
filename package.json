@@ -7,13 +7,16 @@
     "test": "node --test",
     "build:www": "node tools/build-www.js",
     "cap:sync": "npm run build:www && npx cap sync",
-    "cap:open:ios": "npx cap open ios"
+    "cap:open:ios": "npx cap open ios",
+    "build:firebase": "esbuild tools/firebase-entry.js --bundle --minify --format=iife --global-name=QPFirebase --target=es2019 --legal-comments=eof --outfile=js/vendor/firebase.js"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
     "@capacitor/ios": "^8.5.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.2"
+    "@capacitor/cli": "^8.5.2",
+    "esbuild": "^0.28.2",
+    "firebase": "^12.19.0"
   }
 }

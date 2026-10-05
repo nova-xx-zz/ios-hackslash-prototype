@@ -86,3 +86,16 @@ test("型の合わない項目は既定値にする", () => {
   assert.equal(loaded.state.material, 7);
   assert.deepEqual(loaded.state.guaranteedStones, { free: 0, paid: 3 });
 });
+
+test("クラウドからの復元: 自動周回は止め、内容の要約を返す。壊れたデータはnull", () => {
+  const s = sampleState();
+  const json = JSON.stringify(save.serialize(s, { now: 1700000000000, runDungeonIds: [null, "forest"] }));
+  const r = save.prepareRestore(json);
+  assert.equal(r.savedAt, 1700000000000);
+  assert.deepEqual(r.summary, { members: 2, maxLevel: 3, clearedDungeons: 2, material: 1234 });
+  const restored = JSON.parse(r.json);
+  assert.ok(restored.autoRepeat.every((ar) => ar.active === false));
+  assert.equal(restored.autoRepeat[1].done, 4); // 進行の記録はそのまま
+  assert.deepEqual(restored.roster, JSON.parse(json).roster);
+  for (const bad of ["", "{", "null", JSON.stringify({ roster: [] })]) assert.equal(save.prepareRestore(bad), null, bad);
+});

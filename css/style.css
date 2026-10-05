@@ -144,6 +144,13 @@ html, body {
 }
 .settings-label { color: var(--sub-text); }
 .settings-value { font-weight: 700; }
+.settings-cloud { margin-top: 12px; }
+.settings-note { margin: 8px 0; line-height: 1.6; }
+.settings-buttons { display: flex; gap: 8px; }
+.settings-buttons .btn { flex: 1; }
+.settings-message { margin: 8px 0 0; line-height: 1.6; color: var(--text); white-space: pre-line; }
+.settings-message.error { color: var(--hp); }
+.settings-uid { font-size: 11px; font-weight: 400; color: var(--sub-text); word-break: break-all; text-align: right; }
 
 /* 冒険者ギルドからのお知らせ（タイトルアイコン／一覧／今後の予定） */
 .announce-icon-btn {
