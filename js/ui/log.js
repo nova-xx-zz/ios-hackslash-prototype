@@ -12,6 +12,30 @@
 const LOG_HISTORY_RUNS = 20;
 let teamLogs = Array.from({ length: TEAM_COUNT }, () => []); // [{type,title,subtitle,lines:[{text,cls}|{drop:item}]}]
 
+// 待機案内はログDOMとは分ける。最初の戦闘ログの追記や別パーティへの切替でも
+// 案内が残ったり、ログ行の追記先（lastElementChild）に混ざったりしないようにする。
+function renderExploreScene(teamIndex) {
+  const run = teamRuns[teamIndex];
+  const idle = !run && teamLogs[teamIndex].length === 0;
+  const emptyParty = teamMembers(teamIndex).length === 0;
+  document.getElementById("exploreWelcome").classList.toggle("hidden", !idle);
+  document.getElementById("logFeed").classList.toggle("hidden", idle);
+  document.getElementById("screen-battle").classList.toggle("explore-idle", idle);
+  document.getElementById("exploreState").textContent = run
+    ? (isTeamRunActive(teamIndex) ? "探索中" : "帰還") : "ギルド待機";
+  document.getElementById("exploreWelcomeTitle").textContent = emptyParty ? "仲間を編成しよう" : "冒険の準備";
+  document.getElementById("exploreWelcomeCopy").textContent = emptyParty
+    ? "このパーティには仲間がいません。編成してから出発しましょう。"
+    : "行き先を選んで、探索に出発しましょう。";
+  document.getElementById("exploreEmbarkLabel").textContent = emptyParty ? "仲間を編成する" : "マップを開く";
+}
+
+document.getElementById("btnExploreEmbark").addEventListener("click", () => {
+  if (isTeamLocked(S.activeTeam)) return;
+  // 既存の導線を利用し、未編成のまま出撃したり、案内から即座に戦闘を始めたりしない。
+  document.getElementById(activeParty().length ? "btnDockMap" : "btnHubJobs").click();
+});
+
 function trimTeamLog(teamIndex) {
   const entries = teamLogs[teamIndex];
   let startCount = 0;
@@ -68,6 +92,7 @@ function updateCardSubtitle(teamIndex, text) {
 
 function appendLogCardDOM(entry) {
   const feed = document.getElementById("logFeed");
+  if (feed.classList.contains("hidden")) renderExploreScene(S.activeTeam);
   const card = document.createElement("div");
   card.className = "log-card " + entry.type;
   const t = document.createElement("div");
@@ -110,9 +135,7 @@ function renderLogFeed(teamIndex) {
   const feed = document.getElementById("logFeed");
   feed.innerHTML = "";
   for (const entry of teamLogs[teamIndex]) appendLogCardDOM(entry);
-  if (teamLogs[teamIndex].length === 0 && !teamRuns[teamIndex]) {
-    feed.innerHTML = `<p class="sub" style="margin:24px 0;text-align:center;">下の「マップ」からダンジョンを選んで冒険を始めましょう</p>`;
-  }
+  renderExploreScene(teamIndex);
 }
 
 function scrollLog() {

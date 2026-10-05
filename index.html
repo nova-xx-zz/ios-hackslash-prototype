@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
 <div id="app">
@@ -188,9 +188,11 @@
 
   <!-- 探索画面（ログ + ドック） -->
   <section id="screen-battle" class="screen hidden">
+    <div class="explore-backdrop" aria-hidden="true"></div>
     <div class="explore-wrap">
       <div class="explore-header">
         <div>
+          <div class="explore-eyebrow">SWORD CREST <span class="explore-state" id="exploreState">ギルド待機</span></div>
           <div class="team-name" id="teamName">第一のパーティ</div>
           <div class="explore-sub" id="exploreSub"></div>
           <div class="material-line" id="materialLine">強化石 0</div>
@@ -201,7 +203,19 @@
         </div>
       </div>
       <div id="disassembleFilterRow" class="disassemble-filter-row hidden"></div>
-      <div id="logFeed" class="log-feed"></div>
+      <div class="explore-content">
+        <div class="explore-welcome hidden" id="exploreWelcome">
+          <div class="explore-welcome-inner">
+            <svg class="explore-crest" viewBox="0 0 64 64" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="32" cy="32" r="25" stroke-width="0.8"/><circle cx="32" cy="32" r="19" stroke-width="0.5"/><path d="M32 1v9m0 44v9M1 32h9m44 0h9M32 12l5 15 15 5-15 5-5 15-5-15-15-5 15-5Z" stroke-width="1.2"/><path d="m32 20 4 12-4 12-4-12Z" fill="currentColor" stroke="none"/></svg>
+            <p class="explore-welcome-label">ADVENTURER’S GUILD</p>
+            <h2 id="exploreWelcomeTitle">冒険の準備</h2>
+            <p class="explore-welcome-copy" id="exploreWelcomeCopy">行き先を選んで、探索に出発しましょう。</p>
+            <button class="explore-embark" id="btnExploreEmbark"><span id="exploreEmbarkLabel">マップを開く</span><span aria-hidden="true">→</span></button>
+            <div class="explore-welcome-rule" aria-hidden="true"><span>◆</span></div>
+          </div>
+        </div>
+        <div id="logFeed" class="log-feed" aria-label="探索の記録"></div>
+      </div>
     </div>
 
     <div id="bottomDock" class="bottom-dock">
@@ -213,6 +227,7 @@
         <div class="stat-bar dungeon"><div class="fill" id="dockProgressFill" style="width:0%"></div></div>
       </div>
       <div id="partyRow" class="party-row"></div>
+      <p class="dock-empty-party hidden" id="dockEmptyParty">仲間を編成して、冒険の支度を整えましょう。</p>
       <div id="autoRepeatRow" class="auto-repeat-row"></div>
       <div class="dock-actions">
         <button class="btn small ghost" id="btnRedeploy">再出撃</button>
@@ -221,16 +236,16 @@
       <div class="team-tabs" id="teamTabs"></div>
       <div class="hub-nav-row">
         <button class="hub-nav-btn" id="btnHubJobs">
-          <span class="hub-nav-icon">👥</span><span class="hub-nav-label">編成</span>
+          <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 20v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v2"/></svg><span class="hub-nav-label">編成</span>
         </button>
         <button class="hub-nav-btn active" id="btnHubExplore">
-          <span class="hub-nav-icon">⚔️</span><span class="hub-nav-label">探索</span>
+          <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m5 3 13 13m-2 3 5-5M3 5l2-2 4 2-4 4Zm14 14 4 2m-2-2 2 2M19 3 6 16m2 3-5-5m18-9-2-2-4 2 4 4ZM7 19l-4 2m2-2-2 2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="hub-nav-label">探索</span>
         </button>
         <button class="hub-nav-btn" id="btnHubDex">
-          <span class="hub-nav-icon">📖</span><span class="hub-nav-label">図鑑</span>
+          <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M12 6c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v15M6 9h3m-3 4h3m6-4h3m-3 4h3" stroke-linejoin="round"/></svg><span class="hub-nav-label">図鑑</span>
         </button>
         <button class="hub-nav-btn" id="btnHubSettings">
-          <span class="hub-nav-icon">⚙️</span><span class="hub-nav-label">設定</span>
+          <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m10 3-1 3-3 1-3-1-1 4 3 2v2l-2 2 2 3 3-1 2 1 1 3 4-1v-3l2-2 3 1 2-3-2-2v-2l2-2-2-3-3 1-2-1-1-3Z" stroke-linejoin="round"/></svg><span class="hub-nav-label">設定</span>
         </button>
       </div>
     </div>
@@ -327,8 +342,8 @@
 <script src="js/ui/detail-tabs.js?v=1"></script>
 <script src="js/ui/inventory.js?v=1"></script>
 <script src="js/ui/battle.js?v=1"></script>
-<script src="js/ui/log.js?v=1"></script>
-<script src="js/ui/dock.js?v=2"></script>
+<script src="js/ui/log.js?v=2"></script>
+<script src="js/ui/dock.js?v=3"></script>
 <script src="js/ui/explore.js?v=1"></script>
 <script src="js/game.js?v=29"></script>
 <script src="js/pwa.js?v=1"></script>
