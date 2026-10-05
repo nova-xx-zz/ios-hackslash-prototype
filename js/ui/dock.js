@@ -205,3 +205,16 @@ document.getElementById("btnRedeploy").addEventListener("click", () => {
 document.getElementById("btnDockMap").addEventListener("click", () => {
   openMap();
 });
+
+// 探索画面のログ欄の下端を、画面下のドックの上端に合わせる。ドックの高さは機種（ホームバーの有無）・
+// 画面幅・文字の大きさで変わるため、実際の位置を測って CSS の --dock-offset に入れる
+function syncDockOffset() {
+  const screen = document.getElementById("screen-battle");
+  const dock = document.getElementById("bottomDock");
+  if (screen.classList.contains("hidden")) return;
+  const offset = Math.max(0, Math.round(screen.getBoundingClientRect().bottom - dock.getBoundingClientRect().top));
+  screen.style.setProperty("--dock-offset", offset + "px");
+}
+if (typeof ResizeObserver === "function") new ResizeObserver(syncDockOffset).observe(document.getElementById("bottomDock"));
+window.addEventListener("resize", syncDockOffset);
+window.addEventListener("orientationchange", syncDockOffset);
