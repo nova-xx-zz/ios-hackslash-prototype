@@ -996,6 +996,144 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .stat-bar.atb .fill { background: var(--atb); }
 .stat-num { font-size: 8px; color: var(--sub-text); text-align: right; }
 
+/* 探索画面: タイトルと共通の青緑・古金色。HP/MP/レア度の意味色は保持する。 */
+#screen-battle {
+  --accent: #c9a463;
+  --border: rgba(201, 164, 99, 0.22);
+  --sub-text: #bac4c6;
+  --text: #f3eee2;
+  isolation: isolate;
+}
+.explore-backdrop {
+  position: absolute; z-index: 0; pointer-events: none;
+  top: calc(-1 * var(--safe-top)); bottom: calc(-1 * var(--safe-bottom));
+  left: calc(-1 * var(--safe-left)); right: calc(-1 * var(--safe-right));
+  background: #08151b url("../icons/explore-guild.jpg") center 35% / cover no-repeat;
+}
+.explore-backdrop::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(4, 12, 17, 0.76), rgba(4, 12, 17, 0.37) 30%, rgba(4, 12, 17, 0.52) 58%, #071015 90%);
+}
+#screen-battle:not(.explore-idle) .explore-backdrop::after { background: rgba(4, 12, 17, 0.64); }
+#screen-battle .explore-wrap { z-index: 1; padding: 12px 12px 0; }
+#screen-battle .explore-header {
+  gap: 8px; padding: 0 2px 10px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  text-shadow: 0 1px 4px #000;
+}
+#screen-battle .explore-header > :first-child { min-width: 0; }
+.explore-eyebrow {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 5px;
+  font-family: "Cinzel", serif; font-size: 9px; font-weight: 600; letter-spacing: 0.12em; color: #dec28c;
+}
+.explore-state { font-family: inherit; font-size: 9px; letter-spacing: 0; color: #c0cdd0; }
+.explore-state::before { content: "◆"; font-size: 6px; margin-right: 5px; color: #c9a463; }
+#screen-battle .team-name { font-family: var(--title-serif-ja); font-size: 17px; color: #f4e9ce; }
+#screen-battle .explore-sub { line-height: 1.5; }
+#screen-battle .material-line { font-size: 10px; color: #e1c480; }
+#screen-battle .explore-header-actions { flex-direction: row; gap: 5px; }
+#screen-battle .explore-header-actions .btn { min-height: 44px; padding: 7px 9px; font-size: 10px; border-radius: 5px; }
+#screen-battle .btn.ghost {
+  background: linear-gradient(180deg, rgba(27, 39, 43, 0.96), rgba(9, 18, 23, 0.96));
+  color: #e7dfcd; border-color: rgba(201, 164, 99, 0.4);
+}
+#screen-battle .btn.primary { background: linear-gradient(180deg, #dbc28a, #b38b4b); color: #171a1a; }
+#screen-battle .btn.toggle-on { background: #334239; border-color: #d6b674; color: #f4e6c7; }
+#screen-battle button:focus-visible { outline: 2px solid #f1d49a; outline-offset: -3px; }
+.explore-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.explore-welcome {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center;
+  padding: clamp(16px, 4vh, 36px) 12px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.explore-welcome.hidden, #screen-battle .log-feed.hidden { display: none; }
+.explore-welcome-inner {
+  flex: 0 0 auto; width: 100%; max-width: 320px; margin: auto 0;
+  text-align: center; text-shadow: 0 2px 7px #000;
+}
+.explore-crest { width: 54px; height: 54px; color: #e0c185; filter: drop-shadow(0 2px 8px #071015); }
+.explore-welcome-label {
+  margin: 12px 0 7px; color: #e0c185; font: 600 10px "Cinzel", serif; letter-spacing: 0.14em;
+}
+.explore-welcome h2 { margin: 0; font: 600 clamp(23px, 6.5vw, 28px) var(--title-serif-ja); letter-spacing: 0.08em; color: #f8efd9; }
+.explore-welcome-copy { margin: 12px auto 20px; max-width: 260px; font-size: 12px; line-height: 1.9; color: #e0e3df; }
+.explore-embark {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 24px;
+  min-height: 48px; padding: 12px 23px; min-width: 210px;
+  background: linear-gradient(180deg, rgba(48, 47, 36, 0.95), rgba(13, 25, 29, 0.98));
+  border: 1px solid #c9a463; border-radius: 5px; color: #f6e8c9;
+  box-shadow: inset 0 0 0 3px rgba(201, 164, 99, 0.12), 0 4px 20px #061017;
+  font: 600 14px var(--title-serif-ja); cursor: pointer;
+}
+.explore-embark:active { filter: brightness(1.25); }
+.explore-welcome-rule { display: flex; align-items: center; gap: 8px; width: 110px; margin: 18px auto 0; color: #c9a463; font-size: 7px; }
+.explore-welcome-rule::before, .explore-welcome-rule::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+#screen-battle .log-feed { gap: 10px; padding: 2px 0 10px; }
+#screen-battle .log-card {
+  flex: 0 0 auto; padding: 11px 12px; border-radius: 6px;
+  background: rgba(7, 18, 24, 0.95); box-shadow: 0 3px 12px rgba(0, 0, 0, 0.24);
+}
+#screen-battle .log-card .lc-title { color: #f2e3c0; }
+#screen-battle .log-card .lc-line { color: #e1e7e6; }
+#screen-battle .log-card .lc-line.heal { color: #7dffb0; }
+#screen-battle .log-card .lc-line.system { color: var(--atb); }
+#screen-battle .log-card .lc-line.down { color: #ff8994; }
+#screen-battle .log-card.clear, #screen-battle .log-card.start { border-left-color: #d8b77a; }
+#screen-battle .log-card.clear .lc-title { color: #eed293; }
+#screen-battle .bottom-dock {
+  background: linear-gradient(180deg, rgba(15, 28, 32, 0.98), #071116 75%);
+  border-top: 1px solid #a78950;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.3), inset 0 3px 0 rgba(201, 164, 99, 0.08);
+}
+#screen-battle .dock-progress { padding: 9px 12px 3px; }
+#screen-battle .dock-progress-row { color: #e2c98f; }
+#screen-battle .stat-bar.dungeon .fill { background: linear-gradient(90deg, #a77b3c, #e2c98f); }
+#screen-battle .party-row { gap: 6px; padding: 7px 10px 9px; }
+#screen-battle .actor-card {
+  position: relative; border-radius: 5px; border-color: rgba(201, 164, 99, 0.36);
+  background: linear-gradient(180deg, #1c3038, #0c1b22); padding: 5px;
+  box-shadow: inset 0 2px 0 rgba(201, 164, 99, 0.13);
+}
+.actor-insignia { height: 23px; display: flex; justify-content: center; color: #d9b979; margin-bottom: 2px; }
+.actor-insignia svg { width: 21px; height: 21px; }
+#screen-battle .actor-name { color: #f5e9cc; }
+#screen-battle .actor-job { color: #b4c4c8; }
+#screen-battle .actor-card.acted { border-color: #e6cb8a; box-shadow: 0 0 0 1px #e6cb8a; }
+.dock-empty-party { margin: 0; padding: 8px 12px 14px; color: #c1cdd0; font-size: 11px; text-align: center; }
+#screen-battle .auto-repeat-row { padding: 7px 10px; gap: 6px; }
+#screen-battle .auto-repeat-chip { min-height: 32px; padding: 5px 7px; border-radius: 4px; color: #bcc9cb; }
+#screen-battle .auto-repeat-chip.active { color: #f5e5c4; background: #3e402f; border-color: #b99759; }
+#screen-battle .auto-repeat-row .btn { min-height: 34px; padding: 7px 10px; font-size: 11px; border-radius: 4px; }
+#screen-battle .dock-actions { padding: 2px 10px 8px; gap: 8px; }
+#screen-battle .dock-actions .btn { min-height: 44px; font-family: var(--title-serif-ja); border-radius: 5px; }
+#screen-battle #btnDockMap { border-color: #b99b63; color: #f5e6c8; }
+#screen-battle .team-tab { min-height: 44px; padding: 6px 2px; }
+#screen-battle .team-tab.active { background: rgba(201, 164, 99, 0.14); color: #f0dba7; box-shadow: inset 0 2px 0 #c9a463; }
+#screen-battle .hub-nav-row { gap: 5px; padding: 6px 9px 8px; }
+#screen-battle .hub-nav-btn {
+  min-height: 52px; padding: 6px 4px; border-radius: 5px;
+  background: rgba(14, 28, 34, 0.8); color: #b9c6c9; border-color: transparent;
+}
+#screen-battle .hub-nav-btn.active { background: rgba(201, 164, 99, 0.12); color: #ebd3a0; border-color: #a78950; }
+#screen-battle .hub-nav-icon { width: 22px; height: 22px; }
+@media (max-width: 360px) {
+  #screen-battle .explore-wrap { padding: 9px 8px 0; }
+  #screen-battle .explore-header-actions { flex-direction: column; gap: 3px; }
+  #screen-battle .explore-header-actions .btn { min-height: 32px; }
+  #screen-battle .party-row { gap: 4px; padding-left: 7px; padding-right: 7px; }
+  #screen-battle .actor-job { font-size: 8px; }
+  #screen-battle .auto-repeat-row { gap: 4px; }
+  #screen-battle .auto-repeat-label { flex-basis: 100%; font-size: 9px; }
+  #screen-battle .auto-repeat-chip { padding: 5px 6px; }
+  #screen-battle .auto-repeat-row .btn { padding: 7px 6px; font-size: 10px; }
+}
+@media (max-height: 650px) {
+  .explore-crest { width: 36px; height: 36px; }
+  .explore-welcome-label { margin-top: 7px; }
+  .explore-welcome-copy { margin: 8px auto 12px; }
+  .explore-welcome-rule { display: none; }
+  #screen-battle .actor-insignia { display: none; }
+}
+
 /* equipment */
 .equip-slot-row { display: flex; gap: 5px; margin-top: 4px; }
 .equip-slot {

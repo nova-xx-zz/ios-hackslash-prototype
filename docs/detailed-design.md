@@ -309,6 +309,8 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | キャラ詳細: ジョブ/合成 | `buildJobTab()` → 人間は `buildJobCard()` 一覧、モンスターは `buildFusionTab()` |
 | マップ | `renderMap()`, `selectDungeon()`, `renderDungeonInfo()` |
 | 探索ドック | `renderDock()`, `renderAutoRepeatRow()`, `renderDisassembleFilter()`, `updateTeamTabDots()`（表示外チームのタブ状態を毎フレーム追従） |
+| 探索の待機案内 | `renderExploreScene(teamIndex)`（未出発かつログなしで案内を表示、未編成なら編成導線。`renderLogFeed()` と最初のカード追記から呼ぶ。案内はログの追記先DOMに含めない） |
+| 職業紋章 | `actorInsignia(job)`（基本6職と対応上級職を同系統のSVGで描画。モンスター・未定義の職業には共通の盾を表示） |
 | 戦闘進行（4チーム並行） | `startDungeon(teamIndex, id, opts)`, `startBattle(run)`, `loop()`/`tick()`/`tickTeam(i, dt)`, `onVictory(run, battle)`, `onDefeat(run)`, `rollDungeonEvent(run)`, `finishRun(run, info)`（いずれも状態の変更は `Runner`（js/model/run.js）に任せ、ログの文章・画面更新・次の処理までの待ち時間を受け持つ。§3.0a） |
 | ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（js/model/run.js。探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
 | ログ（チームごとに履歴保持） | `logEvent(teamIndex, ...)`, `logLine(teamIndex, ...)`, `renderLogFeed(teamIndex)`（タブ切替時にDOM再構築） |
