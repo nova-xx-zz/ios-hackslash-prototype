@@ -4,7 +4,7 @@
 > 本書では「現行実装」「採用済み・未実装」「将来構想」を区別する。
 > **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2の固有ツリー＋汎用3枠交換＋分岐図UIの範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（sourceRarity、ブック消費での交換）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`EXCLUSIVE_TREES`/`GENERAL_TREES`/`GENERAL_SLOTS`、`js/model/roster.js`のツリー関連関数群（`getExclusiveTree`/`getTreeState`/`generalSlotTreeDef`/`totalSp`/`spentSpFor`/`totalSpentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`swapGeneralSlot`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeSection`/`buildTreeGraph`/`buildTreeNodeDetail`の分岐図UIを参照。
 
-対象コード: `js/data.js`, `js/game.js`, `css/style.css`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装・固有+汎用3枠実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2の固有＋汎用3枠交換の範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
+対象コード: `js/data.js`, `js/core/`, `js/model/`, `js/ui/`, `js/game.js`, `css/style.css`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装・固有+汎用3枠実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2の固有＋汎用3枠交換の範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
 
 ## 1. データ構造定義
 
@@ -293,6 +293,8 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 ## 3. 画面別のロジック概要（関数マッピング）
 
+以下の関数は `js/ui/` の画面ごとのファイルにある（タイトル・マップ: `title-map.js`、編成: `party.js`、キャラ作成: `create.js`、キャラ詳細: `detail.js`・`detail-tree.js`・`detail-tabs.js`、所持品・強化: `inventory.js`、探索: `battle.js`・`log.js`・`dock.js`・`explore.js`、セーブ/ロード: `models.js`、お知らせ: `announcements.js`）。ゲームのルールと状態の変更は §3.0a の `js/model/`。
+
 | 画面/機能 | 主要関数 |
 |---|---|
 | タイトル | `renderTitle()` |
@@ -327,7 +329,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 ## 3.0a ゲームの状態とセーブ（`js/model/`）
 
-UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
+UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲームの状態は、js/ui/state.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
 
 | 項目 | 内容 |
 |---|---|
@@ -379,14 +381,14 @@ UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲ�
 
 ## 5. キャッシュバスティング運用
 
-`index.html` の `css/style.css`・`data/announcements.js`・`data/roadmap.js`・`js/data.js`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。参照コミット時点: `style.css?v=6`, `announcements.js?v=1`, `roadmap.js?v=1`, `data.js?v=2`, `game.js?v=9`。設計書のみの更新ではこれらの番号を変更しない。
+`index.html` の `css/style.css`・`data/announcements.js`・`data/roadmap.js`・`js/data.js`・`js/core/`・`js/model/`・`js/ui/`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。参照コミット時点: `style.css?v=6`, `announcements.js?v=1`, `roadmap.js?v=1`, `data.js?v=2`, `game.js?v=9`。設計書のみの更新ではこれらの番号を変更しない。
 
 ## 6. 採用済み拡張のデータ・処理設計（§6.1・6.2は固有＋汎用3枠交換の範囲で実装済み、§6.3〜6.6は§6.4〜6.6が実装済み、それ以外は未実装）
 
 ここからのフィールド・関数・キーは実装予定の設計名である。現行に存在する関数とは区別する。値・IDはスキーマ説明用の例であり、個別コンテンツの確定性能や公開日程を意味しない。
 
 ### 6.1 キャラ・ジョブ別進行の追加フィールド（固有＋汎用3枠の範囲で実装済み。ブック由来フィールド・masteryは未実装）
-実装済みの実際のスキーマ（`js/game.js` `getTreeState(c)`）:
+実装済みの実際のスキーマ（`js/model/roster.js` `getTreeState(c)`）:
 ```js
 jobLevels[jobId] = {
   level, exp, expToNext,             // 現行値を保持
