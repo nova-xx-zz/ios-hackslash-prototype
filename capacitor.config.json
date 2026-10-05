@@ -1,0 +1,9 @@
+{
+  "appId": "com.nova.swordcrest",
+  "appName": "ソードクレスト",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0e0c16"
+  }
+}

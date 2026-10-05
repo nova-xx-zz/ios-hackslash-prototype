@@ -1,0 +1,19 @@
+{
+  "name": "sword-crest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ソードクレスト（Sword Crest）: 5人パーティ・オート戦闘のハクスラダンジョン",
+  "scripts": {
+    "test": "node --test",
+    "build:www": "node tools/build-www.js",
+    "cap:sync": "npm run build:www && npx cap sync",
+    "cap:open:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}
