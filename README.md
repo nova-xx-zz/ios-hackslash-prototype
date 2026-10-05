@@ -131,7 +131,9 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
   - `apple-touch-icon.png`（180）・`icon-192.png`・`icon-512.png`: 縮小のみ
   - `icon-maskable-512.png`: 暗い赤（#2a0306）の背景の中央に80%で配置（Android などで円形に切り抜かれても欠けないように）
   - `splash-2732.png`: アプリの起動画面。暗い背景（#0e0c16）の中央に、角を丸めたアイコンを900pxで配置
+  - `title-bg.jpg`: タイトル画面の背景。`icon-1024.png` を縦長の暗い背景に大きく置き、強くぼかして周辺と下側を暗くしたもの（ImageMagick）
   - App Store 用のアイコンは透明（アルファチャンネル）があると受け付けられないため、すべて透明なしの PNG で書き出す
+- `fonts/` — タイトルのロゴ用の英字フォント Cinzel（SIL Open Font License。`OFL-Cinzel.txt`）。日本語は端末の明朝体（iPhoneはヒラギノ明朝）を使う
 - `package.json` / `capacitor.config.json` — Capacitor（iOSアプリ化）の設定とコマンド
 - `ios/` — Capacitor で生成した Xcode プロジェクト
 - `tools/firebase-entry.js` — `js/vendor/firebase.js` に入れる Firebase の関数の一覧
