@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=21">
+<link rel="stylesheet" href="css/style.css?v=22">
 </head>
 <body>
 <div id="app">
@@ -131,11 +131,23 @@
     <div class="roster-wrap">
       <div class="roster-header">
         <div class="map-title">所持品</div>
-        <button class="btn small ghost" id="btnInventoryBack">もどる</button>
+        <div>
+          <button class="btn small ghost" id="btnInventoryDisassemble">分解する</button>
+          <button class="btn small ghost" id="btnInventoryBack">もどる</button>
+        </div>
       </div>
       <div class="inventory-filter-row" id="inventoryFilterRow"></div>
+      <div class="inventory-bulk-row hidden" id="inventoryBulkRow"></div>
       <div class="dex-count" id="inventoryCount"></div>
+      <p class="inventory-message hidden" id="inventoryMessage"></p>
       <div id="inventoryBody" class="roster-body"></div>
+      <div class="inventory-disassemble-bar hidden" id="inventoryDisassembleBar">
+        <div class="idb-summary" id="inventoryDisassembleSummary"></div>
+        <div class="idb-actions">
+          <button class="btn small ghost" id="btnDisassembleCancel">やめる</button>
+          <button class="btn small primary" id="btnDisassembleConfirm">分解する</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -323,7 +335,7 @@
 <script src="js/core/battle.js?v=2"></script>
 <script src="js/model/save.js?v=2"></script>
 <script src="js/model/roster.js?v=1"></script>
-<script src="js/model/inventory.js?v=1"></script>
+<script src="js/model/inventory.js?v=2"></script>
 <script src="js/model/run.js?v=1"></script>
 <script src="js/firebase-config.js?v=1"></script>
 <script src="js/cloud.js?v=1"></script>
@@ -332,7 +344,7 @@
 <script src="js/ui/state.js?v=1"></script>
 <script src="js/ui/insignia.js?v=2"></script>
 <script src="js/ui/announcements.js?v=1"></script>
-<script src="js/ui/models.js?v=2"></script>
+<script src="js/ui/models.js?v=3"></script>
 <script src="js/ui/offline.js?v=1"></script>
 <script src="js/ui/title-map.js?v=4"></script>
 <script src="js/ui/settings.js?v=1"></script>
@@ -341,7 +353,7 @@
 <script src="js/ui/detail.js?v=1"></script>
 <script src="js/ui/detail-tree.js?v=1"></script>
 <script src="js/ui/detail-tabs.js?v=2"></script>
-<script src="js/ui/inventory.js?v=2"></script>
+<script src="js/ui/inventory.js?v=3"></script>
 <script src="js/ui/battle.js?v=1"></script>
 <script src="js/ui/log.js?v=2"></script>
 <script src="js/ui/dock.js?v=5"></script>

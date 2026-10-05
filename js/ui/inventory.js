@@ -10,10 +10,86 @@
 // 各キャラの装備タブからいつでも確認できるため、ここでは未装備分だけを扱う。
 let inventoryFilterSlot = "all"; // "all" | SLOTS[].key | "skillBook"
 
+// 手動の分解: 「分解する」で選択モードにし、アイテムをタップで選んで強化石に変える（自動分解と同じ量）。
+// 取り消せないため、実行は2回押し（1回目で内容を確認、2回目で確定）。装備中のアイテムは所持品に無いので対象外
+let disassembleMode = false;
+let disassembleSelection = new Set(); // 選んだアイテム（オブジェクトそのもの）
+let disassembleConfirming = false;
+
 function openInventoryScreen() {
   inventoryFilterSlot = "all";
+  exitDisassembleMode();
+  showInventoryMessage("");
   renderInventoryScreen();
   showScreen("screen-inventory");
+}
+
+function exitDisassembleMode() {
+  disassembleMode = false;
+  disassembleSelection = new Set();
+  disassembleConfirming = false;
+}
+
+function showInventoryMessage(text) {
+  const el = document.getElementById("inventoryMessage");
+  el.textContent = text || "";
+  el.classList.toggle("hidden", !text);
+}
+
+// 今の絞り込みで表示されている装備（スキルブックは分解の対象外）
+function shownInventoryItems() {
+  return S.inventory.filter((i) => inventoryFilterSlot === "all" || inventoryFilterSlot === i.slot);
+}
+
+function renderDisassembleControls() {
+  // .btn.small の display 指定が .hidden より強いため、style で隠す
+  document.getElementById("btnInventoryDisassemble").style.display = disassembleMode ? "none" : "";
+  // まとめて選ぶ: 表示中のアイテムのうち、そのレア度をすべて選ぶ（全部選ばれていれば外す）
+  const bulk = document.getElementById("inventoryBulkRow");
+  bulk.classList.toggle("hidden", !disassembleMode);
+  bulk.innerHTML = "";
+  if (disassembleMode) {
+    const label = document.createElement("span");
+    label.className = "disassemble-filter-label";
+    label.textContent = "まとめて選ぶ:";
+    bulk.appendChild(label);
+    const shown = shownInventoryItems();
+    for (const rarity of RARITIES) {
+      const items = shown.filter((i) => i.rarity === rarity.key);
+      const all = items.length > 0 && items.every((i) => disassembleSelection.has(i));
+      const chip = document.createElement("button");
+      chip.className = "disassemble-chip" + (all ? " active" : "");
+      chip.textContent = rarity.key.toUpperCase();
+      chip.title = rarity.name;
+      chip.disabled = items.length === 0;
+      if (all) chip.style.background = rarity.color;
+      chip.addEventListener("click", () => {
+        for (const i of items) { if (all) disassembleSelection.delete(i); else disassembleSelection.add(i); }
+        disassembleConfirming = false;
+        renderInventoryScreen();
+      });
+      bulk.appendChild(chip);
+    }
+  }
+
+  const bar = document.getElementById("inventoryDisassembleBar");
+  bar.classList.toggle("hidden", !disassembleMode);
+  if (!disassembleMode) return;
+  const selected = [...disassembleSelection];
+  const gain = selected.reduce((sum, i) => sum + Inventory.disassembleValue(i), 0);
+  const enhanced = selected.filter((i) => (i.plus || 0) > 0).length;
+  const high = selected.filter((i) => i.rarity === "ur" || i.rarity === "lr").length;
+  let text = selected.length ? `${selected.length}個を選択中 → 強化石 +${gain}` : "分解するアイテムをタップして選んでください";
+  if (disassembleConfirming) {
+    const warn = [];
+    if (enhanced) warn.push(`強化済み${enhanced}個`);
+    if (high) warn.push(`UR・LR ${high}個`);
+    text += `\n${warn.length ? warn.join("・") + "を含みます。" : ""}分解すると戻せません。もう一度押すと分解します。`;
+  }
+  document.getElementById("inventoryDisassembleSummary").textContent = text;
+  const confirm = document.getElementById("btnDisassembleConfirm");
+  confirm.disabled = selected.length === 0;
+  confirm.textContent = disassembleConfirming ? "本当に分解する" : "分解する";
 }
 
 function renderInventoryScreen() {
@@ -24,7 +100,7 @@ function renderInventoryScreen() {
     const btn = document.createElement("button");
     btn.className = "priority-chip inv-filter" + (inventoryFilterSlot === f.key ? " tier-3" : "");
     btn.textContent = f.name;
-    btn.addEventListener("click", () => { inventoryFilterSlot = f.key; renderInventoryScreen(); });
+    btn.addEventListener("click", () => { inventoryFilterSlot = f.key; disassembleConfirming = false; renderInventoryScreen(); });
     filterRow.appendChild(btn);
   }
 
@@ -33,6 +109,7 @@ function renderInventoryScreen() {
     : inventoryFilterSlot === "skillBook" ? S.skillBooks.length
     : S.inventory.filter((i) => i.slot === inventoryFilterSlot).length;
   document.getElementById("inventoryCount").textContent = `所持品 ${totalCount}個中 ${shownCount}個を表示`;
+  renderDisassembleControls();
 
   const body = document.getElementById("inventoryBody");
   body.innerHTML = "";
@@ -95,6 +172,26 @@ function buildInventoryItemRow(item) {
   name.textContent = `${itemLabel(item)}（${rarity ? rarity.name : item.rarity}）`;
   row.appendChild(name);
 
+  if (disassembleMode) {
+    // 選択モードでは行全体をタップで選ぶ（右に選択の印と、分解で得られる強化石の量）
+    const selected = disassembleSelection.has(item);
+    row.classList.add("selectable");
+    row.classList.toggle("selected", selected);
+    const gain = document.createElement("div");
+    gain.className = "disassemble-gain";
+    gain.textContent = `+${Inventory.disassembleValue(item)}`;
+    row.appendChild(gain);
+    const mark = document.createElement("div");
+    mark.className = "skill-toggle-circle static" + (selected ? " on" : "");
+    row.appendChild(mark);
+    row.addEventListener("click", () => {
+      if (disassembleSelection.has(item)) disassembleSelection.delete(item); else disassembleSelection.add(item);
+      disassembleConfirming = false;
+      renderInventoryScreen();
+    });
+    return row;
+  }
+
   const enhance = document.createElement("button");
   enhance.className = "priority-chip";
   enhance.textContent = "強化する";
@@ -129,7 +226,30 @@ function buildInventorySkillBookRow(book) {
 }
 
 document.getElementById("btnOpenInventory").addEventListener("click", () => { openInventoryScreen(); });
-document.getElementById("btnInventoryBack").addEventListener("click", () => { showScreen("screen-jobs"); });
+document.getElementById("btnInventoryBack").addEventListener("click", () => {
+  exitDisassembleMode();
+  showScreen("screen-jobs");
+});
+document.getElementById("btnInventoryDisassemble").addEventListener("click", () => {
+  disassembleMode = true;
+  disassembleSelection = new Set();
+  disassembleConfirming = false;
+  showInventoryMessage("");
+  renderInventoryScreen();
+});
+document.getElementById("btnDisassembleCancel").addEventListener("click", () => {
+  exitDisassembleMode();
+  renderInventoryScreen();
+});
+document.getElementById("btnDisassembleConfirm").addEventListener("click", () => {
+  if (disassembleSelection.size === 0) return;
+  if (!disassembleConfirming) { disassembleConfirming = true; renderInventoryScreen(); return; }
+  const result = Inventory.disassembleItems([...disassembleSelection]);
+  exitDisassembleMode();
+  saveGame();
+  showInventoryMessage(`${result.count}個を分解して、強化石を${result.materialGained}個手に入れました（所持 ${S.material}）`);
+  renderInventoryScreen();
+});
 
 // 装備セクション（スロットをタップで所持品から選ぶ）
 let openSlot = null; // "charId:slotKey"

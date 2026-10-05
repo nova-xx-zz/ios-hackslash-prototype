@@ -136,6 +136,24 @@ test("ドロップの受け取り: 自動分解の対象は強化石に、それ
   assert.equal(state.inventory.length, 2);
 });
 
+test("手動の分解: 選んだ所持品だけを強化石に変える。値が無い古いアイテムはレア度の既定値、所持品に無いものは無視", () => {
+  const { state, inv, mirror } = setup();
+  const a = item("weapon", "atk", 3, "n", 0, { materialValue: 5 });
+  const b = item("armor", "def", 4, "sr", 7, { materialValue: 80 });
+  const c = item("accessory", "spd", 2, "r", 0, { materialValue: undefined });
+  const keep = item("weapon", "atk", 9, "ur", 0, { materialValue: 350 });
+  const notOwned = item("weapon", "atk", 1, "lr", 0, { materialValue: 1500 });
+  state.inventory.push(a, b, c, keep);
+  state.material = 100;
+  const r = inv.disassembleItems([a, b, c, notOwned]);
+  assert.deepEqual(r, { count: 3, materialGained: 5 + 80 + 20 });
+  assert.deepEqual(state.inventory, [keep]);
+  assert.equal(state.material, 205);
+  assert.equal(mirror.at(-1), 205);
+  assert.deepEqual(inv.disassembleItems([]), { count: 0, materialGained: 0 });
+  assert.equal(state.material, 205);
+});
+
 test("モンスター合成: 控えのモンスターだけが素材。積み上げたEXPの半分を還元し、装備は所持品に戻る", () => {
   const { state, roster, inv } = setup();
   const target = roster.newCharacter("ターゲット", null, "slime", { isMonster: true });
