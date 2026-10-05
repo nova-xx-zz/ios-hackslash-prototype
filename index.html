@@ -15,7 +15,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="preload" as="image" href="icons/title-guild.jpg">
+<link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 <div id="app">
@@ -24,14 +25,14 @@
   <section id="screen-title" class="screen title-screen">
     <div class="title-bg" aria-hidden="true"></div>
     <div class="title-info">
-      <button class="title-announce hidden" id="btnTitleAnnounce" aria-label="お知らせ">
+      <button class="title-announce hidden" id="btnTitleAnnounce" aria-label="冒険者ギルドからのお知らせ">
         <svg viewBox="0 0 32 24" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="21" rx="2" fill="#d9c8a0" stroke="#7a5a2c" stroke-width="1.5"/><path d="M2.5 3 L16 13.5 L29.5 3" fill="none" stroke="#7a5a2c" stroke-width="1.6" stroke-linejoin="round"/></svg>
         <span class="announce-badge hidden" id="titleAnnounceBadge"></span>
       </button>
       <div class="title-version">Ver.<span id="titleVersion"></span></div>
     </div>
     <div class="title-logo-block">
-      <h1 class="title-logo"><span>SWORD</span><span>CREST</span></h1>
+      <h1 class="title-logo" aria-label="SWORD CREST"><span>SWORD</span><span>CREST</span></h1>
       <div class="title-rule" aria-hidden="true"><span>⚜</span></div>
       <p class="title-logo-ja">ソードクレスト</p>
     </div>
@@ -45,7 +46,7 @@
       <button class="title-menu-btn" id="btnTitleBackup">データ保存</button>
       <button class="title-menu-btn" id="btnTitleRestore">データ復元</button>
     </div>
-    <p class="title-toast hidden" id="titleMessage"></p>
+    <p class="title-toast hidden" id="titleMessage" role="status" aria-live="polite"></p>
   </section>
 
   <!-- 設定画面 -->
