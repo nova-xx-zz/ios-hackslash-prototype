@@ -2,7 +2,6 @@
   "use strict";
 
   const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
-  const rand = (a, b) => RNG.float(a, b);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const MAX_ACTIVE = 5;
   const TEAM_COUNT = 4;
@@ -322,7 +321,7 @@
       getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemEffectiveValue,
     },
     state: S,
-    runBuffs: (team) => { const r = teamRuns[team]; return r && !r.finished ? r.buffs : null; },
+    runBuffs: (team) => Runner.runBuffs(team), // 石碑の加護（js/model/run.js）
     isTeamLocked: (team) => isTeamLocked(team),
   });
   const {
@@ -347,157 +346,36 @@
     clampVitals, equipItem, unequipSlot, autoEquip, guaranteedStoneTotal, isPityReady,
   } = Inventory;
 
-  // computeStats が teamRuns[].buffs を参照するため、roster を組み立てる前に宣言しておく。
+  // ---------- ダンジョン1周の進行 ----------
+  // チームごとの探索の状態(teamRuns / teamBattles)と、出発・戦闘・勝利・道中イベント・周回の終了・オフライン精算は
+  // js/model/run.js。ここではログの文章・画面の更新・次の処理までの待ち時間を受け持つ。
+  // computeStats が石碑の加護(teamRuns[].buffs)を参照するため、roster を組み立てる前に用意しておく
+  const Runner = QPModel.run.createRunner({
+    data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop },
+    state: S,
+    roster: Roster,
+    inventory: Inventory,
+    rng: RNG,
+    teamCount: TEAM_COUNT,
+    battleEnv: () => battleEnv(),
+    autoDisassemble: () => ({ enabled: autoDisassemble, rarities: autoDisassembleRarities }),
+    markDexSeen,
+    setBestStage,
+  });
+  const { teamRuns, teamBattles, isTeamRunActive, isTeamLocked, runOfflineProgress } = Runner;
   // 4チームがそれぞれ独立にダンジョンへ出撃できるよう、進行状態(run)・戦闘状態(battle)・
   // 自動周回状態はすべてチームごとの配列で管理し、全チームが常に並行して進行する
-  let teamRuns = new Array(TEAM_COUNT).fill(null);
-  let teamBattles = new Array(TEAM_COUNT).fill(null);
   let selectedDungeonId = null;
   let jobsReturnScreen = "screen-battle"; // タイトルは常設ナビを持たないスプラッシュのため、既定の戻り先は探索画面にする
   let speedMult = 1;
-  function isTeamRunActive(i) { const r = teamRuns[i]; return !!(r && !r.finished); }
 
   // 自動周回（チームごとに独立して設定・進行する）
   const defaultAutoRepeatTarget = clampAutoRepeatTarget(store.getInt(KEYS.autoRepeatTarget, 5));
   for (const ar of S.autoRepeat) ar.target = defaultAutoRepeatTarget;
   function clampAutoRepeatTarget(n) { return AUTO_REPEAT_OPTIONS.includes(n) ? n : 5; }
-  // そのチームが探索中で、編成・装備・スキル・転職・合成などの変更を受け付けられない状態か
-  function isTeamLocked(i) { return isTeamRunActive(i) || S.autoRepeat[i].active; }
 
   // ---------- 自動周回のオフライン進行 ----------
-  // ブラウザを閉じている・バックグラウンドの間は実際のATB戦闘を再現できないため、
-  // 「経過時間内に何周できたはずか」を既存の報酬計算式を再利用して概算する
-  const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000; // これを超えた経過時間は切り捨てる
-  const OFFLINE_TIMING = {
-    perBattle: 5, // 1戦闘あたりの目安秒数(x1速度想定)
-    perGap: 2, // 戦闘間の道中イベント・インターバルの目安
-    overhead: 2, // 出発〜踏破演出、周回間の待機の目安
-  };
-  // 計算そのものはjs/core/offline.js（画面に依存しない）。ここはゲームの状態との橋渡し
-  function estimateOfflineRunSeconds(dungeon) {
-    return QPCore.offline.estimateRunSeconds(dungeon.battles, OFFLINE_TIMING);
-  }
-
-  const OFFLINE_BATTLE_MAX_SECONDS = 300; // これを超えて決着しない戦闘は負け扱い（お互い倒しきれない場合の打ち切り）
-
-  // 1周ぶんの結果をjs/core/offline.jsで計算する（ゲームの状態はまだ変えない）。
-  // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
-  // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
-  function computeOfflineRun(dungeon, teamIndex) {
-    const party = teamMembers(teamIndex).map((c) => {
-      const s = computeStats(c);
-      return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
-    });
-    const env = battleEnv();
-    return QPCore.offline.simulateRun({
-      battles: dungeon.battles,
-      rng: RNG,
-      rules: REWARD_RULES,
-      timing: OFFLINE_TIMING,
-      buildEncounter: (i) => buildEncounter(dungeon, i),
-      fight: (enemies) => {
-        if (party.length === 0) return { won: false, seconds: 0 };
-        const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
-        for (const c of party) { c.atb = rand(0, 25); c.defending = false; }
-        const r = QPCore.battle.simulate(battle, party, env, { maxSeconds: OFFLINE_BATTLE_MAX_SECONDS });
-        return { won: r.result === "victory", seconds: r.seconds };
-      },
-      // 泉と罠は戦闘に影響するので写しに反映する（石碑の加護は省略。実際のプレイよりわずかに厳しめになる）
-      onEvent: (kind) => {
-        const alive = party.filter((c) => c.alive);
-        if (alive.length === 0) return;
-        if (kind === "spring") {
-          for (const c of alive) {
-            const st = computeStats(c);
-            c.hp = Math.min(st.maxHp, c.hp + Math.round(st.maxHp * 0.3));
-            c.mp = Math.min(st.maxMp, c.mp + Math.round(st.maxMp * 0.25));
-          }
-        } else if (kind === "trap") {
-          const wide = RNG.chance(0.45);
-          const targets = wide ? alive : [RNG.pick(alive)];
-          for (const c of targets) {
-            const dmg = Math.max(1, Math.round(computeStats(c).maxHp * (wide ? 0.1 : 0.18) * rand(0.85, 1.15)));
-            c.hp = Math.max(1, c.hp - dmg); // 罠では戦闘不能にならない
-          }
-        }
-      },
-      isTamable: (key) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable); },
-      tameChanceOf: (key) => getEnemyTemplate(key).tameChance,
-      rollOne: rollItemDrop,
-    });
-  }
-
-  // computeOfflineRunの結果をゲームの状態に反映する。通常プレイと同じ扱い:
-  // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
-  // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
-  // - 遭遇した敵は図鑑に登録する
-  // 戦闘中に倒れたメンバーも含め、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
-  function applyOfflineRun(outcome, dungeon, teamIndex) {
-    const party = teamMembers(teamIndex);
-    for (const key of outcome.encountered) markDexSeen(key);
-    let expTotal = 0;
-    for (const exp of outcome.expByBattle) {
-      expTotal += exp;
-      for (const c of party) gainExp(c, QPCore.rewards.expForMember(exp, RACES[c.race].expMult));
-    }
-    if (!outcome.cleared) return { cleared: false, expTotal };
-
-    const settled = Inventory.receiveDrops(outcome.drops, { enabled: autoDisassemble, rarities: autoDisassembleRarities });
-    let tamedName = null;
-    if (outcome.tame && outcome.tame.success) {
-      tamedName = addTamedMonster(outcome.tame.key).name;
-    }
-    S.clearedDungeons.add(dungeon.id);
-    setBestStage(S.clearedDungeons.size);
-    return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName };
-  }
-
-  // 保存されていたそのチームの自動周回状態と経過時間から、離れていた間の周回をまとめて計算する
-  function runOfflineProgressForTeam(teamIndex, autoRepeatInfo, savedAt) {
-    if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
-    const dungeon = getDungeon(autoRepeatInfo.dungeonId);
-    if (!dungeon) return null;
-    // 離れていた時間（最大8時間。端末の時計が戻っていても負にしない）を、実際に戦った時間で使い切るまで周回する。
-    // 時間内に終わらなかった周は数えない（その周の結果は反映しない）
-    let budgetSeconds = clamp(Date.now() - savedAt, 0, OFFLINE_MAX_MS) / 1000;
-    const remainingTarget = Math.max(0, autoRepeatInfo.target - autoRepeatInfo.done);
-
-    let cleared = 0, expGained = 0, itemsGained = 0, runsDone = 0;
-    const tamedNames = [];
-    let wipedOut = false;
-    for (let i = 0; i < remainingTarget; i++) {
-      const outcome = computeOfflineRun(dungeon, teamIndex);
-      if (outcome.seconds > budgetSeconds) break;
-      budgetSeconds -= outcome.seconds;
-      runsDone += 1;
-      const result = applyOfflineRun(outcome, dungeon, teamIndex);
-      expGained += result.expTotal;
-      if (!result.cleared) { wipedOut = true; break; }
-      cleared += 1;
-      itemsGained += result.itemsGained;
-      if (result.tamedName) tamedNames.push(result.tamedName);
-    }
-
-    // 自動周回はここで一旦停止し、プレイヤーが結果を確認してから再開できるようにする
-    S.autoRepeat[teamIndex].active = false;
-    S.autoRepeat[teamIndex].target = autoRepeatInfo.target;
-    S.autoRepeat[teamIndex].done = autoRepeatInfo.done + cleared; // 通常プレイと同じく、全滅しても完了周回数は戻さない
-
-    // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
-    const tooShort = runsDone === 0;
-    return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
-  }
-
-  // チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある
-  function runOfflineProgress(savedAutoRepeatArray, savedAt) {
-    const summaries = [];
-    for (let i = 0; i < TEAM_COUNT; i++) {
-      const summary = runOfflineProgressForTeam(i, savedAutoRepeatArray[i], savedAt);
-      if (summary) summaries.push(summary);
-    }
-    return summaries.length > 0 ? summaries : null;
-  }
-
+  // 離れていた間の周回の計算と反映は js/model/run.js（runOfflineProgress）。ここは結果の表示
   function showOfflineModal(summaries) {
     const blocks = summaries.map((summary) => {
       if (summary.tooShort) {
@@ -2150,21 +2028,8 @@
   function startDungeon(teamIndex, id, opts) {
     opts = opts || {};
     clearTimeout(nextBattleTimer[teamIndex]);
-    const d = getDungeon(id);
-    const run = {
-      team: teamIndex, dungeon: d, battleIndex: 0, finished: false,
-      buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
-      expTotal: 0, drops: [], pendingDrops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
-      disassembleCount: 0, materialGained: 0,
-      // 出撃時点の自動分解設定をスナップショットしておく（この周回中に設定画面で変更しても
-      // 途中から挙動が変わらないようにするため。おかげで自動分解の設定はロック不要になる）
-      autoDisassemble, autoDisassembleRarities: new Set(autoDisassembleRarities),
-    };
-    teamRuns[teamIndex] = run;
-    for (const c of teamMembers(teamIndex)) {
-      const s = computeStats(c);
-      c.hp = s.maxHp; c.mp = s.maxMp; c.alive = true;
-    }
+    const run = Runner.startRun(teamIndex, id);
+    const d = run.dungeon;
     logEvent(teamIndex, "start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
     trimTeamLog(teamIndex);
     if (teamIndex === S.activeTeam) {
@@ -2176,17 +2041,7 @@
   }
 
   function startBattle(run) {
-    const d = run.dungeon;
-    const isBoss = run.battleIndex === d.battles - 1;
-    const enemies = buildEncounter(d, run.battleIndex);
-    const battle = {
-      enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })),
-      active: true,
-    };
-    teamBattles[run.team] = battle;
-    for (const e of battle.enemies) markDexSeen(e.key);
-    for (const c of teamMembers(run.team)) { c.atb = rand(0, 25); c.defending = false; c.actedFlash = 0; }
-
+    const { battle, isBoss } = Runner.startBattle(run);
     logEvent(run.team, "encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster(battle));
     if (run.team === S.activeTeam) renderDock();
   }
@@ -2625,12 +2480,10 @@
   function tickTeam(i, dt) {
     const run = teamRuns[i];
     const battle = teamBattles[i];
-    const party = teamMembers(i);
-    for (const c of party) if (c.actedFlash > 0) c.actedFlash -= dt;
-    const { events, result } = QPCore.battle.step(battle, party, dt, battleEnv());
+    for (const c of teamMembers(i)) if (c.actedFlash > 0) c.actedFlash -= dt;
+    const { events, result } = Runner.stepBattle(i, dt); // 決着したら battle.active は false になる
     for (const ev of events) logBattleEvent(run, battle, ev);
     if (result) {
-      battle.active = false;
       if (result === "victory") onVictory(run, battle);
       else onDefeat(run);
     }
@@ -2639,62 +2492,18 @@
 
   requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
 
-  // ---------- Taming（ダンジョンクリア時に判定） ----------
-  function attemptTame(run) {
-    const result = QPCore.rewards.rollTame(run.defeatedTamable, (key) => getEnemyTemplate(key).tameChance, RNG);
-    if (!result) return null;
-    const tpl = getEnemyTemplate(result.key);
-    if (!result.success) return { success: false, name: tpl.name };
-    const mon = addTamedMonster(result.key);
-    return { success: true, name: tpl.name, char: mon };
-  }
-
-  // テイムに成功したモンスターをロスターに加える（通常プレイ・オフライン精算で共通）
-  function addTamedMonster(key) {
-    const tpl = getEnemyTemplate(key);
-    const lvl = Math.max(1, currentMaxLevel() - 2);
-    const mon = newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
-    S.roster.push(mon);
-    return mon;
-  }
-
   // ---------- Victory / rewards ----------
+  // EXP・ドロップ（踏破まで保留）・踏破の記録・テイムの判定は js/model/run.js（winBattle）
   function onVictory(run, battle) {
-    const expGain = QPCore.rewards.battleExp(battle.enemies);
-    run.expTotal += expGain;
-
-    for (const e of battle.enemies) {
-      const tpl = getEnemyTemplate(e.key);
-      if (tpl && tpl.tamable) run.defeatedTamable.push(e.key);
-    }
-
-    for (const c of teamMembers(run.team)) {
-      if (!c.alive) continue;
-      const race = RACES[c.race];
-      const result = gainExp(c, QPCore.rewards.expForMember(expGain, race.expMult));
-      run.levelUps.push(...result.levelUps);
-      run.abilityUnlocks.push(...result.abilityUnlocks);
-    }
-
-    for (const item of QPCore.rewards.rollBattleDrops(REWARD_RULES, rollItemDrop, RNG)) gainItem(run, item);
-
-    logLine(run.team, `EXP +${expGain}`, "system");
-
-    const isLast = run.battleIndex + 1 >= run.dungeon.battles;
-    if (!isLast) {
-      run.battleIndex += 1;
+    const r = Runner.winBattle(run, battle);
+    logLine(run.team, `EXP +${r.expGain}`, "system");
+    if (!r.isLast) {
       scheduleNext(run.team, () => {
         rollDungeonEvent(run);
         scheduleNext(run.team, () => startBattle(run), 700);
       }, 900);
     } else {
-      const firstClear = !S.clearedDungeons.has(run.dungeon.id);
-      S.clearedDungeons.add(run.dungeon.id);
-      setBestStage(S.clearedDungeons.size);
-      const unlocked = firstClear
-        ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean)
-        : [];
-      scheduleNext(run.team, () => finishRun(run, { cleared: true, tameResult: attemptTame(run), unlocked }), 700);
+      scheduleNext(run.team, () => finishRun(run, { cleared: true, tameResult: r.tameResult, unlocked: r.unlocked }), 700);
     }
   }
 
@@ -2708,89 +2517,32 @@
   }
 
   // ---------- 道中イベント ----------
-  // 起きるかどうかと種類の抽選はjs/core/rewards.js（確率と重みはdata.jsのREWARD_RULES。オフライン精算と共通）
-  const EVENT_HANDLERS = {
-    treasure: (run) => rollTreasureEvent(run),
-    trap: (run) => rollTrapEvent(run),
-    spring: (run) => rollSpringEvent(run),
-    shrine: (run) => rollShrineEvent(run),
-  };
-
+  // 抽選と反映は js/model/run.js（rollEvent。オフライン精算と共通）。ここはログの文章と画面の更新
   function rollDungeonEvent(run) {
-    const kind = QPCore.rewards.rollEventKind(REWARD_RULES, RNG);
-    if (kind) EVENT_HANDLERS[kind](run);
-  }
-
-  function rollTreasureEvent(run) {
-    const item = QPCore.rewards.rollTreasure(REWARD_RULES, rollItemDrop, RNG);
-    if (!item) {
-      logEvent(run.team, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
-      return;
+    const ev = Runner.rollEvent(run);
+    if (!ev) return;
+    const t = run.team;
+    if (ev.kind === "treasure") {
+      if (!ev.item) logEvent(t, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
+      else logEvent(t, "treasure", "宝箱を見つけた！", `${itemLabel(ev.item)} を手に入れた`);
+    } else if (ev.kind === "trap") {
+      logEvent(t, "trap", ev.wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
+      for (const h of ev.hits) logLine(t, `${h.c.name} は ${h.dmg} のダメージを受けた`, "down");
+      if (t === S.activeTeam) updateBattleDOM();
+    } else if (ev.kind === "spring") {
+      logEvent(t, "blessing", "清らかな泉を見つけた！", "パーティは水を飲んで休息した");
+      for (const h of ev.heals) logLine(t, `${h.c.name} のHPが${h.hp}、MPが${h.mp}かいふく`, "heal");
+      if (t === S.activeTeam) updateBattleDOM();
+    } else if (ev.kind === "shrine") {
+      logEvent(t, "blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[ev.stat]} が上がった（このダンジョン中のみ）`);
+      logLine(t, `${STAT_LABELS[ev.stat]} +${Math.round(ev.total * 100)}%`, "system");
+      if (t === S.activeTeam) { renderDock(); updateBattleDOM(); }
     }
-    gainItem(run, item);
-    logEvent(run.team, "treasure", "宝箱を見つけた！", `${itemLabel(item)} を手に入れた`);
-  }
-
-  function rollTrapEvent(run) {
-    const alive = teamMembers(run.team).filter((p) => p.alive);
-    if (alive.length === 0) return;
-    const wide = RNG.chance(0.45);
-    const targets = wide ? alive : [RNG.pick(alive)];
-    const ratio = wide ? 0.1 : 0.18;
-
-    logEvent(run.team, "trap", wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
-    for (const c of targets) {
-      const s = computeStats(c);
-      const dmg = Math.max(1, Math.round(s.maxHp * ratio * rand(0.85, 1.15)));
-      c.hp = Math.max(1, c.hp - dmg); // 罠では戦闘不能にならない
-      logLine(run.team, `${c.name} は ${dmg} のダメージを受けた`, "down");
-    }
-    if (run.team === S.activeTeam) updateBattleDOM();
-  }
-
-  function rollSpringEvent(run) {
-    const alive = teamMembers(run.team).filter((p) => p.alive);
-    if (alive.length === 0) return;
-    logEvent(run.team, "blessing", "清らかな泉を見つけた！", "パーティは水を飲んで休息した");
-    for (const c of alive) {
-      const s = computeStats(c);
-      const hp = Math.round(s.maxHp * 0.3);
-      const mp = Math.round(s.maxMp * 0.25);
-      c.hp = Math.min(s.maxHp, c.hp + hp);
-      c.mp = Math.min(s.maxMp, c.mp + mp);
-      logLine(run.team, `${c.name} のHPが${hp}、MPが${mp}かいふく`, "heal");
-    }
-    if (run.team === S.activeTeam) updateBattleDOM();
-  }
-
-  function rollShrineEvent(run) {
-    const stat = RNG.pick(["atk", "def", "spd"]);
-    run.buffs[stat] = (run.buffs[stat] || 0) + 0.12;
-    logEvent(run.team, "blessing", "古びた石碑を見つけた！", `祈りを捧げると ${STAT_LABELS[stat]} が上がった（このダンジョン中のみ）`);
-    logLine(run.team, `${STAT_LABELS[stat]} +${Math.round(run.buffs[stat] * 100)}%`, "system");
-    if (run.team === S.activeTeam) { renderDock(); updateBattleDOM(); }
-  }
-
-  // ドロップは即座に所持品化・分解せず、ダンジョンを踏破した時だけ確定させる
-  // （全滅した場合は道中で見つけたドロップを持ち帰れない）
-  function gainItem(run, item) {
-    run.pendingDrops.push(item);
-  }
-
-  // 踏破が確定した時点で、保留していたドロップを所持品化・自動分解する。
-  // 出撃時にスナップショットした自動分解設定(run.autoDisassemble等)を使うため、
-  // 探索中に設定画面で自動分解の設定を変えても、この周回の結果には影響しない
-  function settlePendingDrops(run) {
-    const settled = Inventory.receiveDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
-    run.disassembleCount += settled.disassembled;
-    run.materialGained += settled.materialGained;
-    run.drops.push(...settled.kept);
   }
 
   function finishRun(run, info) {
-    run.finished = true;
-    run.wiped = !info.cleared;
-    if (info.cleared) settlePendingDrops(run);
+    // ドロップの確定（出撃時の自動分解設定で振り分け）とチームの回復は js/model/run.js
+    Runner.finishRun(run, info.cleared);
     const isViewed = run.team === S.activeTeam;
 
     logEvent(run.team,
@@ -2825,9 +2577,6 @@
       logLine(run.team, `全滅したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
     }
 
-    // 全滅・クリアで回復するのは「このチームのメンバー」だけ。他チームが探索中の場合に
-    // その戦闘状態を壊してしまわないよう、ロスター全体は回復しない
-    restoreTeamParty(run.team);
     saveGame();
 
     if (isViewed) {
@@ -2835,24 +2584,19 @@
       renderDock();
     }
 
-    if (S.autoRepeat[run.team].active) {
-      if (run.wiped) {
-        S.autoRepeat[run.team].active = false;
-        logLine(run.team, "パーティが全滅したため自動周回を停止しました", "system");
-        if (isViewed) renderDock();
-      } else {
-        S.autoRepeat[run.team].done += 1;
-        if (S.autoRepeat[run.team].done >= S.autoRepeat[run.team].target) {
-          S.autoRepeat[run.team].active = false;
-          logLine(run.team, `自動周回が完了しました（${S.autoRepeat[run.team].done}周）`, "system");
-          if (isViewed) renderDock();
-        } else {
-          logLine(run.team, `自動周回 ${S.autoRepeat[run.team].done}/${S.autoRepeat[run.team].target} 周完了。次のダンジョンへ出発します…`, "system");
-          if (isViewed) renderAutoRepeatRow();
-          const nextId = run.dungeon.id;
-          scheduleNext(run.team, () => startDungeon(run.team, nextId), 1400);
-        }
-      }
+    const ar = S.autoRepeat[run.team];
+    const next = Runner.advanceAutoRepeat(run);
+    if (next === "stoppedByWipe") {
+      logLine(run.team, "パーティが全滅したため自動周回を停止しました", "system");
+      if (isViewed) renderDock();
+    } else if (next === "completed") {
+      logLine(run.team, `自動周回が完了しました（${ar.done}周）`, "system");
+      if (isViewed) renderDock();
+    } else if (next === "continue") {
+      logLine(run.team, `自動周回 ${ar.done}/${ar.target} 周完了。次のダンジョンへ出発します…`, "system");
+      if (isViewed) renderAutoRepeatRow();
+      const nextId = run.dungeon.id;
+      scheduleNext(run.team, () => startDungeon(run.team, nextId), 1400);
     }
   }
 
@@ -2872,15 +2616,6 @@
   function itemLabel(item) {
     const plusText = item.plus > 0 ? `+${item.plus}` : "";
     return `${item.name}${plusText}（${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}）`;
-  }
-
-  // ダンジョンを終えたチームのメンバーだけHP/MPを全回復する（他チームの戦闘中の状態には触れない）
-  function restoreTeamParty(teamIndex) {
-    for (const c of teamMembers(teamIndex)) {
-      c.hp = computeStats(c).maxHp;
-      c.mp = computeStats(c).maxMp;
-      c.alive = true;
-    }
   }
 
   // タブを閉じる・バックグラウンドに回す・アプリを切り替えるなど、
@@ -2907,7 +2642,7 @@
     for (let i = 0; i < TEAM_COUNT; i++) {
       const run = teamRuns[i];
       if (!S.autoRepeat[i].active || !run || !run.dungeon) continue;
-      if (elapsedMs / 1000 < estimateOfflineRunSeconds(run.dungeon)) continue;
+      if (elapsedMs / 1000 < Runner.estimateOfflineRunSeconds(run.dungeon)) continue;
       targets.push(i);
     }
     if (targets.length === 0) return;
@@ -2920,12 +2655,9 @@
       // 離れる直前の周回は途中で止まっているため打ち切り、離れていた時間ぶんはまとめて精算する
       // （起動時の精算で途中の周回を破棄するのと同じ扱い。この周の未確定ドロップは持ち帰れない）
       clearTimeout(nextBattleTimer[i]);
-      if (!run.finished) {
-        run.finished = true;
-        if (teamBattles[i]) teamBattles[i].active = false;
+      if (Runner.interruptRun(i)) {
         logEvent(i, "wipe", "アプリを離れていたため、この周回を中断した", "離れていた間の自動周回はまとめて精算しました");
       }
-      restoreTeamParty(i);
     }
     const summaries = runOfflineProgress(infos, savedAt);
     saveGame();
