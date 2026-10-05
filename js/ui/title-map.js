@@ -12,7 +12,7 @@ function showScreen(id) {
 // ---------- Title screen ----------
 // タイトル画面は入口のみとし、常設ナビ（編成／探索／図鑑／設定）は実質的なホーム画面である
 // 探索画面（screen-battle）側に置く（hub-nav-row、btnHub*のリスナーを参照）。
-// 画面のどこをタップしても始まり、下のメニュー（設定・データ保存・データ復元）と右上のお知らせだけは別の動きをする
+// 画面のどこをタップしても始まり、下のメニュー（設定/お知らせ・データ保存・データ復元）と右上のお知らせだけは別の動きをする
 const APP_VERSION = "0.1.0"; // package.json の version と合わせる
 let settingsReturnScreen = "screen-battle"; // 設定画面の「もどる」の戻り先
 
@@ -27,13 +27,6 @@ function renderTitle() {
   updateAnnounceBadge();
   showTitleMessage("");
 }
-
-function renderTitleUid(st) {
-  const el = document.getElementById("titleUid");
-  el.textContent = st.uid ? `UserID：${st.uid}` : "";
-  el.classList.toggle("hidden", !st.uid);
-}
-if (window.QPCloud) QPCloud.subscribe(renderTitleUid);
 
 let titleMessageTimer = null;
 function showTitleMessage(text, isError) {
