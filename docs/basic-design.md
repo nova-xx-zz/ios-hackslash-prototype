@@ -33,7 +33,7 @@ js/game.js    … 画面遷移・状態管理・戦闘エンジン・AI・永続
 
 | screen id | 内容 | 主なrender関数 |
 |---|---|---|
-| `screen-title` | ロゴ・はじめる・サマリーの起動入口 | `renderTitle()` |
+| `screen-title` | 剣と紋章のギルド背景・2段ロゴ・Tap to Start・お知らせ・保存/復元 | `renderTitle()` |
 | `screen-settings` | 設定 | 静的DOM表示（専用render関数なし） |
 | `screen-announcements` | 冒険者ギルドからのお知らせ・今後の予定 | `renderAnnouncementsScreen()` |
 | `screen-dex` | モンスター図鑑 | `renderDexScreen()` |
@@ -45,6 +45,8 @@ js/game.js    … 画面遷移・状態管理・戦闘エンジン・AI・永続
 | `screen-battle` | 探索（ログ＋ドック） | `renderDock()` / `buildPartyDock()` |
 
 モーダル（`.modal-overlay`）は画面遷移とは別に `hidden` クラスの着脱で開閉する: `pickModal`（種族/ジョブ選択）、`dexModal`（図鑑詳細）、`offlineModal`（オフライン進行結果）、`enhanceModal`（装備強化）。
+
+タイトルは `icons/title-guild.jpg` を安全領域の外まで全面表示し、CSS Gridでロゴ／背景の剣を見せる余白／開始／下部メニューを配置する。ロゴとUIは画像に含めずHTMLで描画し、背景はpreloadする。高さ600px以下ではロゴと余白を縮め、`prefers-reduced-motion` では明滅を止める。お知らせ・セーブ・復元の処理は既存のまま利用する。
 
 ### 2.2 画面遷移の特徴
 
@@ -220,7 +222,7 @@ Stage1〜1.5（固有＋汎用3枠の標準ツリー）はこの節の想定よ�
 | 入口・表示 | 挙動 |
 | --- | --- |
 | 起動時タイトル | 未読の起動表示対象から最新1件。重要再表示の扱いは詳細設計§6.4 |
-| タイトル右上📢 | 未読バッジ付き。お知らせ一覧へ |
+| タイトル右上の手紙 | 未読バッジ付き。お知らせ一覧へ |
 | 設定内「冒険者ギルドからのお知らせ」 | プレイ中の再確認。タイトルと同じ画面へ |
 | お知らせタブ | 日付降順、カテゴリ・未読表示、詳細モーダル |
 | 今後の予定タブ | 公開済み／開発中／公開予定と、現在までに解禁した情報 |

@@ -10,21 +10,52 @@ function showScreen(id) {
 }
 
 // ---------- Title screen ----------
-// タイトル画面は「はじめる」ボタンのみのシンプルな入口とし、常設ナビ（編成／探索／図鑑／設定）は
-// 実質的なホーム画面である探索画面（screen-battle）側に置く（hub-nav-row、btnHub*のリスナーを参照）
+// タイトル画面は入口のみとし、常設ナビ（編成／探索／図鑑／設定）は実質的なホーム画面である
+// 探索画面（screen-battle）側に置く（hub-nav-row、btnHub*のリスナーを参照）。
+// 画面のどこをタップしても始まり、下のメニュー（設定/お知らせ・データ保存・データ復元）と右上のお知らせだけは別の動きをする
+const APP_VERSION = "0.1.0"; // package.json の version と合わせる
+let settingsReturnScreen = "screen-battle"; // 設定画面の「もどる」の戻り先
+
 function renderTitle() {
-  const best = getBestStage();
-  const bits = [];
-  if (best > 0) bits.push(`クリア済みダンジョン: ${best}`);
-  bits.push(`所持なかま: ${S.roster.length}人`);
-  bits.push(`強化石: ${S.material}`);
-  document.getElementById("bestClearText").textContent = bits.join("　/　");
+  document.getElementById("titleVersion").textContent = APP_VERSION;
   document.getElementById("btnTitleAnnounce").classList.toggle("hidden", !isFeatureEnabled("announcements"));
   updateAnnounceBadge();
+  showTitleMessage("");
 }
 
-document.getElementById("btnGoBattle").addEventListener("click", () => {
+let titleMessageTimer = null;
+function showTitleMessage(text, isError) {
+  const el = document.getElementById("titleMessage");
+  clearTimeout(titleMessageTimer);
+  el.textContent = text || "";
+  el.classList.toggle("hidden", !text);
+  el.classList.toggle("error", !!isError);
+  if (text) titleMessageTimer = setTimeout(() => el.classList.add("hidden"), 4000);
+}
+
+function openSettings(returnScreen) {
+  settingsReturnScreen = returnScreen;
+  showScreen("screen-settings");
+}
+
+document.getElementById("screen-title").addEventListener("click", (e) => {
+  if (e.target.closest("button:not(#btnGoBattle)")) return; // メニューのボタンは各自の処理に任せる
   openExploreHub();
+});
+document.getElementById("btnTitleSettings").addEventListener("click", () => openSettings("screen-title"));
+document.getElementById("btnTitleBackup").addEventListener("click", async () => {
+  if (!window.QPCloud) { showTitleMessage("クラウドセーブを使えません", true); return; }
+  showTitleMessage("バックアップしています…");
+  const ok = await QPCloud.backupNow();
+  const st = QPCloud.getState();
+  if (ok) showTitleMessage(`クラウドに保存しました（${formatDateTime(st.lastUploadAt)}）`);
+  else showTitleMessage(st.error || "保存できませんでした", true);
+});
+// 復元は取り消せないため、設定画面で内容を確かめてから2回押しで行う（1回目をここで押した状態にする）
+document.getElementById("btnTitleRestore").addEventListener("click", () => {
+  if (!window.QPCloud) { showTitleMessage("クラウドセーブを使えません", true); return; }
+  openSettings("screen-title");
+  document.getElementById("btnCloudRestore").click();
 });
 document.getElementById("btnHubJobs").addEventListener("click", () => {
   jobsReturnScreen = "screen-battle";
@@ -38,11 +69,10 @@ document.getElementById("btnHubDex").addEventListener("click", () => {
   renderDexScreen();
   showScreen("screen-dex");
 });
-document.getElementById("btnHubSettings").addEventListener("click", () => {
-  showScreen("screen-settings");
-});
+document.getElementById("btnHubSettings").addEventListener("click", () => openSettings("screen-battle"));
 document.getElementById("btnSettingsBack").addEventListener("click", () => {
-  openExploreHub();
+  if (settingsReturnScreen === "screen-title") { renderTitle(); showScreen("screen-title"); }
+  else openExploreHub();
 });
 document.getElementById("btnDexBack").addEventListener("click", () => {
   openExploreHub();

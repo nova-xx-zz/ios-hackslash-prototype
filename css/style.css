@@ -82,40 +82,158 @@ html, body {
 .btn:disabled { opacity: 0.35; cursor: default; }
 .btn.small { width: auto; display: inline-block; padding: 8px 14px; font-size: 13px; margin: 4px; }
 
-/* title screen (game logo lockup + CTA) */
-.title-screen { position: relative; overflow: hidden; }
-.title-glow {
-  position: absolute;
-  top: 6%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(124, 92, 255, 0.35) 0%, rgba(124, 92, 255, 0) 70%);
-  pointer-events: none;
-  z-index: 0;
+/* タイトル画面: 背景いっぱいのイラスト・金色のロゴ・Tap to Start・下のメニュー */
+@font-face {
+  font-family: "Cinzel";
+  src: url("../fonts/cinzel-latin-700-normal.woff2") format("woff2");
+  font-weight: 700; font-display: swap;
 }
-.title-panel { position: relative; z-index: 1; border-top: 1px solid rgba(124, 92, 255, 0.45); box-shadow: 0 0 40px rgba(124, 92, 255, 0.14); }
-.title-emblem { font-size: 32px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 0 10px rgba(124, 92, 255, 0.65)); }
-.title-panel h1.title-logo {
-  margin: 0;
-  font-size: min(30px, 8vw); /* 幅の狭い端末（320px）でもタイトルが1行に収まるように */
-  white-space: nowrap;
-  font-weight: 800;
-  letter-spacing: 2px;
-  background: linear-gradient(180deg, #ffffff 0%, #cfc2ff 55%, var(--accent) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+@font-face {
+  font-family: "Cinzel";
+  src: url("../fonts/cinzel-latin-600-normal.woff2") format("woff2");
+  font-weight: 600; font-display: swap;
 }
-.title-logo-en { margin: 2px 0 4px; font-size: 10px; letter-spacing: 5px; text-transform: uppercase; color: var(--sub-text); }
-.title-cta { box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45); animation: title-cta-pulse 2.4s ease-in-out infinite; }
-@keyframes title-cta-pulse {
-  0%, 100% { box-shadow: 0 4px 18px rgba(124, 92, 255, 0.45); }
-  50% { box-shadow: 0 4px 26px rgba(124, 92, 255, 0.8); }
+:root {
+  --title-gold: #d9b56c;
+  --title-gold-dim: rgba(217, 181, 108, 0.55);
+  --title-serif-ja: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+}
+.title-screen {
+  --title-footer-space: clamp(24px, 6vh, 56px);
+  display: grid; grid-template-rows: 20% auto minmax(0, 1fr) auto clamp(24px, 8vh, 72px) auto;
+  /* .screen の justify-content: center のままだと列が中身の幅まで縮み、ボタンが画面幅に広がらない */
+  grid-template-columns: minmax(0, 1fr); justify-content: stretch;
+  align-items: stretch;
+  padding: 12px 20px var(--title-footer-space);
+  isolation: isolate;
+  cursor: pointer;
+  -webkit-user-select: none; user-select: none;
+}
+/* 背景は安全領域の外（ステータスバー・ホームバーの裏）まで広げる */
+.title-bg {
+  position: absolute; z-index: 0; pointer-events: none;
+  top: calc(-1 * var(--safe-top)); bottom: calc(-1 * var(--safe-bottom));
+  left: calc(-1 * var(--safe-left)); right: calc(-1 * var(--safe-right));
+  background: #071116 url("../icons/title-guild.jpg") center 58% / cover no-repeat;
+  animation: title-bg-breathe 9s ease-in-out infinite;
+}
+@keyframes title-bg-breathe {
+  0%, 100% { filter: brightness(0.98); }
+  50% { filter: brightness(1.04); }
+}
+.title-bg::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(2, 8, 12, 0.12) 0%, transparent 46%, rgba(2, 8, 12, 0.08) 64%, rgba(2, 8, 12, 0.7) 100%);
+}
+.title-screen > :not(.title-bg) { position: relative; z-index: 1; }
+.title-screen > .title-info {
+  position: absolute; top: 12px; right: 20px; text-align: right;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.title-version {
+  font-family: "Cinzel", "Times New Roman", serif; font-weight: 600; font-size: 12px;
+  color: #f1e3c2; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+.title-announce {
+  position: relative; width: 44px; height: 44px; padding: 0;
+  background: none; border: 0; cursor: pointer;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.8));
+}
+.title-announce svg { width: 36px; height: 27px; }
+.title-announce .announce-badge { top: 0; right: 0; border-color: transparent; }
+.title-logo-block {
+  grid-row: 2; text-align: center; margin: 0 -20px; padding: 8px 0;
+  /* ロゴの後ろだけ少し暗くして、背景のイラストに埋もれないようにする */
+  background: radial-gradient(ellipse 62% 52% at 50% 50%, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 100%);
+}
+.title-screen h1.title-logo {
+  margin: 0; display: flex; flex-direction: column; align-items: center;
+  font-family: "Cinzel", "Times New Roman", serif; font-weight: 700;
+  font-size: min(64px, 16vw); line-height: 1; letter-spacing: 0.055em; white-space: nowrap;
+  filter: drop-shadow(0 2px 1px rgba(30, 18, 6, 0.8)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.75));
+}
+/* 金属風: 明るい金→濃い金→光の帯→影 のグラデーションと、暗い縁取り */
+.title-screen h1.title-logo span {
+  padding: 0 0.08em; /* 文字の縁取り・影が端で切れないように */
+  color: var(--title-gold);
+  background: linear-gradient(180deg, #f4e2b8 0%, #d8b574 42%, #aa7f41 56%, #e3c487 72%, #b78d50 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.45px rgba(70, 46, 16, 0.6);
+}
+.title-rule, .title-start-rule {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: min(300px, 76vw); margin: 10px auto 6px; color: var(--title-gold); font-size: 15px; line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.title-rule::before, .title-rule::after, .title-start-rule::before, .title-start-rule::after {
+  content: ""; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--title-gold));
+}
+.title-rule::after, .title-start-rule::after { background: linear-gradient(270deg, transparent, var(--title-gold)); }
+.title-start-rule { width: min(240px, 60vw); margin: 0 auto; font-size: 8px; }
+.title-logo-ja {
+  margin: 0; font-family: var(--title-serif-ja); font-size: 18px; font-weight: 600; letter-spacing: 0.3em; padding-left: 0.3em;
+  color: #f1e0b0; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+}
+.title-start-block { grid-row: 4; text-align: center; }
+.title-start {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  max-width: 100%; min-height: 48px;
+  background: none; border: 0; padding: 10px 4px; cursor: pointer;
+  font-family: "Cinzel", "Times New Roman", serif; font-weight: 600;
+  font-size: min(25px, 6vw); letter-spacing: 0.06em; color: #e8c97e;
+  text-shadow: 0 0 10px rgba(232, 160, 60, 0.2), 0 2px 4px rgba(0, 0, 0, 0.95);
+  animation: title-start-blink 2.2s ease-in-out infinite;
+}
+.title-start > span { white-space: nowrap; }
+.title-flourish { width: clamp(24px, 9vw, 42px); height: 14px; color: var(--title-gold); flex: none; }
+.title-flourish:not(.flip) { transform: scaleX(-1); }
+@keyframes title-start-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+.title-menu { grid-row: 6; display: flex; gap: 12px; width: 100%; max-width: 540px; justify-self: center; }
+.title-menu-btn {
+  position: relative; flex: 1; min-width: 0; min-height: 44px; padding: 12px 8px;
+  font-family: var(--title-serif-ja); font-size: min(15px, 3.6vw); font-weight: 600; color: #f6ead0; white-space: nowrap; letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px #000;
+  background: linear-gradient(180deg, rgba(22, 25, 25, 0.94) 0%, rgba(6, 10, 12, 0.96) 100%);
+  border: 1px solid #b99759; border-radius: 5px;
+  /* 外側の細い金の線と、内側の暗い線で二重の額縁にする */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.9), inset 0 0 0 2px rgba(0, 0, 0, 0.85), inset 0 0 0 3px rgba(201, 164, 99, 0.18), 0 4px 12px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+/* 左右の小さなひし形の飾り */
+.title-menu-btn::before, .title-menu-btn::after {
+  content: ""; position: absolute; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
+  background: #c9a463; transform: rotate(45deg);
+}
+.title-menu-btn::before { left: 6px; }
+.title-menu-btn::after { right: 6px; }
+.title-menu-btn:active { filter: brightness(1.3); }
+.title-screen button:focus-visible { outline: 2px solid #f4e2b8; outline-offset: 4px; }
+/* 幅の狭い端末では、文字が飾りに重ならないよう飾りを消す */
+/* 左右の余白・ボタンの間隔も詰めて、「設定/お知らせ」が枠に触れないようにする */
+@media (max-width: 400px) {
+  .title-screen { padding-left: 14px; padding-right: 14px; }
+  .title-menu { gap: 8px; }
+  .title-menu-btn { padding-left: 4px; padding-right: 4px; font-size: min(15px, 3.5vw); }
+  .title-menu-btn::before, .title-menu-btn::after { display: none; }
+}
+.title-toast {
+  position: absolute !important; left: 20px; right: 20px; bottom: calc(var(--title-footer-space) + 60px); margin: 0;
+  padding: 10px 12px; border-radius: 8px; text-align: center; font-size: 13px; line-height: 1.5;
+  color: #f1e3c2; background: rgba(8, 5, 5, 0.88); border: 1px solid var(--title-gold-dim);
+  white-space: pre-line; pointer-events: none;
+}
+.title-toast.error { color: #ffb4a8; border-color: rgba(255, 120, 100, 0.6); }
+@media (max-height: 600px) {
+  .title-screen { grid-template-rows: 15% auto minmax(0, 1fr) auto 24px auto; }
+  .title-screen h1.title-logo { font-size: min(50px, 14vw); }
+  .title-logo-ja { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .title-cta { animation: none; }
+  .title-bg, .title-start { animation: none; }
 }
 
 /* 探索画面下部の常設ナビ行（編成／探索／図鑑／設定） */

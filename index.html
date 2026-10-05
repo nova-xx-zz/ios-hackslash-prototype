@@ -15,25 +15,37 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="preload" as="image" href="icons/title-guild.jpg">
+<link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body>
 <div id="app">
 
   <!-- タイトル画面 -->
   <section id="screen-title" class="screen title-screen">
-    <div class="title-glow"></div>
-    <div class="panel narrow title-panel">
-      <button class="announce-icon-btn hidden" id="btnTitleAnnounce" aria-label="お知らせ">
-        📢<span class="announce-badge hidden" id="titleAnnounceBadge"></span>
+    <div class="title-bg" aria-hidden="true"></div>
+    <div class="title-info">
+      <button class="title-announce hidden" id="btnTitleAnnounce" aria-label="冒険者ギルドからのお知らせ">
+        <svg viewBox="0 0 32 24" aria-hidden="true"><rect x="1.5" y="1.5" width="29" height="21" rx="2" fill="#d9c8a0" stroke="#7a5a2c" stroke-width="1.5"/><path d="M2.5 3 L16 13.5 L29.5 3" fill="none" stroke="#7a5a2c" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span class="announce-badge hidden" id="titleAnnounceBadge"></span>
       </button>
-      <div class="title-emblem">⚔</div>
-      <h1 class="title-logo">ソードクレスト</h1>
-      <p class="title-logo-en">Sword Crest</p>
-      <p class="sub">5人パーティ・オート戦闘のハクスラダンジョン<br>プロトタイプ</p>
-      <button class="btn primary title-cta" id="btnGoBattle">⚔ はじめる</button>
-      <p class="best" id="bestClearText"></p>
+      <div class="title-version">Ver.<span id="titleVersion"></span></div>
     </div>
+    <div class="title-logo-block">
+      <h1 class="title-logo" aria-label="SWORD CREST"><span>SWORD</span><span>CREST</span></h1>
+      <div class="title-rule" aria-hidden="true"><span>⚜</span></div>
+      <p class="title-logo-ja">ソードクレスト</p>
+    </div>
+    <div class="title-start-block">
+      <button class="title-start" id="btnGoBattle"><svg class="title-flourish" viewBox="0 0 60 16" aria-hidden="true"><path d="M2 8 H34 M34 8 C40 2 48 2 50 7 C52 12 45 14 42 10 C40 7 44 5 46 8 M50 8 L58 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M14 8 L18 4.5 L22 8 L18 11.5 Z" fill="currentColor"/></svg><span>Tap to Start</span><svg class="title-flourish flip" viewBox="0 0 60 16" aria-hidden="true"><path d="M2 8 H34 M34 8 C40 2 48 2 50 7 C52 12 45 14 42 10 C40 7 44 5 46 8 M50 8 L58 8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M14 8 L18 4.5 L22 8 L18 11.5 Z" fill="currentColor"/></svg></button>
+      <div class="title-start-rule" aria-hidden="true"><span>◆</span></div>
+    </div>
+    <div class="title-menu">
+      <button class="title-menu-btn" id="btnTitleSettings">設定/お知らせ</button>
+      <button class="title-menu-btn" id="btnTitleBackup">データ保存</button>
+      <button class="title-menu-btn" id="btnTitleRestore">データ復元</button>
+    </div>
+    <p class="title-toast hidden" id="titleMessage" role="status" aria-live="polite"></p>
   </section>
 
   <!-- 設定画面 -->
@@ -306,7 +318,7 @@
 <script src="js/ui/announcements.js?v=1"></script>
 <script src="js/ui/models.js?v=2"></script>
 <script src="js/ui/offline.js?v=1"></script>
-<script src="js/ui/title-map.js?v=1"></script>
+<script src="js/ui/title-map.js?v=4"></script>
 <script src="js/ui/settings.js?v=1"></script>
 <script src="js/ui/party.js?v=1"></script>
 <script src="js/ui/create.js?v=1"></script>
