@@ -17,11 +17,6 @@ const APP_VERSION = "0.1.0"; // package.json の version と合わせる
 let settingsReturnScreen = "screen-battle"; // 設定画面の「もどる」の戻り先
 
 function renderTitle() {
-  const best = getBestStage();
-  const bits = [];
-  if (best > 0) bits.push(`踏破 ${best}`);
-  bits.push(`なかま ${S.roster.length}人`);
-  document.getElementById("bestClearText").textContent = bits.join("　・　");
   document.getElementById("titleVersion").textContent = APP_VERSION;
   document.getElementById("btnTitleAnnounce").classList.toggle("hidden", !isFeatureEnabled("announcements"));
   updateAnnounceBadge();

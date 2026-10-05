@@ -101,6 +101,8 @@ html, body {
 .title-screen {
   --title-footer-space: clamp(24px, 6vh, 56px);
   display: grid; grid-template-rows: 20% auto minmax(0, 1fr) auto clamp(24px, 8vh, 72px) auto;
+  /* .screen の justify-content: center のままだと列が中身の幅まで縮み、ボタンが画面幅に広がらない */
+  grid-template-columns: minmax(0, 1fr); justify-content: stretch;
   align-items: stretch;
   padding: 12px 20px var(--title-footer-space);
   isolation: isolate;
@@ -190,7 +192,6 @@ html, body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.65; }
 }
-.title-best { margin: 4px 0 0; min-height: 1em; font-size: 11px; color: rgba(255, 255, 255, 0.6); text-shadow: 0 1px 3px #000; }
 .title-menu { grid-row: 6; display: flex; gap: 12px; width: 100%; max-width: 540px; justify-self: center; }
 .title-menu-btn {
   position: relative; flex: 1; min-width: 0; min-height: 44px; padding: 12px 8px;
@@ -212,8 +213,11 @@ html, body {
 .title-menu-btn:active { filter: brightness(1.3); }
 .title-screen button:focus-visible { outline: 2px solid #f4e2b8; outline-offset: 4px; }
 /* 幅の狭い端末では、文字が飾りに重ならないよう飾りを消す */
+/* 左右の余白・ボタンの間隔も詰めて、「設定/お知らせ」が枠に触れないようにする */
 @media (max-width: 400px) {
-  .title-menu-btn { padding-left: 4px; padding-right: 4px; }
+  .title-screen { padding-left: 14px; padding-right: 14px; }
+  .title-menu { gap: 8px; }
+  .title-menu-btn { padding-left: 4px; padding-right: 4px; font-size: min(15px, 3.5vw); }
   .title-menu-btn::before, .title-menu-btn::after { display: none; }
 }
 .title-toast {
