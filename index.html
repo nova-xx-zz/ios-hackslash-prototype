@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 <div id="app">
@@ -47,6 +47,26 @@
         <div class="settings-row">
           <span class="settings-label">バージョン</span>
           <span class="settings-value">プロトタイプ版</span>
+        </div>
+        <div class="settings-cloud">
+          <div class="settings-row">
+            <span class="settings-label">クラウドセーブ</span>
+            <span class="settings-value" id="cloudStatus">—</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">最終バックアップ</span>
+            <span class="settings-value" id="cloudLastUpload">—</span>
+          </div>
+          <p class="sub settings-note">進行は自動でクラウドにバックアップされます（1分おき・アプリを離れる時）。端末のデータが消えた時は「クラウドから復元」で戻せます。別の端末への引き継ぎは、今後アカウント連携で対応します。</p>
+          <div class="settings-buttons">
+            <button class="btn small ghost" id="btnCloudBackup">今すぐバックアップ</button>
+            <button class="btn small ghost" id="btnCloudRestore">クラウドから復元</button>
+          </div>
+          <p class="sub settings-message hidden" id="cloudMessage"></p>
+          <div class="settings-row">
+            <span class="settings-label">ユーザーID</span>
+            <span class="settings-value settings-uid" id="cloudUid">—</span>
+          </div>
         </div>
         <button class="btn small ghost" id="btnSettingsAnnounce" style="margin-top:12px;">冒険者ギルドからのお知らせ</button>
         <p class="sub" style="margin-top:16px;">設定項目は今後ここに追加していく予定です。</p>
@@ -274,17 +294,20 @@
 <script src="js/core/offline.js?v=2"></script>
 <script src="js/core/stats.js?v=1"></script>
 <script src="js/core/battle.js?v=2"></script>
-<script src="js/model/save.js?v=1"></script>
+<script src="js/model/save.js?v=2"></script>
 <script src="js/model/roster.js?v=1"></script>
 <script src="js/model/inventory.js?v=1"></script>
 <script src="js/model/run.js?v=1"></script>
+<script src="js/firebase-config.js?v=1"></script>
+<script src="js/cloud.js?v=1"></script>
 <script src="js/data.js?v=12"></script>
 <!-- 画面の処理（元は1つの game.js。この順番で読み込み、トップレベルの関数・変数を共有する） -->
 <script src="js/ui/state.js?v=1"></script>
 <script src="js/ui/announcements.js?v=1"></script>
-<script src="js/ui/models.js?v=1"></script>
+<script src="js/ui/models.js?v=2"></script>
 <script src="js/ui/offline.js?v=1"></script>
 <script src="js/ui/title-map.js?v=1"></script>
+<script src="js/ui/settings.js?v=1"></script>
 <script src="js/ui/party.js?v=1"></script>
 <script src="js/ui/create.js?v=1"></script>
 <script src="js/ui/detail.js?v=1"></script>

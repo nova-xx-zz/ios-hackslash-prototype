@@ -7,7 +7,10 @@
 // ゲームの状態(S)を端末に保存する。セーブデータの形と旧形式からの移行は js/model/save.js。
 // 旧jobquest_materialキーは互換ミラーとして更新するのみ（正本はメインセーブのmaterial）
 let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
+// クラウドから復元して再読み込みするまでの間は、端末に保存しない（離れる時の保存で復元した内容を上書きしないため）
+let saveSuspended = false;
 function saveGame() {
+  if (saveSuspended) return false;
   let json;
   const now = Date.now();
   try {
@@ -23,6 +26,18 @@ function saveGame() {
   lastSavedAt = now;
   store.set(KEYS.material, S.material); // 旧キーは互換ミラー
   hideSaveFailureBanner();
+  // クラウドセーブ（js/cloud.js）に知らせる。送る間隔や送れるかどうかは cloud.js が決める
+  window.dispatchEvent(new CustomEvent("qp:saved", { detail: { json, savedAt: now } }));
+  return true;
+}
+
+// クラウドのセーブ（JSON文字列）で端末のセーブを置き換えて、読み込み直す。使えないデータなら false
+function restoreSaveFromCloud(json) {
+  const prepared = QPModel.save.prepareRestore(json);
+  if (!prepared) return false;
+  if (!store.set(KEYS.save, prepared.json)) return false;
+  saveSuspended = true;
+  location.reload();
   return true;
 }
 

@@ -99,7 +99,29 @@
     };
   }
 
-  const exported = { SCHEMA_VERSION, createState, serialize, deserialize };
+  // クラウドに置いたセーブ（JSON文字列）を端末に戻す前の確認と下ごしらえ。使えないデータならnull。
+  // 戻したセーブで自動周回が稼働中のままだと、起動時にそのセーブの保存時刻からオフライン精算が走るため、
+  // 自動周回は止めた状態にする（古いセーブを戻すたびに離れていた時間ぶんの報酬が入るのを防ぐ）。
+  // 戻り値: { json（端末に書き込む文字列）, savedAt, summary: { members, maxLevel, clearedDungeons, material } }
+  function prepareRestore(json) {
+    let data;
+    try { data = JSON.parse(json); } catch (e) { return null; }
+    if (!deserialize(data, {})) return null;
+    if (Array.isArray(data.autoRepeat)) data.autoRepeat = data.autoRepeat.map((ar) => Object.assign({}, ar, { active: false }));
+    const roster = data.roster;
+    return {
+      json: JSON.stringify(data),
+      savedAt: typeof data.savedAt === "number" ? data.savedAt : null,
+      summary: {
+        members: roster.length,
+        maxLevel: roster.reduce((m, c) => Math.max(m, Number(c && c.level) || 0), 0),
+        clearedDungeons: Array.isArray(data.clearedDungeons) ? data.clearedDungeons.length : 0,
+        material: typeof data.material === "number" ? data.material : 0,
+      },
+    };
+  }
+
+  const exported = { SCHEMA_VERSION, createState, serialize, deserialize, prepareRestore };
   root.QPModel = root.QPModel || {};
   root.QPModel.save = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
