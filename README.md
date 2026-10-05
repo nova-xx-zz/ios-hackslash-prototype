@@ -79,7 +79,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 
 - `www/` と `ios/App/App/public/` は自動生成なので Git には入れない（`.gitignore`）
 - ビルドと実機・TestFlight への配信には Mac と Xcode（またはクラウドの Mac）、Apple Developer Program への登録が必要
-- アプリアイコンは `icons/icon-1024.png`、起動画面は `icons/splash-2732.png`（どちらも `icons/icon.svg` から書き出し、透明なし）を `ios/App/App/Assets.xcassets/` にコピーしている
+- アプリアイコンは `icons/icon-1024.png`、起動画面は `icons/splash-2732.png`（透明なし）を `ios/App/App/Assets.xcassets/` にコピーしている
 - Service Worker（`sw.js`）はアプリ内では動かない（`js/pwa.js` が https 以外では登録しない）。アプリにはファイルが最初から入っているので、オフライン対応は不要
 
 ## ファイル構成
@@ -106,7 +106,11 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `js/pwa.js` — Service Worker（`sw.js`）の登録。使えない環境では何もしない
 - `sw.js` — オフライン対応（ネットワーク優先、つながらない時だけキャッシュを使う。同じファイルの古い `?v=` 版はキャッシュから消す）
 - `manifest.webmanifest` — ホーム画面に追加した時のアプリ名・アイコン・表示方法
-- `icons/` — アプリアイコン。`icon.svg` が元で、PNG（180・192・512・マスカブル512）はそこから書き出す
+- `icons/` — アプリアイコン。`icon-1024.png` が元の画像（剣と紋章のイラストから、外側の白い角と光沢の縁を切り落として正方形にしたもの。角はiOSが自動で丸める）で、ほかのサイズはそこから書き出す（ImageMagick）:
+  - `apple-touch-icon.png`（180）・`icon-192.png`・`icon-512.png`: 縮小のみ
+  - `icon-maskable-512.png`: 暗い赤（#2a0306）の背景の中央に80%で配置（Android などで円形に切り抜かれても欠けないように）
+  - `splash-2732.png`: アプリの起動画面。暗い背景（#0e0c16）の中央に、角を丸めたアイコンを900pxで配置
+  - App Store 用のアイコンは透明（アルファチャンネル）があると受け付けられないため、すべて透明なしの PNG で書き出す
 - `package.json` / `capacitor.config.json` — Capacitor（iOSアプリ化）の設定とコマンド
 - `ios/` — Capacitor で生成した Xcode プロジェクト
 - `tools/build-www.js` — アプリに入れるファイルを `www/` にまとめる（index.html から読み込むファイルがすべて入ったかも確認する）
