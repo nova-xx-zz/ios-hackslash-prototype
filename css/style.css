@@ -1,4 +1,11 @@
 :root {
+  /* 画面の上下左右で避ける余白（ノッチ・Dynamic Island・ステータスバー・ホームバー）。
+     iPhoneの機種ごとの値は env(safe-area-inset-*) でOSから受け取る（index.html の viewport-fit=cover が前提）。
+     固定配置の要素はすべてこの変数で余白を取ること（ブラウザで機種の値を試す時もここを上書きする） */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   --bg: #0e0c16;
   --panel-bg: rgba(20, 17, 30, 0.94);
   --accent: #7c5cff;
@@ -26,16 +33,14 @@ html, body {
 
 #app {
   position: fixed; inset: 0;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
   background: radial-gradient(ellipse at top, #1c1830 0%, #0e0c16 70%);
   overflow: hidden;
 }
 
+/* 各画面は安全領域の内側に置く（position: absolute は親の padding を無視するため、位置そのものを余白分ずらす） */
 .screen {
-  position: absolute; inset: 0;
+  position: absolute;
+  top: var(--safe-top); right: var(--safe-right); bottom: var(--safe-bottom); left: var(--safe-left);
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
 }
@@ -397,7 +402,7 @@ html, body {
   position: fixed; inset: 0; z-index: 60;
   background: rgba(0,0,0,0.6);
   display: flex; align-items: center; justify-content: center;
-  padding: 16px;
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
 }
 .modal-overlay.hidden { display: none; }
 .modal-card {
@@ -685,7 +690,9 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 
 /* explore (log + dock) */
 .explore-wrap {
-  position: absolute; top: 0; left: 0; right: 0; bottom: 305px;
+  /* 下端は画面下のドックの上端に合わせる。ドックの高さは機種や文字の大きさで変わるため、
+     js/ui/dock.js が実際の高さを測って --dock-offset に入れる（305px は測る前の目安） */
+  position: absolute; top: 0; left: 0; right: 0; bottom: var(--dock-offset, 305px);
   display: flex; flex-direction: column;
   padding: 10px 10px 0;
 }
@@ -831,7 +838,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.35);
   border-top: 1px solid var(--border);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left); padding-right: var(--safe-right);
   z-index: 5;
 }
 
@@ -921,6 +929,6 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 /* 保存失敗の警告（容量超過など）。タップで閉じる */
 .save-error-banner {
   position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-  padding: 10px 16px; padding-top: calc(10px + env(safe-area-inset-top));
+  padding: 10px 16px; padding-top: calc(10px + var(--safe-top));
   background: var(--hp); color: #fff; font-size: 13px; font-weight: 700; line-height: 1.4;
 }
