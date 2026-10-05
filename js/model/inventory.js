@@ -102,6 +102,28 @@
       return settled;
     }
 
+    // ---------- 手動の分解 ----------
+    // 所持品（未装備）から選んだアイテムを強化石に変える。得られる量は自動分解と同じ（アイテムの materialValue。
+    // 古いセーブで値が無ければレア度の既定値）。強化値（+）や天井ゲージは引き継がない。所持品に無いものは無視する。
+    // 結果: { count, materialGained }
+    function disassembleValue(item) {
+      if (typeof item.materialValue === "number") return item.materialValue;
+      const rarity = (deps.data.RARITIES || []).find((r) => r.key === item.rarity);
+      return rarity ? rarity.material : 0;
+    }
+    function disassembleItems(items) {
+      let count = 0, materialGained = 0;
+      for (const item of items) {
+        const idx = S.inventory.indexOf(item);
+        if (idx < 0) continue;
+        S.inventory.splice(idx, 1);
+        count += 1;
+        materialGained += disassembleValue(item);
+      }
+      if (materialGained > 0) addMaterial(materialGained);
+      return { count, materialGained };
+    }
+
     // ---------- モンスター合成 ----------
     // 合成できる素材: 対象以外の、どのチームにも編成していないモンスター
     function fusionCandidates(target) {
@@ -131,7 +153,7 @@
       clampVitals, equipItem, unequipSlot, autoEquip,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
-      receiveDrops,
+      receiveDrops, disassembleValue, disassembleItems,
       fusionCandidates, fusionExpGain, fuse,
     };
   }

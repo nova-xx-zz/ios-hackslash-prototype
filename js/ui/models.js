@@ -117,7 +117,7 @@ const TEAM_LABELS = ["I", "II", "III", "IV"];
 // ---------- Inventory ----------
 // 所持品まわりのルール（装備・強化石・装備強化・ドロップの受け取り・モンスター合成）は js/model/inventory.js
 const Inventory = QPModel.inventory.createInventory({
-  data: { SLOTS, ENHANCE_RULES, ENHANCE_MAX_PLUS },
+  data: { SLOTS, ENHANCE_RULES, ENHANCE_MAX_PLUS, RARITIES },
   state: S,
   roster: Roster,
   rng: RNG,
