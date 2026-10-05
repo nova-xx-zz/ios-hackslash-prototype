@@ -54,7 +54,7 @@
 
 ### 1.3 ダンジョン進行オブジェクト `run`（チームごとに独立、`teamRuns[team]`）
 
-`startDungeon(teamIndex, id, opts)` で生成、`screen-battle` を離れても・他チームを表示中でも `finishRun()` まで保持される一時状態。4チームぶんが `teamRuns[0..3]` に同時に存在しうる。戦闘そのものの状態（敵配列）は `teamBattles[team]` に分離して保持する。
+`startDungeon(teamIndex, id, opts)` → `Runner.startRun` で生成、`screen-battle` を離れても・他チームを表示中でも `finishRun()` まで保持される一時状態。4チームぶんが `teamRuns[0..3]` に同時に存在しうる。戦闘そのものの状態（敵配列）は `teamBattles[team]` に分離して保持する。
 
 ```js
 {
@@ -307,11 +307,11 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | キャラ詳細: ジョブ/合成 | `buildJobTab()` → 人間は `buildJobCard()` 一覧、モンスターは `buildFusionTab()` |
 | マップ | `renderMap()`, `selectDungeon()`, `renderDungeonInfo()` |
 | 探索ドック | `renderDock()`, `renderAutoRepeatRow()`, `renderDisassembleFilter()`, `updateTeamTabDots()`（表示外チームのタブ状態を毎フレーム追従） |
-| 戦闘進行（4チーム並行） | `startDungeon(teamIndex, id, opts)`, `startBattle(run)`, `loop()`/`tick()`/`tickTeam(i, dt)`, `onVictory(run, battle)`, `onDefeat(run)`, `finishRun(run, info)` |
-| ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
+| 戦闘進行（4チーム並行） | `startDungeon(teamIndex, id, opts)`, `startBattle(run)`, `loop()`/`tick()`/`tickTeam(i, dt)`, `onVictory(run, battle)`, `onDefeat(run)`, `rollDungeonEvent(run)`, `finishRun(run, info)`（いずれも状態の変更は `Runner`（js/model/run.js）に任せ、ログの文章・画面更新・次の処理までの待ち時間を受け持つ。§3.0a） |
+| ロック判定 | `isTeamRunActive(i)`, `isTeamLocked(i)`（js/model/run.js。探索中または自動周回中のチームを判定し、編成/装備/スキル/転職/合成をロック） |
 | ログ（チームごとに履歴保持） | `logEvent(teamIndex, ...)`, `logLine(teamIndex, ...)`, `renderLogFeed(teamIndex)`（タブ切替時にDOM再構築） |
 | セーブ/ロード | `saveGame()`, `scheduleSave()`, `loadGame()`（セーブデータの形と移行は `QPModel.save.serialize` / `deserialize`。§3.0a） |
-| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `computeOfflineRun()`（`QPCore.offline.simulateRun()` と戦闘エンジンで1周を計算）, `applyOfflineRun()`（結果を状態に反映）, `showOfflineModal()` |
+| オフライン進行（チームごとに独立計算） | `runOfflineProgress()`, `runOfflineProgressForTeam()`, `computeOfflineRun()`（`QPCore.offline.simulateRun()` と戦闘エンジンで1周を計算）, `applyOfflineRun()`（結果を状態に反映）はいずれも js/model/run.js。表示は game.js の `showOfflineModal()` |
 
 ## 3.0 画面に依存しない計算部分（`js/core/`）
 
@@ -327,7 +327,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 ## 3.0a ゲームの状態とセーブ（`js/model/`）
 
-UI分離（`docs/production-plan.md` §4）の工程1〜3。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
+UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲームの状態は、game.js の1つのオブジェクト `S`（`QPModel.save.createState()`）にまとめて持つ。
 
 | 項目 | 内容 |
 |---|---|
@@ -346,8 +346,9 @@ UI分離（`docs/production-plan.md` §4）の工程1〜3。保存対象のゲ�
 
 | `model/roster.js` | `createRoster({ data, state, runBuffs, isTeamLocked })` → `newCharacter`, `gainExp`, `totalExpInvested`, `switchJob`, `jobUnlocked`, `jobDef`, `getTreeState`, `totalSp` / `availableSp`, `canAcquireNode` / `acquireNode`, `swapGeneralSlot`, `treePassiveTotals`, `computeStats`, `itemScore`, `availableAbilities`, `subAbilityCandidates`, `teamMembers`, `currentMaxLevel` ほか | キャラまわりのルール（§2.3 EXP、§2.12 スキルツリーなど）。ゲームのデータ（js/data.js）と状態 `S` は引数で受け取り、グローバルを直接参照しない。石碑の加護は `runBuffs(team)`、探索中かどうかは `isTeamLocked(team)` で game.js に問い合わせる。game.js は `createRoster` の戻り値を同じ関数名で受け取って使う |
 | `model/inventory.js` | `createInventory({ data, state, roster, rng, isFeatureEnabled, onMaterialChange })` → `equipItem`, `unequipSlot`, `autoEquip`, `clampVitals`, `addMaterial`, `guaranteedStoneTotal`, `enhanceCost`, `canEnhance`, `isPityReady`, `enhanceItem(item)`, `enhanceWithGuaranteed(item)`, `receiveDrops(drops, filter)`, `fusionCandidates`, `fusionExpGain`, `fuse(target, materials)` | 所持品まわりのルール（§2.4 合成、§2.10 強化など）。判定は core（enhance.js / rewards.js）で行い、結果を状態に反映して返す（強化: `{ success, plus, pityHit, cost }`、確定強化石: `{ plus, required }`、合成: `{ expGain, consumedNames, returnedItems, levelUps, abilityUnlocks }`。できない場合は `null`）。メッセージの文章・即時保存は game.js。強化石が変わると `onMaterialChange` で旧キーへの互換ミラーを書く |
+| `model/run.js` | `createRunner({ data, state, roster, inventory, rng, teamCount, battleEnv, autoDisassemble, markDexSeen, setBestStage, now })` → `teamRuns`, `teamBattles`, `isTeamRunActive`, `isTeamLocked`, `runBuffs`, `startRun`, `startBattle`, `stepBattle`, `winBattle`, `rollEvent`, `finishRun`, `advanceAutoRepeat`, `interruptRun`, `attemptTame`, `addTamedMonster`, `restoreTeamParty`, `estimateOfflineRunSeconds`, `computeOfflineRun`, `applyOfflineRun`, `runOfflineProgress` | ダンジョン1周の進行（§1.3 run、§2.11 オフライン、§2.12 道中イベント）。チームごとの探索の状態（`teamRuns` / `teamBattles`）を持ち、結果を「何が起きたか」として返す（勝利: `{ expGain, isLast, firstClear, unlocked, tameResult }`、道中イベント: `{ kind: "treasure", item }` / `{ kind: "trap", wide, hits }` / `{ kind: "spring", heals }` / `{ kind: "shrine", stat, total }`、自動周回: `"continue"` / `"completed"` / `"stoppedByWipe"` / `null`）。罠・泉の効果は通常プレイとオフライン精算で同じ関数（`applyTrap` / `applySpring`）を使う。周回の終了は `finishRun`（ドロップの確定と回復）→ game.js の `saveGame` → `advanceAutoRepeat` の順で、従来と同じ時点で保存する |
 
-戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js`・`tests/roster.test.js`・`tests/inventory.test.js` で検証する。
+戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js`・`tests/roster.test.js`・`tests/inventory.test.js`・`tests/run.test.js` で検証する。
 
 数値の設定は `js/data.js` に置き、関数には引数で渡す（`ENHANCE_RULES`：強化、`REWARD_RULES`：追加ドロップ率・道中イベントの発生率と重み・宝箱が空の確率、`OFFLINE_TIMING`（game.js）：1周の目安秒数）。各モジュールはブラウザでは `<script>` で読み込んで `globalThis.QPCore.*` に、Node.js では `require` で使え、`tests/` の単体テスト（`node --test`）で検証する。`tools/lib/sim.js` は同じ戦闘エンジンで画面なしにダンジョン1周を再現し（装備・ツリー・道中イベントなしの簡略版）、`tools/simulate.js` が踏破率の表を出す。
 
