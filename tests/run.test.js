@@ -97,6 +97,34 @@ test("戦闘: 敵を図鑑に登録し、最後の戦闘はボス", () => {
   assert.equal(Runner.startBattle(run).isBoss, true);
 });
 
+test("冒険の記録: 出会った敵をダンジョン別に、手に入れた装備（自動分解した物も）と潜った履歴を残す", () => {
+  const { state, Runner } = setup();
+  const run = Runner.startRun(0, "plains");
+  const { battle } = Runner.startBattle(run);
+  const seen = state.records.dungeonEncounters.plains;
+  assert.ok(battle.enemies.every((e) => seen.includes(e.key)));
+  assert.equal(new Set(seen).size, seen.length); // 同じ敵は1回だけ
+  run.pendingDrops.push(
+    { id: "a", base: "sword", slot: "weapon", stat: "atk", value: 3, rarity: "n", plus: 0, materialValue: 5 }, // 自動分解される
+    { id: "b", slot: "armor", stat: "def", value: 3, rarity: "r", plus: 0, materialValue: 20 } // base の無い古い形
+  );
+  run.expTotal = 42;
+  Runner.finishRun(run, true, { tamed: "スライム" });
+  assert.deepEqual(state.records.itemsFound.sort(), ["armor:r", "sword:n"]);
+  assert.deepEqual(state.records.runHistory[0], {
+    at: 1_000_000_000_000, team: 0, dungeonId: "plains", cleared: true, battlesWon: 3, battles: 3,
+    exp: 42, items: 1, disassembled: 1, material: 5, tamed: "スライム",
+  });
+  // 全滅: 持ち帰れなかった装備は記録しない。履歴は新しい順
+  const run2 = Runner.startRun(0, "plains");
+  run2.battleIndex = 1;
+  run2.pendingDrops.push({ id: "c", base: "staff", slot: "weapon", stat: "mag", value: 3, rarity: "ur", plus: 0, materialValue: 350 });
+  Runner.finishRun(run2, false);
+  assert.equal(state.records.itemsFound.includes("staff:ur"), false);
+  assert.equal(state.records.runHistory.length, 2);
+  assert.deepEqual([state.records.runHistory[0].cleared, state.records.runHistory[0].battlesWon], [false, 1]);
+});
+
 test("勝利: 生存者にEXP、ドロップは保留。最後の戦闘で踏破を記録し、初踏破なら次のダンジョンを解放", () => {
   const { state, Runner, best } = setup({ level: 8 });
   const run = Runner.startRun(0, "plains");
@@ -230,6 +258,11 @@ test("オフライン精算: 離れていた時間ぶん周回し、自動周回
   assert.deepEqual(state.autoRepeat[0], { active: false, target: 5, done: 5 });
   assert.ok(state.clearedDungeons.has("plains"));
   assert.ok(dex.size > 0);
+  // 冒険の記録: 出会った敵はダンジョン別に、離れていた間の周回はまとめて1件の履歴に
+  assert.ok(state.records.dungeonEncounters.plains.length > 0);
+  assert.equal(state.records.runHistory.length, 1);
+  const h = state.records.runHistory[0];
+  assert.deepEqual([h.offline, h.dungeonId, h.runs, h.clears, h.cleared, h.exp], [true, "plains", 4, 4, true, s.expGained]);
 });
 
 test("オフライン精算: 1周ぶんの時間が経っていなければ周回せず、止まった理由を返す。対象がなければnull", () => {

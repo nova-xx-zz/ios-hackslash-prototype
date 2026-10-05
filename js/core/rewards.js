@@ -20,6 +20,7 @@
     return {
       id,
       name: `${rarity.name}の${base.name}`,
+      base: base.key,
       slot: base.slot,
       stat: base.stat,
       value: Math.round(base.base * rarity.mult),

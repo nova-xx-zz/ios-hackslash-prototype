@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=22">
+<link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
 <div id="app">
@@ -98,15 +98,15 @@
     </div>
   </section>
 
-  <!-- モンスター図鑑 -->
-  <section id="screen-dex" class="screen hidden">
+  <!-- 冒険者の書（書物）。中身は js/ui/book.js -->
+  <section id="screen-book" class="screen hidden">
     <div class="roster-wrap">
       <div class="roster-header">
-        <div class="map-title">モンスター図鑑</div>
-        <button class="btn small ghost" id="btnDexBack">もどる</button>
+        <div class="map-title" id="bookTitle">冒険者の書</div>
+        <button class="btn small ghost" id="btnBookBack">もどる</button>
       </div>
-      <div class="dex-count" id="dexCount"></div>
-      <div id="dexBody" class="roster-body"></div>
+      <div class="book-sub hidden" id="bookSub"></div>
+      <div id="bookBody" class="roster-body book-body"></div>
     </div>
   </section>
 
@@ -254,7 +254,7 @@
           <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m5 3 13 13m-2 3 5-5M3 5l2-2 4 2-4 4Zm14 14 4 2m-2-2 2 2M19 3 6 16m2 3-5-5m18-9-2-2-4 2 4 4ZM7 19l-4 2m2-2-2 2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="hub-nav-label">探索</span>
         </button>
         <button class="hub-nav-btn" id="btnHubDex">
-          <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M12 6c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v15M6 9h3m-3 4h3m6-4h3m-3 4h3" stroke-linejoin="round"/></svg><span class="hub-nav-label">図鑑</span>
+          <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M12 6c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v15M6 9h3m-3 4h3m6-4h3m-3 4h3" stroke-linejoin="round"/></svg><span class="hub-nav-label">書物</span>
         </button>
         <button class="hub-nav-btn" id="btnHubSettings">
           <svg class="hub-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m10 3-1 3-3 1-3-1-1 4 3 2v2l-2 2 2 3 3-1 2 1 1 3 4-1v-3l2-2 3 1 2-3-2-2v-2l2-2-2-3-3 1-2-1-1-3Z" stroke-linejoin="round"/></svg><span class="hub-nav-label">設定</span>
@@ -329,14 +329,15 @@
 <script src="js/core/storage.js?v=1"></script>
 <script src="js/core/rng.js?v=1"></script>
 <script src="js/core/enhance.js?v=1"></script>
-<script src="js/core/rewards.js?v=1"></script>
+<script src="js/core/rewards.js?v=2"></script>
 <script src="js/core/offline.js?v=2"></script>
 <script src="js/core/stats.js?v=1"></script>
 <script src="js/core/battle.js?v=2"></script>
-<script src="js/model/save.js?v=2"></script>
+<script src="js/model/records.js?v=1"></script>
+<script src="js/model/save.js?v=3"></script>
 <script src="js/model/roster.js?v=1"></script>
 <script src="js/model/inventory.js?v=2"></script>
-<script src="js/model/run.js?v=1"></script>
+<script src="js/model/run.js?v=2"></script>
 <script src="js/firebase-config.js?v=1"></script>
 <script src="js/cloud.js?v=1"></script>
 <script src="js/data.js?v=12"></script>
@@ -344,9 +345,9 @@
 <script src="js/ui/state.js?v=1"></script>
 <script src="js/ui/insignia.js?v=2"></script>
 <script src="js/ui/announcements.js?v=1"></script>
-<script src="js/ui/models.js?v=3"></script>
+<script src="js/ui/models.js?v=4"></script>
 <script src="js/ui/offline.js?v=1"></script>
-<script src="js/ui/title-map.js?v=4"></script>
+<script src="js/ui/title-map.js?v=5"></script>
 <script src="js/ui/settings.js?v=1"></script>
 <script src="js/ui/party.js?v=1"></script>
 <script src="js/ui/create.js?v=2"></script>
@@ -357,7 +358,8 @@
 <script src="js/ui/battle.js?v=1"></script>
 <script src="js/ui/log.js?v=2"></script>
 <script src="js/ui/dock.js?v=5"></script>
-<script src="js/ui/explore.js?v=1"></script>
+<script src="js/ui/explore.js?v=2"></script>
+<script src="js/ui/book.js?v=1"></script>
 <script src="js/game.js?v=29"></script>
 <script src="js/pwa.js?v=1"></script>
 </body>

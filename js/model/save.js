@@ -6,6 +6,7 @@
 // 戦闘中の一時的な状態(run/battle)や画面表示用の状態は含めない。
 (function (root) {
   "use strict";
+  const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
 
   // schemaVersion 2からは、このメインセーブのmaterialを正本とし、旧jobquest_materialキーは
   // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
@@ -30,6 +31,8 @@
       // FEATURE_FLAGS.guaranteedStone が無効の間はUIにも出ない。本番ではサーバーを正本にする（docs/production-plan.md）。
       // 資金決済法の残高計算で有償分だけを数えられるよう、無償分(free)と有償分(paid)を分けて持ち、消費は無償分から行う
       guaranteedStones: { free: 0, paid: 0 },
+      // 冒険の記録（ダンジョン別に出会った敵・手に入れた装備・潜った履歴。js/model/records.js）
+      records: recordsMod.createRecords(),
     };
   }
 
@@ -55,13 +58,15 @@
       skillBooks: state.skillBooks,
       material: state.material,
       guaranteedStones: state.guaranteedStones,
+      records: state.records,
       enabledFeaturesAtSave: opts.enabledFeatures || [],
     };
   }
 
   // セーブデータ（JSON.parse済み）から状態を復元する。使えないデータならnullを返す。
   // opts: legacyMaterial（旧形式セーブ用。旧jobquest_materialキーの値）,
-  //       syncExpToNext（レベル記録の必要EXPを現在の曲線で計算し直す関数。js/data.js）
+  //       syncExpToNext（レベル記録の必要EXPを現在の曲線で計算し直す関数。js/data.js）,
+  //       itemBases（data.js の ITEM_BASES。持っている装備をアイテム辞典に載せるのに使う）
   // 戻り値: { state（保存対象の項目のみ。自動周回は含めない）, isLegacy, savedAt, savedAutoRepeat }
   function deserialize(data, opts) {
     opts = opts || {};
@@ -81,7 +86,14 @@
       guaranteedStones: (gs && typeof gs === "object")
         ? { free: Number(gs.free) || 0, paid: Number(gs.paid) || 0 }
         : { free: typeof gs === "number" ? gs : 0, paid: 0 }, // 区別のない旧形式は無償分として扱う
+      records: recordsMod.normalizeRecords(data.records),
     };
+    // 記録が無かった頃のセーブでも、いま持っている装備（所持品・装備中）はアイテム辞典に載せる
+    if (opts.itemBases) {
+      const owned = state.inventory.slice();
+      for (const c of state.roster) for (const it of Object.values(c.equip || {})) if (it) owned.push(it);
+      recordsMod.recordItemsFound(state.records, owned, opts.itemBases);
+    }
     // 必要EXPは保存値ではなく現在の曲線から計算し直す（キャラ本体とジョブごとの記録）
     if (opts.syncExpToNext) {
       for (const c of state.roster) {
