@@ -84,6 +84,11 @@ function updateTeamTabDots() {
   for (let i = 0; i < buttons.length; i++) {
     buttons[i].classList.toggle("exploring", isTeamRunActive(i));
   }
+  // 自動分解のロックも全パーティの状態で決まるため、変わった時だけ描き直す
+  if (autoDisassembleLockShown !== null && autoDisassembleLockShown !== isAutoDisassembleLocked()) {
+    updateAutoDisassembleButton();
+    renderDisassembleFilter();
+  }
 }
 
 function renderAutoRepeatRow() {
@@ -164,21 +169,32 @@ document.getElementById("btnSpeedToggle").addEventListener("click", () => {
   speedMult = speedMult === 1 ? 2 : 1;
   document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
 });
-// 自動分解のON/OFF・フィルターは、出撃時にrunへスナップショットされた値で確定するため、
-// 探索中でも自由に変更できる（変更は次に出発する周回から反映される）
+// 自動分解のON/OFF・フィルターは全パーティ共通の設定で、出発のたび（自動周回の各周も）にrunへ
+// スナップショットされる。どこかのパーティが探索中・自動周回中の間は、途中で設定が変わらないよう変更できなくする
+function isAutoDisassembleLocked() {
+  for (let i = 0; i < TEAM_COUNT; i++) if (isTeamLocked(i)) return true;
+  return false;
+}
+let autoDisassembleLockShown = null; // 表示中のロック状態（変わった時だけ描き直すため）
 function updateAutoDisassembleButton() {
+  const locked = isAutoDisassembleLocked();
+  autoDisassembleLockShown = locked;
   const btn = document.getElementById("btnAutoDisassembleToggle");
   btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
   btn.classList.toggle("toggle-on", autoDisassemble);
+  btn.disabled = locked;
+  btn.title = locked ? "探索中・自動周回中のパーティがある間は変更できません" : "";
   document.getElementById("disassembleFilterRow").classList.toggle("hidden", !autoDisassemble);
 }
 document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
+  if (isAutoDisassembleLocked()) return;
   autoDisassemble = !autoDisassemble;
   store.set(KEYS.autoDisassemble, autoDisassemble ? "1" : "0");
   updateAutoDisassembleButton();
 });
 function renderDisassembleFilter() {
   const row = document.getElementById("disassembleFilterRow");
+  const locked = isAutoDisassembleLocked();
   row.innerHTML = `<span class="disassemble-filter-label">対象:</span>`;
   for (const rarity of RARITIES) {
     const chip = document.createElement("button");
@@ -186,14 +202,22 @@ function renderDisassembleFilter() {
     chip.className = "disassemble-chip" + (on ? " active" : "");
     chip.textContent = rarity.key.toUpperCase();
     chip.title = rarity.name;
+    chip.disabled = locked;
     if (on) chip.style.background = rarity.color;
     chip.addEventListener("click", () => {
+      if (isAutoDisassembleLocked()) return;
       if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
       else autoDisassembleRarities.add(rarity.key);
       saveAutoDisassembleFilter();
       renderDisassembleFilter();
     });
     row.appendChild(chip);
+  }
+  if (locked) {
+    const note = document.createElement("span");
+    note.className = "disassemble-filter-note";
+    note.textContent = "探索中は変更できません";
+    row.appendChild(note);
   }
 }
 renderDisassembleFilter();
