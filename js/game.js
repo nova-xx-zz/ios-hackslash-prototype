@@ -50,7 +50,6 @@
 
   S.material = store.getInt(KEYS.material, 0);
   let autoDisassemble = store.getString(KEYS.autoDisassemble) === "1";
-  function addMaterial(n) { S.material += n; store.set(KEYS.material, S.material); }
 
   // 自動分解の対象レア度（プレイヤーがフィルターで選択、端末に保存）
   let autoDisassembleRarities = new Set(DEFAULT_AUTO_DISASSEMBLE_RARITIES);
@@ -241,7 +240,6 @@
   // ---------- セーブ/ロード ----------
   // ゲームの状態(S)を端末に保存する。セーブデータの形と旧形式からの移行は js/model/save.js。
   // 旧jobquest_materialキーは互換ミラーとして更新するのみ（正本はメインセーブのmaterial）
-  function guaranteedStoneTotal() { return S.guaranteedStones.free + S.guaranteedStones.paid; }
   let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
   function saveGame() {
     let json;
@@ -336,38 +334,18 @@
 
 
   // ---------- Inventory ----------
-  function equipItem(c, item) {
-    const idx = S.inventory.indexOf(item);
-    if (idx >= 0) S.inventory.splice(idx, 1);
-    const old = c.equip[item.slot];
-    if (old) S.inventory.push(old);
-    c.equip[item.slot] = item;
-    clampVitals(c);
-  }
-
-  function unequipSlot(c, slotKey) {
-    const item = c.equip[slotKey];
-    if (!item) return;
-    S.inventory.push(item);
-    c.equip[slotKey] = null;
-    clampVitals(c);
-  }
-
-  function autoEquip(c) {
-    for (const slot of SLOTS) {
-      const candidates = S.inventory.filter((i) => i.slot === slot.key);
-      const current = c.equip[slot.key];
-      if (candidates.length === 0) continue;
-      const best = candidates.reduce((a, b) => (itemScore(c, b) > itemScore(c, a) ? b : a));
-      if (!current || itemScore(c, best) > itemScore(c, current)) equipItem(c, best);
-    }
-  }
-
-  function clampVitals(c) {
-    const s = computeStats(c);
-    c.hp = Math.min(c.hp, s.maxHp);
-    c.mp = Math.min(c.mp, s.maxMp);
-  }
+  // 所持品まわりのルール（装備・強化石・装備強化・ドロップの受け取り・モンスター合成）は js/model/inventory.js
+  const Inventory = QPModel.inventory.createInventory({
+    data: { SLOTS, ENHANCE_RULES, ENHANCE_MAX_PLUS },
+    state: S,
+    roster: Roster,
+    rng: RNG,
+    isFeatureEnabled,
+    onMaterialChange: (material) => store.set(KEYS.material, material), // 旧キーは互換ミラー
+  });
+  const {
+    clampVitals, equipItem, unequipSlot, autoEquip, guaranteedStoneTotal, isPityReady,
+  } = Inventory;
 
   // computeStats が teamRuns[].buffs を参照するため、roster を組み立てる前に宣言しておく。
   // 4チームがそれぞれ独立にダンジョンへ出撃できるよう、進行状態(run)・戦闘状態(battle)・
@@ -464,9 +442,7 @@
     }
     if (!outcome.cleared) return { cleared: false, expTotal };
 
-    const settled = QPCore.rewards.settleDrops(outcome.drops, { enabled: autoDisassemble, rarities: autoDisassembleRarities });
-    if (settled.materialGained > 0) addMaterial(settled.materialGained);
-    S.inventory.push(...settled.kept);
+    const settled = Inventory.receiveDrops(outcome.drops, { enabled: autoDisassemble, rarities: autoDisassembleRarities });
     let tamedName = null;
     if (outcome.tame && outcome.tame.success) {
       tamedName = addTamedMonster(outcome.tame.key).name;
@@ -1574,7 +1550,7 @@
     desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターは選べません）";
     wrap.appendChild(desc);
 
-    const candidates = S.roster.filter((m) => m.isMonster && m.id !== c.id && m.team === null);
+    const candidates = Inventory.fusionCandidates(c);
     for (const id of [...fusionSelection]) {
       if (!candidates.some((m) => m.id === id)) fusionSelection.delete(id);
     }
@@ -1624,7 +1600,7 @@
     wrap.appendChild(list);
 
     const selectedMonsters = candidates.filter((m) => fusionSelection.has(m.id));
-    const totalExpGain = selectedMonsters.reduce((s, m) => s + Math.round(totalExpInvested(m) * 0.5), 0);
+    const totalExpGain = Inventory.fusionExpGain(selectedMonsters);
 
     const footer = document.createElement("div");
     footer.className = "fusion-footer";
@@ -1640,20 +1616,11 @@
       if (selectedMonsters.length === 0) return;
       if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
       fusionConfirm = false;
-      const consumedNames = selectedMonsters.map((m) => m.name);
-      let returnedItems = 0;
-      for (const m of selectedMonsters) {
-        // 素材が装備していたアイテムは消滅させず、所持品へ戻してから素材を取り除く
-        for (const slot of SLOTS) {
-          if (m.equip[slot.key]) { unequipSlot(m, slot.key); returnedItems += 1; }
-        }
-        const idx = S.roster.findIndex((x) => x.id === m.id);
-        if (idx !== -1) S.roster.splice(idx, 1);
-      }
+      // 素材が装備していたアイテムは消滅させず所持品へ戻し、素材を取り除いてEXPを還元する（js/model/inventory.js）
+      const result = Inventory.fuse(c, selectedMonsters);
       fusionSelection = new Set();
-      const result = gainExp(c, totalExpGain);
-      fusionMessage = `${consumedNames.join("・")}を合成し、${c.name}はEXP+${totalExpGain}を獲得した` +
-        (returnedItems ? `／素材の装備${returnedItems}個は所持品に戻した` : "") +
+      fusionMessage = `${result.consumedNames.join("・")}を合成し、${c.name}はEXP+${result.expGain}を獲得した` +
+        (result.returnedItems ? `／素材の装備${result.returnedItems}個は所持品に戻した` : "") +
         (result.levelUps.length ? "／" + result.levelUps.join("・") : "") +
         (result.abilityUnlocks.length ? "／" + result.abilityUnlocks.join("・") : "");
       saveGame(); // 素材の消滅は取り消せないため、遅延保存を待たずに確定させる
@@ -2116,9 +2083,6 @@
       : (enough ? `確定強化石${required}個で強化する（成功率100%）` : `確定強化石が足りません（あと${required - guaranteedStoneTotal()}個）`);
   }
 
-  function isPityReady(item) {
-    return isFeatureEnabled("enhancePity") && (item.pity || 0) >= enhancePityThreshold(item);
-  }
   function buildPityRow(item) {
     const threshold = enhancePityThreshold(item);
     const pity = Math.min(item.pity || 0, threshold);
@@ -2133,31 +2097,21 @@
   }
 
   document.getElementById("btnEnhanceGo").addEventListener("click", () => {
-    const item = enhanceItem;
-    if (!item || item.plus >= ENHANCE_MAX_PLUS) return;
-    if (S.material < enhanceCost(item)) return;
-    // 判定はjs/core/enhance.js（状態は変えずに結果だけ返す）。ここで強化石・+値・天井ゲージに反映する
-    const result = QPCore.enhance.attempt(ENHANCE_RULES, item, { rng: RNG, pityEnabled: isFeatureEnabled("enhancePity") });
-    addMaterial(-result.cost);
-    item.plus = result.plus;
-    item.pity = result.pity;
+    // 判定と強化石・+値・天井ゲージへの反映は js/model/inventory.js
+    const result = Inventory.enhanceItem(enhanceItem);
+    if (!result) return;
     enhanceMessage = result.success
-      ? `成功！ +${item.plus} になった` + (result.pityHit ? "（天井）" : "")
-      : `失敗…（+${item.plus} のまま）`;
+      ? `成功！ +${result.plus} になった` + (result.pityHit ? "（天井）" : "")
+      : `失敗…（+${result.plus} のまま）`;
     scheduleSave();
     renderEnhanceModal();
   });
   // 確定強化石: その段の期待消費に応じた個数を消費して必ず+1する（通常の強化石は消費しない）。
   // 消費は取り消せないため即時保存する
   document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
-    const item = enhanceItem;
-    if (!isFeatureEnabled("guaranteedStone") || !item || item.plus >= ENHANCE_MAX_PLUS) return;
-    const result = QPCore.enhance.useGuaranteed(ENHANCE_RULES, item, S.guaranteedStones);
-    if (!result.ok) return;
-    S.guaranteedStones = result.stones; // 消費は無償分から
-    item.plus = result.plus;
-    item.pity = result.pity;
-    enhanceMessage = `成功！ +${item.plus} になった（確定強化石${result.required}個を使用）`;
+    const result = Inventory.enhanceWithGuaranteed(enhanceItem); // 消費は無償分から
+    if (!result) return;
+    enhanceMessage = `成功！ +${result.plus} になった（確定強化石${result.required}個を使用）`;
     saveGame();
     renderEnhanceModal();
   });
@@ -2827,12 +2781,10 @@
   // 出撃時にスナップショットした自動分解設定(run.autoDisassemble等)を使うため、
   // 探索中に設定画面で自動分解の設定を変えても、この周回の結果には影響しない
   function settlePendingDrops(run) {
-    const settled = QPCore.rewards.settleDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
-    if (settled.materialGained > 0) addMaterial(settled.materialGained);
+    const settled = Inventory.receiveDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
     run.disassembleCount += settled.disassembled;
     run.materialGained += settled.materialGained;
     run.drops.push(...settled.kept);
-    S.inventory.push(...settled.kept);
   }
 
   function finishRun(run, info) {
