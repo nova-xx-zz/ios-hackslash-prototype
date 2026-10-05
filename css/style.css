@@ -92,7 +92,8 @@ html, body {
 .title-emblem { font-size: 32px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 0 10px rgba(124, 92, 255, 0.65)); }
 .title-panel h1.title-logo {
   margin: 0;
-  font-size: 30px;
+  font-size: min(30px, 8vw); /* 幅の狭い端末（320px）でもタイトルが1行に収まるように */
+  white-space: nowrap;
   font-weight: 800;
   letter-spacing: 2px;
   background: linear-gradient(180deg, #ffffff 0%, #cfc2ff 55%, var(--accent) 100%);
