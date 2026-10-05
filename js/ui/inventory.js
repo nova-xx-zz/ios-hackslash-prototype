@@ -22,7 +22,7 @@ function renderInventoryScreen() {
   const filters = [{ key: "all", name: "すべて" }, ...SLOTS, { key: "skillBook", name: "スキルブック" }];
   for (const f of filters) {
     const btn = document.createElement("button");
-    btn.className = "priority-chip" + (inventoryFilterSlot === f.key ? " tier-3" : "");
+    btn.className = "priority-chip inv-filter" + (inventoryFilterSlot === f.key ? " tier-3" : "");
     btn.textContent = f.name;
     btn.addEventListener("click", () => { inventoryFilterSlot = f.key; renderInventoryScreen(); });
     filterRow.appendChild(btn);

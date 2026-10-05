@@ -75,7 +75,7 @@ function buildJobCard(c, jobId, unlocked) {
   const card = document.createElement("button");
   card.className = "job-card" + (c.job === jobId ? " active" : "") + (unlocked ? "" : " locked");
   card.innerHTML = `
-    <div class="job-card-icon">${job.icon || "❓"}</div>
+    <div class="job-card-icon">${jobInsignia(jobId)}</div>
     <div class="job-card-level">${trained ? `Lv.${lvl}${mastered ? '<span class="star">★</span>' : ""}` : "未経験"}</div>
     <div class="job-card-name">${job.name}</div>
     <div class="job-card-exp-bar"><div class="fill" style="width:${pct}%"></div></div>`;

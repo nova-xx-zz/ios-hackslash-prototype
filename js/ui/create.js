@@ -117,7 +117,9 @@ function renderPickModal(field, id) {
   const MAX_STARS = 5;
   const stars = isJob ? jobStatStars(def, MAX_STARS) : raceStatStars(def, MAX_STARS);
 
-  document.getElementById("pmIcon").textContent = def.icon || "❓";
+  const pmIcon = document.getElementById("pmIcon");
+  if (isJob) pmIcon.innerHTML = jobInsignia(id); else pmIcon.textContent = def.icon || "❓";
+  pmIcon.classList.toggle("is-insignia", isJob);
   document.getElementById("pmName").textContent = def.name;
   document.getElementById("pmDesc").textContent = def.desc;
 
@@ -148,7 +150,8 @@ function renderPickModal(field, id) {
     const odef = isJob ? JOBS[oid] : RACES[oid];
     const chip = document.createElement("button");
     chip.className = "pm-chip" + (oid === id ? " active" : "");
-    chip.textContent = odef.icon || "❓";
+    if (isJob) chip.innerHTML = jobInsignia(oid); else chip.textContent = odef.icon || "❓";
+    chip.classList.toggle("is-insignia", isJob);
     chip.title = odef.name;
     chip.addEventListener("click", () => renderPickModal(field, oid));
     strip.appendChild(chip);

@@ -4,20 +4,6 @@
 "use strict";
 
 // ---------- Dock ----------
-function actorInsignia(job) {
-  const basic = { swordmaster: "warrior", archmage: "mage", archpriest: "priest", ninja: "thief", saintfist: "monk", reaper: "darkknight" }[job.id] || job.id;
-  const paths = {
-    warrior: '<path d="m5 19 12-12 2-4-4 2L3 17m1-4 7 7m-5-2-3 3"/>',
-    mage: '<path d="m6 21 9-14M15 2v3m-5 2h3m5 0h3m-6 3v3m0-8 2 2-2 2-2-2Z"/>',
-    priest: '<path d="M12 2v20M4 9h16m-8-7 3 4-3 3-3-3Z"/>',
-    thief: '<path d="m6 20 10-10 3-7-7 3L2 16m3-4 7 7m-4-2-4 4"/>',
-    monk: '<path d="M7 11V7a2 2 0 0 1 4 0v5-7a2 2 0 0 1 4 0v7-4a2 2 0 0 1 4 0v7l-3 6H8l-5-7a2 2 0 0 1 3-2l3 3"/>',
-    darkknight: '<path d="M17 3a9 9 0 1 0 4 13A8 8 0 0 1 17 3Z"/>',
-  };
-  const shape = paths[basic] || '<path d="m12 3 8 4v6c0 4-8 8-8 8s-8-4-8-8V7Z"/><path d="m9 12 3-3 3 3-3 3Z"/>';
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shape}</svg>`;
-}
-
 function buildPartyDock() {
   const partyRow = document.getElementById("partyRow");
   partyRow.innerHTML = "";
@@ -26,7 +12,7 @@ function buildPartyDock() {
     const card = document.createElement("div");
     card.className = "actor-card";
     card.innerHTML = `
-      <div class="actor-insignia">${actorInsignia(jobDef(c))}</div>
+      <div class="actor-insignia">${jobInsignia(c.isMonster ? null : jobDef(c).id)}</div>
       <div class="actor-name">${c.name}</div>
       <div class="actor-job">${jobDef(c).name} Lv.${c.level}</div>
       <div class="stat-bar hp"><div class="fill" style="width:100%"></div></div>
