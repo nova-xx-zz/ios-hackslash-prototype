@@ -381,7 +381,7 @@ UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲ�
 
 ## 5. キャッシュバスティング運用
 
-`index.html` の `css/style.css`・`data/announcements.js`・`data/roadmap.js`・`js/data.js`・`js/core/`・`js/model/`・`js/ui/`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。参照コミット時点: `style.css?v=6`, `announcements.js?v=1`, `roadmap.js?v=1`, `data.js?v=2`, `game.js?v=9`。設計書のみの更新ではこれらの番号を変更しない。
+`index.html` の `css/style.css`・`data/announcements.js`・`data/roadmap.js`・`js/data.js`・`js/core/`・`js/model/`・`js/ui/`・`js/game.js` の読み込みには `?v=N` を付与している。GitHub Pages/Safari側のキャッシュにより、ファイルを更新してもクライアントに反映されない問題が実際に発生したため、**該当ファイルを変更するコミットでは必ずクエリのNをインクリメントする**運用を徹底する（`index.html` 内のコメントに明記）。PWAの Service Worker（`sw.js`）はネットワーク優先で、オンラインなら常にネットワークから取得するため、この運用はそのまま有効（`sw.js` の `CACHE_NAME` を変えるのはキャッシュの形を変える時だけ）。参照コミット時点: `style.css?v=6`, `announcements.js?v=1`, `roadmap.js?v=1`, `data.js?v=2`, `game.js?v=9`。設計書のみの更新ではこれらの番号を変更しない。
 
 ## 6. 採用済み拡張のデータ・処理設計（§6.1・6.2は固有＋汎用3枠交換の範囲で実装済み、§6.3〜6.6は§6.4〜6.6が実装済み、それ以外は未実装）
 
