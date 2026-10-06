@@ -287,7 +287,7 @@ test("手動の分解: 選んだ所持品だけを強化石に変える。値が
   assert.equal(state.material, 205);
 });
 
-test("モンスター合成: 控えのモンスターだけが素材。積み上げたEXPの半分を還元し、装備は所持品に戻る", () => {
+test("モンスター合成: 控えのモンスターだけが素材。基本EXP＋積み上げたEXPの半分（同族1.5倍）を還元し、装備は所持品に戻る", () => {
   const { state, roster, inv } = setup();
   const target = roster.newCharacter("ターゲット", null, "slime", { isMonster: true });
   const mat1 = roster.newCharacter("ソザイ1", null, "slime", { isMonster: true, level: 3 });
@@ -299,8 +299,10 @@ test("モンスター合成: 控えのモンスターだけが素材。積み上
 
   const gearItem = item("weapon", "atk", 3, "n");
   mat1.equip.main = gearItem;
-  const expected = Math.round(roster.totalExpInvested(mat1) * 0.5) + Math.round(roster.totalExpInvested(mat2) * 0.5);
-  assert.equal(inv.fusionExpGain([mat1, mat2]), expected);
+  // 種族の基本EXP＋積み上げたEXPの半分。合成先と同じ種族（slime）は1.5倍
+  const expected = Math.round((data.fusionBaseExp("slime") + roster.totalExpInvested(mat1) * 0.5) * 1.5) +
+    Math.round(data.fusionBaseExp("bat") + roster.totalExpInvested(mat2) * 0.5);
+  assert.equal(inv.fusionExpGain(target, [mat1, mat2]), expected);
   const r = inv.fuse(target, [mat1, mat2]);
   assert.equal(r.expGain, expected);
   assert.deepEqual(r.consumedNames, ["ソザイ1", "ソザイ2"]);
@@ -309,4 +311,24 @@ test("モンスター合成: 控えのモンスターだけが素材。積み上
   assert.deepEqual(state.inventory, [gearItem]);
   assert.equal(roster.totalExpInvested(target), expected);
   assert.ok(r.levelUps.length > 0);
+});
+
+test("モンスター合成: テイム直後のLv1の素材でもEXPが入り、先の地方の種族ほど多い", () => {
+  const { roster, inv } = setup();
+  const target = roster.newCharacter("ターゲット", null, "wolf", { isMonster: true });
+  const slime = roster.newCharacter("スライム", null, "slime", { isMonster: true });
+  const yeti = roster.newCharacter("イエティ", null, "yeti", { isMonster: true });
+  assert.equal(roster.totalExpInvested(slime), 0);
+  assert.equal(inv.materialExp(target, slime), data.expForLevel(1));
+  assert.equal(data.tameHomeLevel("yeti") > data.tameHomeLevel("slime"), true);
+  assert.equal(inv.materialExp(target, yeti) > inv.materialExp(target, slime), true);
+  const sameRace = roster.newCharacter("ウルフ", null, "wolf", { isMonster: true });
+  assert.equal(inv.materialExp(target, sameRace), Math.round(data.fusionBaseExp("wolf") * 1.5));
+});
+
+test("モンスター合成の基本EXP: テイムできる種族はすべてどこかのダンジョンに出てくる", () => {
+  for (const key of Object.keys(data.MONSTER_JOBS)) {
+    assert.ok(data.DUNGEONS.some((d) => d.pool.includes(key) || d.boss === key || (d.rares || []).includes(key)), key);
+    assert.ok(data.fusionBaseExp(key) >= data.expForLevel(1), key);
+  }
 });

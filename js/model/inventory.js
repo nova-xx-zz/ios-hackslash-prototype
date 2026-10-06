@@ -3,7 +3,7 @@
 // モンスター合成など、所持品と強化石に関するルールをまとめる。画面には依存しない。
 // 判定そのものは js/core/enhance.js・js/core/rewards.js で行い、ここでは結果を状態に反映する。
 //   createInventory({ data, state, roster, rng, isFeatureEnabled, onMaterialChange })
-//     data: { ENHANCE_RULES, ENHANCE_MAX_PLUS, RARITIES }、state: js/model/save.js の状態、
+//     data: { ENHANCE_RULES, ENHANCE_MAX_PLUS, RARITIES, fusionBaseExp, FUSION_SAME_RACE_MULT }、state: js/model/save.js の状態、
 //     roster: js/model/roster.js の createRoster の戻り値（computeStats・itemScore・equipProfile・accessorySlots・gainExp・totalExpInvested を使う）、
 //     onMaterialChange(material): 強化石が変わった時に呼ぶ（game.js が旧キーへの互換ミラーを書く）
 (function (root) {
@@ -18,7 +18,8 @@
   function createInventory(deps) {
     const S = deps.state;
     const R = deps.roster;
-    const { ENHANCE_RULES, ENHANCE_MAX_PLUS } = deps.data;
+    const { ENHANCE_RULES, ENHANCE_MAX_PLUS, fusionBaseExp } = deps.data;
+    const sameRaceMult = deps.data.FUSION_SAME_RACE_MULT || 1;
     const isFeatureEnabled = deps.isFeatureEnabled || (() => false);
     const onMaterialChange = deps.onMaterialChange || (() => {});
 
@@ -183,13 +184,20 @@
     function fusionCandidates(target) {
       return S.roster.filter((m) => m.isMonster && m.id !== target.id && m.team === null && !m.favorite);
     }
-    function fusionExpGain(materials) {
-      return materials.reduce((s, m) => s + Math.round(R.totalExpInvested(m) * FUSION_EXP_RATE), 0);
+    // 素材1体のEXP＝種族の基本EXP（data.js の fusionBaseExp。テイム直後のLv1でも入る）＋積み上げたEXPの半分。
+    // 合成先と同じ種族の素材は FUSION_SAME_RACE_MULT 倍
+    function materialExp(target, m) {
+      const base = fusionBaseExp ? fusionBaseExp(m.race) : 0;
+      const exp = base + R.totalExpInvested(m) * FUSION_EXP_RATE;
+      return Math.round(target && target.race === m.race ? exp * sameRaceMult : exp);
+    }
+    function fusionExpGain(target, materials) {
+      return materials.reduce((s, m) => s + materialExp(target, m), 0);
     }
     // 素材を消して、積み上げてきたEXPの一部を対象に還元する。素材が装備していたアイテムは所持品に戻す。
     // 結果: { expGain, consumedNames, returnedItems, levelUps, abilityUnlocks }
     function fuse(target, materials) {
-      const expGain = fusionExpGain(materials);
+      const expGain = fusionExpGain(target, materials);
       const consumedNames = materials.map((m) => m.name);
       let returnedItems = 0;
       for (const m of materials) {
@@ -208,7 +216,7 @@
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
       receiveDrops, disassembleValue, disassembleItems,
-      fusionCandidates, fusionExpGain, fuse,
+      fusionCandidates, materialExp, fusionExpGain, fuse,
     };
   }
 

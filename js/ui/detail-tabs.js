@@ -107,7 +107,7 @@ function buildFusionTab(c) {
   const wrap = document.createElement("div");
   const desc = document.createElement("div");
   desc.className = "sub-ability-row";
-  desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターと、お気に入り（★）のモンスターは選べません）";
+  desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます。素材1体のEXPは、種族ごとの基本EXP（先の地方の種族ほど多い）＋素材が積み上げたEXPの半分で、同じ種族の素材は1.5倍になります（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターと、お気に入り（★）のモンスターは選べません）";
   wrap.appendChild(desc);
 
   const candidates = Inventory.fusionCandidates(c);
@@ -174,7 +174,8 @@ function buildFusionTab(c) {
     row.appendChild(icon);
     const name = document.createElement("div");
     name.className = "skill-row-name";
-    name.textContent = `${m.name}（${RACES[m.race].name}） Lv.${m.level}`;
+    const sameRace = m.race === c.race ? "［同族×1.5］" : "";
+    name.textContent = `${m.name}（${RACES[m.race].name}） Lv.${m.level}　EXP+${Inventory.materialExp(c, m)}${sameRace}`;
     row.appendChild(name);
     const selected = fusionSelection.has(m.id);
     const toggle = document.createElement("button");
@@ -193,7 +194,7 @@ function buildFusionTab(c) {
   wrap.appendChild(list);
 
   const selectedMonsters = candidates.filter((m) => fusionSelection.has(m.id));
-  const totalExpGain = Inventory.fusionExpGain(selectedMonsters);
+  const totalExpGain = Inventory.fusionExpGain(c, selectedMonsters);
 
   const footer = document.createElement("div");
   footer.className = "fusion-footer";
