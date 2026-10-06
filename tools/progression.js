@@ -5,7 +5,7 @@
 // 前提（遊び方のモデル）:
 // - 草原から始め、次のダンジョンの推奨Lvに届くまで、今いるダンジョンを周回する（全滅はしない前提）
 // - 1周のEXP・ドロップは通常プレイと同じ計算（戦闘ごとのドロップ、道中の宝箱。js/core/rewards.js）
-// - ドロップのうち、5人×3部位の装備には各部位で一番良いもの（レア度→強化値）を使い、
+// - ドロップのうち、5人×3部位の装備には各部位で一番強いもの（装備のレベル・レア度・強化値を合わせた能力値）を使い、
 //   使わない分はすべて強化石にする（自動分解を上手に使った場合。実際はやや下回る）
 // - 強化石は、装備15個の+値がなるべく揃うように、+値の低いものから期待消費で強化していく
 // - 全員同じレベル・種族補正なしで近似する
@@ -40,7 +40,7 @@ function runOnce(dungeon) {
 function settle(pool, stones) {
   const equipped = {};
   for (const slot of SLOTS) {
-    const items = pool.filter((it) => it.slot === slot).sort((a, b) => rank(b.rarity) - rank(a.rarity) || b.plus - a.plus);
+    const items = pool.filter((it) => it.slot === slot).sort((a, b) => data.itemEffectiveValue(b) - data.itemEffectiveValue(a) || rank(b.rarity) - rank(a.rarity));
     equipped[slot] = items.slice(0, MEMBERS);
     for (const it of items.slice(MEMBERS)) stones += it.materialValue;
   }
@@ -81,13 +81,13 @@ function simulate(seed, expForLevel = data.expForLevel) {
       stones = enhanceAll(pool, stones);
     }
     totalRuns += runs;
-    arrivals.push({ dungeon: next, runs, totalRuns, items: pool.map((it) => ({ rarity: it.rarity, plus: it.plus })) });
+    arrivals.push({ dungeon: next, runs, totalRuns, items: pool.map((it) => ({ rarity: it.rarity, plus: it.plus, level: it.level || 1 })) });
   }
   rngLib.setSharedSeed(undefined);
   return arrivals;
 }
 
-// 装備15個の「代表値」: 下から3分の1（全員がだいたい持っている水準）のレア度と+値
+// 装備15個の「代表値」: 下から3分の1（全員がだいたい持っている水準）のレア度と+値（と装備のレベル）
 function typical(items) {
   const sorted = items.slice().sort((a, b) => rank(a.rarity) - rank(b.rarity) || a.plus - b.plus);
   const it = sorted[Math.floor(sorted.length / 3)] || { rarity: "-", plus: 0 };
