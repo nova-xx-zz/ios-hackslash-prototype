@@ -53,9 +53,17 @@ function scheduleSave() {
 // （チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある）
 let pendingOfflineSummaries = null;
 let offlineSettleFailed = false;
-// 精算前に「このsavedAtは精算済み」と記録する。記録できない（容量不足など）なら精算しない
-function claimOfflineSettlement(savedAt) {
-  return store.set(KEYS.offlineSettled, savedAt);
+// オフライン精算の保存保証（docs/reviews/design-review-2026-10-06.md RV-01）:
+// 精算は「報酬の反映」と「自動周回の停止（S.autoRepeat[].active = false）」を同じメモリ上の状態に行い、
+// それを1つのメインセーブとして1回で書き込んだ時点で確定する。精算済みかどうかは別キーの印ではなく、
+// セーブの中の自動周回が止まっていることで分かる（止まったセーブからは二度と精算されない）。
+// 保存に失敗した場合は端末には精算前のセーブが残るため、報酬は二重にも消失にもならず、
+// アプリ内では定期保存で再試行し、保存されないまま終了した場合は次回起動時に同じ期間をもう一度精算する。
+// 精算後のセーブを保存する。失敗したら、保存されるまで再試行することをモーダルで伝える
+function saveAfterOfflineSettlement() {
+  if (saveGame()) return true;
+  offlineSettleFailed = true;
+  return false;
 }
 function loadGame() {
   try {
@@ -81,17 +89,15 @@ function loadGame() {
     const savedAutoRepeat = loaded.savedAutoRepeat;
     const savedAt = loaded.savedAt;
     lastSavedAt = typeof savedAt === "number" ? savedAt : null;
+    // 旧版の「精算済み」の印（精算前に書いていた別キー）は使わない。印だけ残って報酬が保存されていなかった
+    // セーブも、自動周回が動いたままなので、ここでもう一度精算される
+    store.remove(KEYS.offlineSettled);
     if (savedAutoRepeat.some((ar) => ar && ar.active)) {
-      if (store.getString(KEYS.offlineSettled) === String(savedAt)) {
-        // このセーブの離脱期間は精算済み（精算後の保存に失敗していた）。二重付与を避けて自動周回を止めたまま再開する
-      } else if (claimOfflineSettlement(savedAt)) {
-        pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, savedAt);
-      } else {
-        offlineSettleFailed = true; // 保存できない状態で付与すると失われる/二重になるため、精算を見送る
-      }
+      pendingOfflineSummaries = runOfflineProgress(savedAutoRepeat, savedAt);
     }
+    if (pendingOfflineSummaries) saveAfterOfflineSettlement();
     // 旧形式からの移行はその場で保存し直し、schemaVersion付きの内容が次回起動を待たず反映されるようにする
-    if (pendingOfflineSummaries || loaded.isLegacy) saveGame();
+    else if (loaded.isLegacy) saveGame();
     return true;
   } catch (e) {
     return false;
