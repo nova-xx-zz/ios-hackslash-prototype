@@ -129,7 +129,7 @@ function makeMember(spec, level, i, opts) {
   c.treeAbilities = tt.abilities;
   // 装飾品の枠はスキルツリーの「装備の心得」「装備の極意」で増える（ツリーを振らない想定なら1枠）
   c.equip = standardEquip(spec.job, opts.gear, Math.min(equipment.MAX_ACCESSORY_SLOTS, 1 + tt.totals.accessorySlots));
-  c.set = equipment.setBonusTotals(c.equip, data.ITEM_SERIES);
+  c.set = equipment.setBonusTotals(c.equip, data.ITEM_SERIES, data.getUniqueItem, data.itemOptionEffect);
   return c;
 }
 
@@ -144,6 +144,7 @@ function makeEnv(rng) {
     }
     const t = c.tree;
     if (t) { s.maxHp += t.hp; s.maxMp += t.mp; s.atk += t.atk; s.mag += t.mag; s.def += t.def; s.spd += t.spd; }
+    if (c.set) for (const [k, v] of Object.entries(c.set.flat)) s[key(k)] += v;
     if (c.set) for (const [k, pct] of Object.entries(c.set.stats)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
     return s;
   };
@@ -169,7 +170,7 @@ function makeEnv(rng) {
 function simulateDungeonRun(dungeonId, level, opts) {
   opts = opts || {};
   const rng = rngLib.shared; // 敵の編成もdata.jsの共有乱数を使うため、同じ乱数でそろえる
-  const dungeon = data.getDungeon(dungeonId);
+  const dungeon = data.getModeDungeon(dungeonId, opts.mode); // opts.mode: ハード・エクストラ（省略時ノーマル）
   const env = makeEnv(rng);
   const party = (opts.party || STARTER_PARTY).map((spec, i) => makeMember(spec, level, i, opts));
   for (const c of party) { const s = env.stats(c); c.hp = s.maxHp; c.mp = s.maxMp; }

@@ -147,7 +147,11 @@ test("シリーズ: ダンジョンの推奨Lvの地方のシリーズが落ち�
   assert.equal(new Set(data.ITEM_BASES.map((b) => b.key)).size, data.ITEM_BASES.length);
   for (const d of data.DUNGEONS) {
     const expected = data.seriesForLevel(d.level).key;
-    for (let i = 0; i < 5; i++) assert.equal(data.rollItemDrop(d.level).series, expected, d.id);
+    for (let i = 0; i < 5; i++) {
+      const it = data.rollItemDrop(d.level);
+      if (it.unique) continue; // まれに名のある装備（シリーズなし。tests/uniques.test.js）
+      assert.equal(it.series, expected, d.id);
+    }
   }
   assert.equal(data.seriesForLevel(1).key, "bronze");
   assert.equal(data.seriesForLevel(100).key, "abyss");

@@ -62,7 +62,7 @@ function renderDisassembleControls() {
       chip.textContent = rarity.key.toUpperCase();
       chip.title = rarity.name;
       chip.disabled = items.length === 0;
-      if (all) chip.style.background = rarity.color;
+      if (all) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
       chip.addEventListener("click", () => {
         for (const i of items) { if (all) disassembleSelection.delete(i); else disassembleSelection.add(i); }
         disassembleConfirming = false;
@@ -159,7 +159,7 @@ function renderInventoryScreen() {
 function buildInventoryItemRow(item) {
   const row = document.createElement("div");
   row.className = "skill-row";
-  row.style.borderColor = item.rarityColor;
+  row.style.borderColor = rarityColor(item.rarity);
 
   const icon = document.createElement("div");
   icon.className = "skill-row-icon";
@@ -168,8 +168,20 @@ function buildInventoryItemRow(item) {
 
   const name = document.createElement("div");
   name.className = "skill-row-name";
-  const rarity = RARITIES.find((r) => r.key === item.rarity);
-  name.textContent = `${itemLabel(item)}（${rarity ? rarity.name : item.rarity}）`;
+  name.textContent = itemLabel(item); // レア度は名前の色で表す（ノーマル白〜レジェンドレア金）
+  name.style.color = rarityColor(item.rarity);
+  if (item.unique) {
+    const eff = document.createElement("span");
+    eff.className = "inv-unique-effect" + (item.cursed ? " cursed" : "");
+    eff.textContent = itemEffectText(item);
+    name.appendChild(eff);
+  }
+  if (item.options && item.options.length) {
+    const opt = document.createElement("span");
+    opt.className = "item-options";
+    opt.textContent = `オプション: ${itemOptionsText(item)}`;
+    name.appendChild(opt);
+  }
   row.appendChild(name);
 
   if (disassembleMode) {
@@ -282,13 +294,14 @@ function buildEquipSection(c) {
     const blocked = pos.key === "off" && c.equip.main && c.equip.main.hands === 2;
     const btn = document.createElement("button");
     btn.className = "equip-slot" + (item ? " filled" : "") + (openSlot === key ? " open" : "") + (locked || blocked ? " locked" : "");
-    if (item) btn.style.borderColor = item.rarityColor;
+    if (item) btn.style.borderColor = rarityColor(item.rarity);
     const emptyText = locked ? (c.isMonster ? `Lv${MONSTER_ACCESSORY_SLOT_LEVELS[accIndex - 1]}で解放` : "スキルツリーで解放")
       : blocked ? "（両手武器）" : "なし";
     btn.innerHTML = `<span class="slot-name"></span><span class="slot-item"></span><span class="slot-stats"></span>`;
     btn.querySelector(".slot-name").textContent = pos.name;
-    btn.querySelector(".slot-item").textContent = item ? `${item.name}${item.plus > 0 ? "+" + item.plus : ""}` : emptyText;
-    btn.querySelector(".slot-stats").textContent = item ? itemStatsText(item) : "";
+    btn.querySelector(".slot-item").textContent = item ? `${itemMark(item)}${item.name}${item.plus > 0 ? "+" + item.plus : ""}` : emptyText;
+    btn.querySelector(".slot-stats").textContent = item ? [itemStatsText(item), itemEffectText(item), itemOptionsText(item)].filter(Boolean).join(" ／ ") : "";
+    if (item) btn.querySelector(".slot-item").style.color = rarityColor(item.rarity);
     if (locked || blocked) btn.disabled = true;
     btn.addEventListener("click", () => {
       openSlot = openSlot === key ? null : key;
@@ -315,10 +328,20 @@ function buildEquipSection(c) {
     wrap.appendChild(row);
   }
 
+  // 付けている名のある装備の説明文
+  for (const { item, def } of setBonuses(c).uniques) {
+    const row = document.createElement("div");
+    row.className = "equip-unique-row" + (item.cursed ? " cursed" : "");
+    row.innerHTML = `<span class="equip-unique-name"></span><span class="equip-unique-flavor"></span>`;
+    row.querySelector(".equip-unique-name").textContent = `${itemMark(item)}${item.name}: ${def.effect.desc}`;
+    row.querySelector(".equip-unique-flavor").textContent = def.flavor;
+    wrap.appendChild(row);
+  }
+
   const autoBtn = document.createElement("button");
   autoBtn.className = "equip-choice";
   autoBtn.style.marginTop = "6px";
-  autoBtn.textContent = "おまかせ装備";
+  autoBtn.textContent = "おまかせ装備（呪いの装備は選ばない）";
   autoBtn.addEventListener("click", () => { autoEquip(c); renderCharDetail(); });
   wrap.appendChild(autoBtn);
 
@@ -353,8 +376,11 @@ function buildEquipSection(c) {
     for (const item of candidates) {
       const btn = document.createElement("button");
       btn.className = "equip-choice";
-      btn.style.borderColor = item.rarityColor;
-      btn.textContent = itemLabel(item) + (item.hands === 2 ? "・両手" : "");
+      btn.style.borderColor = rarityColor(item.rarity);
+      btn.style.color = rarityColor(item.rarity);
+      btn.textContent = itemLabel(item) + (item.hands === 2 ? "・両手" : "") + (item.unique ? ` ${itemEffectText(item)}` : "") +
+        (item.options && item.options.length ? ` [${itemOptionsText(item)}]` : "");
+
       btn.addEventListener("click", () => { equipItem(c, item, opened.key); openSlot = null; renderCharDetail(); });
       list.appendChild(btn);
     }
@@ -395,10 +421,13 @@ function renderEnhanceModal() {
   const nextText = itemStatsText({ ...item, plus: item.plus + 1 });
 
   document.getElementById("enIcon").textContent = SLOT_ICONS[item.slot] || "❓";
-  document.getElementById("enName").textContent = `${item.name}${item.plus > 0 ? "+" + item.plus : ""}`;
+  document.getElementById("enName").textContent = `${itemMark(item)}${item.name}${item.plus > 0 ? "+" + item.plus : ""}`;
+  document.getElementById("enName").style.color = rarityColor(item.rarity);
   document.getElementById("enDesc").textContent =
     `${rarity.name} / ${itemStatsText(item)}` +
-    (maxed ? "（強化値が上限に達しています）" : ` → 成功で ${nextText}`);
+    (maxed ? "（強化値が上限に達しています）" : ` → 成功で ${nextText}`) +
+    (item.options && item.options.length ? `\nオプション: ${itemOptionsText(item)}` : "") +
+    (item.unique ? `\n${itemEffectText(item)}\n「${getUniqueItem(item.base).flavor}」` : "");
 
   const rate = enhanceSuccessRate(item);
   const cost = enhanceCost(item);

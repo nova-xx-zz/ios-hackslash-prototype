@@ -112,7 +112,7 @@ test("冒険の記録: 出会った敵をダンジョン別に、手に入れた
   Runner.finishRun(run, true, { tamed: "スライム" });
   assert.deepEqual(state.records.itemsFound.sort(), ["bronze_plate:r", "bronze_sword:n"]);
   assert.deepEqual(state.records.runHistory[0], {
-    at: 1_000_000_000_000, team: 0, dungeonId: "plains", cleared: true, battlesWon: 3, battles: 3,
+    at: 1_000_000_000_000, team: 0, dungeonId: "plains", mode: "normal", cleared: true, battlesWon: 3, battles: 3,
     exp: 42, items: 1, disassembled: 1, material: 5, tamed: "スライム",
   });
   // 全滅: 持ち帰れなかった装備は記録しない。履歴は新しい順

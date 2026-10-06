@@ -36,16 +36,20 @@ test("初期状態: 空のロスター・所持品、チームごとの自動周
 
 test("書き出して読み直すと同じ状態に戻る", () => {
   const s = sampleState();
-  const loaded = roundTrip(s, { now: 1700000000000, runDungeonIds: [null, "forest"], enabledFeatures: ["skillTree"] });
+  s.clearedHard = new Set(["forest"]);
+  s.clearedExtra = new Set(["plains"]);
+  const loaded = roundTrip(s, { now: 1700000000000, runDungeonIds: [null, "forest"], runModes: [null, "hard"], enabledFeatures: ["skillTree"] });
   assert.equal(loaded.isLegacy, false);
   assert.equal(loaded.savedAt, 1700000000000);
   for (const key of ["roster", "inventory", "activeTeam", "nextCharSeq", "skillBooks", "material", "guaranteedStones"]) {
     assert.deepEqual(loaded.state[key], s[key], key);
   }
   assert.deepEqual([...loaded.state.clearedDungeons], ["plains", "forest"]);
+  assert.deepEqual([...loaded.state.clearedHard], ["forest"]);
+  assert.deepEqual([...loaded.state.clearedExtra], ["plains"]);
   // 自動周回は状態には戻さず、オフライン精算用に探索中ダンジョンと一緒に返す
   assert.equal(loaded.state.autoRepeat, undefined);
-  assert.deepEqual(loaded.savedAutoRepeat[1], { active: true, target: 20, done: 4, dungeonId: "forest" });
+  assert.deepEqual(loaded.savedAutoRepeat[1], { active: true, target: 20, done: 4, dungeonId: "forest", mode: "hard" });
   assert.equal(loaded.savedAutoRepeat[0].dungeonId, null);
 });
 

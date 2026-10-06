@@ -4,7 +4,7 @@
 // 自動周回の継続判定）・オフライン精算（離れていた間の周回の計算と反映）。画面には依存しない。
 // ログの文章・画面の更新・次の処理までの待ち時間（setTimeout）は game.js が受け持ち、ここは「何が起きたか」を返す。
 //   createRunner({ data, state, roster, inventory, rng, teamCount, battleEnv, autoDisassemble, markDexSeen, setBestStage, now })
-//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES, RARE_DROP_MIN_RARITY }
+//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, ITEM_BASES }
 //     冒険の記録（ダンジョン別に出会った敵・手に入れた装備・潜った履歴）は state.records に書く（js/model/records.js）
 //     roster / inventory: js/model/roster.js・inventory.js の戻り値
 //     battleEnv(): 戦闘エンジンに渡す env（game.js の battleEnv）
@@ -36,11 +36,24 @@
     const Inv = deps.inventory;
     const rng = deps.rng;
     const teamCount = deps.teamCount || 4;
-    const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop } = deps.data;
-    const RARE_DROP_MIN_RARITY = deps.data.RARE_DROP_MIN_RARITY || "sr";
-    // 装備はそのダンジョンの推奨Lvを装備のレベルにして抽選する
-    const dropFor = (d) => () => rollItemDrop(d.level);
-    const rareDropFor = (d) => () => rollItemDrop(d.level, RARE_DROP_MIN_RARITY);
+    const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop } = deps.data;
+    // モード（ノーマル・ハード・エクストラ）を反映したダンジョン（js/data.js の getModeDungeon。無ければノーマルのみ）
+    const getModeDungeon = deps.data.getModeDungeon || ((id) => getDungeon(id));
+    // 装備はそのダンジョンの推奨Lvを装備のレベルにして抽選する。ハード・エクストラは上がったレベルで抽選し、
+    // シリーズ・名のある装備は元の地方のまま、オプション効果を付ける
+    const dropOpts = (d) => (d.mode ? { regionLevel: d.baseLevel, mode: d.mode } : undefined);
+    const dropFor = (d) => () => rollItemDrop(d.level, undefined, dropOpts(d));
+    // レア敵・ボスの追加ドロップ（js/uniques.js の rollSpecialDrop。無ければレア敵だけSR以上の装備）
+    const rareDropFor = (d) => (enemy) => (rollSpecialDrop ? rollSpecialDrop(d.level, enemy, dropOpts(d))
+      : enemy && enemy.isBoss ? null : rollItemDrop(d.level, "sr", dropOpts(d)));
+    // そのモードの踏破済みダンジョンの集合（ノーマルは S.clearedDungeons）
+    function clearedSet(mode) {
+      if (mode === "hard") return S.clearedHard || (S.clearedHard = new Set());
+      if (mode === "extra") return S.clearedExtra || (S.clearedExtra = new Set());
+      return S.clearedDungeons;
+    }
+    // オプション効果「パーティの獲得EXP」「パーティの強化石」の倍率
+    const partyMult = (teamIndex, key) => 1 + (R.partyBonus ? R.partyBonus(teamIndex, key) : 0);
     const markDexSeen = deps.markDexSeen || (() => {});
     const setBestStage = deps.setBestStage || (() => {});
     const now = deps.now || (() => Date.now());
@@ -68,8 +81,9 @@
     }
 
     // ---------- 出発・戦闘 ----------
-    function startRun(teamIndex, dungeonId) {
-      const d = getDungeon(dungeonId);
+    // mode: "normal"（省略時）| "hard" | "extra"
+    function startRun(teamIndex, dungeonId, mode) {
+      const d = getModeDungeon(dungeonId, mode);
       const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
       const run = {
         team: teamIndex, dungeon: d, battleIndex: 0, finished: false,
@@ -121,9 +135,10 @@
         const tpl = getEnemyTemplate(e.key);
         if (tpl && tpl.tamable) run.defeatedTamable.push(e.key);
       }
+      const expMult = partyMult(run.team, "expBonus");
       for (const c of R.teamMembers(run.team)) {
         if (!c.alive) continue;
-        const result = R.gainExp(c, rewards.expForMember(expGain, RACES[c.race].expMult));
+        const result = R.gainExp(c, Math.round(rewards.expForMember(expGain, RACES[c.race].expMult) * expMult));
         run.levelUps.push(...result.levelUps);
         run.abilityUnlocks.push(...result.abilityUnlocks);
       }
@@ -136,10 +151,12 @@
         run.battleIndex += 1;
         return { expGain, isLast: false, firstClear: false, unlocked: [], tameResult: null };
       }
-      const firstClear = !S.clearedDungeons.has(run.dungeon.id);
-      S.clearedDungeons.add(run.dungeon.id);
+      const cleared = clearedSet(run.dungeon.mode);
+      const firstClear = !cleared.has(run.dungeon.id);
+      cleared.add(run.dungeon.id);
       setBestStage(S.clearedDungeons.size);
-      const unlocked = firstClear ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean) : [];
+      // 次のダンジョンが開くのはノーマルの初踏破だけ（ハード・エクストラの初踏破は、次のモードが開く）
+      const unlocked = firstClear && !run.dungeon.mode ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean) : [];
       return { expGain, isLast: true, firstClear, unlocked, tameResult: attemptTame(run) };
     }
 
@@ -220,13 +237,14 @@
       run.wiped = !cleared;
       if (cleared) {
         recordsMod.recordItemsFound(records(), run.pendingDrops, ITEM_BASES); // 自動分解する物も「手に入れた」に数える
-        const settled = Inv.receiveDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities });
+        const settled = Inv.receiveDrops(run.pendingDrops, { enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities },
+          partyMult(run.team, "materialBonus"));
         run.disassembleCount += settled.disassembled;
         run.materialGained += settled.materialGained;
         run.drops.push(...settled.kept);
       }
       recordsMod.addRunHistory(records(), {
-        at: now(), team: run.team, dungeonId: run.dungeon.id, cleared,
+        at: now(), team: run.team, dungeonId: run.dungeon.id, mode: run.dungeon.mode || "normal", cleared,
         battlesWon: cleared ? run.dungeon.battles : run.battleIndex, battles: run.dungeon.battles,
         exp: run.expTotal, items: run.drops.length, disassembled: run.disassembleCount, material: run.materialGained,
         tamed: (extra && extra.tamed) || null,
@@ -309,18 +327,19 @@
       const party = R.teamMembers(teamIndex);
       for (const key of outcome.encountered) { markDexSeen(key); recordsMod.recordEncounter(records(), dungeon.id, key); }
       let expTotal = 0;
+      const expMult = partyMult(teamIndex, "expBonus");
       for (const exp of outcome.expByBattle) {
         expTotal += exp;
-        for (const c of party) R.gainExp(c, rewards.expForMember(exp, RACES[c.race].expMult));
+        for (const c of party) R.gainExp(c, Math.round(rewards.expForMember(exp, RACES[c.race].expMult) * expMult));
       }
       if (!outcome.cleared) return { cleared: false, expTotal };
 
       const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
       recordsMod.recordItemsFound(records(), outcome.drops, ITEM_BASES);
-      const settled = Inv.receiveDrops(outcome.drops, filter);
+      const settled = Inv.receiveDrops(outcome.drops, filter, partyMult(teamIndex, "materialBonus"));
       let tamedName = null;
       if (outcome.tame && outcome.tame.success) tamedName = addTamedMonster(outcome.tame.key).name;
-      S.clearedDungeons.add(dungeon.id);
+      clearedSet(dungeon.mode).add(dungeon.id);
       setBestStage(S.clearedDungeons.size);
       return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName };
     }
@@ -328,7 +347,7 @@
     // 保存されていたそのチームの自動周回状態と経過時間から、離れていた間の周回をまとめて計算する
     function runOfflineProgressForTeam(teamIndex, autoRepeatInfo, savedAt) {
       if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
-      const dungeon = getDungeon(autoRepeatInfo.dungeonId);
+      const dungeon = getModeDungeon(autoRepeatInfo.dungeonId, autoRepeatInfo.mode);
       if (!dungeon) return null;
       // 離れていた時間（最大8時間。端末の時計が戻っていても負にしない）を、実際に戦った時間で使い切るまで周回する。
       // 時間内に終わらなかった周は数えない（その周の結果は反映しない）
@@ -359,7 +378,7 @@
       // 離れていた間の周回は、まとめて1件の履歴にする
       if (runsDone > 0) {
         recordsMod.addRunHistory(records(), {
-          at: now(), team: teamIndex, dungeonId: dungeon.id, cleared: !wipedOut, offline: true,
+          at: now(), team: teamIndex, dungeonId: dungeon.id, mode: dungeon.mode || "normal", cleared: !wipedOut, offline: true,
           runs: runsDone, clears: cleared, exp: expGained, items: itemsGained,
           tamed: tamedNames.length ? tamedNames.join("、") : null,
         });
@@ -367,7 +386,8 @@
 
       // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
       const tooShort = runsDone === 0;
-      return { team: teamIndex, dungeonName: dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
+      const modeName = { hard: "ハード", extra: "エクストラ" }[dungeon.mode];
+      return { team: teamIndex, dungeonName: modeName ? `${dungeon.name}（${modeName}）` : dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
     }
 
     // チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある

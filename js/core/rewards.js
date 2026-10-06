@@ -43,6 +43,8 @@
       rarityColor: rarity.color,
       materialValue: rarity.material,
       plus: 0,
+      ...(base.unique ? { unique: true } : {}), // 名のある装備（js/uniques.js。効果は種類のkeyから引く）
+      ...(base.cursed ? { cursed: true } : {}),
     };
   }
 
@@ -60,9 +62,10 @@
     return drops;
   }
 
-  // 倒したレア敵1体につき1個、レア度の高い装備を追加で落とす。rollRareOne: レア敵用に装備を1個抽選する関数
+  // 倒したレア敵1体につき1個、レア度の高い装備を追加で落とす。ボスも追加で落とすことがある。
+  // rollRareOne(敵): その敵が追加で落とす装備を1個抽選する関数（落とさなければ null）
   function rollRareDrops(enemies, rollRareOne) {
-    return enemies.filter((e) => e.isRare).map(() => rollRareOne());
+    return enemies.filter((e) => e.isRare || e.isBoss).map((e) => rollRareOne(e)).filter(Boolean);
   }
 
   // 戦闘と戦闘の間に起きる道中イベントの種類を抽選する（起きなければnull）

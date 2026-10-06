@@ -27,6 +27,21 @@ if (process.argv.includes("--check")) {
   process.exit(ng ? 1 : 0);
 }
 
+if (process.argv.includes("--calibrate-modes")) {
+  // ハード・エクストラの敵の強さの倍率（js/data.js の DUNGEONS[].modePower）を提案する。ダンジョンのidを並べると、そのダンジョンだけ
+  const { calibrateMode, modeTarget, pct } = require("./lib/difficulty.js");
+  const ids = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+  for (const d of data.DUNGEONS) {
+    if (ids.length && !ids.includes(d.id)) continue;
+    const out = ["hard", "extra"].map((m) => {
+      const lv = data.getModeDungeon(d.id, m).level;
+      return `${m} ${calibrateMode(d, m)}（推奨Lv${lv}・目標${pct(modeTarget(lv))}）`;
+    });
+    console.log(`${d.id} ${d.name}: ${out.join(" / ")}（現在 ${JSON.stringify(d.modePower || null)}）`);
+  }
+  process.exit(0);
+}
+
 if (process.argv.includes("--calibrate")) {
   // ダンジョンを追加・調整した時に使う: 推奨Lvで想定プレイヤーの踏破率が目標になる強さ倍率を提案する
   const { STANDARD, calibrate, pct } = require("./lib/difficulty.js");

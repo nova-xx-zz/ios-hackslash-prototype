@@ -49,8 +49,15 @@ const BOOK_GUIDE = [
     "装備の枠は、右手・左手・頭・体・装飾品の5か所です。装飾品は最初1枠で、スキルツリーの「装備の心得」「装備の極意」で3枠まで増えます（モンスターはLv20・Lv40で増えます）。",
     "ジョブによって持てる装備の種類が違います（まほうつかいは剣やよろいを持てない、など）。両手武器は強力ですが、持っている間は左手に何も付けられません。とうぞく・ぶとうか・けんごうなどの二刀流のジョブは、左手にも片手武器を持てます。",
     "装備はシリーズ（ブロンズ・アイアンなど）に分かれ、地方ごとに手に入るシリーズが変わります。同じシリーズを2・4・6個そろえて付けると、セット効果が付きます。",
+    "地方ごとに29種類の「名のある装備」（◆）があります。★レアモンスターやボスがときどき落とし、ふつうの戦闘でもまれに手に入ります。能力値が高く、会心率や吸収などの特殊効果が付きます。",
+    "☠の付いた装備は呪われています。とても強力ですが、被ダメージが増える・最大HPが減るなどのデメリットがあります。おまかせ装備では選ばれないので、付ける時は自分で選んでください。",
     "装備は強化石を使って強化できます。強化値が高いほど成功しにくくなります。",
     "所持品の「分解する」で、選んだ装備を強化石に変えられます。",
+  ] },
+  { title: "ハードとエクストラ", body: [
+    "ダンジョンをノーマルで踏破すると「ハード」、ハードを踏破すると「エクストラ」に挑めるようになります。マップでダンジョンを選んで、モードを切り替えてください。",
+    "ハードは推奨Lvが10、エクストラは25上がった強さの敵が出ます。EXPはハードで1.5倍、エクストラで2倍です。",
+    "ハード・エクストラで手に入る装備は、レベルが上がるうえに「オプション効果」が付きます（ハードは1〜2個、エクストラは強い効果が2〜3個）。能力値アップ・会心率や吸収などの戦闘の効果のほか、パーティの獲得EXPや強化石が増える周回向けの効果もあります。",
   ] },
   { title: "地方とレアモンスター", body: [
     "ダンジョンは地方ごとに分かれています。地方の最後のダンジョンを踏破すると、次の地方へ進めるようになります。マップの上の地方の名前を押すと、地方を切り替えられます。",
@@ -147,7 +154,7 @@ function bookRootPage() {
       body.appendChild(bookList([
         bookRow({ iconHtml: bookIcon("guide"), label: "冒険の手引き", onClick: () => pushBookPage(guideIndexPage()) }),
         bookRow({ iconHtml: bookIcon("monsters"), label: "モンスター辞典", meta: `${dexSeen.size}/${ENEMY_TEMPLATES.length}`, onClick: () => pushBookPage(monsterIndexPage()) }),
-        bookRow({ iconHtml: bookIcon("items"), label: "アイテム辞典", meta: `${r.itemsFound.length}/${ITEM_BASES.length * RARITIES.length}`, onClick: () => pushBookPage(itemDexPage()) }),
+        bookRow({ iconHtml: bookIcon("items"), label: "アイテム辞典", meta: `${r.itemsFound.length}/${(ITEM_BASES.length + UNIQUE_ITEMS.length) * RARITIES.length}`, onClick: () => pushBookPage(itemDexPage()) }),
         bookRow({ iconHtml: bookIcon("races"), label: "種族辞典", meta: `${playerRaces}種族`, onClick: () => pushBookPage(raceIndexPage()) }),
         bookRow({ iconHtml: bookIcon("jobs"), label: "ジョブ辞典", meta: `${Object.keys(JOBS).length}職`, onClick: () => pushBookPage(jobIndexPage()) }),
         bookRow({ iconHtml: bookIcon("history"), label: "冒険の記録", meta: `${r.runHistory.length}件`, onClick: () => pushBookPage(historyPage()) }),
@@ -257,8 +264,9 @@ function itemDexPage() {
     .reduce((n, b) => n + RARITIES.filter((r) => found.has(`${b.key}:${r.key}`)).length, 0);
   return {
     title: "アイテム辞典",
-    sub: `手に入れた装備 ${found.size} / ${ITEM_BASES.length * RARITIES.length} 種類（自動分解した物も含む）`,
+    sub: `手に入れた装備 ${found.size} / ${(ITEM_BASES.length + UNIQUE_ITEMS.length) * RARITIES.length} 種類（自動分解した物も含む）`,
     render(body) {
+      body.appendChild(bookHeading("シリーズ"));
       body.appendChild(bookList(ITEM_SERIES.map((series) => {
         const total = ITEM_TYPES.length * RARITIES.length;
         const any = foundIn(series) > 0;
@@ -269,6 +277,44 @@ function itemDexPage() {
         });
       })));
       body.appendChild(bookParagraph("シリーズは地方ごとに変わります。同じシリーズの装備を2・4・6個そろえて付けるとセット効果が付きます。", "book-note"));
+
+      // 名のある装備（地方ごとに29種類）
+      body.appendChild(bookHeading("名のある装備"));
+      body.appendChild(bookList(REGIONS.map((region) => {
+        const list = UNIQUE_ITEMS.filter((u) => u.region === region.id);
+        const got = list.filter((u) => RARITIES.some((r) => found.has(`${u.key}:${r.key}`))).length;
+        return bookRow({
+          label: got > 0 || S.clearedDungeons.has(DUNGEONS.find((d) => d.region === region.id).id) ? `${region.name}の名のある装備` : "？？？",
+          meta: `${got}/${list.length}`,
+          onClick: () => pushBookPage(uniqueRegionPage(region)),
+        });
+      })));
+      body.appendChild(bookParagraph("名のある装備（◆）は、★レアモンスターやボスがときどき落とします。☠は呪いの装備で、強い代わりにデメリットがあります。", "book-note"));
+    },
+  };
+}
+
+function uniqueRegionPage(region) {
+  const found = new Set(S.records.itemsFound);
+  const list = UNIQUE_ITEMS.filter((u) => u.region === region.id);
+  return {
+    title: `${region.name}の名のある装備`,
+    sub: `手に入れた ${list.filter((u) => RARITIES.some((r) => found.has(`${u.key}:${r.key}`))).length} / ${list.length} 種類`,
+    render(body) {
+      const wrap = document.createElement("div");
+      wrap.className = "book-list";
+      for (const u of list) {
+        const has = RARITIES.some((r) => found.has(`${u.key}:${r.key}`));
+        const row = document.createElement("div");
+        row.className = "book-unique-row" + (u.cursed ? " cursed" : "") + (has ? "" : " unknown");
+        row.innerHTML = `<div class="book-unique-name"></div><div class="book-unique-effect"></div><div class="book-unique-flavor"></div>`;
+        const typeText = `${u.typeName}${u.hands === 2 ? "・両手" : ""}`;
+        row.querySelector(".book-unique-name").textContent = has ? `${u.cursed ? "☠" : "◆"}${u.name}（${typeText}）` : `？？？（${typeText}）`;
+        row.querySelector(".book-unique-effect").textContent = has ? u.effect.desc : "";
+        row.querySelector(".book-unique-flavor").textContent = has ? `「${u.flavor}」` : "";
+        wrap.appendChild(row);
+      }
+      body.appendChild(wrap);
     },
   };
 }
@@ -305,7 +351,7 @@ function itemSeriesPage(series) {
             chip.className = "book-rarity-chip" + (has ? " found" : "");
             chip.textContent = r.key.toUpperCase();
             chip.title = has ? `${r.name}の${base.name}` : "まだ手に入れていない";
-            if (has) chip.style.background = r.color;
+            if (has) { chip.style.background = r.color; chip.style.color = "#171a1a"; }
             chips.appendChild(chip);
           }
           row.appendChild(chips);
@@ -456,7 +502,8 @@ function historyEntry(e) {
     <div class="bhe-details"></div>`;
   card.querySelector(".bhe-date").textContent = date;
   card.querySelector(".bhe-team").textContent = TEAM_NAMES[e.team] || "";
-  card.querySelector(".bhe-dungeon").textContent = d ? d.name : e.dungeonId;
+  const modeText = e.mode && e.mode !== "normal" ? `（${getDungeonMode(e.mode).name}）` : "";
+  card.querySelector(".bhe-dungeon").textContent = (d ? d.name : e.dungeonId) + modeText;
   card.querySelector(".bhe-result").textContent = result;
   card.querySelector(".bhe-details").textContent = details.join("　");
   return card;

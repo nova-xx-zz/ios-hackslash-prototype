@@ -80,4 +80,36 @@ function calibrate(d) {
   return Math.round(((lo + hi) / 2) * 200) / 200;
 }
 
-module.exports = { STANDARD, check, calibrate, pct, benchmarkGearLevel };
+// ---------- ハード・エクストラ ----------
+// 想定プレイヤー: そのモードの推奨Lv（上限100）で、そのレベルに着いた頃の適正装備（推奨Lvがそれ以下で一番奥の
+// ダンジョンの benchmarkGear と、そのダンジョンの推奨Lvを装備のレベルにしたもの）と素直なスキル振り。
+// 推奨Lvで calibrateTarget の踏破率にする。推奨Lvが100を超える分は、1Lvごとに目標を2%ずつ下げる
+// （レベル上限の先は、装備の強化を積み上げて挑む）
+function modeBenchmark(level) {
+  let src = data.DUNGEONS[0];
+  for (const x of data.DUNGEONS) if (x.level <= level) src = x;
+  return { gear: Object.assign({}, src.benchmarkGear, { level: src.level }), tree: true };
+}
+function modeTarget(level) {
+  return Math.max(0.3, STANDARD.calibrateTarget - 0.02 * Math.max(0, level - 100));
+}
+function modeRate(d, mode) {
+  const md = data.getModeDungeon(d.id, mode);
+  return clearRate(d.id, Math.min(100, md.level), STANDARD.trials, STANDARD.seed + md.level,
+    Object.assign({ mode }, modeBenchmark(md.level))).rate;
+}
+// そのモードの推奨Lvで想定プレイヤーの踏破率が目標になる「敵の強さの倍率」（DUNGEONS[].modePower[mode]）を探す
+function calibrateMode(d, mode) {
+  const saved = d.modePower;
+  const target = modeTarget(data.getModeDungeon(d.id, mode).level);
+  let lo = 0.05, hi = 6;
+  for (let i = 0; i < 15; i++) {
+    const mid = (lo + hi) / 2;
+    d.modePower = Object.assign({}, saved, { [mode]: mid });
+    if (modeRate(d, mode) > target) lo = mid; else hi = mid;
+  }
+  d.modePower = saved;
+  return Math.round(((lo + hi) / 2) * 200) / 200;
+}
+
+module.exports = { STANDARD, check, calibrate, pct, benchmarkGearLevel, modeBenchmark, modeTarget, modeRate, calibrateMode };

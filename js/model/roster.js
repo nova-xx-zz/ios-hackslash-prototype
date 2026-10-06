@@ -15,7 +15,7 @@
     const {
       JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
       getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
-      JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES,
+      JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
     } = deps.data;
 
     // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
@@ -243,10 +243,14 @@
     function canPlaceItem(c, item, position) {
       return equipment.canPlace(equipProfile(c), item, position, c.equip, accessorySlots(c));
     }
-    // 付けている装備のセット効果（同じシリーズを2・4・6個）
-    function setBonuses(c) { return equipment.setBonusTotals(c.equip, ITEM_SERIES); }
+    // 付けている装備のセット効果（同じシリーズを2・4・6個）と、名のある装備の特殊効果
+    function setBonuses(c) { return equipment.setBonusTotals(c.equip, ITEM_SERIES, getUniqueItem, itemOptionEffect); }
     // 会心率・吸収・回復量・被ダメージ・消費MPのうち、セット効果のぶん（戦闘で種族・スキルツリーの値と合わせる）
     function gearPassive(c, key) { return setBonuses(c).passives[key]; }
+    // パーティ全体に効くオプション効果（獲得EXP・強化石）の合計。key: "expBonus" | "materialBonus"
+    function partyBonus(teamIndex, key) {
+      return teamMembers(teamIndex).reduce((n, c) => n + (setBonuses(c).passives[key] || 0), 0);
+    }
 
     function computeStats(c) {
       const s = stats.baseStats(jobDef(c), RACES[c.race] || RACES.human, c.level);
@@ -258,8 +262,10 @@
       }
       const tp = treePassiveTotals(c);
       s.maxHp += tp.hp; s.maxMp += tp.mp; s.atk += tp.atk; s.mag += tp.mag; s.def += tp.def; s.spd += tp.spd;
-      // セット効果（能力値の割合ボーナス）は、装備・スキルツリーまで足した値に掛ける
-      for (const [k, pct] of Object.entries(setBonuses(c).stats)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
+      // オプション効果の固定値を足し、セット効果などの能力値の割合ボーナスは、装備・スキルツリーまで足した値に掛ける
+      const bonus = setBonuses(c);
+      for (const [k, v] of Object.entries(bonus.flat)) s[key(k)] += v;
+      for (const [k, pct] of Object.entries(bonus.stats)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
       // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
       const buffs = c.team !== null ? runBuffs(c.team) : null;
       if (buffs) stats.applyBuffs(s, buffs);
@@ -330,7 +336,7 @@
 
     return {
       gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore,
-      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
+      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
 

@@ -75,7 +75,8 @@
       const acc = R.accessorySlots(c);
       const pool = S.inventory.slice();
       for (const p of equipment.POSITIONS) if (c.equip[p]) pool.push(c.equip[p]);
-      const usable = pool.filter((it) => equipment.canUseItem(profile, it));
+      // 呪いの装備はデメリットがあるので、おまかせでは選ばない（付けたままなら残す）
+      const usable = pool.filter((it) => equipment.canUseItem(profile, it) && (!it.cursed || Object.values(c.equip).includes(it)));
       const score = (it) => (it ? R.itemScore(c, it) : 0);
       const best = (list) => list.reduce((a, b) => (score(b) > score(a) ? b : a), null);
       const chosen = equipment.emptyEquip();
@@ -146,8 +147,10 @@
     // ---------- ドロップの受け取り ----------
     // 持ち帰ったドロップを、自動分解の設定（filter: { enabled, rarities }）に従って所持品と強化石に振り分ける。
     // 結果: js/core/rewards.js の settleDrops と同じ { kept, disassembled, materialGained }
-    function receiveDrops(drops, filter) {
+    // materialMult: 強化石の倍率（オプション効果「パーティの強化石」。省略時1）
+    function receiveDrops(drops, filter, materialMult) {
       const settled = rewards.settleDrops(drops, filter);
+      if (materialMult && materialMult !== 1) settled.materialGained = Math.round(settled.materialGained * materialMult);
       if (settled.materialGained > 0) addMaterial(settled.materialGained);
       S.inventory.push(...settled.kept);
       return settled;
