@@ -112,4 +112,4 @@ function calibrateMode(d, mode) {
   return Math.round(((lo + hi) / 2) * 200) / 200;
 }
 
-module.exports = { STANDARD, check, calibrate, pct, benchmarkGearLevel, modeBenchmark, modeTarget, modeRate, calibrateMode };
+module.exports = { STANDARD, check, calibrate, pct, benchmark, benchmarkGearLevel, modeBenchmark, modeTarget, modeRate, calibrateMode };
