@@ -486,6 +486,25 @@ const ENEMY_TEMPLATES = [
   { key: "bone_drake", name: "ボーンドレイク", hp: 45, atk: 20, mag: 0, def: 7, spd: 9, exp: 27, color: "#cfc6b0", icon: "🐉", element: "闇", tamable: false, tameChance: 0, desc: "竜の骨が魔力で動き出した小竜。牙も爪も古びてなお鋭い。" },
   { key: "ancient_wyvern", name: "エンシェントワイバーン", hp: 95, atk: 24, mag: 0, def: 14, spd: 8, exp: 40, color: "#8a2a3a", icon: "🐲", element: "火", tamable: false, tameChance: 0, desc: "竜骨の山頂に棲まう古き翼竜。伝説の中でしか語られぬ最強格の魔物。" },
 
+  // ---- サブル地方 (Lv17〜30) ----
+  { key: "sand_worm", name: "サンドワーム", hp: 62, atk: 17, mag: 0, def: 8, spd: 4, exp: 28, color: "#c9a26b", icon: "🪱", element: "土", tamable: false, tameChance: 0, desc: "砂の中を泳ぐ巨大な環形の魔物。足元の砂が盛り上がったら要注意。" },
+  { key: "desert_scorpion", name: "デザートスコーピオン", hp: 44, atk: 20, mag: 0, def: 10, spd: 8, exp: 28, color: "#b5652f", icon: "🦂", element: "毒", tamable: false, tameChance: 0, desc: "砂漠に棲む大サソリ。尾の毒針は鎧の継ぎ目を正確に狙ってくる。" },
+  { key: "dust_devil", name: "ダストデビル", hp: 36, atk: 18, mag: 0, def: 5, spd: 14, exp: 27, color: "#d8c9a0", icon: "🌪️", element: "風", tamable: false, tameChance: 0, desc: "砂を巻き上げて渦巻く風の魔物。実体がつかみにくい。" },
+  { key: "cactus_man", name: "サボテンマン", hp: 54, atk: 16, mag: 0, def: 12, spd: 6, exp: 27, color: "#6aa84f", icon: "🌵", element: "土", tamable: false, tameChance: 0, desc: "歩くサボテン。うかつに殴ると全身のトゲが刺さる。" },
+  { key: "death_vulture", name: "デスバルチャー", hp: 40, atk: 19, mag: 0, def: 6, spd: 13, exp: 28, color: "#6b5444", icon: "🦅", element: "風", tamable: false, tameChance: 0, desc: "弱った旅人の上空を旋回するハゲワシ。獲物が倒れるのを待っている。" },
+  { key: "sand_bandit", name: "サンドバンディット", hp: 50, atk: 21, mag: 0, def: 8, spd: 11, exp: 30, color: "#a0522d", icon: "🗡️", element: "無", tamable: false, tameChance: 0, desc: "砂漠を荒らす盗賊団の一味。魔物と手を組んで隊商を襲う。" },
+  { key: "sand_golem", name: "サンドゴーレム", hp: 78, atk: 18, mag: 0, def: 15, spd: 3, exp: 31, color: "#cdb88a", icon: "🏜️", element: "土", tamable: false, tameChance: 0, desc: "砂が魔力で固まった巨人。崩しても崩しても形を取り戻す。" },
+  { key: "jackal_warrior", name: "ジャッカルウォリアー", hp: 56, atk: 22, mag: 0, def: 10, spd: 11, exp: 31, color: "#8a6a3a", icon: "🐕", element: "闇", tamable: false, tameChance: 0, desc: "獣頭の戦士。墓守の一族と言われ、剣の腕は確か。" },
+  { key: "mirage_spirit", name: "ミラージュ", hp: 42, atk: 20, mag: 0, def: 7, spd: 15, exp: 30, color: "#e6d6ff", icon: "🫥", element: "光", tamable: false, tameChance: 0, desc: "蜃気楼が意思を持った精霊。見えている姿は本体ではない。" },
+  { key: "fire_salamander", name: "サラマンダー", hp: 58, atk: 23, mag: 0, def: 9, spd: 9, exp: 32, color: "#e0582f", icon: "🦎", element: "火", tamable: false, tameChance: 0, desc: "炎をまとう大トカゲ。熱砂の下で眠り、日中に這い出してくる。" },
+  { key: "mummy", name: "マミー", hp: 70, atk: 21, mag: 0, def: 11, spd: 5, exp: 33, color: "#d9cfb2", icon: "🧟", element: "闇", tamable: false, tameChance: 0, desc: "包帯に巻かれた古代の死者。墓を荒らす者を地の底まで追う。" },
+  { key: "scarab", name: "スカラベ", hp: 48, atk: 22, mag: 0, def: 14, spd: 10, exp: 32, color: "#2f6b5a", icon: "🪲", element: "土", tamable: false, tameChance: 0, desc: "王墓に巣くう甲虫。群れで現れて屍肉も鎧も食い破る。" },
+  { key: "king_worm", name: "キングワーム", hp: 120, atk: 25, mag: 0, def: 13, spd: 5, exp: 52, color: "#a77b42", icon: "🐛", element: "土", tamable: false, tameChance: 0, desc: "砂丘の主。砂ごと獲物を丸呑みにする巨大なワーム。" },
+  { key: "emperor_scorpion", name: "エンペラースコーピオン", hp: 118, atk: 28, mag: 0, def: 17, spd: 8, exp: 56, color: "#7a2f1f", icon: "🦂", element: "毒", tamable: false, tameChance: 0, desc: "谷の奥に君臨するサソリの帝王。甲殻は鋼より硬い。" },
+  { key: "cursed_naga", name: "カースドナーガ", hp: 126, atk: 29, mag: 0, def: 14, spd: 10, exp: 60, color: "#3f8a7a", icon: "🐍", element: "水", tamable: false, tameChance: 0, desc: "泉を枯らした呪いの化身。半身が蛇の水妖。" },
+  { key: "mummy_king", name: "マミーキング", hp: 140, atk: 30, mag: 0, def: 16, spd: 6, exp: 64, color: "#c9b37a", icon: "👑", element: "闇", tamable: false, tameChance: 0, desc: "王墓に眠っていた古王。死してなお玉座を明け渡さない。" },
+  { key: "sphinx", name: "スフィンクス", hp: 150, atk: 32, mag: 0, def: 18, spd: 10, exp: 70, color: "#d4a84a", icon: "🦁", element: "光", tamable: false, tameChance: 0, desc: "大神殿を守る獅子の番人。問いに答えられぬ者を引き裂く。" },
+
   // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
   { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
   { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
@@ -497,6 +516,16 @@ const ENEMY_TEMPLATES = [
   { key: "phantom_lord", name: "ファントムロード", hp: 44, atk: 18, mag: 0, def: 6, spd: 10, exp: 22, color: "#7a4a9a", icon: "🎭", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "遺跡を治めていた王の亡霊。仮面の奥から生者を見下ろしている。" },
   { key: "frost_phoenix", name: "フロストフェニックス", hp: 52, atk: 20, mag: 0, def: 7, spd: 14, exp: 30, color: "#bfe9ff", icon: "🦅", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "吹雪とともに現れる氷の霊鳥。その羽は溶けることがないという。" },
   { key: "dragon_hatchling", name: "ドラゴンの幼体", hp: 64, atk: 19, mag: 0, def: 10, spd: 9, exp: 30, color: "#d8604a", icon: "🐣", element: "火", rare: true, tamable: false, tameChance: 0, desc: "山頂の巣からはぐれた竜の子。幼くとも竜の力は侮れない。" },
+  { key: "golden_worm", name: "ゴールデンワーム", hp: 70, atk: 18, mag: 0, def: 12, spd: 8, exp: 32, color: "#f2c94c", icon: "✨", element: "光", rare: true, tamable: false, tameChance: 0, desc: "砂金を食べて育ったワーム。体の中に金の粒をため込んでいる。" },
+  { key: "gold_tortoise", name: "ゴールドトータス", hp: 80, atk: 15, mag: 0, def: 20, spd: 4, exp: 32, color: "#d4af37", icon: "🐢", element: "土", rare: true, tamable: false, tameChance: 0, desc: "黄金の甲羅を背負った陸ガメ。めったに砂から顔を出さない。" },
+  { key: "ruby_scorpion", name: "ルビースコーピオン", hp: 56, atk: 24, mag: 0, def: 15, spd: 12, exp: 34, color: "#d1304a", icon: "♦️", element: "火", rare: true, tamable: false, tameChance: 0, desc: "紅玉の殻を持つサソリ。盗賊たちが血眼になって探している。" },
+  { key: "roc_chick", name: "ロック鳥のヒナ", hp: 66, atk: 22, mag: 0, def: 9, spd: 14, exp: 34, color: "#f0e0b0", icon: "🐤", element: "風", rare: true, tamable: false, tameChance: 0, desc: "巨鳥ロックのヒナ。ヒナでも人の背丈ほどあり、くちばしは鋭い。" },
+  { key: "oasis_spirit", name: "オアシスの精霊", hp: 60, atk: 23, mag: 0, def: 10, spd: 15, exp: 36, color: "#7fd3f0", icon: "💧", element: "水", rare: true, tamable: false, tameChance: 0, desc: "枯れた泉に残ったわずかな水の精。泉がよみがえる日を待っている。" },
+  { key: "mirage_camel", name: "ミラージュキャメル", hp: 74, atk: 21, mag: 0, def: 12, spd: 12, exp: 36, color: "#e8d3a8", icon: "🐫", element: "光", rare: true, tamable: false, tameChance: 0, desc: "蜃気楼の中だけを歩くラクダ。背の荷には失われた宝が積まれているという。" },
+  { key: "jackal_guardian", name: "ジャッカルの守護者", hp: 76, atk: 27, mag: 0, def: 14, spd: 12, exp: 38, color: "#2b2b3a", icon: "🐺", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "古王の魂を導く黒き獣。墓の最も深い場所にだけ現れる。" },
+  { key: "golden_scarab", name: "黄金のスカラベ", hp: 62, atk: 24, mag: 0, def: 20, spd: 13, exp: 38, color: "#e0b040", icon: "🪲", element: "光", rare: true, tamable: false, tameChance: 0, desc: "太陽の化身とあがめられた黄金の甲虫。触れた者に富をもたらすという。" },
+  { key: "flame_phoenix", name: "フレイムフェニックス", hp: 72, atk: 30, mag: 0, def: 12, spd: 16, exp: 42, color: "#ff7a2f", icon: "🐦‍🔥", element: "火", rare: true, tamable: false, tameChance: 0, desc: "大神殿の聖火から生まれた火の鳥。倒れても灰から舞い戻る。" },
+  { key: "temple_guardian", name: "テンプルガーディアン", hp: 96, atk: 28, mag: 0, def: 20, spd: 7, exp: 42, color: "#b8a070", icon: "🗿", element: "土", rare: true, tamable: false, tameChance: 0, desc: "神殿の最奥を守る石の巨兵。千年動かずに侵入者を待ち続けている。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -598,6 +627,7 @@ function rollNewRecruit() {
 // 次の地方の最初のダンジョンが解放される（DUNGEONS[].unlocks でつなぐ）。x・y は地方のマップ上の位置（%）
 const REGIONS = [
   { id: "verde", name: "ヴェルデ地方", desc: "冒険者ギルドのある緑豊かな地方。駆け出しの冒険者が腕を磨く。" },
+  { id: "sabul", name: "サブル地方", desc: "照りつける太陽と砂の海が広がる地方。古い王国の遺跡が砂の下に眠っている。" },
 ];
 
 const DUNGEONS = [
@@ -611,29 +641,65 @@ const DUNGEONS = [
     id: "forest", region: "verde", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
     pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", rares: ["gem_beetle", "white_stag"], unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
-    power: 1.69, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "r", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+    power: 1.6, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "n", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "cave", region: "verde", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
     pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", rares: ["crystal_lizard", "gold_crab"], unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
-    power: 1.34, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 1.39, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "r", plus: 2 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "ruins", region: "verde", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
     pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", rares: ["golden_guardian", "phantom_lord"], unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
-    power: 1.08, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 1.05, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 3 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "peak", region: "verde", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
-    pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", rares: ["frost_phoenix", "dragon_hatchling"], unlocks: [],
+    pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", rares: ["frost_phoenix", "dragon_hatchling"], unlocks: ["dunes"],
     desc: "巨大な骨が眠る山頂。ヴェルデ地方で最も危険な領域。",
     power: 0.74, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 6 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+    benchmarkGear: { rarity: "sr", plus: 4 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+  },
+  // ---- サブル地方（推奨Lv17〜30） ----
+  {
+    id: "dunes", region: "sabul", name: "蜃気楼の砂丘", x: 18, y: 80, level: 17, battles: 5,
+    pool: ["sand_worm", "desert_scorpion", "dust_devil", "cactus_man", "death_vulture", "ogre"], boss: "king_worm", rares: ["golden_worm", "gold_tortoise"], unlocks: ["canyon"],
+    desc: "陽炎に揺れる果てしない砂丘。砂の下を何かが泳いでいる。",
+    power: 0.73, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 4 },
+  },
+  {
+    id: "canyon", region: "sabul", name: "サソリの谷", x: 42, y: 62, level: 20, battles: 5,
+    pool: ["desert_scorpion", "death_vulture", "sand_bandit", "sand_golem", "jackal_warrior", "cactus_man"], boss: "emperor_scorpion", rares: ["ruby_scorpion", "roc_chick"], unlocks: ["oasis"],
+    desc: "赤い岩壁に挟まれた谷。岩陰という岩陰にサソリが潜む。",
+    power: 0.56, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 4 },
+  },
+  {
+    id: "oasis", region: "sabul", name: "枯れたオアシス", x: 72, y: 66, level: 23, battles: 5,
+    pool: ["sand_bandit", "mirage_spirit", "fire_salamander", "dust_devil", "sand_golem", "jackal_warrior"], boss: "cursed_naga", rares: ["oasis_spirit", "mirage_camel"], unlocks: ["tomb"],
+    desc: "かつて旅人を潤した泉の跡。干上がった水底に呪いが澱んでいる。",
+    power: 0.46, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 4 },
+  },
+  {
+    id: "tomb", region: "sabul", name: "砂に沈んだ王墓", x: 56, y: 36, level: 26, battles: 5,
+    pool: ["mummy", "scarab", "jackal_warrior", "mirage_spirit", "sand_golem", "sand_bandit"], boss: "mummy_king", rares: ["jackal_guardian", "golden_scarab"], unlocks: ["sun_temple"],
+    desc: "砂に呑まれた古王の墓。眠りを妨げる者には容赦がない。",
+    power: 0.52, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 4 },
+  },
+  {
+    id: "sun_temple", region: "sabul", name: "灼熱の大神殿", x: 30, y: 14, level: 30, battles: 5,
+    pool: ["mummy", "scarab", "fire_salamander", "sand_golem", "jackal_warrior", "mirage_spirit"], boss: "sphinx", rares: ["flame_phoenix", "temple_guardian"], unlocks: [],
+    desc: "太陽を祀る巨大な神殿。謎を解けぬ者は先へ進めない。",
+    power: 0.47, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 5 },
   },
 ];
 

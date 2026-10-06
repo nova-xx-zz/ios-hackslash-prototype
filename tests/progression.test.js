@@ -8,7 +8,10 @@ const { data } = require("../tools/lib/sim.js");
 const { simulate, typical } = require("../tools/progression.js");
 
 // 到着時の累計周回の目標（中央値）。±30%まで許容する
-const TARGET_RUNS = { forest: 10, cave: 20, ruins: 45, peak: 95 };
+const TARGET_RUNS = {
+  forest: 10, cave: 20, ruins: 45, peak: 95, // ヴェルデ地方
+  dunes: 108, canyon: 136, oasis: 168, tomb: 206, sun_temple: 266, // サブル地方（1ダンジョンごとに+20〜60周）
+};
 const RUNS_TOLERANCE = 0.3;
 const PLUS_TOLERANCE = 2; // 適正装備の+値とのずれの許容
 const TRIALS = 50;
