@@ -81,7 +81,7 @@ data/*.js           … お知らせ・今後の予定（配信データ）
 - `activeTeam`: 表示中のチーム番号（0〜3）
 - `clearedDungeons` / `clearedHard` / `clearedExtra`: モードごとの踏破済みダンジョンIDの `Set`
 - `autoRepeat[0..3]`: チームごとの自動周回の状態（稼働中か・目標回数・達成回数。保存時に挑戦中のダンジョンとモードを添える）
-- `material`（強化石。メインセーブが正本）、`guaranteedStones`、`skillBooks`（予約）、`records`（冒険の記録）、`groups`（未編成グループ）
+- `material`（強化石。メインセーブが正本）、`guaranteedStones`、`skillBooks`（予約）、`records`（冒険の記録）、`groups`（未編成グループ）、`purchases`（ショップで買ったもの）
 - 端末ごとの設定（自動分解の対象、自動周回の選択回数、図鑑の発見状況、お知らせの既読、通知）は別キーに保存し、`S` に含めない
 
 ### 3.3 一時データ（永続化しない）
