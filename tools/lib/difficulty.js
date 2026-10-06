@@ -76,7 +76,8 @@ function calibrate(d) {
     if (rateAt(d, d.level, benchmark(d)) > STANDARD.calibrateTarget) lo = mid; else hi = mid;
   }
   d.power = saved;
-  return Math.round(((lo + hi) / 2) * 100) / 100;
+  // 奥の地方では倍率が0.1台と小さく、0.01の差でも踏破率が大きく動くため、0.005刻みで提案する
+  return Math.round(((lo + hi) / 2) * 200) / 200;
 }
 
 module.exports = { STANDARD, check, calibrate, pct, benchmarkGearLevel };

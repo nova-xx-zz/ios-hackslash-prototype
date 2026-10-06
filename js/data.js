@@ -578,6 +578,25 @@ const ENEMY_TEMPLATES = [
   { key: "thunder_god_beast", name: "雷神獣", hp: 324, atk: 59, mag: 0, def: 28, spd: 16, exp: 178, color: "#f0d040", icon: "🐯", element: "風", tamable: false, tameChance: 0, desc: "雷を食らう神獣。尖塔の頂で雷とともに咆哮する。" },
   { key: "sky_emperor", name: "空の帝", hp: 350, atk: 61, mag: 0, def: 31, spd: 15, exp: 186, color: "#ffe08a", icon: "👑", element: "光", tamable: false, tameChance: 0, desc: "天空宮殿の主。地上を見下ろし、天と地の境を守り続けてきた。" },
 
+  // ---- アビス地方 (Lv90〜100) ----
+  { key: "void_wraith", name: "ヴォイドレイス", hp: 96, atk: 46, mag: 0, def: 13, spd: 21, exp: 80, color: "#3a2a5a", icon: "👻", element: "闇", tamable: false, tameChance: 0, desc: "虚無に呑まれた魂の成れの果て。触れられると心まで冷えていく。" },
+  { key: "shadow_beast", name: "シャドウビースト", hp: 132, atk: 49, mag: 0, def: 18, spd: 18, exp: 82, color: "#1a1a2a", icon: "🐈‍⬛", element: "闇", tamable: false, tameChance: 0, desc: "影から生まれた獣。光の当たらない場所ならどこからでも現れる。" },
+  { key: "abyss_knight", name: "アビスナイト", hp: 150, atk: 51, mag: 0, def: 26, spd: 14, exp: 86, color: "#2a2a4a", icon: "🗡️", element: "闇", tamable: false, tameChance: 0, desc: "深淵に忠誠を誓った黒騎士。かつては名のある英雄だったという。" },
+  { key: "nightmare", name: "ナイトメア", hp: 120, atk: 50, mag: 0, def: 16, spd: 22, exp: 84, color: "#4a2a6a", icon: "🐴", element: "闇", tamable: false, tameChance: 0, desc: "悪夢を運ぶ黒馬。蹄の音を聞いた者は眠れなくなる。" },
+  { key: "chaos_imp", name: "カオスインプ", hp: 104, atk: 52, mag: 0, def: 14, spd: 23, exp: 84, color: "#8a2a5a", icon: "👿", element: "闇", tamable: false, tameChance: 0, desc: "混沌から生まれた小鬼。気まぐれに味方の魔物すら襲う。" },
+  { key: "doppelganger", name: "ドッペルゲンガー", hp: 128, atk: 53, mag: 0, def: 18, spd: 19, exp: 88, color: "#6a6a7a", icon: "👥", element: "闇", tamable: false, tameChance: 0, desc: "出会った者と同じ姿に化ける魔物。本物と見分けるのは難しい。" },
+  { key: "bone_colossus", name: "ボーンコロッサス", hp: 186, atk: 50, mag: 0, def: 30, spd: 6, exp: 90, color: "#d8d0c0", icon: "☠️", element: "闇", tamable: false, tameChance: 0, desc: "無数の骨が寄り集まってできた巨人。崩れてもまた組み上がる。" },
+  { key: "abyss_leech", name: "アビスリーチ", hp: 140, atk: 52, mag: 0, def: 20, spd: 12, exp: 88, color: "#4a1a2a", icon: "🪱", element: "闇", tamable: false, tameChance: 0, desc: "虚無の海に棲む巨大なヒル。吸いついた相手の力を奪う。" },
+  { key: "eldritch_eye", name: "エルドリッチアイ", hp: 124, atk: 56, mag: 0, def: 17, spd: 17, exp: 92, color: "#6a1a8a", icon: "👁️", element: "闇", tamable: false, tameChance: 0, desc: "宙に浮かぶ巨大な目玉。見つめられると正気を失いそうになる。" },
+  { key: "fallen_angel", name: "フォールンエンジェル", hp: 142, atk: 58, mag: 0, def: 22, spd: 19, exp: 96, color: "#5a4a7a", icon: "🪽", element: "闇", tamable: false, tameChance: 0, desc: "天から堕ちた天使。黒く染まった翼で深淵を飛び回る。" },
+  { key: "nether_hound", name: "ネザーハウンド", hp: 118, atk: 50, mag: 0, def: 15, spd: 22, exp: 84, color: "#5a1a1a", icon: "🐕‍🦺", element: "闇", tamable: false, tameChance: 0, desc: "深淵の門の周りをうろつく黒い猟犬。迷い込んだ者のにおいを決して忘れない。" },
+  { key: "abyss_mage", name: "アビスメイジ", hp: 116, atk: 57, mag: 0, def: 16, spd: 18, exp: 92, color: "#4a2a8a", icon: "🧙‍♂️", element: "闇", tamable: false, tameChance: 0, desc: "深淵の力を研究するうちに呑まれた魔術師。今は闇の呪文しか唱えられない。" },
+  { key: "gate_keeper", name: "門番ケルベロス", hp: 360, atk: 62, mag: 0, def: 32, spd: 15, exp: 192, color: "#3a1a1a", icon: "🐕", element: "闇", tamable: false, tameChance: 0, desc: "深淵の門を守る三つ首の番犬。生きた者を決して通さない。" },
+  { key: "labyrinth_lord", name: "迷宮の主", hp: 372, atk: 64, mag: 0, def: 33, spd: 14, exp: 198, color: "#2a2a3a", icon: "🐂", element: "闇", tamable: false, tameChance: 0, desc: "影の迷宮に棲む牛頭の巨人。迷い込んだ者を何千年も狩り続けている。" },
+  { key: "void_kraken", name: "ヴォイドクラーケン", hp: 390, atk: 66, mag: 0, def: 32, spd: 13, exp: 204, color: "#1a1a4a", icon: "🦑", element: "闇", tamable: false, tameChance: 0, desc: "虚無の海の底から現れる大海魔。その足は闇そのものでできている。" },
+  { key: "fallen_king", name: "堕ちた王", hp: 400, atk: 68, mag: 0, def: 35, spd: 14, exp: 212, color: "#5a3a6a", icon: "🤴", element: "闇", tamable: false, tameChance: 0, desc: "天空から堕ちた城の王。深淵の力に魅入られ、人の姿を捨てた。" },
+  { key: "abyss_lord", name: "深淵の王", hp: 440, atk: 72, mag: 0, def: 37, spd: 16, exp: 230, color: "#2a0a2a", icon: "🌑", element: "闇", tamable: false, tameChance: 0, desc: "深淵の心臓に宿る、あらゆる災いの源。世界を闇に沈めようとしている。" },
+
   // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
   { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
   { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
@@ -639,6 +658,17 @@ const ENEMY_TEMPLATES = [
   { key: "storm_crystal", name: "ストームクリスタル", hp: 180, atk: 50, mag: 0, def: 34, spd: 14, exp: 92, color: "#8ac0ff", icon: "💎", element: "風", rare: true, tamable: false, tameChance: 0, desc: "雷が結晶になって動き出したもの。砕くと嵐の力が手に入るという。" },
   { key: "holy_kirin", name: "聖獣キリン", hp: 190, atk: 56, mag: 0, def: 28, spd: 21, exp: 96, color: "#f8e0a0", icon: "🦌", element: "光", rare: true, tamable: false, tameChance: 0, desc: "天空宮殿に住む聖なる獣。現れた年は豊作になると伝えられる。" },
   { key: "stardust_fairy", name: "星屑の妖精", hp: 140, atk: 60, mag: 0, def: 20, spd: 26, exp: 96, color: "#c8b0ff", icon: "✨", element: "光", rare: true, tamable: false, tameChance: 0, desc: "流れ星のかけらから生まれた妖精。きらきらと光の粉をまき散らす。" },
+  { key: "void_cat", name: "虚空ネコ", hp: 150, atk: 50, mag: 0, def: 20, spd: 28, exp: 100, color: "#2a2a3a", icon: "🐈", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "門の隙間から現れる黒猫。どこから来てどこへ行くのか誰も知らない。" },
+  { key: "lost_lantern", name: "迷いのランタン", hp: 160, atk: 52, mag: 0, def: 28, spd: 16, exp: 100, color: "#f0c060", icon: "🏮", element: "光", rare: true, tamable: false, tameChance: 0, desc: "深淵に落ちた冒険者のランタン。今も帰り道を照らそうと灯り続けている。" },
+  { key: "mirror_slime", name: "ミラースライム", hp: 170, atk: 54, mag: 0, def: 34, spd: 20, exp: 104, color: "#c8d0e0", icon: "🪞", element: "光", rare: true, tamable: false, tameChance: 0, desc: "鏡のように磨かれたスライム。映った者の姿を写し取ってからかう。" },
+  { key: "shadow_moth_queen", name: "影蛾の女王", hp: 156, atk: 58, mag: 0, def: 22, spd: 25, exp: 104, color: "#6a5a8a", icon: "🦋", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "迷宮の影蛾を統べる女王。羽ばたくと迷宮の壁が動き出す。" },
+  { key: "void_jellyfish", name: "虚無クラゲ", hp: 180, atk: 54, mag: 0, def: 26, spd: 18, exp: 108, color: "#8a7ac8", icon: "🪼", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "虚無の海を漂う透明なクラゲ。体の中に小さな星空を抱えている。" },
+  { key: "star_eater", name: "星喰らい", hp: 196, atk: 60, mag: 0, def: 28, spd: 17, exp: 108, color: "#1a1a3a", icon: "🌠", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "落ちてきた星を食べて生きる魔物。腹の中で星がまだ光っている。" },
+  { key: "cursed_crown", name: "呪われた王冠", hp: 176, atk: 62, mag: 0, def: 32, spd: 18, exp: 112, color: "#c8a040", icon: "👑", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "堕ちた王が戴いていた王冠。かぶる頭を探して城をさまよっている。" },
+  { key: "dark_unicorn", name: "ダークユニコーン", hp: 190, atk: 64, mag: 0, def: 26, spd: 24, exp: 112, color: "#3a2a4a", icon: "🦄", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "深淵に染まった一角獣。角には失われた聖なる力がわずかに残る。" },
+  { key: "primordial_slime", name: "原初のスライム", hp: 240, atk: 60, mag: 0, def: 36, spd: 20, exp: 120, color: "#7fff9f", icon: "🟢", element: "無", rare: true, tamable: false, tameChance: 0, desc: "すべてのスライムの祖先とされる存在。世界の始まりから生きている。" },
+  { key: "chaos_dragon", name: "カオスドラゴン", hp: 230, atk: 70, mag: 0, def: 32, spd: 22, exp: 120, color: "#8a1a4a", icon: "🐲", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "混沌から生まれた竜。どの竜とも違う、あり得ない色の鱗を持つ。" },
+  { key: "world_seed", name: "世界樹の種", hp: 220, atk: 62, mag: 0, def: 40, spd: 14, exp: 120, color: "#9fd08a", icon: "🌱", element: "光", rare: true, tamable: false, tameChance: 0, desc: "深淵の底に落ちた世界樹の種。芽吹けば新しい世界が生まれるという。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -745,6 +775,7 @@ const REGIONS = [
   { id: "ignis", name: "イグニス地方", desc: "火山が連なる灼熱の地方。溶岩の川が流れ、炎の魔物が群れをなす。" },
   { id: "marina", name: "マリナ地方", desc: "大海原と群島からなる地方。海の底には沈んだ古代都市が眠っている。" },
   { id: "celesta", name: "セレスタ地方", desc: "雲の上に浮かぶ島々の地方。天空の民と神獣たちが暮らしている。" },
+  { id: "abyss", name: "アビス地方", desc: "世界の果ての大穴の底に広がる深淵。あらゆる災いはここから生まれたという。" },
 ];
 
 const DUNGEONS = [
@@ -957,10 +988,46 @@ const DUNGEONS = [
   },
   {
     id: "celestial_palace", region: "celesta", name: "天空宮殿", x: 66, y: 10, level: 88, battles: 5,
-    pool: ["seraph_guard", "storm_elemental", "angel_statue", "star_beast", "sky_knight", "archon"], boss: "sky_emperor", rares: ["holy_kirin", "stardust_fairy"], unlocks: [],
+    pool: ["seraph_guard", "storm_elemental", "angel_statue", "star_beast", "sky_knight", "archon"], boss: "sky_emperor", rares: ["holy_kirin", "stardust_fairy"], unlocks: ["abyss_gate"],
     desc: "雲の頂に建つ天空の宮殿。空の帝がすべてを見下ろしている。",
     power: 0.18, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "ur", plus: 9 },
+  },
+  // ---- アビス地方（推奨Lv90〜100。最後の地方） ----
+  {
+    id: "abyss_gate", region: "abyss", name: "深淵の門", x: 22, y: 82, level: 90, battles: 5,
+    pool: ["void_wraith", "shadow_beast", "abyss_knight", "nightmare", "chaos_imp", "nether_hound"], boss: "gate_keeper", rares: ["void_cat", "lost_lantern"], unlocks: ["shadow_labyrinth"],
+    desc: "大穴の縁に建つ巨大な門。門の向こうからは光が一切漏れてこない。",
+    power: 0.15, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 9 },
+  },
+  {
+    id: "shadow_labyrinth", region: "abyss", name: "影の迷宮", x: 70, y: 74, level: 93, battles: 5,
+    pool: ["shadow_beast", "nightmare", "doppelganger", "chaos_imp", "abyss_knight", "bone_colossus"], boss: "labyrinth_lord", rares: ["mirror_slime", "shadow_moth_queen"], unlocks: ["abyss_sea"],
+    desc: "壁が絶えず形を変える影の迷宮。自分の影にさえ道を惑わされる。",
+    power: 0.155, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 9 },
+  },
+  {
+    id: "abyss_sea", region: "abyss", name: "虚無の海", x: 40, y: 54, level: 95, battles: 5,
+    pool: ["void_wraith", "abyss_leech", "doppelganger", "eldritch_eye", "nightmare", "abyss_mage"], boss: "void_kraken", rares: ["void_jellyfish", "star_eater"], unlocks: ["fallen_citadel"],
+    desc: "底の見えない黒い水が広がる地底の海。水面に映るのは自分ではない何か。",
+    power: 0.1475, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 10 },
+  },
+  {
+    id: "fallen_citadel", region: "abyss", name: "堕ちた城塞", x: 76, y: 32, level: 98, battles: 5,
+    pool: ["abyss_knight", "bone_colossus", "fallen_angel", "eldritch_eye", "chaos_imp", "abyss_leech"], boss: "fallen_king", rares: ["cursed_crown", "dark_unicorn"], unlocks: ["abyss_heart"],
+    desc: "天から堕ちた城の残骸。かつての主は深淵に呑まれ、姿を変えた。",
+    power: 0.15, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 10 },
+  },
+  {
+    id: "abyss_heart", region: "abyss", name: "深淵の心臓", x: 30, y: 12, level: 100, battles: 5,
+    pool: ["fallen_angel", "eldritch_eye", "bone_colossus", "abyss_mage", "nether_hound", "abyss_knight"], boss: "abyss_lord", rares: ["primordial_slime", "chaos_dragon", "world_seed"], unlocks: [],
+    desc: "深淵の最奥で脈打つ巨大な心臓。すべての災いの源がここに眠る。",
+    power: 0.14, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 10 },
   },
 ];
 
