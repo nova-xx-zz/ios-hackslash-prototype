@@ -12,8 +12,10 @@ let hiddenSaveAt = null;
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     hiddenSaveAt = saveGame() ? lastSavedAt : null;
+    scheduleAutoRepeatNotices(); // アプリ版: 自動周回が終わる頃の通知を予約する（js/ui/notify.js）
     return;
   }
+  cancelAutoRepeatNotices(); // 戻ってきたら、まだ届いていない通知は取り消す
   const since = hiddenSaveAt;
   hiddenSaveAt = null;
   if (since) settleAfterBackground(since);
