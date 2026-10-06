@@ -1,10 +1,10 @@
 # 詳細設計書
 
-> 更新日: 2026-09-30。現行実装の参照基点: `8f0e153`。
+> 更新日: 2026-10-07。現行実装の参照基点: `34fee54`（設計書レビュー [2026-10-06](reviews/design-review-2026-10-06.md) の指摘RV-01〜05を反映）。
 > 本書では「現行実装」「採用済み・未実装」「将来構想」を区別する。
 > **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2の固有ツリー＋汎用3枠交換＋分岐図UIの範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（sourceRarity、ブック消費での交換）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`EXCLUSIVE_TREES`/`GENERAL_TREES`/`GENERAL_SLOTS`、`js/model/roster.js`のツリー関連関数群（`getExclusiveTree`/`getTreeState`/`generalSlotTreeDef`/`totalSp`/`spentSpFor`/`totalSpentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`swapGeneralSlot`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeSection`/`buildTreeGraph`/`buildTreeNodeDetail`の分岐図UIを参照。
 
-対象コード: `js/data.js`, `js/core/`, `js/model/`, `js/ui/`, `js/game.js`, `css/style.css`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `8f0e153` ＋ 基盤実装・スキルツリー実装・固有+汎用3枠実装コミット）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2の固有＋汎用3枠交換の範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
+対象コード: `js/data.js`, `js/core/`, `js/model/`, `js/ui/`, `js/game.js`, `css/style.css`, `index.html`, `data/announcements.js`, `data/roadmap.js`（現行参照コミット `34fee54`）。§1〜5は現行設計、§6.4〜6.6・§7・§6.1〜6.2の固有＋汎用3枠交換の範囲は実装済み、§6.1〜6.2のブック関連フィールド・§6.3は採用済み・未実装の拡張設計。
 
 ## 1. データ構造定義
 
@@ -22,7 +22,8 @@
   abilityPriority: {},         // { [abilityId]: 1|2|3 } 温存/通常/優先、未設定は2(通常)
   targetPriority: "weakest",   // "weakest" | "strongest" | "random"
   level, exp, expToNext,
-  equip: { weapon: null, armor: null, accessory: null },
+  equip: { main, off, head, body, acc1, acc2, acc3 }, // 各枠はアイテムかnull（§1.2）。旧形式 { weapon, armor, accessory } は読み込み時に移す
+  favorite: bool,              // テイムしたモンスターのお気に入り（合成の素材にしない）
   atb, defending, alive,       // 戦闘用の一時状態（ロード時に毎回リセット）
   team: 0-3 | null,            // 所属チーム、null=控え
   isMonster: bool,
@@ -30,27 +31,49 @@
 }
 ```
 
-- `isMonster: true` のキャラは `race` がモンスター種族ID（`slime`/`goblin`/`bat`/`wolf`）であり、`jobDef()` は `job` ではなく `MONSTER_JOBS[c.race]` を返す
+- `isMonster: true` のキャラは `race` がモンスター種族ID（`slime`/`goblin`/`bat`/`wolf` と地方ごとの33種。`TAME_SPECIES`）であり、`jobDef()` は `job` ではなく `MONSTER_JOBS[c.race]` を返す
 - `jobLevels` は「そのジョブで実際にレベルを上げたことがあるか」の記録も兼ねており、サブアビリティ候補（`subAbilityCandidates()`）や上級職解放判定（`jobUnlocked()`）の判定に使われる
 
-### 1.2 アイテムオブジェクト（`inventory` の各要素）
+### 1.2 アイテムオブジェクト（`inventory` の各要素・装備枠の中身）
 
-`rollItemDrop()` が生成する。
+`rollItemDrop(level, minRarity, { regionLevel, mode })`（ふつうの装備）・`rollUniqueDrop` / `rollSpecialDrop`（名のある装備、`js/uniques.js`）が生成する。
 
 ```js
 {
   id: "item_" + N,
-  name,                // "◯◯のレア度＋ベース名"（例: "レアの剣"）
-  slot,                // "weapon" | "armor" | "accessory"
-  stat,                // 付与するステータスキー（hp/mp/atk/mag/def/spd）
-  value,               // round(base.base * rarity.mult)
-  rarity,               // "n"|"r"|"sr"|"ur"|"lr"
-  rarityColor,
-  materialValue,        // 自動分解で得る強化石量
-  plus: 0,               // 強化値（0〜99）
-  pity: 0,               // 天井ゲージ（今の+値で失敗に使った強化石。未設定は0扱い）
+  name,                // 種類の名前（例: "アイアンソード"）。レア度は名前の色（rarityColor）で表し、名前には付けない
+  base,                // ITEM_BASES の key（例: "iron_sword"）。名のある装備は UNIQUE_ITEMS の key
+  slot,                // アイテムの部位: "weapon" | "shield" | "head" | "body" | "accessory"
+  type,                // 種類（ITEM_TYPES の key。例: "sword"・"greatsword"・"buckler"・"ring"）
+  series,              // シリーズ（ITEM_SERIES の key。bronze〜abyss）。名のある装備は持たない
+  hands,               // 1 | 2（両手武器）
+  stats: { atk: 12, spd: 3 }, // 能力値（複数可）。最初のキーが主能力値
+  level,               // 装備のレベル（拾ったダンジョンの推奨Lv。モード込み）
+  rarity, rarityColor,  // "n"|"r"|"sr"|"ur"|"lr" と表示色
+  materialValue,        // 分解で得る強化石量
+  plus: 0,              // 強化値（0〜99）
+  pity: 0,              // 天井ゲージ（今の+値で失敗に使った強化石。未設定は0扱い）
+  unique?: true, cursed?: true,           // 名のある装備・呪われた装備
+  options?: [{ key, value }], optionMode?, // オプション効果（ハード・エクストラで落ちた装備のみ。js/options.js）
 }
 ```
+
+**装備位置とアイテムの部位**（`js/core/equipment.js`）: 装備位置は `main`（右手）・`off`（左手）・`head`・`body`・`acc1`〜`acc3`、アイテムの部位は `weapon`・`shield`・`head`・`body`・`accessory` で、両者を区別する。`canPlace(profile, item, position, equip, accSlots)` の規則:
+
+| 位置 | 置けるもの |
+|---|---|
+| `main` | ジョブが持てる種類の `weapon` |
+| `off` | `shield`、または二刀流（`dualWield`）のジョブなら片手の `weapon`。`main` が両手武器（`hands: 2`）の間は何も置けない |
+| `head` / `body` | ジョブが持てる種類の `head` / `body` |
+| `acc1`〜`acc3` | `accessory`。使える枠数（`accessorySlots(c)`）より後ろの枠には置けない |
+
+- ジョブごとの持てる種類は `JOB_EQUIP[jobId]`（`{ weapons, shields, head, body, dualWield }`）、モンスターは共通の `MONSTER_EQUIP`。装飾品は誰でも付けられる
+- 装飾品の枠数は1から始まり、人間はスキルツリーの `equipSlot` ノード（「装備の心得」「装備の極意」）で、モンスターはLv20・Lv40で1枠ずつ増える（最大3）
+- 転職・スキルの振り直し・ロード時に `normalizeEquip` で置けなくなった装備を外し、所持品へ戻す
+- 能力値の計算順（`computeStats`、§2.1）: 基礎値 → 装備の能力値（強化値込み、§2.2）とスキルツリーの加算 → オプション効果の固定値 → セット効果・名のある装備・オプションの割合ボーナス → 石碑の加護。会心率・吸収・回復量・被ダメージ・消費MP・EXP・強化石のボーナスは `setBonusTotals` が `passives` として合計し、種族・スキルツリーの値と合わせて戦闘に使う
+- セット効果: 同じシリーズを2・4・6個付けると `ITEM_SERIES[].setBonus` の段階が有効になる（左右に同じ武器を持つ場合も枠ごとに数える）
+
+**旧セーブの移行**（`migrateEquip` / `migrateItem`）: 旧形式の装備枠 `{ weapon, armor, accessory }` は `main` / `body` / `acc1` に移す。旧形式のアイテム（`stat` と `value` を1つだけ持つ8種類）は、同じ能力値の新しい種類（ブロンズシリーズ）に移し、レア度・強化値・天井ゲージを引き継ぐ。旧形式は「旧セーブ移行」の入力としてだけ扱い、現行モデルとしては使わない。
 
 ### 1.3 ダンジョン進行オブジェクト `run`（チームごとに独立、`teamRuns[team]`）
 
@@ -76,26 +99,31 @@
 
 ### 1.4 セーブデータスキーマ（`localStorage["jobquest_save_v1"]`）
 
+`QPModel.save.serialize(S, { now, runDungeonIds, runModes, enabledFeatures })` が作る（`js/model/save.js`）。
+
 ```js
 {
-  roster,                // キャラクターオブジェクトの配列をそのままJSON化
-  inventory,
+  schemaVersion: 2,
+  roster,                // キャラクターオブジェクトの配列（§1.1）
+  inventory,             // アイテムの配列（§1.2）
   activeTeam,
-  clearedDungeons: [...clearedDungeons], // Setを配列化
+  clearedDungeons: [...], clearedHard: [...], clearedExtra: [...], // モードごとの踏破済み（Setを配列化）
   nextCharSeq,
   savedAt: Date.now(),
-  autoRepeat: [           // チームごとの自動周回状態を並べた4要素配列（index = チーム番号）
-    {
-      active,              // このチームが自動周回稼働中か
-      target, done,
-      dungeonId: teamRuns[i] && teamRuns[i].dungeon ? teamRuns[i].dungeon.id : null,
-    },
+  autoRepeat: [           // チームごとの自動周回状態（index = チーム番号）
+    { active, target, done, dungeonId, mode },  // dungeonId・mode は保存時に挑戦中のダンジョン（オフライン精算に使う）
     // ...team 1, 2, 3
   ],
+  skillBooks: [],         // 予約（§6.3）
+  material,               // 強化石（正本）
+  guaranteedStones: { free, paid },
+  records,                // 冒険の記録（出会った敵・手に入れた装備・潜った履歴）
+  groups,                 // 未編成のグループ分け
+  enabledFeaturesAtSave: [],
 }
 ```
 
-`teamRuns`/`teamBattles` そのもの（進行中の戦闘状態）は保存しない。ロード後は各要素の `autoRepeat[i].dungeonId` を使ってチームごとにオフライン進行の計算のみ行い、実際の戦闘再現はしない。`autoRepeat` が配列でない（旧バージョンの単一チーム時代のセーブデータ）場合は、`loadGame()` がオフライン進行の計算だけをスキップする（ロスター等の本体データは通常どおり復元される）。
+`teamRuns`/`teamBattles` そのもの（進行中の戦闘状態）は保存しない。ロード後は `autoRepeat[i]` が稼働中のチームについてオフライン精算だけ行い（§2.11）、実際の戦闘は再開しない。`autoRepeat` が配列でない（単一チーム時代の）セーブはオフライン精算だけをスキップする。schemaVersion 2 未満は旧形式として移行する（§7.1）。
 
 ## 2. 主要な計算式・アルゴリズム
 
@@ -110,22 +138,33 @@ mag    = round(job.base.mag * growth * race.mult.mag)
 def    = round(job.base.def * growth * race.mult.def)
 spd    =        job.base.spd *          race.mult.spd   // 小数のまま保持（round しない）
 ```
-各装備スロットの `itemEffectiveValue(item)` を対応ステータスに加算し、進行中のダンジョンで石碑バフが乗っていれば `atk/mag/def/spd` に `(1 + buff)` を掛ける（HP/MPは対象外）。
+続けて次の順で上乗せする（`js/model/roster.js`）:
+1. 各装備枠の `itemStats(item)`（§2.2。HP/MPは最大HP/最大MPへ）と、スキルツリーの加算（`treePassiveTotals`）を足す
+2. `setBonusTotals`（§1.2）の `flat`（オプション効果の固定値）を足す
+3. `stats`（セット効果・名のある装備・オプション効果の割合）を `round(値 × (1 + 割合))` で掛ける
+4. 進行中のダンジョンで石碑バフが乗っていれば `atk/mag/def/spd` に `(1 + buff)` を掛ける（HP/MPは対象外）
 
-### 2.2 装備の実効値（`itemEffectiveValue(item)`）
+### 2.2 装備の能力値（`itemStats(item)`、`js/core/equipment.js`）
 
 ```
-bonus = ceil(plus * rarity.mult * 0.08)
-effectiveValue = max(1, item.value + bonus)
+base    = item.stats                         // 拾った時に決まる値（下記）
+primary = base の最初のキー（主能力値）の値
+bonus[k] = plus > 0 ? ceil(plus * rarity.mult * 0.08 * base[k] / primary) : 0
+value[k] = max(1, base[k] + bonus[k])
 ```
-+99到達時、レア度倍率(mult)が大きいほどボーナスが大きくなる（元の値の概ね4倍程度まで伸びる設計）。
+拾った時の値は「種類の基礎値 × レア度倍率 × 装備のレベルの倍率（`1 + (level − 1) × ITEM_LEVEL_GROWTH(0.12)`）」。名のある装備は ×1.2、呪われた装備は ×1.45（`js/uniques.js`）。強化値のボーナスは主能力値を基準にし、他の能力値は元の比率で伸ばす。
 
 ### 2.3 経験値・レベルアップ（`expForLevel(level)`, `gainExp(c, amount)`）
 
 ```
-expForLevel(level) = round(200 + 2 * level^3.3)   // js/data.js（tools/progression.js と共有）
+steep(lv)          = round(200 + 2 * lv^3.3)
+expForLevel(level) = level <= 15 ? steep(level)                          // EXP_CURVE_KNEE = 15
+                                 : round(steep(15) * (level / 15)^2.3)   // js/data.js（tools/progression.js と共有）
 ```
-各ダンジョンに着く頃に適正装備（`DUNGEONS[].benchmarkGear`）がそろうペースに合わせた曲線（根拠は `docs/production-plan.md` §8.6）。セーブの `expToNext` は保存値を使わず、`loadGame` で `syncExpToNext`（`js/data.js`）により曲線から計算し直す（キャラ本体と `jobLevels` の各ジョブ。`exp` は新しい必要量未満に丸める）。
+Lv15を超えると伸びを緩める区分関数（Lv100まで遊べるようにするため。全レベルで `steep` を使う旧曲線は2026-10-06の地方追加で廃止した。`docs/production-plan.md` §8.6）。
+各ダンジョンに着く頃に適正装備（`DUNGEONS[].benchmarkGear`）がそろうペースに合わせた曲線（根拠は `docs/production-plan.md` §8.6）。
+
+**曲線を変えた時の移行ルール**: レベルは変えず、セーブの `expToNext` は保存値を使わずに `deserialize` で `syncExpToNext`（`js/data.js`）により現在の曲線から計算し直す（キャラ本体と `jobLevels` の各ジョブ）。`exp` は新しい必要量未満に丸める（丸めで失うのは今のレベル内の端数だけ）。
 `gainExp` は `exp` に `amount` を加算し、`exp >= expToNext` の間ループでレベルを1ずつ上げ、都度 `computeStats` でHP/MPを全回復、習得アビリティ（`reqLevel === level`）があれば通知リストに積む。ループ終了後、モンスターでなければ `jobLevels[job]` に現在の進行を書き戻す。戦闘勝利時（`onVictory`）とモンスター合成（`buildFusionTab`）の両方から共用される。
 
 ### 2.4 モンスター合成のEXP還元（`totalExpInvested(c)`, 合成確定処理）
@@ -133,7 +172,11 @@ expForLevel(level) = round(200 + 2 * level^3.3)   // js/data.js（tools/progress
 ```
 totalExpInvested(c) = c.exp + Σ_{n=1}^{level-1} expForLevel(n)
 ```
-選択した各素材モンスターについて `round(totalExpInvested(m) * 0.5)` を合計し（`fusionExpGain`）、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する（`fuse`。いずれも `js/model/inventory.js`）。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成ボタンは2回押しで確定し（`fusionConfirm`。素材の選択を変えると解除）、合成直後に `saveGame()` で即時保存する。
+```
+fusionBaseExp(race) = expForLevel(tameHomeLevel(race))   // その種族が出る一番早いダンジョンの推奨Lvで、1レベル分のEXP
+materialExp(target, m) = round((fusionBaseExp(m.race) + totalExpInvested(m) * 0.5) * (m.race === target.race ? 1.5 : 1))
+```
+選択した各素材モンスターの `materialExp` を合計し（`fusionExpGain(target, materials)`。テイム直後のLv1でも基本EXPが入る。同族は `FUSION_SAME_RACE_MULT = 1.5`）、`gainExp(target, totalExpGain)` で対象モンスターへ一括付与する（`fuse`。いずれも `js/model/inventory.js`）。素材が装備していたアイテムは `unequipSlot` で所持品へ戻してから、素材を `roster` から削除（`splice`）する。素材の消滅は取り消せないため、合成ボタンは2回押しで確定し（`fusionConfirm`。素材の選択を変えると解除）、合成直後に `saveGame()` で即時保存する。
 
 ### 2.5 ATB戦闘ループ（4チーム並行）
 
@@ -268,9 +311,37 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 1周も時間内に終わらなかった場合も、自動周回を停止したうえで `tooShort: true` の summary を返し、モーダルで「オフライン中の周回はありませんでした」と知らせる。
 
-**二重精算の防止**: 精算の前に `claimOfflineSettlement(savedAt)` で `jobquest_offline_settled` に精算対象セーブの `savedAt` を書き込む。起動時にこの値がセーブの `savedAt` と一致すれば精算済みとして何もしない（精算後の保存に失敗していたケース）。書き込みに失敗した場合は報酬を付与せず、「保存容量不足のため精算できなかった」旨のモーダルを出す（`savedAt` は更新されないため、保存できるようになった次回起動時に精算される）。
+**精算の保存保証**（設計書レビューRV-01、`js/ui/models.js` の `loadGame` / `saveAfterOfflineSettlement`、`js/game.js` の `settleAfterBackground`）:
+1. 精算は、報酬（EXP・ドロップ・強化石・テイム・踏破・記録）の反映と自動周回の停止（`S.autoRepeat[i].active = false`）を、同じメモリ上の状態 `S` に対して行う
+2. その状態をメインセーブ1件として1回で書き込んだ時点で精算が確定する。強化石もメインセーブの `material` が正本なので、報酬と精算済みの印（止まった自動周回）が別々に保存されることはない
+3. **精算済みかどうかは別キーの印ではなく、セーブの中の自動周回が止まっていることで判定する**。止まったセーブからは二度と精算しない
+4. 保存に失敗した場合、端末には精算前のセーブ（自動周回が動いたまま）が残る。アプリ内では状態 `S` に精算結果を持ったまま20秒ごとの定期保存などで再試行し、保存できないまま終了した場合は次回起動時に同じ `savedAt` から精算し直す（精算前の状態から計算し直すので二重にならず、保存されなかった報酬も失われない）。失敗時は「まだ保存できていない」旨のモーダルを出す
+5. アプリ内で精算済みのチームは自動周回が止まっているため、バックグラウンド復帰時の精算の対象にならない（同じセッション内でも二重に精算しない）
 
-**バックグラウンド復帰時の精算**（`settleAfterBackground(savedAt)`）: `visibilitychange` で隠れる直前に `saveGame()` し、保存できたセーブの `savedAt`（`lastSavedAt`）を控える。復帰時、自動周回中で、経過時間が `estimateOfflineRunSeconds` 以上のチームについて、進行中の周回を中断（未確定ドロップは破棄、ログに中断カードを出す）し、控えた `savedAt` を起点に起動時と同じ `runOfflineProgress` で精算する。バックグラウンド中は20秒ごとの定期保存を行わないため、復帰せずにページが破棄された場合も次回起動時に同じ `savedAt` から精算され、マーカーにより二重には数えない。
+| 中断のタイミング | 端末に残るセーブ | 次回起動時 |
+|---|---|---|
+| 精算前・計算中 | 精算前（自動周回は稼働中） | 同じ期間を精算する |
+| 精算後の保存に失敗 | 精算前（自動周回は稼働中） | 同じ期間を精算し直す（前回の結果は保存されていない） |
+| 精算後の保存に成功 | 精算後（自動周回は停止） | 精算しない |
+
+4チームの精算結果は、まとめて1件のメインセーブで確定する（チームごとに分けて保存しない）。旧版は精算の前に `jobquest_offline_settled` へ精算対象の `savedAt` を書き、一致すれば精算しない方式だったが、その印だけ保存されて報酬の保存に失敗すると報酬を失うため廃止した。起動時にこのキーを消す（印だけ残っていたセーブも、自動周回が動いたままなので精算し直して救済する）。
+
+**バックグラウンド復帰時の精算**（`settleAfterBackground(savedAt)`）: `visibilitychange` で隠れる直前に `saveGame()` し、保存できたセーブの `savedAt`（`lastSavedAt`）を控える。復帰時、自動周回中で、経過時間が `estimateOfflineRunSeconds` 以上のチームについて、進行中の周回を中断（未確定ドロップは破棄、ログに中断カードを出す）し、控えた `savedAt` を起点に起動時と同じ `runOfflineProgress` で精算して、上と同じく1回の保存で確定する。バックグラウンド中は20秒ごとの定期保存を行わないため、復帰せずにページが破棄された場合は次回起動時に同じ `savedAt` から精算され、復帰後に精算・保存できていればそのセーブの自動周回は止まっているので二重には数えない。
+
+**通常プレイとオフライン精算の差**（オフラインの結果は通常プレイと完全に同じにはならない）:
+
+| 項目 | 通常プレイ | オフライン精算 |
+|---|---|---|
+| 勝敗 | 戦闘エンジンで実際に戦う | 同じ戦闘エンジン（`QPCore.battle.simulate`）でキャラの写しを戦わせる |
+| 戦闘の打ち切り | なし | 300秒（`OFFLINE_BATTLE_MAX_SECONDS`）で決着しなければ負け |
+| 所要時間 | 実際の時間（x1/x2） | 戦闘ごとのシミュレーション秒数＋戦闘間2秒＋出発〜踏破2秒（x1相当）。最大8時間 |
+| 石碑の加護 | 能力値に加算 | 省略（実際よりわずかに厳しめ） |
+| 泉・罠 | あり | あり（同じ `applySpring` / `applyTrap`） |
+| EXPの配布 | 戦闘に勝った時点で生き残っているメンバー | 勝った戦闘ごとにパーティ全員（その戦闘で倒れたメンバーにも） |
+| 時間内に終わらなかった周 | — | 数えない（その周の結果は反映しない） |
+| 離れる直前に進行中だった周 | — | 起動時は保存されていないので無かったことになる。バックグラウンド復帰時は中断して未確定ドロップを破棄する |
+| 自動周回 | 目標回数か全滅まで続く | 精算後は停止し、結果を見てから再開する |
+| ドロップ・テイム・踏破・レア敵 | 踏破した周だけ確定 | 同じ（同じ抽選関数を使う） |
 
 `runOfflineProgress(savedAutoRepeatArray, savedAt)` は上記をチーム0〜3それぞれに対して呼び出し、結果が出たチームの summary だけを配列にまとめて返す（1チームも該当しなければ `null`）。複数チームが同時にオフライン進行していた場合、`showOfflineModal()` がこの配列をチームごとのブロックとして並べて表示する。
 
@@ -285,11 +356,24 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | 泉 | 20 | 全員HP30%・MP25%回復 |
 | 石碑 | 15 | atk/def/spdのいずれか1つに+12%（このダンジョン中のみ加算、複数回引くと積み上がる） |
 
+### 2.12a ダンジョンのモード（ハード／エクストラ）
+
+`DUNGEON_MODES`: `normal`（+0Lv・EXP×1）、`hard`（+10Lv・EXP×1.5）、`extra`（+25Lv・EXP×2）。`getModeDungeon(id, mode)` がダンジョン定義の写しに `mode`・`baseLevel`（元の推奨Lv）・`level`（+levelUp）・`power`・`expMult` を付けて返す。
+
+| 項目 | 内容 |
+|---|---|
+| 解放条件 | ハード: そのダンジョンのノーマル踏破。エクストラ: そのダンジョンのハード踏破（`isDungeonModeOpen`） |
+| 敵の強さ | `DUNGEONS[].modePower[mode]`（`node tools/simulate.js --calibrate-modes` で推奨Lv＋levelUpの想定パーティが踏破率88%、Lv100超は1Lvごとに−2%になるよう決めた値）。無ければ `powerForLevel(level)` |
+| EXP | 敵のEXP × `expMult` |
+| 装備 | 装備のレベルはモード込みの `level`、シリーズ・名のある装備の地方は元の推奨Lv（`regionLevel`）で決める。ハードは1〜2個、エクストラは2〜3個のオプション効果を付ける（`addItemOptions`） |
+| 踏破状態 | `S.clearedDungeons` / `S.clearedHard` / `S.clearedExtra`（Setをセーブでは配列化）。次のダンジョンの解放はノーマル踏破だけで判定する |
+| 自動周回・オフライン | 出撃したモードを `autoRepeat[i].mode` に保存し、同じモードで精算する。履歴にも `mode` を残す |
+
 ### 2.13 ジョブ・種族テーブル要約
 
 - 基本職6種はいずれも `base` ステータス・4アビリティ（reqLevel 1/5/10/15）を持つ。上級職6種は対応する基本職を `JOB_MASTER_LEVEL(=50)` まで育てると `jobUnlocked()` がtrueになる
 - 種族パッシブは `PASSIVE_LABELS` に定義された5種類のいずれか1つ、または特性なし: `critBonus`（会心率+）, `dmgTakenMult`（被ダメ倍率）, `lifesteal`（吸収率）, `mpCostMult`（MP消費倍率）, `healBonus`（回復量+）
-- モンスター種族（スライム/ゴブリン/コウモリ/ウルフ）はプレイヤー種族と同じ `RACES` 構造で定義され、`kind: "monster"` で区別。対応する `MONSTER_JOBS[key]` が固有のベースステータス・3アビリティを持つ
+- モンスター種族（スライム/ゴブリン/コウモリ/ウルフ＋`TAME_SPECIES` の33種）はプレイヤー種族と同じ `RACES` 構造で定義され、`kind: "monster"` で区別。対応する `MONSTER_JOBS[key]` が固有のベースステータス・3アビリティを持つ（`TAME_SPECIES` の種族は型 `TAME_ARCHETYPES`（tank/brute/speed/striker/drainer/mage/healer）の倍率・特性・技の形から生成し、名前と技名だけを種類ごとに付ける）。テイムしたモンスターはLv1から仲間になる（`addTamedMonster`）
 
 ## 3. 画面別のロジック概要（関数マッピング）
 
@@ -337,19 +421,20 @@ UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲ�
 |---|---|
 | `S.roster` / `S.inventory` | キャラ一覧・未装備のアイテム |
 | `S.activeTeam` | 表示中のチーム |
-| `S.clearedDungeons` | 踏破済みダンジョン（Set） |
+| `S.clearedDungeons` / `S.clearedHard` / `S.clearedExtra` | モードごとの踏破済みダンジョン（Set） |
 | `S.nextCharSeq` | 次のキャラid の連番 |
 | `S.autoRepeat` | チームごとの自動周回の設定と進行 |
 | `S.skillBooks` | スキルブック（未実装の予約） |
 | `S.material` | 強化石 |
 | `S.guaranteedStones` | 確定強化石（無償分・有償分） |
+| `S.records` / `S.groups` | 冒険の記録・未編成のグループ分け |
 
 | ファイル | 主な関数 | 内容 |
 |---|---|---|
-| `model/save.js` | `createState(opts)`, `serialize(state, { now, runDungeonIds, enabledFeatures })`, `deserialize(data, { legacyMaterial, syncExpToNext })`, `SCHEMA_VERSION` | セーブデータの書き出しと、読み込み・旧形式からの移行（schemaVersion 2未満の強化石は旧キーから、確定強化石の数値は無償分として、必要EXPは現在の曲線で計算し直す）。使えないデータは `null`。端末への書き込み・オフライン精算・HP/MPのリセットは game.js の `saveGame` / `loadGame` が行う |
+| `model/save.js` | `createState(opts)`, `serialize(state, { now, runDungeonIds, runModes, enabledFeatures })`, `deserialize(data, { legacyMaterial, syncExpToNext, itemBases, legacyItemBases })`, `prepareRestore(json)`, `SCHEMA_VERSION` | セーブデータの書き出しと、読み込み・旧形式からの移行（schemaVersion 2未満の強化石は旧キーから、確定強化石の数値は無償分として、必要EXPは現在の曲線で計算し直す）。使えないデータは `null`。端末への書き込み・オフライン精算・HP/MPのリセットは game.js の `saveGame` / `loadGame` が行う |
 
 | `model/roster.js` | `createRoster({ data, state, runBuffs, isTeamLocked })` → `newCharacter`, `gainExp`, `totalExpInvested`, `switchJob`, `jobUnlocked`, `jobDef`, `getTreeState`, `totalSp` / `availableSp`, `canAcquireNode` / `acquireNode`, `swapGeneralSlot`, `treePassiveTotals`, `computeStats`, `itemScore`, `availableAbilities`, `subAbilityCandidates`, `teamMembers`, `currentMaxLevel` ほか | キャラまわりのルール（§2.3 EXP、§2.12 スキルツリーなど）。ゲームのデータ（js/data.js）と状態 `S` は引数で受け取り、グローバルを直接参照しない。石碑の加護は `runBuffs(team)`、探索中かどうかは `isTeamLocked(team)` で game.js に問い合わせる。game.js は `createRoster` の戻り値を同じ関数名で受け取って使う |
-| `model/inventory.js` | `createInventory({ data, state, roster, rng, isFeatureEnabled, onMaterialChange })` → `equipItem`, `unequipSlot`, `autoEquip`, `clampVitals`, `addMaterial`, `guaranteedStoneTotal`, `enhanceCost`, `canEnhance`, `isPityReady`, `enhanceItem(item)`, `enhanceWithGuaranteed(item)`, `receiveDrops(drops, filter)`, `fusionCandidates`, `fusionExpGain`, `fuse(target, materials)` | 所持品まわりのルール（§2.4 合成、§2.10 強化など）。判定は core（enhance.js / rewards.js）で行い、結果を状態に反映して返す（強化: `{ success, plus, pityHit, cost }`、確定強化石: `{ plus, required }`、合成: `{ expGain, consumedNames, returnedItems, levelUps, abilityUnlocks }`。できない場合は `null`）。メッセージの文章・即時保存は game.js。強化石が変わると `onMaterialChange` で旧キーへの互換ミラーを書く |
+| `model/inventory.js` | `createInventory({ data, state, roster, rng, isFeatureEnabled, onMaterialChange })` → `equipItem`, `unequipSlot`, `autoEquip`, `clampVitals`, `addMaterial`, `guaranteedStoneTotal`, `enhanceCost`, `canEnhance`, `isPityReady`, `enhanceItem(item)`, `enhanceWithGuaranteed(item)`, `receiveDrops(drops, filter)`, `fusionCandidates`, `materialExp(target, m)`, `fusionExpGain(target, materials)`, `fuse(target, materials)` | 所持品まわりのルール（§2.4 合成、§2.10 強化など）。判定は core（enhance.js / rewards.js）で行い、結果を状態に反映して返す（強化: `{ success, plus, pityHit, cost }`、確定強化石: `{ plus, required }`、合成: `{ expGain, consumedNames, returnedItems, levelUps, abilityUnlocks }`。できない場合は `null`）。メッセージの文章・即時保存は game.js。強化石が変わると `onMaterialChange` で旧キーへの互換ミラーを書く |
 | `model/run.js` | `createRunner({ data, state, roster, inventory, rng, teamCount, battleEnv, autoDisassemble, markDexSeen, setBestStage, now })` → `teamRuns`, `teamBattles`, `isTeamRunActive`, `isTeamLocked`, `runBuffs`, `startRun`, `startBattle`, `stepBattle`, `winBattle`, `rollEvent`, `finishRun`, `advanceAutoRepeat`, `interruptRun`, `attemptTame`, `addTamedMonster`, `restoreTeamParty`, `estimateOfflineRunSeconds`, `computeOfflineRun`, `applyOfflineRun`, `runOfflineProgress` | ダンジョン1周の進行（§1.3 run、§2.11 オフライン、§2.12 道中イベント）。チームごとの探索の状態（`teamRuns` / `teamBattles`）を持ち、結果を「何が起きたか」として返す（勝利: `{ expGain, isLast, firstClear, unlocked, tameResult }`、道中イベント: `{ kind: "treasure", item }` / `{ kind: "trap", wide, hits }` / `{ kind: "spring", heals }` / `{ kind: "shrine", stat, total }`、自動周回: `"continue"` / `"completed"` / `"stoppedByWipe"` / `null`）。罠・泉の効果は通常プレイとオフライン精算で同じ関数（`applyTrap` / `applySpring`）を使う。周回の終了は `finishRun`（ドロップの確定と回復）→ game.js の `saveGame` → `advanceAutoRepeat` の順で、従来と同じ時点で保存する |
 
 戦闘中の状態（`teamRuns` / `teamBattles`）・画面表示用の状態・端末ごとの設定（自動分解の対象、図鑑、お知らせの既読など別キーに保存するもの）は `S` に含めない。ブラウザでは `globalThis.QPModel.*`、Node.js では `require` で使え、`tests/save.test.js`・`tests/roster.test.js`・`tests/inventory.test.js`・`tests/run.test.js` で検証する。
@@ -372,12 +457,14 @@ UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲ�
 |---|---|---|
 | `jobquest_save_v1` | JSON | メインセーブデータ（§1.4） |
 | `jobquest_best_cleared` | 数値文字列 | 最大クリア済みダンジョン数 |
-| `jobquest_material` | 数値文字列 | 強化石所持数 |
-| `jobquest_offline_settled` | 数値文字列 | オフライン進行を精算済みのセーブの `savedAt`（二重精算の防止） |
+| `jobquest_material` | 数値文字列 | 強化石所持数の互換ミラー（正本はメインセーブの `material`。schemaVersion 2 未満のセーブの移行元としてだけ読む） |
+| `jobquest_offline_settled` | — | 旧版がオフライン精算の前に書いていた印。現在は使わず、起動時に消す（§2.11） |
 | `jobquest_autodisassemble` | `"0"`/`"1"` | 自動分解ON/OFF |
 | `jobquest_autodisassemble_filter` | JSON配列 | 自動分解対象レア度キーの配列（既定 `["n","r"]`） |
 | `jobquest_autorepeat_target` | 数値文字列 | 自動周回の選択回数（1/3/5/10/20/50のいずれか） |
 | `jobquest_dex_seen` | JSON配列 | 図鑑で発見済みの敵テンプレートkey配列 |
+| `jobquest_read_announcements` | JSON | お知らせの既読revision（§6.4） |
+| `jobquest_notify_auto_repeat` | `"0"`/`"1"` | 自動周回の完了通知（アプリ版のみ） |
 
 すべての読み込みは `try/catch` で保護し、パース失敗時は既定値にフォールバックする（詳細は各キーに対応する初期化コードを参照）。
 
@@ -548,7 +635,7 @@ jobLevels[jobId] = {
 }
 ```
 - schemaVersion未設定は旧形式。既存強化石キーからmaterialを移行し、配列・ジョブ別新フィールドを欠落時のみ補完する
-- 現行の強化石は別キーであり複数キー間にトランザクションがない。鑑定公開時は強化石とブックを同じメインセーブのスナップショットに含め、両方の更新を1回の保存で確定する
+- 強化石はメインセーブの `material` が正本であり、報酬・強化・分解・合成・オフライン精算の結果は1回のメインセーブの書き込みで確定する（複数キーにまたがる更新はしない）。鑑定公開時もブックと強化石を同じスナップショットで確定する
 - 移行後はメインセーブのmaterialを正本とし、旧 `jobquest_material` は互換用のミラーとして更新する。メイン値があるとき旧値で上書きしない。装備強化・分解・報酬も同じ正本を使う
 - 確定操作は更新後スナップショットを作り、保存に成功してから画面へ反映する。保存失敗時は更新前状態を維持し成功表示を出さない
 - 未公開機能の保存値や未知の拡張フィールドは保持し、ゲートで作用を止める。対応しないデータを理由に全セーブを初期化しない
