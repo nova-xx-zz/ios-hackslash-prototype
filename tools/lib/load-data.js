@@ -20,7 +20,7 @@ function loadGameData() {
     fs.readFileSync(path.join(__dirname, "../../js/options.js"), "utf8");
   // data.js はトップレベルのconstで定義しているため、同じスクリプト内の最後の式で取り出す
   return vm.runInContext(code + `
-;({ RNG, RARITIES, ITEM_BASES, DUNGEONS, ENHANCE_RULES, ENHANCE_MAX_PLUS, REWARD_RULES, FEATURE_FLAGS,
+;({ ENEMY_TEMPLATES, RNG, RARITIES, ITEM_BASES, DUNGEONS, ENHANCE_RULES, ENHANCE_MAX_PLUS, REWARD_RULES, FEATURE_FLAGS,
    JOBS, RACES, SLOTS, itemEffectiveValue, itemStats, rarityMult, EQUIP_POSITIONS, ITEM_TYPES, ITEM_SERIES, getItemType, getItemSeries, getItemBase, seriesForLevel,
    LEGACY_ITEM_BASES, ITEM_DROP_SLOT_WEIGHTS, UNIQUE_ITEMS, getUniqueItem, rollUniqueDrop, rollSpecialDrop, regionForLevel,
    UNIQUE_DROP_CHANCE, RARE_UNIQUE_CHANCE, DUNGEON_MODES, getDungeonMode, getModeDungeon, powerForLevel,

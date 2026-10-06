@@ -255,7 +255,7 @@ function buildMemberCard(c) {
   btn.className = "member-card" + (c.isMonster ? " monster" : "");
   btn.innerHTML = `
     <div class="mtitle">${RACES[c.race].name}・${jobDef(c).name}</div>
-    <div class="mname">${c.name}</div>
+    <div class="mname">${c.favorite ? "★" : ""}${c.name}</div>
     <div class="mstats"><span>Lv.${c.level}</span><span>HP${stats.maxHp}</span></div>`;
   attachMemberDrag(btn, c);
   return btn;

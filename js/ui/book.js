@@ -221,12 +221,12 @@ function monsterGrid(keys, isSeen, bossKey) {
     const card = document.createElement("button");
     card.className = "dex-card" + (seen ? "" : " locked") + (t.rare ? " rare" : "");
     const tag = key === bossKey ? "ボス" : t.rare ? "★レア" : "";
+    // 魔物の絵（絵文字）は出さず、名前と属性だけにする
+    const tameTag = seen && t.tamable ? "・テイム可" : "";
     card.innerHTML = seen
-      ? `<div class="dex-card-icon">${t.icon || "❓"}</div>
-         <div class="dex-card-name"></div>
-         <div class="dex-card-element">${t.element}${tag ? "・" + tag : ""}</div>`
-      : `<div class="dex-card-icon">❓</div>
-         <div class="dex-card-name">？？？</div>
+      ? `<div class="dex-card-name"></div>
+         <div class="dex-card-element">${t.element}${tag ? "・" + tag : ""}${tameTag}</div>`
+      : `<div class="dex-card-name">？？？</div>
          <div class="dex-card-element">${tag || "&nbsp;"}</div>`;
     if (seen) {
       card.querySelector(".dex-card-name").textContent = t.name;

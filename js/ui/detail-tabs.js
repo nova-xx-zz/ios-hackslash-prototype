@@ -9,8 +9,17 @@ function buildStatsTab(c) {
   const race = RACES[c.race];
   const stats = computeStats(c);
 
-  wrap.innerHTML = `<div class="cname">${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}</div>
+  wrap.innerHTML = `<div class="cname">${c.favorite ? "★" : ""}${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}</div>
     <div class="sub-ability-row">${race.desc}</div>`;
+
+  // テイムしたモンスターはお気に入りにできる（お気に入りは合成の素材に選べなくなる）
+  if (c.isMonster) {
+    const fav = document.createElement("button");
+    fav.className = "equip-choice favorite-toggle" + (c.favorite ? " on" : "");
+    fav.textContent = c.favorite ? "★ お気に入り（合成の素材にしない）" : "☆ お気に入りにする（合成の素材にしない）";
+    fav.addEventListener("click", () => { c.favorite = !c.favorite; renderCharDetail(); });
+    wrap.appendChild(fav);
+  }
 
   const partyLabel = document.createElement("div");
   partyLabel.className = "sub-ability-row";
@@ -98,7 +107,7 @@ function buildFusionTab(c) {
   const wrap = document.createElement("div");
   const desc = document.createElement("div");
   desc.className = "sub-ability-row";
-  desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターは選べません）";
+  desc.textContent = "控えのモンスターを素材にして合成すると、経験値として還元されます（素材にしたモンスターは消滅します。装備していたアイテムは所持品に戻ります。チームに編成中のモンスターと、お気に入り（★）のモンスターは選べません）";
   wrap.appendChild(desc);
 
   const candidates = Inventory.fusionCandidates(c);
@@ -119,6 +128,39 @@ function buildFusionTab(c) {
     }
     return wrap;
   }
+
+  // まとめて選ぶ: すべて／種族ごと（その種族が全部選ばれていれば外す）／選択を外す
+  const bulk = document.createElement("div");
+  bulk.className = "fusion-bulk-row";
+  const bulkChip = (label, members) => {
+    const all = members.length > 0 && members.every((m) => fusionSelection.has(m.id));
+    const chip = document.createElement("button");
+    chip.className = "priority-chip" + (all ? " tier-3" : "");
+    chip.textContent = `${label}（${members.length}）`;
+    chip.addEventListener("click", () => {
+      for (const m of members) { if (all) fusionSelection.delete(m.id); else fusionSelection.add(m.id); }
+      fusionMessage = "";
+      fusionConfirm = false;
+      renderCharDetail();
+    });
+    return chip;
+  };
+  const bulkLabel = document.createElement("span");
+  bulkLabel.className = "disassemble-filter-label";
+  bulkLabel.textContent = "まとめて選ぶ:";
+  bulk.appendChild(bulkLabel);
+  bulk.appendChild(bulkChip("すべて", candidates));
+  const byRace = new Map();
+  for (const m of candidates) { if (!byRace.has(m.race)) byRace.set(m.race, []); byRace.get(m.race).push(m); }
+  for (const [raceKey, members] of byRace) bulk.appendChild(bulkChip(RACES[raceKey].name, members));
+  if (fusionSelection.size > 0) {
+    const clear = document.createElement("button");
+    clear.className = "priority-chip";
+    clear.textContent = "選択を外す";
+    clear.addEventListener("click", () => { fusionSelection = new Set(); fusionConfirm = false; renderCharDetail(); });
+    bulk.appendChild(clear);
+  }
+  wrap.appendChild(bulk);
 
   const list = document.createElement("div");
   list.className = "skill-row-list";

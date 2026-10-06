@@ -777,6 +777,101 @@ const RACES = {
   },
 };
 
+// ---------- テイムできるモンスター（スライム・ゴブリン・コウモリ・ウルフ以外） ----------
+// 地方ごとに5〜6種類。型（archetype）ごとに種族の能力値の倍率・特性・基礎値・技の形を決め、名前と技の名前だけを種類ごとに付ける。
+// ここで RACES・MONSTER_JOBS に足し、敵の定義（ENEMY_TEMPLATES）をテイム可能にする
+const TAME_ARCHETYPES = {
+  tank: { mult: { hp: 1.35, mp: 0.7, atk: 0.85, mag: 0.6, def: 1.3, spd: 0.65 }, passive: { dmgTakenMult: 0.92 },
+    base: { hp: 36, mp: 6, atk: 9, mag: 3, def: 11, spd: 4 },
+    skills: [{ kind: "physical", target: "single", power: 1.1, hits: 1, mpCost: 0, desc: "体ごとぶつかる" },
+      { kind: "physical", target: "single", power: 1.8, hits: 1, mpCost: 0, desc: "重い一撃を叩きつける" },
+      { kind: "physical", target: "all-enemy", power: 0.9, hits: 1, mpCost: 4, desc: "敵全体を押しつぶす" }] },
+  brute: { mult: { hp: 1.15, mp: 0.6, atk: 1.25, mag: 0.5, def: 1.0, spd: 0.8 }, passive: { critBonus: 0.04 },
+    base: { hp: 32, mp: 5, atk: 13, mag: 2, def: 8, spd: 5 },
+    skills: [{ kind: "physical", target: "single", power: 1.3, hits: 1, mpCost: 0, desc: "力任せに殴りつける" },
+      { kind: "physical", target: "single", power: 2.1, hits: 1, mpCost: 0, desc: "渾身の力で打ち砕く" },
+      { kind: "physical", target: "all-enemy", power: 1.1, hits: 1, mpCost: 5, desc: "暴れまわって敵全体を薙ぎ払う" }] },
+  speed: { mult: { hp: 0.85, mp: 0.8, atk: 1.05, mag: 0.7, def: 0.8, spd: 1.35 }, passive: { critBonus: 0.05 },
+    base: { hp: 22, mp: 8, atk: 10, mag: 4, def: 5, spd: 11 },
+    skills: [{ kind: "physical", target: "single", power: 0.55, hits: 2, mpCost: 0, desc: "素早く2回攻撃する" },
+      { kind: "physical", target: "single", power: 0.5, hits: 3, mpCost: 0, desc: "目にも止まらぬ3連撃" },
+      { kind: "physical", target: "all-enemy", power: 0.95, hits: 1, mpCost: 4, desc: "駆け抜けながら敵全体を裂く" }] },
+  striker: { mult: { hp: 0.95, mp: 0.7, atk: 1.2, mag: 0.6, def: 0.9, spd: 1.1 }, passive: { critBonus: 0.07 },
+    base: { hp: 26, mp: 6, atk: 12, mag: 3, def: 6, spd: 9 },
+    skills: [{ kind: "physical", target: "single", power: 1.25, hits: 1, mpCost: 0, desc: "急所を狙って攻撃する" },
+      { kind: "physical", target: "single", power: 0.55, hits: 3, mpCost: 0, desc: "鋭く3回切り裂く" },
+      { kind: "physical", target: "single", power: 2.3, hits: 1, mpCost: 3, desc: "必殺の一撃を叩き込む" }] },
+  drainer: { mult: { hp: 1.0, mp: 0.9, atk: 1.05, mag: 0.9, def: 0.9, spd: 1.05 }, passive: { lifesteal: 0.06 },
+    base: { hp: 24, mp: 10, atk: 10, mag: 6, def: 6, spd: 8 },
+    skills: [{ kind: "physical", target: "single", power: 1.0, hits: 1, mpCost: 0, lifesteal: 0.3, desc: "かみついて体力を奪う" },
+      { kind: "magic", target: "single", power: 1.3, hits: 1, mpCost: 4, lifesteal: 0.4, desc: "生命力を吸い取る" },
+      { kind: "magic", target: "all-enemy", power: 0.9, hits: 1, mpCost: 6, desc: "敵全体の力を奪う" }] },
+  mage: { mult: { hp: 0.8, mp: 1.3, atk: 0.6, mag: 1.35, def: 0.75, spd: 1.0 }, passive: { mpCostMult: 0.9 },
+    base: { hp: 20, mp: 20, atk: 4, mag: 12, def: 4, spd: 7 },
+    skills: [{ kind: "magic", target: "single", power: 1.5, hits: 1, mpCost: 4, desc: "敵1体に魔法で攻撃する" },
+      { kind: "magic", target: "all-enemy", power: 1.1, hits: 1, mpCost: 9, desc: "敵全体に魔法で攻撃する" },
+      { kind: "magic", target: "single", power: 2.0, hits: 1, mpCost: 7, desc: "敵1体に強力な魔法を放つ" }] },
+  healer: { mult: { hp: 0.9, mp: 1.3, atk: 0.6, mag: 1.2, def: 0.85, spd: 0.95 }, passive: { healBonus: 0.15 },
+    base: { hp: 22, mp: 18, atk: 5, mag: 10, def: 5, spd: 6 },
+    skills: [{ kind: "magic", target: "single", power: 1.2, hits: 1, mpCost: 3, desc: "敵1体に魔法で攻撃する" },
+      { kind: "heal", target: "single-ally", power: 1.8, hits: 1, mpCost: 4, desc: "味方1体のHPを回復する" },
+      { kind: "heal", target: "all-ally", power: 1.2, hits: 1, mpCost: 11, desc: "味方全体のHPを回復する" }] },
+};
+const TAME_ARCHETYPE_DESC = {
+  tank: "打たれ強く、仲間の盾になる。", brute: "力が強く、重い一撃を得意とする。", speed: "素早く、手数で攻める。",
+  striker: "急所を突くのが得意。", drainer: "相手の体力を吸い取って戦う。", mage: "魔法で攻撃する。消費MPが少ない。",
+  healer: "回復の魔法で仲間を支える。",
+};
+// [敵のkey, 型, テイム率, 種族の説明, 技の名前3つ]
+const TAME_SPECIES = [
+  ["leaf_pixie", "healer", 0.25, "木の葉に隠れる妖精。", ["はっぱカッター", "いやしのつゆ", "もりのめぐみ"]],
+  ["stone_lizard", "tank", 0.22, "岩のような鱗を持つトカゲ。", ["しっぽうち", "いわおとし", "じならし"]],
+  ["desert_scorpion", "striker", 0.18, "毒の尾を持つ砂漠の狩人。", ["どくばり", "はさみぎり", "しのいっさし"]],
+  ["dust_devil", "speed", 0.18, "砂を巻き上げて飛び回るつむじ風の精。", ["すなつぶて", "さじんらんぶ", "おおつむじ"]],
+  ["cactus_man", "tank", 0.2, "トゲだらけのサボテンの魔物。", ["トゲのたいあたり", "ハリセンボン", "トゲのあらし"]],
+  ["mummy", "drainer", 0.16, "王墓で眠っていた包帯の亡者。", ["ほうたいしめ", "のろいのいき", "しのささやき"]],
+  ["mirage_spirit", "mage", 0.16, "蜃気楼が形を持った精霊。", ["まぼろしのひかり", "げんえいのうず", "しんきろうのほこ"]],
+  ["snow_owl", "speed", 0.17, "吹雪の中を音もなく飛ぶフクロウ。", ["つばさうち", "こおりのつめ", "ふぶきのはばたき"]],
+  ["glacier_bear", "brute", 0.15, "氷河に棲む巨大な白熊。", ["ひょうがのつめ", "べアハッグ", "ひょうざんくずし"]],
+  ["ice_imp", "mage", 0.16, "いたずら好きな氷の小悪魔。", ["つららとばし", "ダイヤモンドダスト", "ひょうけつのやり"]],
+  ["frost_spider", "drainer", 0.15, "凍った糸を張るクモ。", ["こおりのきば", "いのちのいと", "ひょうけつのあみ"]],
+  ["frost_witch", "healer", 0.14, "雪の森に住む魔女。", ["こおりのつぶて", "ゆきどけのいやし", "はるのいぶき"]],
+  ["yeti", "brute", 0.14, "雪山の伝説の巨人。", ["ゆきだまなげ", "イエティパンチ", "なだれおこし"]],
+  ["ash_wolf", "speed", 0.14, "灰の平原を駆ける狼。", ["はいのきば", "ほのおのれんげき", "はいじんのかぜ"]],
+  ["fire_bat", "drainer", 0.14, "炎をまとうコウモリ。", ["ほのおのきば", "ねっけつきゅうけつ", "ひのこのあらし"]],
+  ["magma_slime", "tank", 0.15, "溶岩でできたスライム。", ["ようがんタックル", "マグマのみこみ", "ふんかのうねり"]],
+  ["flame_spirit", "mage", 0.13, "炎そのものの精霊。", ["ファイアボール", "かえんのうず", "ごうかのつるぎ"]],
+  ["iron_drake", "brute", 0.12, "鋼の鱗を持つ小竜。", ["てっこうのつめ", "ドラゴンテイル", "はがねのいぶき"]],
+  ["reef_shark", "striker", 0.13, "珊瑚礁を荒らすサメ。", ["かみつき", "きりさくひれ", "ちのにおい"]],
+  ["giant_jellyfish", "mage", 0.13, "毒の触手を持つ巨大クラゲ。", ["しびれしょくしゅ", "どくのうみ", "でんげきのうず"]],
+  ["coral_golem", "tank", 0.12, "珊瑚が集まってできたゴーレム。", ["さんごのこぶし", "かたいさんごのうで", "うみなりのとどろき"]],
+  ["siren", "healer", 0.11, "歌で船乗りを惑わす海の魔物。", ["まどいのうた", "いやしのうた", "うみのせいか"]],
+  ["kraken_spawn", "brute", 0.11, "大海魔クラーケンの子ども。", ["しょくしゅうち", "まきつき", "おおうずしお"]],
+  ["thunder_bird", "speed", 0.11, "雷を呼ぶ巨鳥。", ["いなずまのつめ", "らいめいのはばたき", "かみなりのあらし"]],
+  ["wind_sylph", "healer", 0.11, "風の精霊シルフ。", ["かまいたち", "そよかぜのいやし", "てんくうのかぜ"]],
+  ["griffon", "striker", 0.1, "天空を統べる神獣。", ["グリフォンクロー", "てんくうのつめ", "きゅうこうか"]],
+  ["star_beast", "drainer", 0.1, "星の光を食べる獣。", ["ほしくらい", "せいこうきゅうしゅう", "りゅうせいぐん"]],
+  ["cloud_golem", "tank", 0.1, "雲を固めたゴーレム。", ["くもパンチ", "らいうんのこぶし", "てんくうおとし"]],
+  ["void_wraith", "drainer", 0.09, "虚無から生まれた怨霊。", ["きょむのてのひら", "たましいすい", "うつろのあらし"]],
+  ["shadow_beast", "striker", 0.09, "影から生まれた獣。", ["かげのきば", "やみうちれんげき", "えいえんのやみ"]],
+  ["nightmare", "speed", 0.08, "悪夢を運ぶ黒馬。", ["あくむのひづめ", "ゆめくらい", "ナイトメアラン"]],
+  ["doppelganger", "brute", 0.08, "姿を写し取る影の魔物。", ["うつしみのこぶし", "かがみわり", "ふたりのいちげき"]],
+  ["eldritch_eye", "mage", 0.08, "深淵を覗く巨大な眼。", ["しせんのやいば", "ぎょうしのうず", "しんえんのまなざし"]],
+];
+for (const [key, type, tameChance, flavor, skillNames] of TAME_SPECIES) {
+  const tpl = ENEMY_TEMPLATES.find((t) => t.key === key);
+  const arch = TAME_ARCHETYPES[type];
+  if (!tpl || !arch) continue;
+  tpl.tamable = true;
+  tpl.tameChance = tameChance;
+  RACES[key] = { name: `${tpl.name}族`, kind: "monster", mult: arch.mult, expMult: 1.0, passive: arch.passive,
+    desc: `${flavor}${TAME_ARCHETYPE_DESC[type]}` };
+  MONSTER_JOBS[key] = {
+    id: key, name: tpl.name, base: arch.base,
+    abilities: arch.skills.map((sk, i) => Object.assign({}, sk, { id: `m_${key}_${i + 1}`, name: skillNames[i], reqLevel: [1, 5, 10][i] })),
+  };
+}
+
 const PLAYER_RACE_IDS = Object.keys(RACES).filter((k) => RACES[k].kind === "player");
 const RECRUIT_NAME_POOL = ["カイ", "レン", "シオン", "ファナ", "トウカ", "ミル", "ジン", "エマ", "ロイ", "ニナ", "ソラ", "ユキ"];
 

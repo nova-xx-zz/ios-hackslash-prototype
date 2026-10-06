@@ -179,9 +179,9 @@
     }
 
     // ---------- モンスター合成 ----------
-    // 合成できる素材: 対象以外の、どのチームにも編成していないモンスター
+    // 合成できる素材: 対象以外の、どのチームにも編成していない、お気に入りにしていないモンスター
     function fusionCandidates(target) {
-      return S.roster.filter((m) => m.isMonster && m.id !== target.id && m.team === null);
+      return S.roster.filter((m) => m.isMonster && m.id !== target.id && m.team === null && !m.favorite);
     }
     function fusionExpGain(materials) {
       return materials.reduce((s, m) => s + Math.round(R.totalExpInvested(m) * FUSION_EXP_RATE), 0);

@@ -75,7 +75,7 @@ document.getElementById("btnSettingsBack").addEventListener("click", () => {
 // モンスターの詳細（書物のモンスター辞典から開く）
 function openDexDetail(key) {
   const t = getEnemyTemplate(key);
-  document.getElementById("dexIcon").textContent = t.icon || "❓";
+  document.getElementById("dexIcon").textContent = ""; // 魔物の絵（絵文字）は出さない
   document.getElementById("dexName").textContent = t.name;
   document.getElementById("dexElement").textContent =
     `属性: ${t.element}　${t.tamable ? "テイム可能" : "テイム不可"}`;
