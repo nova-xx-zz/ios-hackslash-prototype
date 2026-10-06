@@ -1189,6 +1189,22 @@ function getDungeon(id) {
   return DUNGEONS.find((d) => d.id === id);
 }
 
+// ---------- モンスター合成の基本EXP ----------
+// 素材1体の基本EXP＝その種族が出てくる一番早いダンジョンのLvで、1レベル上げるのに必要なEXP。
+// テイムしたばかりのLv1でも素材として役に立ち、先の地方の種族ほど多い（js/model/inventory.js の fusionExpGain）
+const FUSION_SAME_RACE_MULT = 1.5; // 合成先と同じ種族の素材はEXPが1.5倍
+const tameHomeLevelCache = {};
+function tameHomeLevel(key) {
+  if (!(key in tameHomeLevelCache)) {
+    const levels = DUNGEONS.filter((d) => d.pool.includes(key) || d.boss === key || (d.rares || []).includes(key)).map((d) => d.level);
+    tameHomeLevelCache[key] = levels.length ? Math.min(...levels) : 1;
+  }
+  return tameHomeLevelCache[key];
+}
+function fusionBaseExp(key) {
+  return expForLevel(tameHomeLevel(key));
+}
+
 // ---------- ダンジョンのモード（ノーマル・ハード・エクストラ） ----------
 // ノーマルを踏破するとハード、ハードを踏破するとエクストラに挑める（ダンジョンごと）。
 // 敵は推奨Lvが levelUp だけ上のダンジョン相当の強さになり、EXPは expMult 倍。

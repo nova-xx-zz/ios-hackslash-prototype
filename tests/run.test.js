@@ -287,3 +287,11 @@ test("オフライン精算: 弱いパーティで全滅したら、そこまで
   assert.equal(state.inventory.length, 0);
   assert.equal(state.clearedDungeons.has("peak"), false);
 });
+
+test("テイム: どのダンジョンでテイムしても、仲間になるモンスターはLv1から", () => {
+  const { state, Runner } = setup({ level: 40 });
+  const mon = Runner.addTamedMonster("yeti");
+  assert.equal(mon.level, 1);
+  assert.equal(mon.isMonster, true);
+  assert.ok(state.roster.includes(mon));
+});

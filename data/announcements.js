@@ -4,6 +4,24 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "balance_tame_level1",
+    revision: 1,
+    publishedAt: "2026-10-07T09:00:00+09:00",
+    expiresAt: null,
+    category: "balance",
+    title: "テイムはLv1から・合成のEXPを見直し",
+    body: [
+      "テイムしたモンスターのレベルが、自分たちのパーティより高くなってしまうことがあったため、どのダンジョンでテイムしてもLv1から仲間になるように変更しました。",
+      "育てる時は、パーティに入れて戦うか、モンスター合成でEXPを与えてください。",
+      "モンスター合成のEXPも見直しました。テイムしたばかりのLv1の素材でもEXPが入り（先の地方の種族ほど多い）、合成先と同じ種族の素材はEXPが1.5倍になります。",
+      "※ すでに仲間になっているモンスターのレベルはそのままです。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_taming",
     revision: 1,
     publishedAt: "2026-10-06T21:00:00+09:00",
