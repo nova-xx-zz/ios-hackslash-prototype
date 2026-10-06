@@ -105,7 +105,7 @@ const Roster = QPModel.roster.createRoster({
   data: {
     JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
     getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
-    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES,
+    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem,
   },
   state: S,
   runBuffs: (team) => Runner.runBuffs(team), // 石碑の加護（js/model/run.js）
@@ -139,7 +139,7 @@ const {
 // js/model/run.js。ここではログの文章・画面の更新・次の処理までの待ち時間を受け持つ。
 // computeStats が石碑の加護(teamRuns[].buffs)を参照するため、roster を組み立てる前に用意しておく
 const Runner = QPModel.run.createRunner({
-  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES, RARE_DROP_MIN_RARITY },
+  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, ITEM_BASES },
   state: S,
   roster: Roster,
   inventory: Inventory,

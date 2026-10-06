@@ -230,6 +230,7 @@ function buildDropRow(item) {
   row.appendChild(dot);
   const label = document.createElement("div");
   label.textContent = itemLabel(item);
+  if (item.unique) row.classList.add(item.cursed ? "cursed" : "unique");
   row.appendChild(label);
   return row;
 }
@@ -237,7 +238,14 @@ function buildDropRow(item) {
 function itemLabel(item) {
   const plusText = item.plus > 0 ? `+${item.plus}` : "";
   const levelText = item.level > 1 ? ` Lv.${item.level}` : ""; // 装備のレベル（拾ったダンジョンの推奨Lv）
-  return `${item.name}${plusText}${levelText}（${itemStatsText(item)}）`;
+  return `${itemMark(item)}${item.name}${plusText}${levelText}（${itemStatsText(item)}）`;
+}
+// 名のある装備は◆、呪いの装備は☠を名前の前に付ける
+function itemMark(item) { return item.cursed ? "☠" : item.unique ? "◆" : ""; }
+// 名のある装備の特殊効果（呪いのデメリットを含む）。通常の装備は空文字
+function itemEffectText(item) {
+  const def = item.unique ? getUniqueItem(item.base) : null;
+  return def ? def.effect.desc : "";
 }
 // 「ATK+5 SPD+2」の形の能力値（強化値込み）
 function itemStatsText(item) {

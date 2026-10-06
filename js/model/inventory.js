@@ -75,7 +75,8 @@
       const acc = R.accessorySlots(c);
       const pool = S.inventory.slice();
       for (const p of equipment.POSITIONS) if (c.equip[p]) pool.push(c.equip[p]);
-      const usable = pool.filter((it) => equipment.canUseItem(profile, it));
+      // 呪いの装備はデメリットがあるので、おまかせでは選ばない（付けたままなら残す）
+      const usable = pool.filter((it) => equipment.canUseItem(profile, it) && (!it.cursed || Object.values(c.equip).includes(it)));
       const score = (it) => (it ? R.itemScore(c, it) : 0);
       const best = (list) => list.reduce((a, b) => (score(b) > score(a) ? b : a), null);
       const chosen = equipment.emptyEquip();
