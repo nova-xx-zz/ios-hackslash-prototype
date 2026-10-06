@@ -129,7 +129,7 @@ function makeMember(spec, level, i, opts) {
   c.treeAbilities = tt.abilities;
   // 装飾品の枠はスキルツリーの「装備の心得」「装備の極意」で増える（ツリーを振らない想定なら1枠）
   c.equip = standardEquip(spec.job, opts.gear, Math.min(equipment.MAX_ACCESSORY_SLOTS, 1 + tt.totals.accessorySlots));
-  c.set = equipment.setBonusTotals(c.equip, data.ITEM_SERIES);
+  c.set = equipment.setBonusTotals(c.equip, data.ITEM_SERIES, data.getUniqueItem);
   return c;
 }
 

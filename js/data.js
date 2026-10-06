@@ -1350,6 +1350,8 @@ let itemSeq = 1;
 const ITEM_DROP_SLOT_WEIGHTS = { weapon: 22, shield: 10, head: 15, body: 15, accessory: 38 };
 // 落ちるのは、そのダンジョンのレベルのシリーズ（地方ごと）の装備。部位を重みで選び、その部位の種類から等確率で選ぶ
 function rollItemDrop(level, minRarity) {
+  // ふつうのドロップは、まれにその地方の名のある装備になる（js/uniques.js）
+  if (!minRarity && RNG.chance(UNIQUE_DROP_CHANCE)) return rollUniqueDrop(level);
   const from = minRarity ? RARITIES.findIndex((r) => r.key === minRarity) : 0;
   const series = seriesForLevel(level);
   const slotKeys = Object.keys(ITEM_DROP_SLOT_WEIGHTS);

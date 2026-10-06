@@ -15,7 +15,7 @@
     const {
       JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
       getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
-      JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES,
+      JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem,
     } = deps.data;
 
     // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
@@ -243,8 +243,8 @@
     function canPlaceItem(c, item, position) {
       return equipment.canPlace(equipProfile(c), item, position, c.equip, accessorySlots(c));
     }
-    // 付けている装備のセット効果（同じシリーズを2・4・6個）
-    function setBonuses(c) { return equipment.setBonusTotals(c.equip, ITEM_SERIES); }
+    // 付けている装備のセット効果（同じシリーズを2・4・6個）と、名のある装備の特殊効果
+    function setBonuses(c) { return equipment.setBonusTotals(c.equip, ITEM_SERIES, getUniqueItem); }
     // 会心率・吸収・回復量・被ダメージ・消費MPのうち、セット効果のぶん（戦闘で種族・スキルツリーの値と合わせる）
     function gearPassive(c, key) { return setBonuses(c).passives[key]; }
 

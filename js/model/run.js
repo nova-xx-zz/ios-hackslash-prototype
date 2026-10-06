@@ -4,7 +4,7 @@
 // 自動周回の継続判定）・オフライン精算（離れていた間の周回の計算と反映）。画面には依存しない。
 // ログの文章・画面の更新・次の処理までの待ち時間（setTimeout）は game.js が受け持ち、ここは「何が起きたか」を返す。
 //   createRunner({ data, state, roster, inventory, rng, teamCount, battleEnv, autoDisassemble, markDexSeen, setBestStage, now })
-//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, ITEM_BASES, RARE_DROP_MIN_RARITY }
+//     data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, ITEM_BASES }
 //     冒険の記録（ダンジョン別に出会った敵・手に入れた装備・潜った履歴）は state.records に書く（js/model/records.js）
 //     roster / inventory: js/model/roster.js・inventory.js の戻り値
 //     battleEnv(): 戦闘エンジンに渡す env（game.js の battleEnv）
@@ -36,11 +36,12 @@
     const Inv = deps.inventory;
     const rng = deps.rng;
     const teamCount = deps.teamCount || 4;
-    const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop } = deps.data;
-    const RARE_DROP_MIN_RARITY = deps.data.RARE_DROP_MIN_RARITY || "sr";
+    const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop } = deps.data;
     // 装備はそのダンジョンの推奨Lvを装備のレベルにして抽選する
     const dropFor = (d) => () => rollItemDrop(d.level);
-    const rareDropFor = (d) => () => rollItemDrop(d.level, RARE_DROP_MIN_RARITY);
+    // レア敵・ボスの追加ドロップ（js/uniques.js の rollSpecialDrop。無ければレア敵だけSR以上の装備）
+    const rareDropFor = (d) => (enemy) => (rollSpecialDrop ? rollSpecialDrop(d.level, enemy)
+      : enemy && enemy.isBoss ? null : rollItemDrop(d.level, "sr"));
     const markDexSeen = deps.markDexSeen || (() => {});
     const setBestStage = deps.setBestStage || (() => {});
     const now = deps.now || (() => Date.now());
