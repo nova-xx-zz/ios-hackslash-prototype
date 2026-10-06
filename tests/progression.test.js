@@ -12,6 +12,7 @@ const TARGET_RUNS = {
   forest: 10, cave: 20, ruins: 45, peak: 95, // ヴェルデ地方
   dunes: 108, canyon: 136, oasis: 168, tomb: 206, sun_temple: 266, // サブル地方（1ダンジョンごとに+20〜60周）
   frost_forest: 299, frozen_lake: 352, crystal_cave: 407, snow_fort: 468, ice_throne: 554, // グラシア地方（+30〜90周）
+  ash_plains: 600, lava_river: 668, crater: 811, forge_ruins: 739, inferno_peak: 918, // イグニス地方（+45〜110周）
 };
 const RUNS_TOLERANCE = 0.3;
 const PLUS_TOLERANCE = 2; // 適正装備の+値とのずれの許容

@@ -524,6 +524,24 @@ const ENEMY_TEMPLATES = [
   { key: "frozen_general", name: "フローズンジェネラル", hp: 190, atk: 38, mag: 0, def: 21, spd: 8, exp: 90, color: "#7a8a9a", icon: "🪖", element: "氷", tamable: false, tameChance: 0, desc: "砦を守っていた将軍。凍りついた軍勢を今も率いている。" },
   { key: "frost_dragon", name: "フロストドラゴン", hp: 210, atk: 40, mag: 0, def: 22, spd: 10, exp: 96, color: "#9fd8ff", icon: "🐉", element: "氷", tamable: false, tameChance: 0, desc: "グラシア地方を氷に閉ざした古竜。その息は時さえ凍らせる。" },
 
+  // ---- イグニス地方 (Lv47〜60) ----
+  { key: "ash_wolf", name: "アッシュウルフ", hp: 60, atk: 27, mag: 0, def: 10, spd: 15, exp: 44, color: "#7a7470", icon: "🐺", element: "火", tamable: false, tameChance: 0, desc: "灰をかぶった灰色の狼。火の粉の中でも平然と獲物を追う。" },
+  { key: "fire_bat", name: "ファイアバット", hp: 50, atk: 26, mag: 0, def: 8, spd: 18, exp: 44, color: "#e0602f", icon: "🦇", element: "火", tamable: false, tameChance: 0, desc: "翼に炎をまとったコウモリ。群れで飛ぶと空が赤く染まる。" },
+  { key: "magma_slime", name: "マグマスライム", hp: 82, atk: 24, mag: 0, def: 14, spd: 5, exp: 45, color: "#ff6a2a", icon: "🔴", element: "火", tamable: false, tameChance: 0, desc: "溶岩でできたスライム。触れた武器が溶けることもある。" },
+  { key: "cinder_imp", name: "シンダーインプ", hp: 54, atk: 29, mag: 0, def: 9, spd: 16, exp: 46, color: "#c8402a", icon: "😈", element: "火", tamable: false, tameChance: 0, desc: "燃えかすから生まれた小鬼。熱い石を投げつけてくる。" },
+  { key: "lava_lizard", name: "ラーヴァリザード", hp: 76, atk: 28, mag: 0, def: 13, spd: 10, exp: 46, color: "#d04a1f", icon: "🦎", element: "火", tamable: false, tameChance: 0, desc: "溶岩の中を泳ぐ大トカゲ。背中の鱗は冷えた溶岩のように硬い。" },
+  { key: "salamander_knight", name: "サラマンダーナイト", hp: 88, atk: 30, mag: 0, def: 16, spd: 9, exp: 48, color: "#b8402a", icon: "🛡️", element: "火", tamable: false, tameChance: 0, desc: "サラマンダーの一族の戦士。炎の槍で隊列を組んで戦う。" },
+  { key: "fire_serpent", name: "ファイアサーペント", hp: 84, atk: 31, mag: 0, def: 12, spd: 12, exp: 48, color: "#ff8a3a", icon: "🐍", element: "火", tamable: false, tameChance: 0, desc: "溶岩の川に棲む炎の大蛇。鎌首をもたげると熱風が吹きつける。" },
+  { key: "flame_spirit", name: "フレイムスピリット", hp: 58, atk: 32, mag: 0, def: 8, spd: 17, exp: 48, color: "#ffb03a", icon: "🔥", element: "火", tamable: false, tameChance: 0, desc: "炎そのものが意思を持った精霊。風に乗って燃え広がる。" },
+  { key: "obsidian_golem", name: "オブシディアンゴーレム", hp: 108, atk: 28, mag: 0, def: 22, spd: 4, exp: 50, color: "#2a2a34", icon: "🪨", element: "土", tamable: false, tameChance: 0, desc: "黒曜石でできたゴーレム。割れた面は刃物のように鋭い。" },
+  { key: "iron_drake", name: "アイアンドレイク", hp: 96, atk: 33, mag: 0, def: 18, spd: 11, exp: 52, color: "#6a6a78", icon: "🐲", element: "土", tamable: false, tameChance: 0, desc: "鉄の鱗を持つ小竜。鍛冶場の鉄を食べて育ったと言われる。" },
+  { key: "fire_giant", name: "ファイアジャイアント", hp: 124, atk: 34, mag: 0, def: 17, spd: 6, exp: 54, color: "#a0402a", icon: "👹", element: "火", tamable: false, tameChance: 0, desc: "炎の巨人。かつてこの地で神々の武具を鍛えていたという。" },
+  { key: "ash_behemoth", name: "アッシュベヒモス", hp: 210, atk: 38, mag: 0, def: 22, spd: 5, exp: 104, color: "#5a5048", icon: "🦏", element: "土", tamable: false, tameChance: 0, desc: "灰の平原を支配する巨獣。歩くたびに灰が舞い上がる。" },
+  { key: "magma_leviathan", name: "マグマリヴァイアサン", hp: 220, atk: 40, mag: 0, def: 21, spd: 8, exp: 108, color: "#ff5a1f", icon: "🐋", element: "火", tamable: false, tameChance: 0, desc: "溶岩の大河の主。溶岩ごと旅人を飲み込む巨大な魔物。" },
+  { key: "forge_master", name: "フォージマスター", hp: 230, atk: 42, mag: 0, def: 24, spd: 7, exp: 112, color: "#c86a2a", icon: "🔨", element: "火", tamable: false, tameChance: 0, desc: "鍛冶場を守る巨人の親方。自ら鍛えた大槌を振るう。" },
+  { key: "ifrit", name: "イフリート", hp: 236, atk: 44, mag: 0, def: 22, spd: 10, exp: 118, color: "#ff4a1a", icon: "👺", element: "火", tamable: false, tameChance: 0, desc: "火口に棲む炎の魔神。怒ると周囲のすべてが燃え上がる。" },
+  { key: "inferno_dragon", name: "インフェルノドラゴン", hp: 260, atk: 46, mag: 0, def: 25, spd: 11, exp: 126, color: "#d81f1f", icon: "🐉", element: "火", tamable: false, tameChance: 0, desc: "霊峰に棲む炎竜。その炎は山をも溶かすと恐れられている。" },
+
   // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
   { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
   { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
@@ -555,6 +573,16 @@ const ENEMY_TEMPLATES = [
   { key: "frost_valkyrie", name: "フロストヴァルキリー", hp: 92, atk: 35, mag: 0, def: 14, spd: 15, exp: 50, color: "#c0d8f0", icon: "🛡️", element: "光", rare: true, tamable: false, tameChance: 0, desc: "勇敢な戦士の魂を迎えに来るという氷の戦乙女。" },
   { key: "silver_drake", name: "シルバードレイク", hp: 120, atk: 36, mag: 0, def: 18, spd: 13, exp: 54, color: "#c8d0d8", icon: "🐲", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "フロストドラゴンに仕える白銀の竜。主の眠りを守っている。" },
   { key: "aurora_spirit", name: "オーロラスピリット", hp: 90, atk: 38, mag: 0, def: 12, spd: 18, exp: 54, color: "#9f7fff", icon: "🌌", element: "光", rare: true, tamable: false, tameChance: 0, desc: "空のオーロラが地上に降りてきた精霊。見た者は二度と忘れられない。" },
+  { key: "ember_fox", name: "エンバーフォックス", hp: 76, atk: 30, mag: 0, def: 12, spd: 20, exp: 56, color: "#ff8a3a", icon: "🦊", element: "火", rare: true, tamable: false, tameChance: 0, desc: "尾の先に消えない火を灯したキツネ。灰の中を音もなく駆ける。" },
+  { key: "coal_tortoise", name: "コールトータス", hp: 120, atk: 26, mag: 0, def: 28, spd: 4, exp: 56, color: "#3a3a3a", icon: "🐢", element: "土", rare: true, tamable: false, tameChance: 0, desc: "石炭の甲羅を背負ったカメ。甲羅の中には宝石が混じっているという。" },
+  { key: "ruby_crab", name: "ルビークラブ", hp: 100, atk: 30, mag: 0, def: 24, spd: 8, exp: 58, color: "#d1203a", icon: "🦀", element: "火", rare: true, tamable: false, tameChance: 0, desc: "紅玉の甲殻を持つ溶岩ガニ。熱で甲殻がいっそう赤く輝く。" },
+  { key: "fire_dancer", name: "ファイアダンサー", hp: 80, atk: 34, mag: 0, def: 12, spd: 20, exp: 58, color: "#ff6a8a", icon: "💃", element: "火", rare: true, tamable: false, tameChance: 0, desc: "溶岩の上で舞う炎の精。見とれていると焼かれてしまう。" },
+  { key: "mithril_golem", name: "ミスリルゴーレム", hp: 140, atk: 32, mag: 0, def: 32, spd: 5, exp: 60, color: "#c8e0f0", icon: "🤖", element: "土", rare: true, tamable: false, tameChance: 0, desc: "伝説の金属ミスリルで鍛えられたゴーレム。巨人たちの最高傑作。" },
+  { key: "anvil_spirit", name: "金床の精", hp: 104, atk: 36, mag: 0, def: 20, spd: 10, exp: 60, color: "#8a8a98", icon: "⚒️", element: "土", rare: true, tamable: false, tameChance: 0, desc: "千年使われた金床に宿った精霊。良い武具を見ると喜ぶ。" },
+  { key: "phoenix_chick", name: "不死鳥の雛", hp: 92, atk: 38, mag: 0, def: 14, spd: 19, exp: 62, color: "#ffb04a", icon: "🐥", element: "火", rare: true, tamable: false, tameChance: 0, desc: "火口の炎から生まれた不死鳥の雛。小さくても炎は本物。" },
+  { key: "molten_gem", name: "モルテンジェム", hp: 110, atk: 34, mag: 0, def: 26, spd: 12, exp: 62, color: "#ff3a6a", icon: "💎", element: "火", rare: true, tamable: false, tameChance: 0, desc: "溶けた宝石が固まらずに動き出した魔物。冷えると極上の宝石になる。" },
+  { key: "sun_drake", name: "サンドレイク", hp: 140, atk: 42, mag: 0, def: 22, spd: 15, exp: 66, color: "#ffd04a", icon: "☀️", element: "光", rare: true, tamable: false, tameChance: 0, desc: "太陽の光を浴びて育った金色の竜。炎竜にも劣らない力を持つ。" },
+  { key: "flame_seraph", name: "フレイムセラフ", hp: 112, atk: 44, mag: 0, def: 16, spd: 20, exp: 66, color: "#ffe08a", icon: "👼", element: "光", rare: true, tamable: false, tameChance: 0, desc: "霊峰の頂に降り立つ炎の天使。その姿を見た者は少ない。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -658,6 +686,7 @@ const REGIONS = [
   { id: "verde", name: "ヴェルデ地方", desc: "冒険者ギルドのある緑豊かな地方。駆け出しの冒険者が腕を磨く。" },
   { id: "sabul", name: "サブル地方", desc: "照りつける太陽と砂の海が広がる地方。古い王国の遺跡が砂の下に眠っている。" },
   { id: "glacia", name: "グラシア地方", desc: "一年中雪と氷に閉ざされた北の地方。氷の奥深くに古い竜が眠るという。" },
+  { id: "ignis", name: "イグニス地方", desc: "火山が連なる灼熱の地方。溶岩の川が流れ、炎の魔物が群れをなす。" },
 ];
 
 const DUNGEONS = [
@@ -762,10 +791,46 @@ const DUNGEONS = [
   },
   {
     id: "ice_throne", region: "glacia", name: "氷竜の玉座", x: 30, y: 14, level: 45, battles: 5,
-    pool: ["frozen_knight", "yeti", "frost_witch", "crystal_golem", "glacier_bear", "ice_serpent"], boss: "frost_dragon", rares: ["silver_drake", "aurora_spirit"], unlocks: [],
+    pool: ["frozen_knight", "yeti", "frost_witch", "crystal_golem", "glacier_bear", "ice_serpent"], boss: "frost_dragon", rares: ["silver_drake", "aurora_spirit"], unlocks: ["ash_plains"],
     desc: "氷河の頂にある氷の玉座。永い眠りから覚めた竜が待っている。",
     power: 0.43, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "ur", plus: 5 },
+  },
+  // ---- イグニス地方（推奨Lv47〜60） ----
+  {
+    id: "ash_plains", region: "ignis", name: "灰降る平原", x: 18, y: 76, level: 47, battles: 5,
+    pool: ["ash_wolf", "fire_bat", "magma_slime", "cinder_imp", "lava_lizard", "salamander_knight"], boss: "ash_behemoth", rares: ["ember_fox", "coal_tortoise"], unlocks: ["lava_river"],
+    desc: "灰が雪のように降り積もる平原。足元の地面はほんのり温かい。",
+    power: 0.34, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
+  },
+  {
+    id: "lava_river", region: "ignis", name: "溶岩の大河", x: 46, y: 64, level: 50, battles: 5,
+    pool: ["magma_slime", "lava_lizard", "fire_serpent", "flame_spirit", "fire_bat", "obsidian_golem"], boss: "magma_leviathan", rares: ["ruby_crab", "fire_dancer"], unlocks: ["forge_ruins"],
+    desc: "煮えたぎる溶岩が川となって流れる谷。わずかな岩場だけが道になる。",
+    power: 0.36, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 5 },
+  },
+  {
+    id: "forge_ruins", region: "ignis", name: "炎の鍛冶場跡", x: 78, y: 54, level: 53, battles: 5,
+    pool: ["obsidian_golem", "salamander_knight", "cinder_imp", "flame_spirit", "iron_drake", "fire_giant"], boss: "forge_master", rares: ["mithril_golem", "anvil_spirit"], unlocks: ["crater"],
+    desc: "火の巨人たちが武具を鍛えたという鍛冶場の跡。今も炉の火が消えていない。",
+    power: 0.36, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 5 },
+  },
+  {
+    id: "crater", region: "ignis", name: "大火口", x: 56, y: 30, level: 56, battles: 5,
+    pool: ["fire_giant", "iron_drake", "fire_serpent", "flame_spirit", "obsidian_golem", "ash_wolf"], boss: "ifrit", rares: ["phoenix_chick", "molten_gem"], unlocks: ["inferno_peak"],
+    desc: "山頂に口を開けた巨大な火口。底からは絶えず炎が噴き上がる。",
+    power: 0.34, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 6 },
+  },
+  {
+    id: "inferno_peak", region: "ignis", name: "業火の霊峰", x: 26, y: 12, level: 60, battles: 5,
+    pool: ["fire_giant", "iron_drake", "salamander_knight", "fire_serpent", "flame_spirit", "obsidian_golem"], boss: "inferno_dragon", rares: ["sun_drake", "flame_seraph"], unlocks: [],
+    desc: "業火に包まれた霊峰。火山の主たる炎竜が、挑む者を待っている。",
+    power: 0.32, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 6 },
   },
 ];
 
