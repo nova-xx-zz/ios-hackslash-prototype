@@ -69,7 +69,7 @@ function check() {
 // 推奨Lvで想定プレイヤーの踏破率が calibrateTarget になる「敵の強さの倍率」（DUNGEONS[].power）を探す
 function calibrate(d) {
   const saved = d.power;
-  let lo = 0.3, hi = 4.0;
+  let lo = 0.1, hi = 4.0; // 奥の地方ほど小さな倍率になるため、下限は0.1まで探す
   for (let i = 0; i < 14; i++) {
     const mid = (lo + hi) / 2;
     d.power = mid;

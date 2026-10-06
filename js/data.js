@@ -542,6 +542,24 @@ const ENEMY_TEMPLATES = [
   { key: "ifrit", name: "イフリート", hp: 236, atk: 44, mag: 0, def: 22, spd: 10, exp: 118, color: "#ff4a1a", icon: "👺", element: "火", tamable: false, tameChance: 0, desc: "火口に棲む炎の魔神。怒ると周囲のすべてが燃え上がる。" },
   { key: "inferno_dragon", name: "インフェルノドラゴン", hp: 260, atk: 46, mag: 0, def: 25, spd: 11, exp: 126, color: "#d81f1f", icon: "🐉", element: "火", tamable: false, tameChance: 0, desc: "霊峰に棲む炎竜。その炎は山をも溶かすと恐れられている。" },
 
+  // ---- マリナ地方 (Lv62〜75) ----
+  { key: "reef_shark", name: "リーフシャーク", hp: 78, atk: 33, mag: 0, def: 12, spd: 17, exp: 55, color: "#5a7a9a", icon: "🦈", element: "水", tamable: false, tameChance: 0, desc: "珊瑚礁を回遊する鮫。血の匂いを嗅ぎつけると群れで集まる。" },
+  { key: "giant_jellyfish", name: "ジャイアントクラゲ", hp: 70, atk: 30, mag: 0, def: 10, spd: 9, exp: 54, color: "#c8a8f0", icon: "🪼", element: "水", tamable: false, tameChance: 0, desc: "人より大きなクラゲ。触手に触れるとしびれて動けなくなる。" },
+  { key: "coral_golem", name: "コーラルゴーレム", hp: 120, atk: 31, mag: 0, def: 24, spd: 4, exp: 58, color: "#ff8a8a", icon: "🪸", element: "水", tamable: false, tameChance: 0, desc: "珊瑚が寄り集まったゴーレム。砕いても珊瑚がすぐに伸びて元に戻る。" },
+  { key: "sea_hornet", name: "シーホーネット", hp: 64, atk: 34, mag: 0, def: 10, spd: 19, exp: 55, color: "#e0c040", icon: "🐝", element: "風", tamable: false, tameChance: 0, desc: "海辺の岩場に巣を作る大蜂。潮風に乗って高速で襲いかかる。" },
+  { key: "merfolk_soldier", name: "マーフォーク兵", hp: 92, atk: 34, mag: 0, def: 16, spd: 12, exp: 58, color: "#4a9ab0", icon: "🧜", element: "水", tamable: false, tameChance: 0, desc: "海の民の兵士。陸の者を海に入れまいと槍を構える。" },
+  { key: "drowned_sailor", name: "ドラウンドセーラー", hp: 88, atk: 33, mag: 0, def: 14, spd: 10, exp: 57, color: "#6a8a8a", icon: "🧟", element: "闇", tamable: false, tameChance: 0, desc: "海で命を落とした船乗りの亡者。今も船の仕事を続けている。" },
+  { key: "ghost_pirate", name: "ゴーストパイレーツ", hp: 82, atk: 37, mag: 0, def: 12, spd: 15, exp: 59, color: "#7a7aa0", icon: "🏴‍☠️", element: "闇", tamable: false, tameChance: 0, desc: "幽霊船の海賊。宝を奪われまいと剣を振り回す。" },
+  { key: "kraken_spawn", name: "クラーケンの落とし子", hp: 104, atk: 36, mag: 0, def: 15, spd: 11, exp: 60, color: "#8a3a6a", icon: "🦑", element: "水", tamable: false, tameChance: 0, desc: "大海獣クラーケンの子。小さくても足の力は船を沈めるほど。" },
+  { key: "abyss_angler", name: "アビスアングラー", hp: 96, atk: 39, mag: 0, def: 14, spd: 12, exp: 62, color: "#2a3a5a", icon: "🐡", element: "闇", tamable: false, tameChance: 0, desc: "深海で光る提灯をぶら下げた魚。光に誘われた獲物を丸呑みにする。" },
+  { key: "siren", name: "セイレーン", hp: 80, atk: 40, mag: 0, def: 11, spd: 18, exp: 62, color: "#7fd0e0", icon: "🧜‍♀️", element: "水", tamable: false, tameChance: 0, desc: "美しい歌声で船乗りを惑わす海の魔物。耳を塞いでも心に響く。" },
+  { key: "trident_guard", name: "トライデントガード", hp: 118, atk: 38, mag: 0, def: 21, spd: 10, exp: 64, color: "#3a7a9a", icon: "🔱", element: "水", tamable: false, tameChance: 0, desc: "古代都市を守る三叉槍の衛兵。都が沈んだ今も持ち場を離れない。" },
+  { key: "reef_hydra", name: "リーフヒドラ", hp: 250, atk: 44, mag: 0, def: 24, spd: 8, exp: 134, color: "#3aa08a", icon: "🐍", element: "水", tamable: false, tameChance: 0, desc: "浅瀬を支配する多頭の海蛇。頭を落としてもすぐに生えてくる。" },
+  { key: "phantom_captain", name: "ファントムキャプテン", hp: 240, atk: 47, mag: 0, def: 22, spd: 12, exp: 138, color: "#5a5a8a", icon: "☠️", element: "闇", tamable: false, tameChance: 0, desc: "幽霊船の船長。呪われた宝を守り、永遠に海をさまよっている。" },
+  { key: "sea_serpent_king", name: "シーサーペントキング", hp: 262, atk: 48, mag: 0, def: 25, spd: 11, exp: 142, color: "#2a8ab0", icon: "🐉", element: "水", tamable: false, tameChance: 0, desc: "海洞の奥に棲む大海蛇の王。その体は洞窟をひと巻きにするほど長い。" },
+  { key: "drowned_king", name: "ドラウンドキング", hp: 270, atk: 50, mag: 0, def: 27, spd: 10, exp: 148, color: "#4a6a8a", icon: "👑", element: "水", tamable: false, tameChance: 0, desc: "都と共に沈んだ古代の王。海の底から地上への復讐を誓っている。" },
+  { key: "leviathan", name: "リヴァイアサン", hp: 300, atk: 52, mag: 0, def: 28, spd: 12, exp: 156, color: "#1a5a8a", icon: "🐋", element: "水", tamable: false, tameChance: 0, desc: "海の王と呼ばれる伝説の巨獣。海溝の底でひたすら眠り続けていた。" },
+
   // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
   { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
   { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
@@ -583,6 +601,16 @@ const ENEMY_TEMPLATES = [
   { key: "molten_gem", name: "モルテンジェム", hp: 110, atk: 34, mag: 0, def: 26, spd: 12, exp: 62, color: "#ff3a6a", icon: "💎", element: "火", rare: true, tamable: false, tameChance: 0, desc: "溶けた宝石が固まらずに動き出した魔物。冷えると極上の宝石になる。" },
   { key: "sun_drake", name: "サンドレイク", hp: 140, atk: 42, mag: 0, def: 22, spd: 15, exp: 66, color: "#ffd04a", icon: "☀️", element: "光", rare: true, tamable: false, tameChance: 0, desc: "太陽の光を浴びて育った金色の竜。炎竜にも劣らない力を持つ。" },
   { key: "flame_seraph", name: "フレイムセラフ", hp: 112, atk: 44, mag: 0, def: 16, spd: 20, exp: 66, color: "#ffe08a", icon: "👼", element: "光", rare: true, tamable: false, tameChance: 0, desc: "霊峰の頂に降り立つ炎の天使。その姿を見た者は少ない。" },
+  { key: "pearl_clam", name: "パールクラム", hp: 140, atk: 30, mag: 0, def: 34, spd: 5, exp: 68, color: "#f0f0f8", icon: "🦪", element: "水", rare: true, tamable: false, tameChance: 0, desc: "大粒の真珠を抱いた大貝。殻を開くと目がくらむほど輝く。" },
+  { key: "rainbow_turtle", name: "レインボータートル", hp: 128, atk: 33, mag: 0, def: 28, spd: 9, exp: 68, color: "#7fe0c0", icon: "🐢", element: "光", rare: true, tamable: false, tameChance: 0, desc: "七色の甲羅を持つ海亀。百年に一度だけ浅瀬に姿を見せる。" },
+  { key: "treasure_mimic", name: "宝箱ミミック", hp: 120, atk: 40, mag: 0, def: 24, spd: 11, exp: 70, color: "#c8a040", icon: "🧰", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "海賊の宝箱に化けた魔物。中身は本物の宝だという噂もある。" },
+  { key: "ghost_parrot", name: "ゴーストパロット", hp: 92, atk: 38, mag: 0, def: 14, spd: 22, exp: 70, color: "#a0e0a0", icon: "🦜", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "船長の肩にいたオウムの霊。宝の隠し場所を繰り返しつぶやく。" },
+  { key: "moonlight_seal", name: "ムーンライトシール", hp: 124, atk: 36, mag: 0, def: 20, spd: 14, exp: 72, color: "#c0d0f0", icon: "🦭", element: "光", rare: true, tamable: false, tameChance: 0, desc: "満月の夜にだけ海洞に現れるアザラシ。毛皮は月の光を帯びている。" },
+  { key: "black_pearl_crab", name: "黒真珠ガニ", hp: 136, atk: 38, mag: 0, def: 32, spd: 8, exp: 72, color: "#2a2a3a", icon: "🦀", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "黒真珠を甲羅に埋め込んだカニ。気に入った真珠しか身に着けない。" },
+  { key: "atlantis_golem", name: "古代都市の守護像", hp: 170, atk: 40, mag: 0, def: 36, spd: 6, exp: 74, color: "#8ab0c8", icon: "🗿", element: "水", rare: true, tamable: false, tameChance: 0, desc: "沈んだ都の宝物庫を守る石像。都の技術の粋を集めて作られた。" },
+  { key: "sea_dragon_pup", name: "海竜の子", hp: 132, atk: 44, mag: 0, def: 22, spd: 16, exp: 74, color: "#4ac0e0", icon: "🐲", element: "水", rare: true, tamable: false, tameChance: 0, desc: "古代都市で生まれた海竜の子。人懐こいが、力は大人顔負け。" },
+  { key: "deep_sea_whale", name: "深海の白鯨", hp: 200, atk: 44, mag: 0, def: 30, spd: 9, exp: 78, color: "#e8f0f8", icon: "🐳", element: "水", rare: true, tamable: false, tameChance: 0, desc: "海溝を泳ぐ白い鯨。見た船は必ず嵐に遭うと恐れられている。" },
+  { key: "ocean_seraph", name: "オーシャンセラフ", hp: 140, atk: 50, mag: 0, def: 20, spd: 21, exp: 78, color: "#8ae0ff", icon: "👼", element: "光", rare: true, tamable: false, tameChance: 0, desc: "海の底に降り立った天使。リヴァイアサンの眠りを見守っている。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -687,6 +715,7 @@ const REGIONS = [
   { id: "sabul", name: "サブル地方", desc: "照りつける太陽と砂の海が広がる地方。古い王国の遺跡が砂の下に眠っている。" },
   { id: "glacia", name: "グラシア地方", desc: "一年中雪と氷に閉ざされた北の地方。氷の奥深くに古い竜が眠るという。" },
   { id: "ignis", name: "イグニス地方", desc: "火山が連なる灼熱の地方。溶岩の川が流れ、炎の魔物が群れをなす。" },
+  { id: "marina", name: "マリナ地方", desc: "大海原と群島からなる地方。海の底には沈んだ古代都市が眠っている。" },
 ];
 
 const DUNGEONS = [
@@ -827,10 +856,46 @@ const DUNGEONS = [
   },
   {
     id: "inferno_peak", region: "ignis", name: "業火の霊峰", x: 26, y: 12, level: 60, battles: 5,
-    pool: ["fire_giant", "iron_drake", "salamander_knight", "fire_serpent", "flame_spirit", "obsidian_golem"], boss: "inferno_dragon", rares: ["sun_drake", "flame_seraph"], unlocks: [],
+    pool: ["fire_giant", "iron_drake", "salamander_knight", "fire_serpent", "flame_spirit", "obsidian_golem"], boss: "inferno_dragon", rares: ["sun_drake", "flame_seraph"], unlocks: ["coral_reef"],
     desc: "業火に包まれた霊峰。火山の主たる炎竜が、挑む者を待っている。",
     power: 0.32, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "ur", plus: 6 },
+  },
+  // ---- マリナ地方（推奨Lv62〜75） ----
+  {
+    id: "coral_reef", region: "marina", name: "珊瑚の浅瀬", x: 16, y: 74, level: 62, battles: 5,
+    pool: ["reef_shark", "giant_jellyfish", "coral_golem", "sea_hornet", "merfolk_soldier", "fire_serpent"], boss: "reef_hydra", rares: ["pearl_clam", "rainbow_turtle"], unlocks: ["ghost_ship"],
+    desc: "色とりどりの珊瑚が広がる浅瀬。美しさの陰に魔物が潜む。",
+    power: 0.3, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 6 },
+  },
+  {
+    id: "ghost_ship", region: "marina", name: "幽霊船", x: 44, y: 62, level: 65, battles: 5,
+    pool: ["drowned_sailor", "ghost_pirate", "sea_hornet", "giant_jellyfish", "kraken_spawn", "merfolk_soldier"], boss: "phantom_captain", rares: ["treasure_mimic", "ghost_parrot"], unlocks: ["sea_cave"],
+    desc: "霧の海をさまよう朽ちた帆船。乗組員は誰一人として生きていない。",
+    power: 0.26, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 7 },
+  },
+  {
+    id: "sea_cave", region: "marina", name: "潮騒の海洞", x: 78, y: 56, level: 68, battles: 5,
+    pool: ["kraken_spawn", "coral_golem", "abyss_angler", "siren", "reef_shark", "drowned_sailor"], boss: "sea_serpent_king", rares: ["moonlight_seal", "black_pearl_crab"], unlocks: ["sunken_city"],
+    desc: "満ち潮で閉ざされる海の洞窟。セイレーンの歌が奥から響く。",
+    power: 0.26, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 7 },
+  },
+  {
+    id: "sunken_city", region: "marina", name: "沈んだ古代都市", x: 58, y: 32, level: 71, battles: 5,
+    pool: ["merfolk_soldier", "abyss_angler", "siren", "trident_guard", "ghost_pirate", "kraken_spawn"], boss: "drowned_king", rares: ["atlantis_golem", "sea_dragon_pup"], unlocks: ["leviathan_trench"],
+    desc: "海の底に沈んだ古代の都。かつての住人が今も街を守っている。",
+    power: 0.25, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 8 },
+  },
+  {
+    id: "leviathan_trench", region: "marina", name: "大海溝", x: 30, y: 12, level: 75, battles: 5,
+    pool: ["abyss_angler", "trident_guard", "siren", "kraken_spawn", "coral_golem", "reef_shark"], boss: "leviathan", rares: ["deep_sea_whale", "ocean_seraph"], unlocks: [],
+    desc: "光の届かない深い海溝。海の王リヴァイアサンの棲み処。",
+    power: 0.24, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 8 },
   },
 ];
 
