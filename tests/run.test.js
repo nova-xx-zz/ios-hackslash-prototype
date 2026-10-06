@@ -46,6 +46,7 @@ function setup(opts) {
     markDexSeen: (k) => dex.add(k),
     setBestStage: (n) => best.push(n),
     now: () => clock,
+    canAddMonster: opts.canAddMonster,
   });
   const level = opts.level || 1;
   state.roster = [
@@ -334,4 +335,24 @@ test("オフライン精算の保存保証: 報酬と自動周回の停止は1�
   assert.equal(retried.summaries[0].cleared, 4);
   assert.equal(retried.env.state.autoRepeat[0].done, 5);
   assert.equal(retried.env.state.records.runHistory.length, 1); // 履歴も1件だけ（前回の精算は残っていない）
+});
+
+test("テイム: 仲間のBOXが満員の間は抽選せず、通常プレイ・オフライン精算とも仲間は増えない", () => {
+  let full = true;
+  const { state, Runner, setClock } = setup({ level: 8, canAddMonster: () => !full });
+  const run = { defeatedTamable: ["slime"] };
+  assert.deepEqual(Runner.attemptTame(run), { success: false, full: true });
+  assert.equal(Runner.attemptTame({ defeatedTamable: [] }), null);
+
+  const before = state.roster.length;
+  const savedAt = 1_000_000_000_000;
+  setClock(savedAt + 8 * 60 * 60 * 1000);
+  const [s] = Runner.runOfflineProgress([{ active: true, target: 50, done: 0, dungeonId: "plains" }], savedAt);
+  assert.ok(s.cleared > 0);
+  assert.equal(state.roster.length, before);
+  assert.deepEqual(s.tamedNames, []);
+  assert.ok(s.tameBlocked > 0); // スライムの多い草原を何周もすれば、テイムの機会は必ずある
+
+  full = false;
+  assert.equal(typeof Runner.attemptTame(run).success, "boolean");
 });

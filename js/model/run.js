@@ -11,6 +11,7 @@
 //     autoDisassemble(): いまの自動分解の設定 { enabled, rarities }
 //     markDexSeen(key) / setBestStage(n): 図鑑・最高到達の記録（端末の別キーに保存するもの）
 //     now(): 現在時刻（ミリ秒。オフライン精算の経過時間に使う）
+//     canAddMonster(): 仲間のBOXに空きがあるか（js/model/shop.js。満員の間はテイムの抽選をしない）
 (function (root) {
   "use strict";
   const core = root.QPCore || {};
@@ -162,7 +163,11 @@
 
     // ---------- テイム（ダンジョンクリア時に判定） ----------
     // 結果: null（候補なし）／{ success: false, name }／{ success: true, name, char }
+    const canAddMonster = deps.canAddMonster || (() => true);
+    // 結果: null（テイムできる敵を倒していない）／{ full: true }（仲間のBOXが満員で抽選しない）／{ success, name, char? }
     function attemptTame(run) {
+      if (run.defeatedTamable.length === 0) return null;
+      if (!canAddMonster()) return { success: false, full: true };
       const result = rewards.rollTame(run.defeatedTamable, (key) => getEnemyTemplate(key).tameChance, rng);
       if (!result) return null;
       const tpl = getEnemyTemplate(result.key);
@@ -337,11 +342,15 @@
       const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
       recordsMod.recordItemsFound(records(), outcome.drops, ITEM_BASES);
       const settled = Inv.receiveDrops(outcome.drops, filter, partyMult(teamIndex, "materialBonus"));
-      let tamedName = null;
-      if (outcome.tame && outcome.tame.success) tamedName = addTamedMonster(outcome.tame.key).name;
+      let tamedName = null, tameBlocked = false;
+      if (outcome.tame) {
+        // 仲間のBOXが満員なら、テイムの抽選は無かったことにする（通常プレイと同じ）
+        if (!canAddMonster()) tameBlocked = true;
+        else if (outcome.tame.success) tamedName = addTamedMonster(outcome.tame.key).name;
+      }
       clearedSet(dungeon.mode).add(dungeon.id);
       setBestStage(S.clearedDungeons.size);
-      return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName };
+      return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName, tameBlocked };
     }
 
     // 保存されていたそのチームの自動周回状態と経過時間から、離れていた間の周回をまとめて計算する
@@ -356,7 +365,7 @@
 
       let cleared = 0, expGained = 0, itemsGained = 0, runsDone = 0;
       const tamedNames = [];
-      let wipedOut = false;
+      let wipedOut = false, tameBlocked = 0;
       for (let i = 0; i < remainingTarget; i++) {
         const outcome = computeOfflineRun(dungeon, teamIndex);
         if (outcome.seconds > budgetSeconds) break;
@@ -368,6 +377,7 @@
         cleared += 1;
         itemsGained += result.itemsGained;
         if (result.tamedName) tamedNames.push(result.tamedName);
+        if (result.tameBlocked) tameBlocked += 1;
       }
 
       // 自動周回はここで一旦停止し、プレイヤーが結果を確認してから再開できるようにする
@@ -387,7 +397,7 @@
       // 1周ぶんの時間も経っていなかった場合も、自動周回が止まった理由をモーダルで伝えるため結果を返す
       const tooShort = runsDone === 0;
       const modeName = { hard: "ハード", extra: "エクストラ" }[dungeon.mode];
-      return { team: teamIndex, dungeonName: modeName ? `${dungeon.name}（${modeName}）` : dungeon.name, cleared, expGained, itemsGained, tamedNames, wipedOut, tooShort };
+      return { team: teamIndex, dungeonName: modeName ? `${dungeon.name}（${modeName}）` : dungeon.name, cleared, expGained, itemsGained, tamedNames, tameBlocked, wipedOut, tooShort };
     }
 
     // チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある

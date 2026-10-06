@@ -4,6 +4,27 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_shop",
+    revision: 1,
+    publishedAt: "2026-10-07T12:00:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "ショップを追加しました（テスト中は無料）",
+    body: [
+      "設定画面に「ショップ」を追加しました。本番では課金で買う予定のものを、テスト中は無料で受け取れます（表示している価格は仮のものです）。",
+      "・自動周回x100（買い切り。「業火の霊峰」を踏破すると購入できます）",
+      "・戦闘速度x3・x5（買い切り。速度ボタンを押すと、持っている速さを順に切り替えます。x5だけでも使えます）",
+      "・確定強化石（強化が必ず成功する石。強化画面で使えます）",
+      "・仲間のBOX +50（何回でも）",
+      "あわせて、仲間のBOX（持てる仲間の数）を最初50人までにしました。いっぱいの間は「仲間を探す」ができず、テイムもしません。ショップで拡張してください。",
+      "※ すでに50人より多く仲間がいる場合も、仲間は減りません（新しく増やせなくなるだけです）。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "balance_tame_level1",
     revision: 1,
     publishedAt: "2026-10-07T09:00:00+09:00",

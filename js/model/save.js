@@ -8,6 +8,7 @@
   "use strict";
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
   const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
+  const shopMod = (root.QPModel && root.QPModel.shop) || (typeof require === "function" ? require("./shop.js") : null);
 
   // schemaVersion 2からは、このメインセーブのmaterialを正本とし、旧jobquest_materialキーは
   // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
@@ -40,6 +41,8 @@
       // 未編成グループ（パーティに入れていない仲間を「育成中」などに分けて並べる入れ物）。[{ id, name }, ...]。
       // 仲間がどのグループにいるかは各キャラの group（グループのid。パーティ所属中・未編成なら null）に持つ
       groups: [],
+      // ショップで買ったもの（買い切りの解放・仲間のBOXの拡張回数・購入の記録。js/model/shop.js）
+      purchases: { unlocks: {}, rosterBoxes: 0, history: [] },
     };
   }
 
@@ -111,6 +114,7 @@
       guaranteedStones: state.guaranteedStones,
       records: state.records,
       groups: state.groups,
+      purchases: state.purchases,
       enabledFeaturesAtSave: opts.enabledFeatures || [],
     };
   }
@@ -143,6 +147,7 @@
         : { free: typeof gs === "number" ? gs : 0, paid: 0 }, // 区別のない旧形式は無償分として扱う
       records: recordsMod.normalizeRecords(data.records),
       groups: normalizeGroups(data.groups),
+      purchases: shopMod.normalizePurchases(data.purchases),
     };
     normalizeCharGroups(state.roster, state.groups);
     // 装備の枠が3つ（武器・防具・装飾品）だった頃のセーブは、新しい枠（右手・左手・頭・体・装飾品1〜3）と

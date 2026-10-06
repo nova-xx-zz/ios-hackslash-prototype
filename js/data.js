@@ -13,10 +13,39 @@ const FEATURE_FLAGS = {
   skillBook: false,
   appraisal: false,
   jobMastery: false,
-  guaranteedStone: false, // 確定強化石（成功率100%の有償アイテム）。入手経路（アプリ内課金）が整うまで無効
+  guaranteedStone: true, // 確定強化石（成功率100%の有償アイテム）。ショップで入手する（js/model/shop.js）
+  shop: true, // ショップ（課金要素）。プロトタイプでは決済の代わりに無料で受け取れる
   enhancePity: true, // 強化の天井（失敗で使った強化石が期待消費の1.5倍に達したら次は必ず成功）
 };
 function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
+
+// ---------- ショップ（課金要素。docs/production-plan.md §5.7） ----------
+// プロトタイプではApp Storeの決済が無いため、購入ボタンで無料で受け取れる（本番化では決済の結果を受けて付与する）。
+// kind: unlock（買い切り。unlock のキーを解放）／guaranteedStone（確定強化石を amount 個）／rosterBox（仲間のBOXを ROSTER_CAPACITY.step 人ぶん拡張）。
+// price は表示用の仮の価格（円）。requiresCleared: このダンジョンを（ノーマルで）踏破するまで買えない
+// （自動周回x100は稼ぐ量が大きく増えるため、ゲームの後半に入ってから。docs/production-plan.md §5.7）
+const SHOP_PRODUCTS = [
+  { id: "auto_repeat_100", kind: "unlock", unlock: "autoRepeat100", name: "自動周回x100", price: 480, requiresCleared: "inferno_peak",
+    desc: "自動周回の回数に「x100」を追加する（買い切り）" },
+  { id: "battle_speed_3", kind: "unlock", unlock: "speed3", name: "戦闘速度x3", price: 370,
+    desc: "戦闘の速さに「x3」を追加する（買い切り）" },
+  { id: "battle_speed_5", kind: "unlock", unlock: "speed5", name: "戦闘速度x5", price: 610,
+    desc: "戦闘の速さに「x5」を追加する（買い切り。x3を持っていなくても使える）" },
+  { id: "guaranteed_stone_1", kind: "guaranteedStone", amount: 1, name: "確定強化石 1個", price: 160,
+    desc: "装備の強化を成功率100%で行える。必要な個数は強化の段階で変わる（LR+98→+99は10個）" },
+  { id: "guaranteed_stone_11", kind: "guaranteedStone", amount: 11, name: "確定強化石 10個＋1個", price: 1600,
+    desc: "確定強化石10個に、おまけ1個付き" },
+  { id: "roster_box_50", kind: "rosterBox", name: "仲間のBOX +50", price: 250,
+    desc: "所持できる仲間の上限を50人増やす（何回でも、上限1000人まで）" },
+];
+// 仲間のBOX（所持できる仲間の数）。最初は base 人、拡張1回につき step 人、max 人まで。
+// 上限を超えて持っている仲間は減らさず、新しく増やせなくなるだけ（仲間を探す・テイム）
+const ROSTER_CAPACITY = { base: 50, step: 50, max: 1000 };
+// 自動周回の回数と戦闘の速さ。unlock があるものはショップで買うと選べる
+const AUTO_REPEAT_CHOICES = [
+  { n: 1 }, { n: 3 }, { n: 5 }, { n: 10 }, { n: 20 }, { n: 50 }, { n: 100, unlock: "autoRepeat100" },
+];
+const BATTLE_SPEEDS = [{ mult: 1 }, { mult: 2 }, { mult: 3, unlock: "speed3" }, { mult: 5, unlock: "speed5" }];
 
 // レベルアップに必要なEXP（Lv.level → level+1）。game.js と tools/progression.js で共有する。
 // 各ダンジョンに着く頃の累計周回が 森10・洞窟20・遺跡45・山頂95 前後になるよう

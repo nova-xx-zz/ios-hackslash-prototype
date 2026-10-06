@@ -146,6 +146,13 @@ const {
 // チームごとの探索の状態(teamRuns / teamBattles)と、出発・戦闘・勝利・道中イベント・周回の終了・オフライン精算は
 // js/model/run.js。ここではログの文章・画面の更新・次の処理までの待ち時間を受け持つ。
 // computeStats が石碑の加護(teamRuns[].buffs)を参照するため、roster を組み立てる前に用意しておく
+// ---------- Shop ----------
+// ショップ（買い切りの解放・確定強化石・仲間のBOX）と、仲間の上限の判定は js/model/shop.js
+const Shop = QPModel.shop.createShop({
+  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon },
+  state: S,
+});
+
 const Runner = QPModel.run.createRunner({
   data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES },
   state: S,
@@ -157,6 +164,7 @@ const Runner = QPModel.run.createRunner({
   autoDisassemble: () => ({ enabled: autoDisassemble, rarities: autoDisassembleRarities }),
   markDexSeen,
   setBestStage,
+  canAddMonster: () => Shop.canAddToRoster(1), // 仲間のBOXが満員の間はテイムしない
 });
 const { teamRuns, teamBattles, isTeamRunActive, isTeamLocked, runOfflineProgress } = Runner;
 // 4チームがそれぞれ独立にダンジョンへ出撃できるよう、進行状態(run)・戦闘状態(battle)・

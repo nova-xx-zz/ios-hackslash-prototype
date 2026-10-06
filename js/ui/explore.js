@@ -86,7 +86,13 @@ let lastT = 0;
 function loop(t) {
   const dtRaw = Math.min(0.05, (t - lastT) / 1000 || 0);
   lastT = t;
-  tick(dtRaw * speedMult);
+  // 速いほど1フレームで進む時間が長くなるため、0.05秒ずつに分けて進める（x5でも戦闘の判定がx1と同じ細かさになる）
+  let left = dtRaw * speedMult;
+  while (left > 1e-6) {
+    const step = Math.min(0.05, left);
+    tick(step);
+    left -= step;
+  }
   requestAnimationFrame(loop);
 }
 
@@ -175,7 +181,9 @@ function finishRun(run, info) {
   if (run.levelUps.length) logLine(run.team, "LEVEL UP! " + run.levelUps.join(" / "), "system");
   if (run.abilityUnlocks.length) logLine(run.team, run.abilityUnlocks.join(" / "), "heal");
 
-  if (info.tameResult) {
+  if (info.tameResult && info.tameResult.full) {
+    logLine(run.team, `仲間のBOXがいっぱい（${S.roster.length}/${Shop.rosterCapacity()}人）のため、テイムできなかった（ショップでBOXを拡張できます）`, "");
+  } else if (info.tameResult) {
     logLine(run.team,
       info.tameResult.success
         ? `${info.tameResult.name} をテイムした！（編成からなかまに加えられます）`
