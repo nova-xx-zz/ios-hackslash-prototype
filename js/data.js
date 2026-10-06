@@ -505,6 +505,25 @@ const ENEMY_TEMPLATES = [
   { key: "mummy_king", name: "マミーキング", hp: 140, atk: 30, mag: 0, def: 16, spd: 6, exp: 64, color: "#c9b37a", icon: "👑", element: "闇", tamable: false, tameChance: 0, desc: "王墓に眠っていた古王。死してなお玉座を明け渡さない。" },
   { key: "sphinx", name: "スフィンクス", hp: 150, atk: 32, mag: 0, def: 18, spd: 10, exp: 70, color: "#d4a84a", icon: "🦁", element: "光", tamable: false, tameChance: 0, desc: "大神殿を守る獅子の番人。問いに答えられぬ者を引き裂く。" },
 
+  // ---- グラシア地方 (Lv32〜45) ----
+  { key: "ice_wisp", name: "アイスウィスプ", hp: 48, atk: 22, mag: 0, def: 8, spd: 15, exp: 35, color: "#cfefff", icon: "❄️", element: "氷", tamable: false, tameChance: 0, desc: "吹雪の中を漂う冷気の塊。触れたところから凍りついていく。" },
+  { key: "snow_owl", name: "スノーオウル", hp: 52, atk: 23, mag: 0, def: 8, spd: 14, exp: 35, color: "#f4f4f4", icon: "🦉", element: "風", tamable: false, tameChance: 0, desc: "雪原の音もなく舞う白いフクロウ。気づいた時には爪が届いている。" },
+  { key: "frost_spider", name: "フロストスパイダー", hp: 58, atk: 24, mag: 0, def: 10, spd: 11, exp: 36, color: "#9fc6e0", icon: "🕸️", element: "氷", tamable: false, tameChance: 0, desc: "凍った糸で巣を張る蜘蛛。糸に絡まると体温を奪われる。" },
+  { key: "glacier_bear", name: "グレイシャーベア", hp: 92, atk: 26, mag: 0, def: 13, spd: 6, exp: 38, color: "#e8f2f8", icon: "🐻‍❄️", element: "氷", tamable: false, tameChance: 0, desc: "氷河に棲む巨大な白熊。一撃で岩も砕く。" },
+  { key: "ice_imp", name: "アイスインプ", hp: 46, atk: 25, mag: 0, def: 7, spd: 15, exp: 36, color: "#7fb3e0", icon: "👿", element: "氷", tamable: false, tameChance: 0, desc: "いたずら好きの氷の小鬼。仲間を呼んでは雪玉を投げてくる。" },
+  { key: "ice_serpent", name: "アイスサーペント", hp: 76, atk: 27, mag: 0, def: 12, spd: 10, exp: 38, color: "#5fa8c8", icon: "🐍", element: "水", tamable: false, tameChance: 0, desc: "氷の下を泳ぐ大蛇。割れ目から一気に飛び出して獲物を絡め取る。" },
+  { key: "snow_harpy", name: "スノーハーピー", hp: 60, atk: 26, mag: 0, def: 9, spd: 16, exp: 37, color: "#d0e4f0", icon: "🪽", element: "風", tamable: false, tameChance: 0, desc: "吹雪とともに襲いかかる鳥人。甲高い歌声で旅人を惑わせる。" },
+  { key: "mammoth", name: "マンモス", hp: 110, atk: 27, mag: 0, def: 15, spd: 4, exp: 40, color: "#8a6a4a", icon: "🦣", element: "無", tamable: false, tameChance: 0, desc: "長い牙と分厚い毛皮を持つ巨獣。群れで突進してくる。" },
+  { key: "crystal_golem", name: "クリスタルゴーレム", hp: 96, atk: 25, mag: 0, def: 20, spd: 4, exp: 40, color: "#a8e0f0", icon: "💠", element: "氷", tamable: false, tameChance: 0, desc: "氷晶が寄り集まってできたゴーレム。光を受けると体が刃のように輝く。" },
+  { key: "frost_witch", name: "フロストウィッチ", hp: 62, atk: 29, mag: 0, def: 9, spd: 12, exp: 40, color: "#6a8ad0", icon: "🧙", element: "氷", tamable: false, tameChance: 0, desc: "氷の魔女。凍らせた旅人を像にして飾るのが趣味だという。" },
+  { key: "frozen_knight", name: "フローズンナイト", hp: 88, atk: 29, mag: 0, def: 17, spd: 7, exp: 42, color: "#9aa8b8", icon: "⚔️", element: "氷", tamable: false, tameChance: 0, desc: "砦と共に凍りついた騎士。主の命令を守り、今も戦い続けている。" },
+  { key: "yeti", name: "イエティ", hp: 104, atk: 30, mag: 0, def: 14, spd: 8, exp: 42, color: "#e0e0e0", icon: "🦍", element: "氷", tamable: false, tameChance: 0, desc: "雪山の怪人。姿を見た者は少ないが、足跡だけは各地に残っている。" },
+  { key: "frost_treant", name: "フロストトレント", hp: 168, atk: 33, mag: 0, def: 18, spd: 4, exp: 76, color: "#b8d8e8", icon: "🎄", element: "氷", tamable: false, tameChance: 0, desc: "樹海の中心に立つ凍った大樹の化身。枝の一振りが吹雪を呼ぶ。" },
+  { key: "frozen_kraken", name: "フローズンクラーケン", hp: 176, atk: 35, mag: 0, def: 17, spd: 7, exp: 80, color: "#4a7aa0", icon: "🐙", element: "水", tamable: false, tameChance: 0, desc: "湖の底に潜む巨大なイカ。氷を突き破って足を伸ばしてくる。" },
+  { key: "crystal_queen", name: "クリスタルクイーン", hp: 170, atk: 37, mag: 0, def: 20, spd: 10, exp: 85, color: "#c8a8f0", icon: "🔮", element: "氷", tamable: false, tameChance: 0, desc: "洞窟の結晶を統べる女王。結晶に映った者の心を読むという。" },
+  { key: "frozen_general", name: "フローズンジェネラル", hp: 190, atk: 38, mag: 0, def: 21, spd: 8, exp: 90, color: "#7a8a9a", icon: "🪖", element: "氷", tamable: false, tameChance: 0, desc: "砦を守っていた将軍。凍りついた軍勢を今も率いている。" },
+  { key: "frost_dragon", name: "フロストドラゴン", hp: 210, atk: 40, mag: 0, def: 22, spd: 10, exp: 96, color: "#9fd8ff", icon: "🐉", element: "氷", tamable: false, tameChance: 0, desc: "グラシア地方を氷に閉ざした古竜。その息は時さえ凍らせる。" },
+
   // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
   { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
   { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
@@ -526,6 +545,16 @@ const ENEMY_TEMPLATES = [
   { key: "golden_scarab", name: "黄金のスカラベ", hp: 62, atk: 24, mag: 0, def: 20, spd: 13, exp: 38, color: "#e0b040", icon: "🪲", element: "光", rare: true, tamable: false, tameChance: 0, desc: "太陽の化身とあがめられた黄金の甲虫。触れた者に富をもたらすという。" },
   { key: "flame_phoenix", name: "フレイムフェニックス", hp: 72, atk: 30, mag: 0, def: 12, spd: 16, exp: 42, color: "#ff7a2f", icon: "🐦‍🔥", element: "火", rare: true, tamable: false, tameChance: 0, desc: "大神殿の聖火から生まれた火の鳥。倒れても灰から舞い戻る。" },
   { key: "temple_guardian", name: "テンプルガーディアン", hp: 96, atk: 28, mag: 0, def: 20, spd: 7, exp: 42, color: "#b8a070", icon: "🗿", element: "土", rare: true, tamable: false, tameChance: 0, desc: "神殿の最奥を守る石の巨兵。千年動かずに侵入者を待ち続けている。" },
+  { key: "silver_fox", name: "シルバーフォックス", hp: 66, atk: 26, mag: 0, def: 10, spd: 18, exp: 44, color: "#dfe6ee", icon: "🦊", element: "光", rare: true, tamable: false, tameChance: 0, desc: "銀色の毛並みを持つキツネ。雪原で見かけると幸運が続くという。" },
+  { key: "snow_rabbit_king", name: "スノーラビットキング", hp: 80, atk: 24, mag: 0, def: 12, spd: 16, exp: 44, color: "#ffffff", icon: "🐰", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "雪うさぎたちを束ねる王。小さな王冠を大切にしている。" },
+  { key: "ice_penguin", name: "アイスペンギン", hp: 84, atk: 25, mag: 0, def: 16, spd: 10, exp: 46, color: "#2f3a4a", icon: "🐧", element: "水", rare: true, tamable: false, tameChance: 0, desc: "氷の上を滑って移動するペンギン。湖の宝物を集めて巣に隠す。" },
+  { key: "aurora_fish", name: "オーロラフィッシュ", hp: 70, atk: 27, mag: 0, def: 12, spd: 17, exp: 46, color: "#7ff0c8", icon: "🐟", element: "光", rare: true, tamable: false, tameChance: 0, desc: "オーロラの夜にだけ氷の穴から跳ねる魚。七色に光る鱗は高値で取引される。" },
+  { key: "diamond_golem", name: "ダイヤモンドゴーレム", hp: 120, atk: 28, mag: 0, def: 28, spd: 4, exp: 48, color: "#e8f8ff", icon: "💍", element: "土", rare: true, tamable: false, tameChance: 0, desc: "全身がダイヤモンドでできたゴーレム。鉱夫たちの夢のような存在。" },
+  { key: "ice_fairy", name: "アイスフェアリー", hp: 64, atk: 30, mag: 0, def: 10, spd: 19, exp: 48, color: "#bfefff", icon: "🧚", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "氷晶の中で生まれた妖精。気に入った者には氷の花を贈る。" },
+  { key: "ghost_commander", name: "ゴーストコマンダー", hp: 100, atk: 33, mag: 0, def: 16, spd: 11, exp: 50, color: "#8a9ab8", icon: "🎖️", element: "闇", rare: true, tamable: false, tameChance: 0, desc: "砦の騎士団を率いた団長の亡霊。勲章だけが今も輝いている。" },
+  { key: "frost_valkyrie", name: "フロストヴァルキリー", hp: 92, atk: 35, mag: 0, def: 14, spd: 15, exp: 50, color: "#c0d8f0", icon: "🛡️", element: "光", rare: true, tamable: false, tameChance: 0, desc: "勇敢な戦士の魂を迎えに来るという氷の戦乙女。" },
+  { key: "silver_drake", name: "シルバードレイク", hp: 120, atk: 36, mag: 0, def: 18, spd: 13, exp: 54, color: "#c8d0d8", icon: "🐲", element: "氷", rare: true, tamable: false, tameChance: 0, desc: "フロストドラゴンに仕える白銀の竜。主の眠りを守っている。" },
+  { key: "aurora_spirit", name: "オーロラスピリット", hp: 90, atk: 38, mag: 0, def: 12, spd: 18, exp: 54, color: "#9f7fff", icon: "🌌", element: "光", rare: true, tamable: false, tameChance: 0, desc: "空のオーロラが地上に降りてきた精霊。見た者は二度と忘れられない。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -628,6 +657,7 @@ function rollNewRecruit() {
 const REGIONS = [
   { id: "verde", name: "ヴェルデ地方", desc: "冒険者ギルドのある緑豊かな地方。駆け出しの冒険者が腕を磨く。" },
   { id: "sabul", name: "サブル地方", desc: "照りつける太陽と砂の海が広がる地方。古い王国の遺跡が砂の下に眠っている。" },
+  { id: "glacia", name: "グラシア地方", desc: "一年中雪と氷に閉ざされた北の地方。氷の奥深くに古い竜が眠るという。" },
 ];
 
 const DUNGEONS = [
@@ -696,10 +726,46 @@ const DUNGEONS = [
   },
   {
     id: "sun_temple", region: "sabul", name: "灼熱の大神殿", x: 30, y: 14, level: 30, battles: 5,
-    pool: ["mummy", "scarab", "fire_salamander", "sand_golem", "jackal_warrior", "mirage_spirit"], boss: "sphinx", rares: ["flame_phoenix", "temple_guardian"], unlocks: [],
+    pool: ["mummy", "scarab", "fire_salamander", "sand_golem", "jackal_warrior", "mirage_spirit"], boss: "sphinx", rares: ["flame_phoenix", "temple_guardian"], unlocks: ["frost_forest"],
     desc: "太陽を祀る巨大な神殿。謎を解けぬ者は先へ進めない。",
     power: 0.47, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 5 },
+  },
+  // ---- グラシア地方（推奨Lv32〜45） ----
+  {
+    id: "frost_forest", region: "glacia", name: "白霜の樹海", x: 16, y: 78, level: 32, battles: 5,
+    pool: ["ice_wisp", "snow_owl", "frost_spider", "glacier_bear", "ice_imp", "frost_wolf"], boss: "frost_treant", rares: ["silver_fox", "snow_rabbit_king"], unlocks: ["frozen_lake"],
+    desc: "木々まで白く凍りついた森。吐く息さえ凍って落ちる。",
+    power: 0.46, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 5 },
+  },
+  {
+    id: "frozen_lake", region: "glacia", name: "凍てつく湖", x: 44, y: 66, level: 35, battles: 5,
+    pool: ["ice_wisp", "ice_serpent", "snow_harpy", "glacier_bear", "mammoth", "snow_owl"], boss: "frozen_kraken", rares: ["ice_penguin", "aurora_fish"], unlocks: ["crystal_cave"],
+    desc: "厚い氷に覆われた湖。氷の下で巨大な影が動いている。",
+    power: 0.42, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 5 },
+  },
+  {
+    id: "crystal_cave", region: "glacia", name: "氷晶の洞窟", x: 76, y: 60, level: 38, battles: 5,
+    pool: ["crystal_golem", "ice_imp", "frost_spider", "frost_witch", "ice_serpent", "ice_wisp"], boss: "crystal_queen", rares: ["diamond_golem", "ice_fairy"], unlocks: ["snow_fort"],
+    desc: "壁も天井も氷の結晶でできた洞窟。光が乱反射して方向を見失う。",
+    power: 0.37, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
+  },
+  {
+    id: "snow_fort", region: "glacia", name: "雪原の砦跡", x: 58, y: 34, level: 41, battles: 5,
+    pool: ["frozen_knight", "yeti", "mammoth", "snow_harpy", "frost_witch", "crystal_golem"], boss: "frozen_general", rares: ["ghost_commander", "frost_valkyrie"], unlocks: ["ice_throne"],
+    desc: "吹雪に埋もれた古い砦。凍りついた兵たちが今も持ち場を守っている。",
+    power: 0.4, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 5 },
+  },
+  {
+    id: "ice_throne", region: "glacia", name: "氷竜の玉座", x: 30, y: 14, level: 45, battles: 5,
+    pool: ["frozen_knight", "yeti", "frost_witch", "crystal_golem", "glacier_bear", "ice_serpent"], boss: "frost_dragon", rares: ["silver_drake", "aurora_spirit"], unlocks: [],
+    desc: "氷河の頂にある氷の玉座。永い眠りから覚めた竜が待っている。",
+    power: 0.43, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 5 },
   },
 ];
 
