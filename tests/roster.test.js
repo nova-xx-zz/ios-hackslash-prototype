@@ -156,6 +156,19 @@ test("能力値: 装備と、挑戦中ダンジョンの石碑の加護が乗る
   assert.equal(buffed.maxHp, base.maxHp); // 加護はHP/MPには乗らない
 });
 
+test("能力値: HP・MPの装備（お守り・ローブ）は最大HP・最大MPを増やす", () => {
+  const { R } = setup();
+  const c = R.newCharacter("ミナ", "mage", "human");
+  const base = R.computeStats(c);
+  c.equip.accessory = { slot: "accessory", stat: "hp", value: 6, rarity: "n", plus: 0 };
+  c.equip.armor = { slot: "armor", stat: "mp", value: 4, rarity: "n", plus: 0 };
+  const s = R.computeStats(c);
+  assert.equal(s.maxHp, base.maxHp + data.itemEffectiveValue(c.equip.accessory));
+  assert.equal(s.maxMp, base.maxMp + data.itemEffectiveValue(c.equip.armor));
+  assert.equal(s.hp, undefined); // 使われない欄に足さない
+  assert.equal(s.mp, undefined);
+});
+
 test("チーム: 所属メンバー・表示中のパーティ・最高レベル", () => {
   const { state, R } = setup();
   state.roster = [

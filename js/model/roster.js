@@ -228,7 +228,8 @@
       const s = stats.baseStats(jobDef(c), RACES[c.race] || RACES.human, c.level);
       for (const slot of SLOTS) {
         const item = c.equip[slot.key];
-        if (item) s[item.stat] += itemEffectiveValue(item);
+        // HP・MPの装備は最大HP・最大MPに足す（能力値の hp/mp は maxHp/maxMp という名前で持っているため）
+        if (item) s[item.stat === "hp" ? "maxHp" : item.stat === "mp" ? "maxMp" : item.stat] += itemEffectiveValue(item);
       }
       const tp = treePassiveTotals(c);
       s.maxHp += tp.hp; s.maxMp += tp.mp; s.atk += tp.atk; s.mag += tp.mag; s.def += tp.def; s.spd += tp.spd;
