@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=24">
+<link rel="stylesheet" href="css/style.css?v=25">
 </head>
 <body>
 <div id="app">
@@ -81,6 +81,13 @@
           </div>
         </div>
         <button class="btn small ghost" id="btnSettingsAnnounce" style="margin-top:12px;">冒険者ギルドからのお知らせ</button>
+        <div class="settings-debug hidden" id="settingsDebug">
+          <div class="settings-row"><span class="settings-label">確認用モード</span><span class="settings-value">本番のデータとは別</span></div>
+          <p class="settings-note">後半のダンジョンを先に確かめるためのモードです。押したダンジョンの手前までを踏破済みにし、第一のパーティをその推奨Lvと適正装備にします。ここで遊んだ内容は、ふだんのセーブやクラウドには残りません。</p>
+          <div class="settings-buttons debug-jump-buttons" id="debugJumpButtons"></div>
+          <p class="settings-message hidden" id="debugMessage"></p>
+          <button class="btn small ghost" id="btnDebugReset">確認用のデータを最初からにする</button>
+        </div>
         <p class="sub" style="margin-top:16px;">設定項目は今後ここに追加していく予定です。</p>
       </div>
     </div>
@@ -328,7 +335,7 @@
 </div>
 <script src="data/announcements.js?v=2"></script>
 <script src="data/roadmap.js?v=2"></script>
-<script src="js/core/storage.js?v=1"></script>
+<script src="js/core/storage.js?v=2"></script>
 <script src="js/core/rng.js?v=1"></script>
 <script src="js/core/enhance.js?v=1"></script>
 <script src="js/core/rewards.js?v=3"></script>
@@ -337,11 +344,11 @@
 <script src="js/core/battle.js?v=2"></script>
 <script src="js/model/records.js?v=1"></script>
 <script src="js/model/save.js?v=3"></script>
-<script src="js/model/roster.js?v=1"></script>
+<script src="js/model/roster.js?v=2"></script>
 <script src="js/model/inventory.js?v=2"></script>
 <script src="js/model/run.js?v=3"></script>
 <script src="js/firebase-config.js?v=1"></script>
-<script src="js/cloud.js?v=1"></script>
+<script src="js/cloud.js?v=2"></script>
 <script src="js/data.js?v=19"></script>
 <!-- 画面の処理（元は1つの game.js。この順番で読み込み、トップレベルの関数・変数を共有する） -->
 <script src="js/ui/state.js?v=1"></script>
@@ -351,6 +358,7 @@
 <script src="js/ui/offline.js?v=1"></script>
 <script src="js/ui/title-map.js?v=7"></script>
 <script src="js/ui/settings.js?v=1"></script>
+<script src="js/ui/debug.js?v=1"></script>
 <script src="js/ui/party.js?v=1"></script>
 <script src="js/ui/create.js?v=2"></script>
 <script src="js/ui/detail.js?v=1"></script>

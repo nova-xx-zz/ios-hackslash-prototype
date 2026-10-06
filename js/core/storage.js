@@ -91,12 +91,30 @@
     };
   }
 
-  // ブラウザのlocalStorage（プライベートモード等で触れない場合はnull）
-  function defaultBackend() {
-    try { return root.localStorage || null; } catch (e) { return null; }
+  // 確認用モード: URLに ?debug を付けて開いた時。後半のダンジョンの確認などのために、本番のセーブとは
+  // 別の保存場所（キーの頭に DEBUG_PREFIX）を使い、クラウドセーブも使わない（js/cloud.js・js/ui/debug.js）
+  const DEBUG_PREFIX = "qpdebug:";
+  function isDebugMode() {
+    try { return /[?&]debug(?:[=&]|$)/.test((root.location && root.location.search) || ""); } catch (e) { return false; }
+  }
+  // キーに頭を付けて、別の保存場所として使う
+  function prefixedBackend(backend, prefix) {
+    return {
+      getItem: (key) => backend.getItem(prefix + key),
+      setItem: (key, value) => backend.setItem(prefix + key, value),
+      removeItem: (key) => backend.removeItem(prefix + key),
+    };
   }
 
-  const exported = { KEYS, createStorage, createMemoryBackend, defaultBackend };
+  // ブラウザのlocalStorage（プライベートモード等で触れない場合はnull）。確認用モードでは別の保存場所
+  function defaultBackend() {
+    try {
+      const ls = root.localStorage || null;
+      return ls && isDebugMode() ? prefixedBackend(ls, DEBUG_PREFIX) : ls;
+    } catch (e) { return null; }
+  }
+
+  const exported = { KEYS, DEBUG_PREFIX, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
   root.QPCore = root.QPCore || {};
   root.QPCore.storage = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
