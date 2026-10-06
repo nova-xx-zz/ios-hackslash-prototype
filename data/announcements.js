@@ -4,6 +4,23 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "balance_tame_level1",
+    revision: 1,
+    publishedAt: "2026-10-07T09:00:00+09:00",
+    expiresAt: null,
+    category: "balance",
+    title: "テイムしたモンスターはLv1からに",
+    body: [
+      "テイムしたモンスターのレベルが、自分たちのパーティより高くなってしまうことがあったため、どのダンジョンでテイムしてもLv1から仲間になるように変更しました。",
+      "育てる時は、パーティに入れて戦うか、モンスター合成でEXPを与えてください。",
+      "※ すでに仲間になっているモンスターのレベルはそのままです。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_taming",
     revision: 1,
     publishedAt: "2026-10-06T21:00:00+09:00",

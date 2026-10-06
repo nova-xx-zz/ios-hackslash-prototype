@@ -170,11 +170,11 @@
       return { success: true, name: tpl.name, char: addTamedMonster(result.key) };
     }
 
-    // テイムに成功したモンスターをロスターに加える（通常プレイ・オフライン精算で共通）
+    // テイムに成功したモンスターをロスターに加える（通常プレイ・オフライン精算で共通）。
+    // どのダンジョンでテイムしてもLv1から（育成は戦闘のEXPかモンスター合成で行う）
     function addTamedMonster(key) {
       const tpl = getEnemyTemplate(key);
-      const lvl = Math.max(1, R.currentMaxLevel() - 2);
-      const mon = R.newCharacter(tpl.name, null, key, { level: lvl, isMonster: true });
+      const mon = R.newCharacter(tpl.name, null, key, { level: 1, isMonster: true });
       S.roster.push(mon);
       return mon;
     }
