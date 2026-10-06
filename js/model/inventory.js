@@ -211,7 +211,30 @@
       return { expGain, consumedNames, returnedItems, levelUps: result.levelUps, abilityUnlocks: result.abilityUnlocks };
     }
 
+    // ---------- 仲間と別れる ----------
+    // 別れられる仲間: どのチームにも編成していない、お気に入り（★）でない仲間（人間・モンスターとも）
+    function releaseCandidates() {
+      return S.roster.filter((c) => c.team === null && !c.favorite);
+    }
+    // 選んだ仲間をロスターから外す。装備していたアイテムは所持品に戻す。
+    // 全員と別れるとセーブが読めなくなる（仲間0人のセーブは無効）ため、最低1人は残す。
+    // 結果: { ok, reason（"none"・"lastMember"）, names, returnedItems }
+    function releaseMembers(chars) {
+      const targets = chars.filter((c) => S.roster.includes(c) && c.team === null && !c.favorite);
+      if (targets.length === 0) return { ok: false, reason: "none" };
+      if (S.roster.length - targets.length < 1) return { ok: false, reason: "lastMember" };
+      let returnedItems = 0;
+      for (const c of targets) {
+        for (const p of Object.keys(c.equip)) {
+          if (c.equip[p]) { unequipSlot(c, p); returnedItems += 1; }
+        }
+        S.roster.splice(S.roster.indexOf(c), 1);
+      }
+      return { ok: true, names: targets.map((c) => c.name), returnedItems };
+    }
+
     return {
+      releaseCandidates, releaseMembers,
       clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,

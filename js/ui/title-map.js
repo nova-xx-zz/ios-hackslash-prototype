@@ -57,11 +57,14 @@ document.getElementById("btnTitleRestore").addEventListener("click", () => {
   openSettings("screen-title");
   document.getElementById("btnCloudRestore").click();
 });
-document.getElementById("btnHubJobs").addEventListener("click", () => {
-  jobsReturnScreen = "screen-battle";
+// パーティ編成の画面を開く。returnScreen: 「もどる」の戻り先（screen-menu・screen-map・screen-battle）
+function openPartyScreen(returnScreen) {
+  jobsReturnScreen = returnScreen || "screen-battle";
   renderJobsScreen();
   showScreen("screen-jobs");
-});
+}
+// 下のナビの「編成」は編成メニュー（ギルド・鍛冶屋・ショップ。js/ui/menu.js）を開く
+document.getElementById("btnHubJobs").addEventListener("click", () => openPartyMenu());
 document.getElementById("btnHubExplore").addEventListener("click", () => {
   openExploreHub();
 });

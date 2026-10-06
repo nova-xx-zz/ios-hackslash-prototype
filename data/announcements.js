@@ -4,6 +4,26 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_party_menu",
+    revision: 1,
+    publishedAt: "2026-10-07T18:00:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "「編成」がメニューになりました",
+    body: [
+      "下の「編成」を押すと、メニューが開くようになりました。",
+      "・ギルド: 仲間を呼ぶ／パーティ編成／仲間と別れる",
+      "・鍛冶屋: 装備強化／装備分解／所持品確認",
+      "・ショップ（課金アイテム）",
+      "「仲間と別れる」で、パーティに入れていない仲間と別れられます（装備は所持品に戻ります。★お気に入りの仲間は選べません）。仲間のBOXがいっぱいの時に使ってください。",
+      "「装備強化」では、仲間が装備している物も含めて一覧から強化できます。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_shop",
     revision: 1,
     publishedAt: "2026-10-07T12:00:00+09:00",

@@ -16,9 +16,14 @@ let disassembleMode = false;
 let disassembleSelection = new Set(); // 選んだアイテム（オブジェクトそのもの）
 let disassembleConfirming = false;
 
-function openInventoryScreen() {
+let inventoryReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
+// opts: { disassemble（分解する装備を選ぶ状態で開く）, returnScreen }
+function openInventoryScreen(opts) {
+  opts = opts || {};
+  inventoryReturnScreen = opts.returnScreen || "screen-jobs";
   inventoryFilterSlot = "all";
   exitDisassembleMode();
+  if (opts.disassemble) disassembleMode = true;
   showInventoryMessage("");
   renderInventoryScreen();
   showScreen("screen-inventory");
@@ -240,6 +245,8 @@ function buildInventorySkillBookRow(book) {
 document.getElementById("btnOpenInventory").addEventListener("click", () => { openInventoryScreen(); });
 document.getElementById("btnInventoryBack").addEventListener("click", () => {
   exitDisassembleMode();
+  if (inventoryReturnScreen === "screen-menu") { openPartyMenu(); return; }
+  renderJobsScreen();
   showScreen("screen-jobs");
 });
 document.getElementById("btnInventoryDisassemble").addEventListener("click", () => {
@@ -503,7 +510,9 @@ document.getElementById("enhanceModal").addEventListener("click", (e) => {
 });
 
 document.getElementById("btnJobsDone").addEventListener("click", () => {
-  if (jobsReturnScreen === "screen-map") {
+  if (jobsReturnScreen === "screen-menu") {
+    openPartyMenu();
+  } else if (jobsReturnScreen === "screen-map") {
     openMap();
   } else {
     openExploreHub();

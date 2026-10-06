@@ -106,6 +106,10 @@ document.getElementById("btnShopBack").addEventListener("click", () => {
   // もどる先の画面を今の購入状況で描き直す
   if (shopReturnScreen === "screen-battle") renderDock();
   if (shopReturnScreen === "screen-jobs") renderJobsScreen();
+  if (shopReturnScreen === "screen-menu") renderPartyMenu();
+  // 強化画面の「確定強化石が足りない→ショップへ」から来た時は、所持数の表示を描き直す
+  if (shopReturnScreen === "screen-enhance") renderEnhanceList();
+  if (shopReturnScreen === "screen-inventory") renderInventoryScreen();
   showScreen(shopReturnScreen);
 });
 document.getElementById("btnSettingsShop").addEventListener("click", () => openShop("screen-settings"));

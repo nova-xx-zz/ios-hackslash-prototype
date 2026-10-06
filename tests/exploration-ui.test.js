@@ -51,9 +51,10 @@ function setup() {
     document, TEAM_COUNT: 4, S: { activeTeam: 0 }, teamRuns: runs,
     teamMembers: (i) => members[i], activeParty: () => members[context.S.activeTeam],
     isTeamRunActive: (i) => !!runs[i]?.active, isTeamLocked: (i) => locked.has(i),
+    // 未編成の時はパーティ編成の画面を直接開く（下のナビの「編成」は編成メニューを開くため）
+    openPartyScreen: () => routes.push("party"),
   });
   document.getElementById("btnDockMap").addEventListener("click", () => routes.push("map"));
-  document.getElementById("btnHubJobs").addEventListener("click", () => routes.push("party"));
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui/log.js"), "utf8"), context);
   return { context, elements, runs, locked, routes };
 }
