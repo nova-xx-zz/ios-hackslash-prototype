@@ -264,6 +264,10 @@ const EXCLUSIVE_TREES = {
         effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）" },
       { id: "w4b", kind: "passive", name: "猛攻の構え", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: "w_style", x: 75, y: 88,
         effects: [{ type: "statAdd", stat: "atk", value: 6 }], desc: "ATK+6（4aと選択）" },
+      { id: "w_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "w2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "w_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
     ],
   },
   magic: {
@@ -280,6 +284,10 @@ const EXCLUSIVE_TREES = {
         effects: [{ type: "statAdd", stat: "mag", value: 6 }], desc: "MAG+6（4bと選択）" },
       { id: "m4b", kind: "passive", name: "魔導障壁", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: "m_style", x: 75, y: 88,
         effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4aと選択）" },
+      { id: "m_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "m2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "m_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
     ],
   },
   healer: {
@@ -296,6 +304,10 @@ const EXCLUSIVE_TREES = {
         effects: [{ type: "passiveAdd", key: "healBonus", value: 0.1 }], desc: "回復量さらに+10%（4bと選択）" },
       { id: "h4b", kind: "passive", name: "清貧の心", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: "h_style", x: 75, y: 88,
         effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（4aと選択）" },
+      { id: "h_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "h2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "h_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
     ],
   },
   rogue: {
@@ -312,6 +324,10 @@ const EXCLUSIVE_TREES = {
         effects: [{ type: "statAdd", stat: "spd", value: 3 }], desc: "SPD+3（4bと選択）" },
       { id: "r4b", kind: "passive", name: "必殺の視点", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: "r_style", x: 75, y: 88,
         effects: [{ type: "passiveAdd", key: "critBonus", value: 0.08 }], desc: "会心率さらに+8%（4aと選択）" },
+      { id: "r_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "r2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "r_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
     ],
   },
   martial: {
@@ -328,6 +344,10 @@ const EXCLUSIVE_TREES = {
         effects: [{ type: "statAdd", stat: "def", value: 6 }], desc: "DEF+6（4bと選択）" },
       { id: "k4b", kind: "passive", name: "気吸の極意", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: "k_style", x: 75, y: 88,
         effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "吸収さらに+5%（4aと選択）" },
+      { id: "k_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "k2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "k_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
     ],
   },
   dark: {
@@ -344,6 +364,10 @@ const EXCLUSIVE_TREES = {
         effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）" },
       { id: "d4b", kind: "passive", name: "渇望の契約", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: "d_style", x: 75, y: 88,
         effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "吸収さらに+5%（4aと選択）" },
+      { id: "d_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "d2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "d_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
+        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
     ],
   },
 };
@@ -789,245 +813,245 @@ const DUNGEONS = [
     id: "forest", region: "verde", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
     pool: ["slime", "goblin", "bat", "forest_spider", "mandrake", "kobold", "hornet"], boss: "elder_treant", rares: ["gem_beetle", "white_stag"], unlocks: ["cave"],
     desc: "木々のざわめきに紛れて魔物が潜む。",
-    power: 1.6, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "n", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+    power: 1.73, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "cave", region: "verde", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
     pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", rares: ["crystal_lizard", "gold_crab"], unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
-    power: 1.39, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "r", plus: 2 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+    power: 1.46, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "n", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "ruins", region: "verde", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
     pool: ["goblin", "wolf", "ogre", "skeleton", "living_armor", "wight", "necro_hound"], boss: "stone_gargoyle", rares: ["golden_guardian", "phantom_lord"], unlocks: ["peak"],
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
-    power: 1.05, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 3 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+    power: 1.155, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 2 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   {
     id: "peak", region: "verde", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
     pool: ["wolf", "ogre", "frost_wolf", "ice_golem", "mountain_troll", "bone_drake"], boss: "ancient_wyvern", rares: ["frost_phoenix", "dragon_hatchling"], unlocks: ["dunes"],
     desc: "巨大な骨が眠る山頂。ヴェルデ地方で最も危険な領域。",
-    power: 0.74, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 4 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
+    power: 0.92, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 3 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
   },
   // ---- サブル地方（推奨Lv17〜30） ----
   {
     id: "dunes", region: "sabul", name: "蜃気楼の砂丘", x: 18, y: 80, level: 17, battles: 5,
     pool: ["sand_worm", "desert_scorpion", "dust_devil", "cactus_man", "death_vulture", "ogre"], boss: "king_worm", rares: ["golden_worm", "gold_tortoise"], unlocks: ["canyon"],
     desc: "陽炎に揺れる果てしない砂丘。砂の下を何かが泳いでいる。",
-    power: 0.73, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 4 },
+    power: 0.92, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "r", plus: 4 },
   },
   {
     id: "canyon", region: "sabul", name: "サソリの谷", x: 42, y: 62, level: 20, battles: 5,
     pool: ["desert_scorpion", "death_vulture", "sand_bandit", "sand_golem", "jackal_warrior", "cactus_man"], boss: "emperor_scorpion", rares: ["ruby_scorpion", "roc_chick"], unlocks: ["oasis"],
     desc: "赤い岩壁に挟まれた谷。岩陰という岩陰にサソリが潜む。",
-    power: 0.56, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 4 },
+    power: 0.83, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 2 },
   },
   {
     id: "oasis", region: "sabul", name: "枯れたオアシス", x: 72, y: 66, level: 23, battles: 5,
     pool: ["sand_bandit", "mirage_spirit", "fire_salamander", "dust_devil", "sand_golem", "jackal_warrior"], boss: "cursed_naga", rares: ["oasis_spirit", "mirage_camel"], unlocks: ["tomb"],
     desc: "かつて旅人を潤した泉の跡。干上がった水底に呪いが澱んでいる。",
-    power: 0.46, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 4 },
+    power: 0.795, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 3 },
   },
   {
     id: "tomb", region: "sabul", name: "砂に沈んだ王墓", x: 56, y: 36, level: 26, battles: 5,
     pool: ["mummy", "scarab", "jackal_warrior", "mirage_spirit", "sand_golem", "sand_bandit"], boss: "mummy_king", rares: ["jackal_guardian", "golden_scarab"], unlocks: ["sun_temple"],
     desc: "砂に呑まれた古王の墓。眠りを妨げる者には容赦がない。",
-    power: 0.52, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 0.86, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 4 },
   },
   {
     id: "sun_temple", region: "sabul", name: "灼熱の大神殿", x: 30, y: 14, level: 30, battles: 5,
     pool: ["mummy", "scarab", "fire_salamander", "sand_golem", "jackal_warrior", "mirage_spirit"], boss: "sphinx", rares: ["flame_phoenix", "temple_guardian"], unlocks: ["frost_forest"],
     desc: "太陽を祀る巨大な神殿。謎を解けぬ者は先へ進めない。",
-    power: 0.47, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 5 },
+    power: 0.8, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 4 },
   },
   // ---- グラシア地方（推奨Lv32〜45） ----
   {
     id: "frost_forest", region: "glacia", name: "白霜の樹海", x: 16, y: 78, level: 32, battles: 5,
     pool: ["ice_wisp", "snow_owl", "frost_spider", "glacier_bear", "ice_imp", "frost_wolf"], boss: "frost_treant", rares: ["silver_fox", "snow_rabbit_king"], unlocks: ["frozen_lake"],
     desc: "木々まで白く凍りついた森。吐く息さえ凍って落ちる。",
-    power: 0.46, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 5 },
+    power: 0.82, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 4 },
   },
   {
     id: "frozen_lake", region: "glacia", name: "凍てつく湖", x: 44, y: 66, level: 35, battles: 5,
     pool: ["ice_wisp", "ice_serpent", "snow_harpy", "glacier_bear", "mammoth", "snow_owl"], boss: "frozen_kraken", rares: ["ice_penguin", "aurora_fish"], unlocks: ["crystal_cave"],
     desc: "厚い氷に覆われた湖。氷の下で巨大な影が動いている。",
-    power: 0.42, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 0.705, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 5 },
   },
   {
     id: "crystal_cave", region: "glacia", name: "氷晶の洞窟", x: 76, y: 60, level: 38, battles: 5,
     pool: ["crystal_golem", "ice_imp", "frost_spider", "frost_witch", "ice_serpent", "ice_wisp"], boss: "crystal_queen", rares: ["diamond_golem", "ice_fairy"], unlocks: ["snow_fort"],
     desc: "壁も天井も氷の結晶でできた洞窟。光が乱反射して方向を見失う。",
-    power: 0.37, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "sr", plus: 6 },
+    power: 0.675, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 5 },
   },
   {
     id: "snow_fort", region: "glacia", name: "雪原の砦跡", x: 58, y: 34, level: 41, battles: 5,
     pool: ["frozen_knight", "yeti", "mammoth", "snow_harpy", "frost_witch", "crystal_golem"], boss: "frozen_general", rares: ["ghost_commander", "frost_valkyrie"], unlocks: ["ice_throne"],
     desc: "吹雪に埋もれた古い砦。凍りついた兵たちが今も持ち場を守っている。",
-    power: 0.4, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 0.675, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 5 },
   },
   {
     id: "ice_throne", region: "glacia", name: "氷竜の玉座", x: 30, y: 14, level: 45, battles: 5,
     pool: ["frozen_knight", "yeti", "frost_witch", "crystal_golem", "glacier_bear", "ice_serpent"], boss: "frost_dragon", rares: ["silver_drake", "aurora_spirit"], unlocks: ["ash_plains"],
     desc: "氷河の頂にある氷の玉座。永い眠りから覚めた竜が待っている。",
-    power: 0.43, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 5 },
+    power: 0.63, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   // ---- イグニス地方（推奨Lv47〜60） ----
   {
     id: "ash_plains", region: "ignis", name: "灰降る平原", x: 18, y: 76, level: 47, battles: 5,
     pool: ["ash_wolf", "fire_bat", "magma_slime", "cinder_imp", "lava_lizard", "salamander_knight"], boss: "ash_behemoth", rares: ["ember_fox", "coal_tortoise"], unlocks: ["lava_river"],
     desc: "灰が雪のように降り積もる平原。足元の地面はほんのり温かい。",
-    power: 0.34, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 0.66, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
   },
   {
     id: "lava_river", region: "ignis", name: "溶岩の大河", x: 46, y: 64, level: 50, battles: 5,
     pool: ["magma_slime", "lava_lizard", "fire_serpent", "flame_spirit", "fire_bat", "obsidian_golem"], boss: "magma_leviathan", rares: ["ruby_crab", "fire_dancer"], unlocks: ["forge_ruins"],
     desc: "煮えたぎる溶岩が川となって流れる谷。わずかな岩場だけが道になる。",
-    power: 0.36, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 5 },
+    power: 0.62, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   {
     id: "forge_ruins", region: "ignis", name: "炎の鍛冶場跡", x: 78, y: 54, level: 53, battles: 5,
     pool: ["obsidian_golem", "salamander_knight", "cinder_imp", "flame_spirit", "iron_drake", "fire_giant"], boss: "forge_master", rares: ["mithril_golem", "anvil_spirit"], unlocks: ["crater"],
     desc: "火の巨人たちが武具を鍛えたという鍛冶場の跡。今も炉の火が消えていない。",
-    power: 0.36, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 5 },
+    power: 0.62, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   {
     id: "crater", region: "ignis", name: "大火口", x: 56, y: 30, level: 56, battles: 5,
     pool: ["fire_giant", "iron_drake", "fire_serpent", "flame_spirit", "obsidian_golem", "ash_wolf"], boss: "ifrit", rares: ["phoenix_chick", "molten_gem"], unlocks: ["inferno_peak"],
     desc: "山頂に口を開けた巨大な火口。底からは絶えず炎が噴き上がる。",
-    power: 0.34, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 6 },
+    power: 0.57, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   {
     id: "inferno_peak", region: "ignis", name: "業火の霊峰", x: 26, y: 12, level: 60, battles: 5,
     pool: ["fire_giant", "iron_drake", "salamander_knight", "fire_serpent", "flame_spirit", "obsidian_golem"], boss: "inferno_dragon", rares: ["sun_drake", "flame_seraph"], unlocks: ["coral_reef"],
     desc: "業火に包まれた霊峰。火山の主たる炎竜が、挑む者を待っている。",
-    power: 0.32, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 6 },
+    power: 0.54, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   // ---- マリナ地方（推奨Lv62〜75） ----
   {
     id: "coral_reef", region: "marina", name: "珊瑚の浅瀬", x: 16, y: 74, level: 62, battles: 5,
     pool: ["reef_shark", "giant_jellyfish", "coral_golem", "sea_hornet", "merfolk_soldier", "fire_serpent"], boss: "reef_hydra", rares: ["pearl_clam", "rainbow_turtle"], unlocks: ["ghost_ship"],
     desc: "色とりどりの珊瑚が広がる浅瀬。美しさの陰に魔物が潜む。",
-    power: 0.3, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 6 },
+    power: 0.545, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   {
     id: "ghost_ship", region: "marina", name: "幽霊船", x: 44, y: 62, level: 65, battles: 5,
     pool: ["drowned_sailor", "ghost_pirate", "sea_hornet", "giant_jellyfish", "kraken_spawn", "merfolk_soldier"], boss: "phantom_captain", rares: ["treasure_mimic", "ghost_parrot"], unlocks: ["sea_cave"],
     desc: "霧の海をさまよう朽ちた帆船。乗組員は誰一人として生きていない。",
-    power: 0.26, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 7 },
+    power: 0.495, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 6 },
   },
   {
     id: "sea_cave", region: "marina", name: "潮騒の海洞", x: 78, y: 56, level: 68, battles: 5,
     pool: ["kraken_spawn", "coral_golem", "abyss_angler", "siren", "reef_shark", "drowned_sailor"], boss: "sea_serpent_king", rares: ["moonlight_seal", "black_pearl_crab"], unlocks: ["sunken_city"],
     desc: "満ち潮で閉ざされる海の洞窟。セイレーンの歌が奥から響く。",
-    power: 0.26, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 7 },
+    power: 0.5, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "sunken_city", region: "marina", name: "沈んだ古代都市", x: 58, y: 32, level: 71, battles: 5,
     pool: ["merfolk_soldier", "abyss_angler", "siren", "trident_guard", "ghost_pirate", "kraken_spawn"], boss: "drowned_king", rares: ["atlantis_golem", "sea_dragon_pup"], unlocks: ["leviathan_trench"],
     desc: "海の底に沈んだ古代の都。かつての住人が今も街を守っている。",
-    power: 0.25, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 8 },
+    power: 0.475, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "leviathan_trench", region: "marina", name: "大海溝", x: 30, y: 12, level: 75, battles: 5,
     pool: ["abyss_angler", "trident_guard", "siren", "kraken_spawn", "coral_golem", "reef_shark"], boss: "leviathan", rares: ["deep_sea_whale", "ocean_seraph"], unlocks: ["cloud_road"],
     desc: "光の届かない深い海溝。海の王リヴァイアサンの棲み処。",
-    power: 0.24, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 8 },
+    power: 0.465, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   // ---- セレスタ地方（推奨Lv77〜88） ----
   {
     id: "cloud_road", region: "celesta", name: "雲上の道", x: 50, y: 84, level: 77, battles: 5,
     pool: ["sky_wisp", "thunder_bird", "cloud_golem", "wind_sylph", "griffon", "siren"], boss: "storm_roc", rares: ["cloud_sheep", "rainbow_bird"], unlocks: ["floating_isle"],
     desc: "雲の上に続く白い道。踏み外せば地上まで真っ逆さま。",
-    power: 0.19, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 8 },
+    power: 0.405, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "floating_isle", region: "celesta", name: "浮遊島", x: 20, y: 58, level: 80, battles: 5,
     pool: ["griffon", "wind_sylph", "sky_knight", "thunder_bird", "star_beast", "cloud_golem"], boss: "isle_guardian", rares: ["sky_whale_calf", "pegasus"], unlocks: ["sky_garden"],
     desc: "空に浮かぶ岩の島。古い魔法の力で今も落ちずに浮かんでいる。",
-    power: 0.21, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 8 },
+    power: 0.42, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "sky_garden", region: "celesta", name: "天空庭園", x: 78, y: 48, level: 83, battles: 5,
     pool: ["star_beast", "seraph_guard", "wind_sylph", "angel_statue", "sky_wisp", "sky_knight"], boss: "garden_warden", rares: ["golden_hen", "moon_rabbit"], unlocks: ["thunder_spire"],
     desc: "天空の民が造った庭園。見たこともない花が咲き乱れている。",
-    power: 0.2, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 9 },
+    power: 0.405, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "thunder_spire", region: "celesta", name: "雷鳴の尖塔", x: 34, y: 26, level: 86, battles: 5,
     pool: ["thunder_bird", "storm_elemental", "sky_knight", "angel_statue", "seraph_guard", "griffon"], boss: "thunder_god_beast", rares: ["lightning_drake", "storm_crystal"], unlocks: ["celestial_palace"],
     desc: "雷雲を貫いてそびえる塔。絶えず稲妻が塔を打ちつけている。",
-    power: 0.18, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 9 },
+    power: 0.38, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "celestial_palace", region: "celesta", name: "天空宮殿", x: 66, y: 10, level: 88, battles: 5,
     pool: ["seraph_guard", "storm_elemental", "angel_statue", "star_beast", "sky_knight", "archon"], boss: "sky_emperor", rares: ["holy_kirin", "stardust_fairy"], unlocks: ["abyss_gate"],
     desc: "雲の頂に建つ天空の宮殿。空の帝がすべてを見下ろしている。",
-    power: 0.18, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 9 },
+    power: 0.375, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   // ---- アビス地方（推奨Lv90〜100。最後の地方） ----
   {
     id: "abyss_gate", region: "abyss", name: "深淵の門", x: 22, y: 82, level: 90, battles: 5,
     pool: ["void_wraith", "shadow_beast", "abyss_knight", "nightmare", "chaos_imp", "nether_hound"], boss: "gate_keeper", rares: ["void_cat", "lost_lantern"], unlocks: ["shadow_labyrinth"],
     desc: "大穴の縁に建つ巨大な門。門の向こうからは光が一切漏れてこない。",
-    power: 0.15, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 9 },
+    power: 0.315, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 7 },
   },
   {
     id: "shadow_labyrinth", region: "abyss", name: "影の迷宮", x: 70, y: 74, level: 93, battles: 5,
     pool: ["shadow_beast", "nightmare", "doppelganger", "chaos_imp", "abyss_knight", "bone_colossus"], boss: "labyrinth_lord", rares: ["mirror_slime", "shadow_moth_queen"], unlocks: ["abyss_sea"],
     desc: "壁が絶えず形を変える影の迷宮。自分の影にさえ道を惑わされる。",
-    power: 0.155, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 9 },
+    power: 0.325, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 8 },
   },
   {
     id: "abyss_sea", region: "abyss", name: "虚無の海", x: 40, y: 54, level: 95, battles: 5,
     pool: ["void_wraith", "abyss_leech", "doppelganger", "eldritch_eye", "nightmare", "abyss_mage"], boss: "void_kraken", rares: ["void_jellyfish", "star_eater"], unlocks: ["fallen_citadel"],
     desc: "底の見えない黒い水が広がる地底の海。水面に映るのは自分ではない何か。",
-    power: 0.1475, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 10 },
+    power: 0.305, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 8 },
   },
   {
     id: "fallen_citadel", region: "abyss", name: "堕ちた城塞", x: 76, y: 32, level: 98, battles: 5,
     pool: ["abyss_knight", "bone_colossus", "fallen_angel", "eldritch_eye", "chaos_imp", "abyss_leech"], boss: "fallen_king", rares: ["cursed_crown", "dark_unicorn"], unlocks: ["abyss_heart"],
     desc: "天から堕ちた城の残骸。かつての主は深淵に呑まれ、姿を変えた。",
-    power: 0.15, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 10 },
+    power: 0.315, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 8 },
   },
   {
     id: "abyss_heart", region: "abyss", name: "深淵の心臓", x: 30, y: 12, level: 100, battles: 5,
     pool: ["fallen_angel", "eldritch_eye", "bone_colossus", "abyss_mage", "nether_hound", "abyss_knight"], boss: "abyss_lord", rares: ["primordial_slime", "chaos_dragon", "world_seed"], unlocks: [],
     desc: "深淵の最奥で脈打つ巨大な心臓。すべての災いの源がここに眠る。",
-    power: 0.14, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
-    benchmarkGear: { rarity: "ur", plus: 10 },
+    power: 0.305, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "sr", plus: 8 },
   },
 ];
 
@@ -1154,31 +1178,165 @@ function enhanceExpectedCost(item) { return QPCore.enhance.expectedCost(ENHANCE_
 function enhancePityThreshold(item) { return QPCore.enhance.pityThreshold(ENHANCE_RULES, item.rarity, item.plus); }
 function guaranteedStonesRequired(item) { return QPCore.enhance.guaranteedRequired(ENHANCE_RULES, item.rarity, item.plus); }
 
-// 強化値に応じてステータス上昇量を底上げする。装備の元の数値が小さい（2〜6）ため率ではなくレア度に応じた
+// 強化値込みの能力値（js/core/equipment.js）。装備の元の数値が小さいため率ではなくレア度に応じた
 // 固定量をceilで積み上げる（+1でも必ず変化が見え、かつレア度が高いほど伸びが大きい＝+99で元の値の約4倍になる）
+function rarityMult(key) {
+  const rarity = RARITIES.find((r) => r.key === key);
+  return rarity ? rarity.mult : 1;
+}
+function itemStats(item) { return QPCore.equipment.itemStats(item, rarityMult(item.rarity)); }
+// 並べ替え用の代表値: 主能力（最初の能力値）の強化値込みの値
 function itemEffectiveValue(item) {
-  const rarity = RARITIES.find((r) => r.key === item.rarity);
-  const mult = rarity ? rarity.mult : 1;
-  const bonus = Math.ceil((item.plus || 0) * mult * 0.08);
-  return Math.max(1, item.value + bonus);
+  const k = QPCore.equipment.primaryStat(item);
+  return k ? itemStats(item)[k] : 0;
 }
 
+// ---------- 装備 ----------
+// アイテムの部位（item.slot）。キャラの装備の枠（右手・左手・頭・体・装飾品1〜3）は EQUIP_POSITIONS
 const SLOTS = [
-  { key: "weapon", name: "武器" },
-  { key: "armor", name: "防具" },
-  { key: "accessory", name: "装飾品" },
+  { key: "weapon", name: "武器", icon: "⚔️" },
+  { key: "shield", name: "盾", icon: "🛡️" },
+  { key: "head", name: "頭", icon: "⛑️" },
+  { key: "body", name: "体", icon: "🥋" },
+  { key: "accessory", name: "装飾品", icon: "💍" },
+];
+const EQUIP_POSITIONS = [
+  { key: "main", name: "右手" },
+  { key: "off", name: "左手" },
+  { key: "head", name: "頭" },
+  { key: "body", name: "体" },
+  { key: "acc1", name: "装飾品1" },
+  { key: "acc2", name: "装飾品2" },
+  { key: "acc3", name: "装飾品3" },
 ];
 
-const ITEM_BASES = [
-  { key: "sword", name: "剣", slot: "weapon", stat: "atk", base: 3 },
-  { key: "staff", name: "杖", slot: "weapon", stat: "mag", base: 3 },
-  { key: "claw", name: "かぎ爪", slot: "weapon", stat: "spd", base: 2 },
-  { key: "armor", name: "よろい", slot: "armor", stat: "def", base: 3 },
-  { key: "robe", name: "ローブ", slot: "armor", stat: "mp", base: 4 },
-  { key: "amulet", name: "お守り", slot: "accessory", stat: "hp", base: 6 },
-  { key: "ring", name: "指輪", slot: "accessory", stat: "mag", base: 2 },
-  { key: "boots", name: "くつ", slot: "accessory", stat: "spd", base: 2 },
+// 装備の種類（26種）。stats は能力値の重み（レア度の倍率と装備のレベルを掛けて実際の値にする）。
+// 最初に書いた能力値が主能力（強化で伸びる基準）。hands: 2 は両手武器（左手が使えなくなる代わりに強い）
+const ITEM_TYPES = [
+  { key: "sword", name: "剣", kana: "ソード", slot: "weapon", hands: 1, stats: { atk: 3, def: 0.5 } },
+  { key: "greatsword", name: "大剣", kana: "グレートソード", slot: "weapon", hands: 2, stats: { atk: 5.5 } },
+  { key: "dagger", name: "短剣", kana: "ダガー", slot: "weapon", hands: 1, stats: { atk: 2, spd: 1.5 } },
+  { key: "axe", name: "斧", kana: "アクス", slot: "weapon", hands: 1, stats: { atk: 3.6 } },
+  { key: "spear", name: "槍", kana: "スピア", slot: "weapon", hands: 2, stats: { atk: 4.5, def: 1.5 } },
+  { key: "katana", name: "刀", kana: "ブレード", slot: "weapon", hands: 1, stats: { atk: 3, spd: 1 } },
+  { key: "bow", name: "弓", kana: "ボウ", slot: "weapon", hands: 2, stats: { atk: 4, spd: 2 } },
+  { key: "claw", name: "かぎ爪", kana: "クロー", slot: "weapon", hands: 1, stats: { atk: 2.2, spd: 1.2 } },
+  { key: "scythe", name: "大鎌", kana: "サイス", slot: "weapon", hands: 2, stats: { atk: 4.5, mag: 2 } },
+  { key: "mace", name: "メイス", kana: "メイス", slot: "weapon", hands: 1, stats: { atk: 2, mag: 1.5 } },
+  { key: "staff", name: "杖", kana: "ワンド", slot: "weapon", hands: 1, stats: { mag: 3 } },
+  { key: "rod", name: "両手杖", kana: "ロッド", slot: "weapon", hands: 2, stats: { mag: 5, mp: 4 } },
+  { key: "buckler", name: "小盾", kana: "バックラー", slot: "shield", stats: { def: 1.5, spd: 0.5 } },
+  { key: "shield", name: "大盾", kana: "シールド", slot: "shield", stats: { def: 2.5, hp: 4 } },
+  { key: "helm", name: "かぶと", kana: "ヘルム", slot: "head", stats: { def: 1.5, hp: 3 } },
+  { key: "hat", name: "ぼうし", kana: "ハット", slot: "head", stats: { mag: 1, mp: 3 } },
+  { key: "hood", name: "ずきん", kana: "フード", slot: "head", stats: { def: 1, spd: 0.8 } },
+  { key: "plate", name: "よろい", kana: "アーマー", slot: "body", stats: { def: 3, hp: 4 } },
+  { key: "garb", name: "軽よろい", kana: "メイル", slot: "body", stats: { def: 2, spd: 1 } },
+  { key: "robe", name: "ローブ", kana: "ローブ", slot: "body", stats: { mp: 4, def: 1, mag: 1 } },
+  { key: "amulet", name: "お守り", kana: "アミュレット", slot: "accessory", stats: { hp: 6 } },
+  { key: "ring", name: "指輪", kana: "リング", slot: "accessory", stats: { mag: 2 } },
+  { key: "boots", name: "くつ", kana: "ブーツ", slot: "accessory", stats: { spd: 2 } },
+  { key: "bangle", name: "腕輪", kana: "バングル", slot: "accessory", stats: { atk: 2 } },
+  { key: "earring", name: "耳飾り", kana: "イヤリング", slot: "accessory", stats: { mp: 5 } },
+  { key: "brooch", name: "ブローチ", kana: "ブローチ", slot: "accessory", stats: { def: 2 } },
 ];
+function getItemType(key) { return ITEM_TYPES.find((t) => t.key === key) || null; }
+
+// 装備のシリーズ（8種）。ダンジョンの推奨Lvが minLevel 以上の地方から落ちる。
+// 同じシリーズを2・4・6個そろえて付けるとセット効果（stats は能力値の割合、passives は会心率など）
+const ITEM_SERIES = [
+  { key: "bronze", name: "ブロンズ", minLevel: 1, setBonus: [
+    { count: 2, stats: { hp: 0.04 }, desc: "HP+4%" },
+    { count: 4, stats: { def: 0.04 }, desc: "DEF+4%" },
+    { count: 6, stats: { atk: 0.04, mag: 0.04 }, desc: "ATK+4%・MAG+4%" },
+  ] },
+  { key: "iron", name: "アイアン", minLevel: 11, setBonus: [
+    { count: 2, stats: { def: 0.05 }, desc: "DEF+5%" },
+    { count: 4, stats: { hp: 0.06 }, desc: "HP+6%" },
+    { count: 6, passives: { dmgTakenMult: 0.95 }, desc: "被ダメージ-5%" },
+  ] },
+  { key: "steel", name: "スチール", minLevel: 17, setBonus: [
+    { count: 2, stats: { atk: 0.05 }, desc: "ATK+5%" },
+    { count: 4, stats: { def: 0.05 }, desc: "DEF+5%" },
+    { count: 6, passives: { critBonus: 0.05 }, desc: "会心率+5%" },
+  ] },
+  { key: "silver", name: "シルバー", minLevel: 32, setBonus: [
+    { count: 2, stats: { mag: 0.05 }, desc: "MAG+5%" },
+    { count: 4, stats: { mp: 0.1 }, desc: "MP+10%" },
+    { count: 6, passives: { healBonus: 0.1 }, desc: "回復量+10%" },
+  ] },
+  { key: "mithril", name: "ミスリル", minLevel: 47, setBonus: [
+    { count: 2, stats: { spd: 0.05 }, desc: "SPD+5%" },
+    { count: 4, stats: { atk: 0.05, mag: 0.05 }, desc: "ATK+5%・MAG+5%" },
+    { count: 6, passives: { mpCostMult: 0.9 }, desc: "消費MP-10%" },
+  ] },
+  { key: "dragon", name: "ドラゴン", minLevel: 62, setBonus: [
+    { count: 2, stats: { hp: 0.06 }, desc: "HP+6%" },
+    { count: 4, stats: { atk: 0.06 }, desc: "ATK+6%" },
+    { count: 6, passives: { lifesteal: 0.05 }, desc: "与ダメージの5%を吸収" },
+  ] },
+  { key: "holy", name: "ホーリー", minLevel: 77, setBonus: [
+    { count: 2, stats: { def: 0.06 }, desc: "DEF+6%" },
+    { count: 4, stats: { mag: 0.06 }, desc: "MAG+6%" },
+    { count: 6, passives: { dmgTakenMult: 0.92 }, desc: "被ダメージ-8%" },
+  ] },
+  { key: "abyss", name: "アビス", minLevel: 90, setBonus: [
+    { count: 2, stats: { atk: 0.06, mag: 0.06 }, desc: "ATK+6%・MAG+6%" },
+    { count: 4, stats: { spd: 0.06 }, desc: "SPD+6%" },
+    { count: 6, passives: { critBonus: 0.06, lifesteal: 0.04 }, desc: "会心率+6%・吸収+4%" },
+  ] },
+];
+function getItemSeries(key) { return ITEM_SERIES.find((s) => s.key === key) || null; }
+// そのレベルのダンジョンで落ちるシリーズ（minLevel 以下で一番新しいもの）
+function seriesForLevel(level) {
+  let found = ITEM_SERIES[0];
+  for (const s of ITEM_SERIES) if ((level || 1) >= s.minLevel) found = s;
+  return found;
+}
+
+// 装備の一覧（シリーズ×種類＝208種）。key は「シリーズ_種類」、名前はシリーズ名＋種類のカナ（例: アイアンソード）
+const ITEM_BASES = [];
+for (const series of ITEM_SERIES) {
+  for (const type of ITEM_TYPES) {
+    ITEM_BASES.push({
+      key: `${series.key}_${type.key}`, name: `${series.name}${type.kana}`, typeName: type.name,
+      slot: type.slot, type: type.key, series: series.key, hands: type.hands || 1, stats: type.stats,
+    });
+  }
+}
+function getItemBase(key) { return ITEM_BASES.find((b) => b.key === key) || null; }
+// 旧セーブの8種類（剣・杖・かぎ爪・よろい・ローブ・お守り・指輪・くつ）は、ブロンズの同じ種類に移す
+const LEGACY_ITEM_BASES = {
+  sword: Object.assign({ legacySlot: "weapon", legacyStat: "atk" }, getItemBase("bronze_sword")),
+  staff: Object.assign({ legacySlot: "weapon", legacyStat: "mag" }, getItemBase("bronze_staff")),
+  claw: Object.assign({ legacySlot: "weapon", legacyStat: "spd" }, getItemBase("bronze_claw")),
+  armor: Object.assign({ legacySlot: "armor", legacyStat: "def" }, getItemBase("bronze_plate")),
+  robe: Object.assign({ legacySlot: "armor", legacyStat: "mp" }, getItemBase("bronze_robe")),
+  amulet: Object.assign({ legacySlot: "accessory", legacyStat: "hp" }, getItemBase("bronze_amulet")),
+  ring: Object.assign({ legacySlot: "accessory", legacyStat: "mag" }, getItemBase("bronze_ring")),
+  boots: Object.assign({ legacySlot: "accessory", legacyStat: "spd" }, getItemBase("bronze_boots")),
+};
+
+// ジョブごとに持てる装備の種類（weapons/shields/head/body）と二刀流（dualWield: 左手に片手武器を持てる）。
+// 装飾品はだれでも付けられる。テイムしたモンスターは MONSTER_EQUIP（武器はかぎ爪だけ、盾は持てない）
+const JOB_EQUIP = {
+  warrior: { weapons: ["sword", "greatsword", "axe", "spear"], shields: ["buckler", "shield"], head: ["helm", "hood"], body: ["plate", "garb"], dualWield: false },
+  swordmaster: { weapons: ["sword", "greatsword", "katana", "axe"], shields: ["buckler"], head: ["helm", "hood"], body: ["plate", "garb"], dualWield: true },
+  mage: { weapons: ["staff", "rod", "dagger"], shields: [], head: ["hat"], body: ["robe"], dualWield: false },
+  archmage: { weapons: ["staff", "rod", "dagger"], shields: [], head: ["hat", "hood"], body: ["robe"], dualWield: false },
+  priest: { weapons: ["mace", "staff"], shields: ["buckler"], head: ["hat", "hood"], body: ["robe", "garb"], dualWield: false },
+  archpriest: { weapons: ["mace", "staff", "rod"], shields: ["buckler", "shield"], head: ["hat", "hood", "helm"], body: ["robe", "garb"], dualWield: false },
+  thief: { weapons: ["dagger", "sword", "bow"], shields: [], head: ["hood"], body: ["garb"], dualWield: true },
+  ninja: { weapons: ["dagger", "katana", "claw", "bow"], shields: [], head: ["hood"], body: ["garb"], dualWield: true },
+  monk: { weapons: ["claw"], shields: [], head: ["hood", "hat"], body: ["garb", "robe"], dualWield: true },
+  saintfist: { weapons: ["claw", "mace"], shields: [], head: ["hood", "helm"], body: ["garb", "robe"], dualWield: true },
+  darkknight: { weapons: ["sword", "greatsword", "scythe", "axe"], shields: ["buckler", "shield"], head: ["helm"], body: ["plate"], dualWield: false },
+  reaper: { weapons: ["scythe", "greatsword", "sword"], shields: [], head: ["helm", "hood"], body: ["plate", "garb"], dualWield: false },
+};
+const MONSTER_EQUIP = { weapons: ["claw"], shields: [], head: ["helm", "hat", "hood"], body: ["plate", "garb", "robe"], dualWield: false };
+// 装飾品の枠: 最初は1枠。スキルツリーの「装備の心得」「装備の極意」で1枠ずつ増える（最大3枠）。
+// スキルツリーを持たないモンスターは、Lvで増える
+const MONSTER_ACCESSORY_SLOT_LEVELS = [20, 40];
 
 const STAT_LABELS = { hp: "HP", mp: "MP", atk: "ATK", mag: "MAG", def: "DEF", spd: "SPD" };
 
@@ -1188,9 +1346,21 @@ const ITEM_LEVEL_GROWTH = 0.12;
 
 let itemSeq = 1;
 // level: 装備のレベル（拾ったダンジョンの推奨Lv）。minRarity: このレア度以上だけから抽選する（レア敵のドロップ）
+// 落ちる装備の部位の重み（装飾品は1人3枠まで付けるので多め、盾は持てるジョブが少ないので少なめ）
+const ITEM_DROP_SLOT_WEIGHTS = { weapon: 22, shield: 10, head: 15, body: 15, accessory: 38 };
+// 落ちるのは、そのダンジョンのレベルのシリーズ（地方ごと）の装備。部位を重みで選び、その部位の種類から等確率で選ぶ
 function rollItemDrop(level, minRarity) {
   const from = minRarity ? RARITIES.findIndex((r) => r.key === minRarity) : 0;
-  return QPCore.rewards.rollItem(ITEM_BASES, RARITIES.slice(Math.max(0, from)), RNG, () => "item_" + itemSeq++,
+  const series = seriesForLevel(level);
+  const slotKeys = Object.keys(ITEM_DROP_SLOT_WEIGHTS);
+  let roll = RNG.float(0, slotKeys.reduce((n, k) => n + ITEM_DROP_SLOT_WEIGHTS[k], 0));
+  let slot = slotKeys[slotKeys.length - 1];
+  for (const k of slotKeys) {
+    if (roll < ITEM_DROP_SLOT_WEIGHTS[k]) { slot = k; break; }
+    roll -= ITEM_DROP_SLOT_WEIGHTS[k];
+  }
+  const bases = ITEM_BASES.filter((b) => b.series === series.key && b.slot === slot);
+  return QPCore.rewards.rollItem(bases, RARITIES.slice(Math.max(0, from)), RNG, () => "item_" + itemSeq++,
     { level: level || 1, levelGrowth: ITEM_LEVEL_GROWTH });
 }
 // レア敵が落とす装備の下限のレア度（SR以上。重みの比でSR約93%・UR約5%・LR約2%）

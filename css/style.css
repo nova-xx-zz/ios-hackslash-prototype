@@ -1284,6 +1284,19 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 
 /* equipment */
 .equip-slot-row { display: flex; gap: 5px; margin-top: 4px; }
+/* 装備の7枠（右手・左手・頭・体・装飾品1〜3）を2列で並べる */
+.equip-slot-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 5px; margin-top: 6px; }
+.equip-slot.locked { opacity: 0.45; cursor: default; }
+.equip-slot .slot-stats { display: block; font-size: 9.5px; color: var(--sub-text); margin-top: 1px; }
+.equip-can-use { font-size: 10.5px; color: var(--sub-text); line-height: 1.5; margin-top: 2px; }
+.equip-set-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; font-size: 10.5px; }
+.equip-set-name { font-weight: 700; color: var(--accent); margin-right: 2px; }
+.equip-set-bonus {
+  border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px;
+  color: var(--sub-text); background: rgba(255,255,255,0.03);
+}
+.equip-set-bonus.on { color: var(--text); border-color: var(--accent); background: rgba(201, 164, 99, 0.16); }
+.detail-notice { color: var(--accent); }
 .equip-slot {
   flex: 1; min-width: 0;
   text-align: left;

@@ -5,7 +5,7 @@
 
 // ---------- Auto-battle AI ----------
 function mpCostFor(c, ability) {
-  const mult = (racePassive(c, "mpCostMult") || 1) * (treePassive(c, "mpCostMult") || 1);
+  const mult = (racePassive(c, "mpCostMult") || 1) * (treePassive(c, "mpCostMult") || 1) * (gearPassive(c, "mpCostMult") || 1);
   return Math.max(0, Math.round(ability.mpCost * mult));
 }
 
@@ -42,11 +42,12 @@ function battleEnv() {
     abilities: (c) => availableAbilities(c).filter((a) => isSkillActive(c, a.id)),
     mpCost: mpCostFor,
     tier: getAbilityTier,
+    // 種族・スキルツリー・装備のセット効果を合わせる
     passives: (c) => ({
-      lifesteal: racePassive(c, "lifesteal") + treePassive(c, "lifesteal"),
-      healBonus: racePassive(c, "healBonus") + treePassive(c, "healBonus"),
-      critBonus: racePassive(c, "critBonus") + treePassive(c, "critBonus"),
-      dmgTakenMult: (racePassive(c, "dmgTakenMult") || 1) * (treePassive(c, "dmgTakenMult") || 1),
+      lifesteal: racePassive(c, "lifesteal") + treePassive(c, "lifesteal") + gearPassive(c, "lifesteal"),
+      healBonus: racePassive(c, "healBonus") + treePassive(c, "healBonus") + gearPassive(c, "healBonus"),
+      critBonus: racePassive(c, "critBonus") + treePassive(c, "critBonus") + gearPassive(c, "critBonus"),
+      dmgTakenMult: (racePassive(c, "dmgTakenMult") || 1) * (treePassive(c, "dmgTakenMult") || 1) * (gearPassive(c, "dmgTakenMult") || 1),
     }),
   };
 }
@@ -236,5 +237,9 @@ function buildDropRow(item) {
 function itemLabel(item) {
   const plusText = item.plus > 0 ? `+${item.plus}` : "";
   const levelText = item.level > 1 ? ` Lv.${item.level}` : ""; // 装備のレベル（拾ったダンジョンの推奨Lv）
-  return `${item.name}${plusText}${levelText}（${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}）`;
+  return `${item.name}${plusText}${levelText}（${itemStatsText(item)}）`;
+}
+// 「ATK+5 SPD+2」の形の能力値（強化値込み）
+function itemStatsText(item) {
+  return Object.entries(itemStats(item)).map(([k, v]) => `${STAT_LABELS[k]}+${v}`).join(" ");
 }

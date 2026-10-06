@@ -84,7 +84,10 @@ function buildJobCard(c, jobId, unlocked) {
   card.addEventListener("click", () => {
     if (!unlocked) return;
     switchJob(c, jobId);
+    // 新しいジョブで持てない装備・使えない装飾品の枠の装備は所持品に戻す
+    const removed = normalizeCharEquip(c);
     clampVitals(c);
+    if (removed > 0) flashDetailNotice(`${JOBS[jobId].name}が持てない装備${removed}個を所持品に戻しました`);
     renderCharDetail();
   });
   return card;

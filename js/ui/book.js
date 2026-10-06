@@ -46,6 +46,9 @@ const BOOK_GUIDE = [
   ] },
   { title: "装備と強化", body: [
     "ダンジョンで見つけた装備は、踏破すると手に入ります。全滅すると、その周回で見つけた装備は持ち帰れません。",
+    "装備の枠は、右手・左手・頭・体・装飾品の5か所です。装飾品は最初1枠で、スキルツリーの「装備の心得」「装備の極意」で3枠まで増えます（モンスターはLv20・Lv40で増えます）。",
+    "ジョブによって持てる装備の種類が違います（まほうつかいは剣やよろいを持てない、など）。両手武器は強力ですが、持っている間は左手に何も付けられません。とうぞく・ぶとうか・けんごうなどの二刀流のジョブは、左手にも片手武器を持てます。",
+    "装備はシリーズ（ブロンズ・アイアンなど）に分かれ、地方ごとに手に入るシリーズが変わります。同じシリーズを2・4・6個そろえて付けると、セット効果が付きます。",
     "装備は強化石を使って強化できます。強化値が高いほど成功しにくくなります。",
     "所持品の「分解する」で、選んだ装備を強化石に変えられます。",
   ] },
@@ -247,25 +250,52 @@ function dungeonMonstersPage(d) {
 }
 
 // ---------- アイテム辞典 ----------
+// シリーズ（地方ごとの装備の系統）の一覧 → シリーズを開くと、その26種類とレア度ごとの入手状況・セット効果
 function itemDexPage() {
   const found = new Set(S.records.itemsFound);
+  const foundIn = (series) => ITEM_BASES.filter((b) => b.series === series.key)
+    .reduce((n, b) => n + RARITIES.filter((r) => found.has(`${b.key}:${r.key}`)).length, 0);
   return {
     title: "アイテム辞典",
     sub: `手に入れた装備 ${found.size} / ${ITEM_BASES.length * RARITIES.length} 種類（自動分解した物も含む）`,
     render(body) {
+      body.appendChild(bookList(ITEM_SERIES.map((series) => {
+        const total = ITEM_TYPES.length * RARITIES.length;
+        const any = foundIn(series) > 0;
+        return bookRow({
+          label: any ? `${series.name}シリーズ` : "？？？",
+          meta: `${foundIn(series)}/${total}`,
+          onClick: () => pushBookPage(itemSeriesPage(series)),
+        });
+      })));
+      body.appendChild(bookParagraph("シリーズは地方ごとに変わります。同じシリーズの装備を2・4・6個そろえて付けるとセット効果が付きます。", "book-note"));
+    },
+  };
+}
+
+function itemSeriesPage(series) {
+  const found = new Set(S.records.itemsFound);
+  const bases = ITEM_BASES.filter((b) => b.series === series.key);
+  const anySeries = bases.some((b) => RARITIES.some((r) => found.has(`${b.key}:${r.key}`)));
+  return {
+    title: anySeries ? `${series.name}シリーズ` : "？？？",
+    sub: `推奨Lv${series.minLevel}〜のダンジョンで手に入る`,
+    render(body) {
+      body.appendChild(bookHeading("セット効果"));
+      body.appendChild(bookParagraph(series.setBonus.map((b) => `${b.count}個: ${b.desc}`).join(" ／ ")));
       for (const slot of SLOTS) {
-        const bases = ITEM_BASES.filter((b) => b.slot === slot.key);
-        if (!bases.length) continue;
-        body.appendChild(bookHeading(slot.name));
         const list = document.createElement("div");
         list.className = "book-list";
-        for (const base of bases) {
+        for (const base of bases.filter((b) => b.slot === slot.key)) {
           const row = document.createElement("div");
           row.className = "book-item-row";
           const anyFound = RARITIES.some((r) => found.has(`${base.key}:${r.key}`));
           const name = document.createElement("div");
           name.className = "book-item-name";
-          name.textContent = anyFound ? `${SLOT_ICONS[base.slot] || ""} ${base.name}（${STAT_LABELS[base.stat]}）` : "？？？";
+          const statNames = Object.keys(base.stats).map((k) => STAT_LABELS[k]).join("・");
+          name.textContent = anyFound
+            ? `${SLOT_ICONS[base.slot] || ""} ${base.name}（${base.typeName}${base.hands === 2 ? "・両手" : ""}／${statNames}）`
+            : `？？？（${base.typeName}）`;
           row.appendChild(name);
           const chips = document.createElement("div");
           chips.className = "book-item-rarities";
@@ -274,13 +304,15 @@ function itemDexPage() {
             const chip = document.createElement("span");
             chip.className = "book-rarity-chip" + (has ? " found" : "");
             chip.textContent = r.key.toUpperCase();
-            chip.title = has ? `${r.name}の${base.name}（${STAT_LABELS[base.stat]}+${Math.round(base.base * r.mult)}）` : "まだ手に入れていない";
+            chip.title = has ? `${r.name}の${base.name}` : "まだ手に入れていない";
             if (has) chip.style.background = r.color;
             chips.appendChild(chip);
           }
           row.appendChild(chips);
           list.appendChild(row);
         }
+        if (!list.children.length) continue;
+        body.appendChild(bookHeading(slot.name));
         body.appendChild(list);
       }
       body.appendChild(bookParagraph("色の付いたレア度が、これまでに手に入れたものです。", "book-note"));

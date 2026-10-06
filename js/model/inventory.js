@@ -3,13 +3,14 @@
 // モンスター合成など、所持品と強化石に関するルールをまとめる。画面には依存しない。
 // 判定そのものは js/core/enhance.js・js/core/rewards.js で行い、ここでは結果を状態に反映する。
 //   createInventory({ data, state, roster, rng, isFeatureEnabled, onMaterialChange })
-//     data: { SLOTS, ENHANCE_RULES, ENHANCE_MAX_PLUS }、state: js/model/save.js の状態、
-//     roster: js/model/roster.js の createRoster の戻り値（computeStats・itemScore・gainExp・totalExpInvested を使う）、
+//     data: { ENHANCE_RULES, ENHANCE_MAX_PLUS, RARITIES }、state: js/model/save.js の状態、
+//     roster: js/model/roster.js の createRoster の戻り値（computeStats・itemScore・equipProfile・accessorySlots・gainExp・totalExpInvested を使う）、
 //     onMaterialChange(material): 強化石が変わった時に呼ぶ（game.js が旧キーへの互換ミラーを書く）
 (function (root) {
   "use strict";
   const enhance = (root.QPCore && root.QPCore.enhance) || (typeof require === "function" ? require("../core/enhance.js") : null);
   const rewards = (root.QPCore && root.QPCore.rewards) || (typeof require === "function" ? require("../core/rewards.js") : null);
+  const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
 
   // モンスター合成で、素材が積み上げてきたEXPのうち対象に還元する割合
   const FUSION_EXP_RATE = 0.5;
@@ -17,7 +18,7 @@
   function createInventory(deps) {
     const S = deps.state;
     const R = deps.roster;
-    const { SLOTS, ENHANCE_RULES, ENHANCE_MAX_PLUS } = deps.data;
+    const { ENHANCE_RULES, ENHANCE_MAX_PLUS } = deps.data;
     const isFeatureEnabled = deps.isFeatureEnabled || (() => false);
     const onMaterialChange = deps.onMaterialChange || (() => {});
 
@@ -28,32 +29,82 @@
       c.mp = Math.min(c.mp, s.maxMp);
     }
 
-    function equipItem(c, item) {
+    // 所持品のアイテムを付ける。position（"main"・"off"・"head"・"body"・"acc1"〜"acc3"）を省略すると、
+    // 付けられる枠のうち空いている枠（無ければ最初の枠）に付ける。付けられなければ false。
+    // 元の装備は所持品に戻す。両手武器を右手に持つ時は左手の装備も外す
+    function equipItem(c, item, position) {
+      const profile = R.equipProfile(c);
+      const acc = R.accessorySlots(c);
+      const pos = position || equipment.positionsFor(profile, item, c.equip, acc)[0];
+      if (!pos || !equipment.canPlace(profile, item, pos, c.equip, acc)) return false;
       const idx = S.inventory.indexOf(item);
       if (idx >= 0) S.inventory.splice(idx, 1);
-      const old = c.equip[item.slot];
+      const old = c.equip[pos];
       if (old) S.inventory.push(old);
-      c.equip[item.slot] = item;
+      c.equip[pos] = item;
+      if (pos === "main" && item.hands === 2 && c.equip.off) {
+        S.inventory.push(c.equip.off);
+        c.equip.off = null;
+      }
       clampVitals(c);
+      return true;
     }
 
-    function unequipSlot(c, slotKey) {
-      const item = c.equip[slotKey];
+    function unequipSlot(c, position) {
+      const item = c.equip[position];
       if (!item) return;
       S.inventory.push(item);
-      c.equip[slotKey] = null;
+      c.equip[position] = null;
       clampVitals(c);
     }
 
-    // 部位ごとに、所持品の中でそのキャラにとって価値が最も高いもの（R.itemScore）を、今の装備より良ければ付ける
-    function autoEquip(c) {
-      for (const slot of SLOTS) {
-        const candidates = S.inventory.filter((i) => i.slot === slot.key);
-        const current = c.equip[slot.key];
-        if (candidates.length === 0) continue;
-        const best = candidates.reduce((a, b) => (R.itemScore(c, b) > R.itemScore(c, a) ? b : a));
-        if (!current || R.itemScore(c, best) > R.itemScore(c, current)) equipItem(c, best);
+    // 付けられなくなった装備（転職で装備制限や装飾品の枠数が変わった時など）を外して所持品に戻す。外した数を返す
+    function normalizeCharEquip(c) {
+      const removed = equipment.normalizeEquip(c.equip, R.equipProfile(c), R.accessorySlots(c));
+      if (removed.length) {
+        S.inventory.push(...removed);
+        clampVitals(c);
       }
+      return removed.length;
+    }
+
+    // おまかせ装備: 今の装備と所持品の中から、そのキャラにとって価値が最も高い組み合わせ（R.itemScore の合計）を付ける。
+    // 両手武器1本と「片手武器＋左手（盾、二刀流なら片手武器）」は合計で比べる
+    function autoEquip(c) {
+      const profile = R.equipProfile(c);
+      const acc = R.accessorySlots(c);
+      const pool = S.inventory.slice();
+      for (const p of equipment.POSITIONS) if (c.equip[p]) pool.push(c.equip[p]);
+      const usable = pool.filter((it) => equipment.canUseItem(profile, it));
+      const score = (it) => (it ? R.itemScore(c, it) : 0);
+      const best = (list) => list.reduce((a, b) => (score(b) > score(a) ? b : a), null);
+      const chosen = equipment.emptyEquip();
+
+      const weapons = usable.filter((it) => it.slot === "weapon");
+      const oneHand = weapons.filter((it) => it.hands !== 2).sort((a, b) => score(b) - score(a));
+      const twoHand = best(weapons.filter((it) => it.hands === 2));
+      const mainOne = oneHand[0] || null;
+      const offCandidates = usable.filter((it) => it.slot === "shield")
+        .concat(profile.dualWield ? oneHand.slice(1) : []);
+      const off = best(offCandidates);
+      if (twoHand && score(twoHand) > score(mainOne) + score(off)) {
+        chosen.main = twoHand;
+      } else {
+        chosen.main = mainOne;
+        chosen.off = off;
+      }
+      chosen.head = best(usable.filter((it) => it.slot === "head"));
+      chosen.body = best(usable.filter((it) => it.slot === "body"));
+      const accessories = usable.filter((it) => it.slot === "accessory").sort((a, b) => score(b) - score(a));
+      equipment.ACC_POSITIONS.forEach((p, i) => { chosen[p] = i < acc ? (accessories[i] || null) : null; });
+
+      // 選ばなかった装備は所持品へ、選んだ装備は所持品から外す
+      const picked = new Set(Object.values(chosen).filter(Boolean));
+      const rest = pool.filter((it) => !picked.has(it));
+      S.inventory.length = 0;
+      S.inventory.push(...rest);
+      for (const p of equipment.POSITIONS) c.equip[p] = chosen[p];
+      clampVitals(c);
     }
 
     // ---------- 強化石・確定強化石 ----------
@@ -139,8 +190,8 @@
       const consumedNames = materials.map((m) => m.name);
       let returnedItems = 0;
       for (const m of materials) {
-        for (const slot of SLOTS) {
-          if (m.equip[slot.key]) { unequipSlot(m, slot.key); returnedItems += 1; }
+        for (const p of Object.keys(m.equip)) {
+          if (m.equip[p]) { unequipSlot(m, p); returnedItems += 1; }
         }
         const idx = S.roster.findIndex((x) => x.id === m.id);
         if (idx !== -1) S.roster.splice(idx, 1);
@@ -150,7 +201,7 @@
     }
 
     return {
-      clampVitals, equipItem, unequipSlot, autoEquip,
+      clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
       receiveDrops, disassembleValue, disassembleItems,

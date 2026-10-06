@@ -5,9 +5,10 @@
 // 前提（遊び方のモデル）:
 // - 草原から始め、次のダンジョンの推奨Lvに届くまで、今いるダンジョンを周回する（全滅はしない前提）
 // - 1周のEXP・ドロップは通常プレイと同じ計算（戦闘ごとのドロップ、道中の宝箱。js/core/rewards.js）
-// - ドロップのうち、5人×3部位の装備には各部位で一番強いもの（装備のレベル・レア度・強化値を合わせた能力値）を使い、
-//   使わない分はすべて強化石にする（自動分解を上手に使った場合。実際はやや下回る）
-// - 強化石は、装備15個の+値がなるべく揃うように、+値の低いものから期待消費で強化していく
+// - ドロップのうち、部位ごとに使う個数（KEEP: 5人で武器5・盾3・頭5・体5・装飾品15）だけ一番強いもの
+//   （装備のレベル・レア度・強化値を合わせた主能力の値）を使い、使わない分はすべて強化石にする
+//   （自動分解を上手に使った場合。実際はやや下回る）
+// - 強化石は、使う装備の+値がなるべく揃うように、+値の低いものから期待消費で強化していく
 // - 全員同じレベル・種族補正なしで近似する
 const { data } = require("./lib/sim.js");
 const rngLib = require("../js/core/rng.js");
@@ -17,8 +18,10 @@ const enhance = require("../js/core/enhance.js");
 const R = data.ENHANCE_RULES;
 const RARITY_ORDER = data.RARITIES.map((r) => r.key); // n, r, sr, ur, lr
 const rank = (k) => RARITY_ORDER.indexOf(k);
-const SLOTS = data.SLOTS.map((s) => s.key);
-const MEMBERS = 5;
+// 部位ごとに使う個数（初期パーティ5人: せんし2・まほうつかい2・そうりょ1。盾はせんし2人とそうりょ、装飾品は1人3枠）
+const KEEP = { weapon: 5, shield: 3, head: 5, body: 5, accessory: 15 };
+const SLOTS = Object.keys(KEEP);
+const KEPT_TOTAL = SLOTS.reduce((n, k) => n + KEEP[k], 0);
 
 function runOnce(dungeon) {
   let exp = 0;
@@ -36,18 +39,18 @@ function runOnce(dungeon) {
   return { exp, drops };
 }
 
-// 部位ごとに上位MEMBERS個を装備に回し、残りを強化石にする
+// 部位ごとに上位 KEEP 個を装備に回し、残りを強化石にする
 function settle(pool, stones) {
   const equipped = {};
   for (const slot of SLOTS) {
     const items = pool.filter((it) => it.slot === slot).sort((a, b) => data.itemEffectiveValue(b) - data.itemEffectiveValue(a) || rank(b.rarity) - rank(a.rarity));
-    equipped[slot] = items.slice(0, MEMBERS);
-    for (const it of items.slice(MEMBERS)) stones += it.materialValue;
+    equipped[slot] = items.slice(0, KEEP[slot]);
+    for (const it of items.slice(KEEP[slot])) stones += it.materialValue;
   }
   return { equipped, stones };
 }
 
-// 装備15個の+値を揃えるように、+値の低いものから期待消費で強化する（使い切れない端数は持ち越す）
+// 使う装備の+値を揃えるように、+値の低いものから期待消費で強化する（使い切れない端数は持ち越す）
 function enhanceAll(items, stones) {
   for (;;) {
     const target = items.filter((it) => it.plus < data.ENHANCE_MAX_PLUS).sort((a, b) => a.plus - b.plus)[0];
@@ -87,7 +90,7 @@ function simulate(seed, expForLevel = data.expForLevel) {
   return arrivals;
 }
 
-// 装備15個の「代表値」: 下から3分の1（全員がだいたい持っている水準）のレア度と+値（と装備のレベル）
+// 使う装備の「代表値」: 下から3分の1（全員がだいたい持っている水準）のレア度と+値（と装備のレベル）
 function typical(items) {
   const sorted = items.slice().sort((a, b) => rank(a.rarity) - rank(b.rarity) || a.plus - b.plus);
   const it = sorted[Math.floor(sorted.length / 3)] || { rarity: "-", plus: 0 };
@@ -108,9 +111,9 @@ if (require.main === module) {
     const dist = RARITY_ORDER.filter((k) => byRarity[k]).map((k) => `${k.toUpperCase()}+${plusMedian(k)}（${Math.round(byRarity[k] / trials * 100)}%）`).join(" / ");
     const allRar = {};
     for (const r of results) for (const it of r[i].items) allRar[it.rarity] = (allRar[it.rarity] || 0) + 1;
-    const mix = RARITY_ORDER.filter((k) => allRar[k]).map((k) => `${k.toUpperCase()}${Math.round(allRar[k] / (trials * 15) * 100)}%`).join(" ");
+    const mix = RARITY_ORDER.filter((k) => allRar[k]).map((k) => `${k.toUpperCase()}${Math.round(allRar[k] / (trials * KEPT_TOTAL) * 100)}%`).join(" ");
     console.log(`${d.name}（推奨Lv${d.level}）到着時: 累計周回 中央値${runs[Math.floor(trials / 2)]}周`);
-    console.log(`   装備15個の内訳: ${mix}`);
+    console.log(`   使う装備${KEPT_TOTAL}個の内訳: ${mix}`);
     console.log(`   代表値（下から1/3の装備）: ${dist}`);
   }
 }

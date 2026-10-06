@@ -11,13 +11,15 @@ function loadGameData() {
     offline: require("../../js/core/offline.js"),
     stats: require("../../js/core/stats.js"),
     battle: require("../../js/core/battle.js"),
+    equipment: require("../../js/core/equipment.js"),
   };
   const context = vm.createContext({ QPCore, Math, console });
   const code = fs.readFileSync(path.join(__dirname, "../../js/data.js"), "utf8");
   // data.js はトップレベルのconstで定義しているため、同じスクリプト内の最後の式で取り出す
   return vm.runInContext(code + `
 ;({ RNG, RARITIES, ITEM_BASES, DUNGEONS, ENHANCE_RULES, ENHANCE_MAX_PLUS, REWARD_RULES, FEATURE_FLAGS,
-   JOBS, RACES, SLOTS, ITEM_BASES, itemEffectiveValue, jobTag, getExclusiveTreeByTag, getGeneralTree, GENERAL_SLOTS,
+   JOBS, RACES, SLOTS, itemEffectiveValue, itemStats, rarityMult, EQUIP_POSITIONS, ITEM_TYPES, ITEM_SERIES, getItemType, getItemSeries, getItemBase, seriesForLevel,
+   LEGACY_ITEM_BASES, ITEM_DROP_SLOT_WEIGHTS, JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, EXCLUSIVE_TREES, jobTag, getExclusiveTreeByTag, getGeneralTree, GENERAL_SLOTS,
    buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, RARE_DROP_MIN_RARITY, ITEM_LEVEL_GROWTH, REGIONS, enhanceSuccessRate, guaranteedStonesRequired, expForLevel, syncExpToNext, MONSTER_JOBS, getGeneralSlotDef, getAbilityById, isFeatureEnabled })`, context);
 }
 

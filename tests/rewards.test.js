@@ -26,7 +26,9 @@ test("装備1個の中身はレア度に応じて決まる", () => {
   assert.equal(item.plus, 0);
   const rarity = data.RARITIES.find((r) => r.key === item.rarity);
   assert.equal(item.materialValue, rarity.material);
-  assert.ok(item.name.startsWith(rarity.name));
+  const base = data.ITEM_BASES.find((b) => b.key === item.base);
+  assert.equal(item.name, base.name);
+  assert.deepEqual(Object.keys(item.stats), Object.keys(base.stats));
 });
 
 test("1戦闘のドロップは平均1.4個", () => {
@@ -84,15 +86,15 @@ test("EXPは敵の合計に種族補正をかけて四捨五入", () => {
 });
 
 test("装備のレベル: 拾ったダンジョンの推奨Lvで能力値が伸びる（1Lvごとに+12%）", () => {
-  const base = data.ITEM_BASES.find((b) => b.key === "sword");
+  const base = data.ITEM_BASES.find((b) => b.key === "bronze_sword");
   const sr = data.RARITIES.find((r) => r.key === "sr");
   const lv1 = rewards.createItem(base, sr, "a");
   const lv11 = rewards.createItem(base, sr, "b", { level: 11, levelGrowth: data.ITEM_LEVEL_GROWTH });
   assert.equal(lv1.level, 1);
-  assert.equal(lv1.value, Math.round(base.base * sr.mult));
+  assert.equal(lv1.stats.atk, Math.round(base.stats.atk * sr.mult));
   assert.equal(lv11.level, 11);
-  assert.equal(lv11.value, Math.round(base.base * sr.mult * (1 + 10 * data.ITEM_LEVEL_GROWTH)));
-  assert.ok(lv11.value > lv1.value);
+  assert.equal(lv11.stats.atk, Math.round(base.stats.atk * sr.mult * (1 + 10 * data.ITEM_LEVEL_GROWTH)));
+  assert.ok(lv11.stats.atk > lv1.stats.atk);
 });
 
 test("レア敵: 倒したレア敵1体につき1個、SR以上の装備を落とす", () => {
@@ -138,4 +140,25 @@ test("地方: すべてのダンジョンは定義された地方に属し、地
     for (const k of [...d.pool, d.boss, ...(d.rares || [])]) assert.ok(data.getEnemyTemplate(k), `${d.id} の ${k} が未定義`);
     for (const k of d.rares || []) assert.equal(data.getEnemyTemplate(k).rare, true, `${k} に rare: true が無い`);
   }
+});
+
+test("シリーズ: ダンジョンの推奨Lvの地方のシリーズが落ちる（地方ごとに8シリーズ×26種類＝208種類）", () => {
+  assert.equal(data.ITEM_BASES.length, data.ITEM_SERIES.length * data.ITEM_TYPES.length);
+  assert.equal(new Set(data.ITEM_BASES.map((b) => b.key)).size, data.ITEM_BASES.length);
+  for (const d of data.DUNGEONS) {
+    const expected = data.seriesForLevel(d.level).key;
+    for (let i = 0; i < 5; i++) assert.equal(data.rollItemDrop(d.level).series, expected, d.id);
+  }
+  assert.equal(data.seriesForLevel(1).key, "bronze");
+  assert.equal(data.seriesForLevel(100).key, "abyss");
+});
+
+test("強化値込みの能力値: 主能力を基準に、ほかの能力値も元の値の比率で伸びる", () => {
+  const it = { stats: { def: 10, hp: 20 }, rarity: "sr", plus: 0 };
+  assert.deepEqual(data.itemStats(it), { def: 10, hp: 20 });
+  it.plus = 10;
+  const sr = data.RARITIES.find((r) => r.key === "sr").mult;
+  assert.deepEqual(data.itemStats(it), { def: 10 + Math.ceil(10 * sr * 0.08), hp: 20 + Math.ceil(10 * sr * 0.08 * 2) });
+  // 旧形式（stat・value）も読める
+  assert.deepEqual(data.itemStats({ stat: "atk", value: 3, rarity: "n", plus: 0 }), { atk: 3 });
 });
