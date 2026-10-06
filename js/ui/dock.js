@@ -144,6 +144,7 @@ function renderAutoRepeatRow() {
     }
     if (isTeamLocked(i) || !canStart) return;
     ar.active = true;
+    ensureNotifyPermission(); // アプリ版: 初めて自動周回を始めた時に、完了通知の許可を求める
     ar.done = 0;
     startDungeon(i, run.dungeon.id, { navigate: true, mode: run.dungeon.mode });
   });
