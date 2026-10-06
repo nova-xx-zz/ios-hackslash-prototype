@@ -332,3 +332,28 @@ test("モンスター合成の基本EXP: テイムできる種族はすべてど
     assert.ok(data.fusionBaseExp(key) >= data.expForLevel(1), key);
   }
 });
+
+test("仲間と別れる: 控えでお気に入りでない仲間だけ。装備は所持品に戻り、最低1人は残す", () => {
+  const { state, roster, inv } = setup();
+  const leader = roster.newCharacter("アレン", "warrior", "human", { team: 0 });
+  const bench = roster.newCharacter("ミナ", "mage", "human");
+  const fav = roster.newCharacter("スライム", null, "slime", { isMonster: true });
+  fav.favorite = true;
+  const mon = roster.newCharacter("ゴブリン", null, "goblin", { isMonster: true });
+  state.roster = [leader, bench, fav, mon];
+  assert.deepEqual(inv.releaseCandidates().map((c) => c.name), ["ミナ", "ゴブリン"]);
+
+  const it = item("accessory", "hp", 6, "r");
+  bench.equip.acc1 = it;
+  // パーティにいる仲間・お気に入りは選んでも外れない
+  const r = inv.releaseMembers([bench, leader, fav]);
+  assert.deepEqual({ ok: r.ok, names: r.names, returnedItems: r.returnedItems }, { ok: true, names: ["ミナ"], returnedItems: 1 });
+  assert.deepEqual(state.roster.map((c) => c.name), ["アレン", "スライム", "ゴブリン"]);
+  assert.deepEqual(state.inventory, [it]);
+  assert.equal(inv.releaseMembers([leader]).reason, "none");
+
+  // 全員と別れることはできない
+  state.roster = [mon];
+  assert.equal(inv.releaseMembers([mon]).reason, "lastMember");
+  assert.equal(state.roster.length, 1);
+});

@@ -33,7 +33,8 @@ function renderExploreScene(teamIndex) {
 document.getElementById("btnExploreEmbark").addEventListener("click", () => {
   if (isTeamLocked(S.activeTeam)) return;
   // 既存の導線を利用し、未編成のまま出撃したり、案内から即座に戦闘を始めたりしない。
-  document.getElementById(activeParty().length ? "btnDockMap" : "btnHubJobs").click();
+  if (activeParty().length) document.getElementById("btnDockMap").click();
+  else openPartyScreen("screen-battle"); // まだ誰も編成していなければ、パーティ編成の画面へ直接
 });
 
 function trimTeamLog(teamIndex) {

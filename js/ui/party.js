@@ -156,7 +156,7 @@ function buildPartyRow(opts) {
     const add = document.createElement("button");
     add.className = "member-card empty";
     add.textContent = "＋";
-    add.title = "仲間を探す";
+    add.title = "仲間を呼ぶ";
     add.addEventListener("click", opts.emptyTile);
     strip.appendChild(add);
   }

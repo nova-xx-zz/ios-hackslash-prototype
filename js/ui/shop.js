@@ -106,6 +106,7 @@ document.getElementById("btnShopBack").addEventListener("click", () => {
   // もどる先の画面を今の購入状況で描き直す
   if (shopReturnScreen === "screen-battle") renderDock();
   if (shopReturnScreen === "screen-jobs") renderJobsScreen();
+  if (shopReturnScreen === "screen-menu") renderPartyMenu();
   showScreen(shopReturnScreen);
 });
 document.getElementById("btnSettingsShop").addEventListener("click", () => openShop("screen-settings"));

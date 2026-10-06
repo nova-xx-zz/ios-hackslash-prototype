@@ -5,14 +5,16 @@
 
 // ---------- キャラ作成（自由ビルド） ----------
 let draft = null;
+let createReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
 
-function openCreateScreen() {
+function openCreateScreen(returnScreen) {
   // 仲間のBOXが満員なら作れない（ショップで拡張できる）
   if (!Shop.canAddToRoster(1)) {
-    flashRosterMessage(`仲間のBOXがいっぱいです（${S.roster.length}/${Shop.rosterCapacity()}人）。設定のショップでBOXを拡張できます`);
+    flashRosterMessage(`仲間のBOXがいっぱいです（${S.roster.length}/${Shop.rosterCapacity()}人）。編成のショップでBOXを拡張できます`);
     renderJobsScreen();
     return;
   }
+  createReturnScreen = returnScreen || "screen-jobs";
   const r = rollNewRecruit();
   draft = { name: r.name, race: r.race, job: r.job };
   renderCreateScreen();
@@ -210,12 +212,15 @@ function confirmCreate() {
   const c = newCharacter(name, draft.job, draft.race, { level: createStartLevel() });
   S.roster.push(c);
   benchExpanded = true;
+  // 作った仲間が見えるよう、パーティ編成の画面に移る（編成メニューから来た時は、もどるで編成メニューへ）
+  if (createReturnScreen === "screen-menu") jobsReturnScreen = "screen-menu";
   renderJobsScreen();
   showScreen("screen-jobs");
   return c;
 }
 
 document.getElementById("btnCreateBack").addEventListener("click", () => {
+  if (createReturnScreen === "screen-menu") { openPartyMenu(); return; }
   renderJobsScreen();
   showScreen("screen-jobs");
 });

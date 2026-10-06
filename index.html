@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=32">
+<link rel="stylesheet" href="css/style.css?v=33">
 </head>
 <body>
 <div id="app">
@@ -115,6 +115,37 @@
     </div>
   </section>
 
+  <!-- 編成メニュー（ギルド・鍛冶屋・ショップ）と、仲間と別れる・装備強化の一覧。中身は js/ui/menu.js -->
+  <section id="screen-menu" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">編成</div>
+        <button class="btn small ghost" id="btnMenuBack">もどる</button>
+      </div>
+      <p class="settings-message hidden menu-message" id="menuMessage"></p>
+      <div id="menuBody" class="roster-body menu-body"></div>
+    </div>
+  </section>
+  <section id="screen-farewell" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">仲間と別れる</div>
+        <button class="btn small ghost" id="btnFarewellBack">もどる</button>
+      </div>
+      <div id="farewellBody" class="roster-body"></div>
+    </div>
+  </section>
+  <section id="screen-enhance" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">装備強化</div>
+        <button class="btn small ghost" id="btnEnhanceListBack">もどる</button>
+      </div>
+      <div class="inventory-filter-row" id="enhanceFilterRow"></div>
+      <div id="enhanceListBody" class="roster-body"></div>
+    </div>
+  </section>
+
   <!-- ショップ（課金要素）。中身は js/ui/shop.js -->
   <section id="screen-shop" class="screen hidden">
     <div class="roster-wrap">
@@ -149,7 +180,7 @@
       <div class="roster-footer">
         <span id="rosterCount" class="roster-count"></span>
         <button class="btn small ghost" id="btnOpenInventory">所持品</button>
-        <button class="btn small ghost" id="btnRecruit">仲間を探す</button>
+        <button class="btn small ghost" id="btnRecruit">仲間を呼ぶ</button>
       </div>
     </div>
   </section>
@@ -367,7 +398,7 @@
   </div>
 
 </div>
-<script src="data/announcements.js?v=7"></script>
+<script src="data/announcements.js?v=8"></script>
 <script src="data/roadmap.js?v=2"></script>
 <script src="js/core/storage.js?v=4"></script>
 <script src="js/core/rng.js?v=1"></script>
@@ -382,11 +413,11 @@
 <script src="js/model/shop.js?v=1"></script>
 <script src="js/model/save.js?v=7"></script>
 <script src="js/model/roster.js?v=6"></script>
-<script src="js/model/inventory.js?v=7"></script>
+<script src="js/model/inventory.js?v=8"></script>
 <script src="js/model/run.js?v=7"></script>
 <script src="js/firebase-config.js?v=1"></script>
 <script src="js/cloud.js?v=2"></script>
-<script src="js/data.js?v=26"></script>
+<script src="js/data.js?v=27"></script>
 <script src="js/uniques.js?v=3"></script>
 <script src="js/options.js?v=2"></script>
 <!-- 画面の処理（元は1つの game.js。この順番で読み込み、トップレベルの関数・変数を共有する） -->
@@ -395,22 +426,23 @@
 <script src="js/ui/announcements.js?v=1"></script>
 <script src="js/ui/models.js?v=12"></script>
 <script src="js/ui/offline.js?v=3"></script>
-<script src="js/ui/title-map.js?v=9"></script>
+<script src="js/ui/title-map.js?v=10"></script>
 <script src="js/ui/settings.js?v=1"></script>
 <script src="js/ui/debug.js?v=4"></script>
-<script src="js/ui/party.js?v=6"></script>
-<script src="js/ui/create.js?v=3"></script>
+<script src="js/ui/party.js?v=7"></script>
+<script src="js/ui/create.js?v=4"></script>
 <script src="js/ui/detail.js?v=2"></script>
 <script src="js/ui/detail-tree.js?v=1"></script>
 <script src="js/ui/detail-tabs.js?v=7"></script>
-<script src="js/ui/inventory.js?v=7"></script>
+<script src="js/ui/inventory.js?v=8"></script>
 <script src="js/ui/battle.js?v=3"></script>
-<script src="js/ui/log.js?v=2"></script>
+<script src="js/ui/log.js?v=3"></script>
 <script src="js/ui/dock.js?v=8"></script>
 <script src="js/ui/explore.js?v=7"></script>
-<script src="js/ui/book.js?v=6"></script>
+<script src="js/ui/book.js?v=7"></script>
 <script src="js/ui/notify.js?v=1"></script>
-<script src="js/ui/shop.js?v=1"></script>
+<script src="js/ui/shop.js?v=2"></script>
+<script src="js/ui/menu.js?v=1"></script>
 <script src="js/game.js?v=32"></script>
 <script src="js/pwa.js?v=1"></script>
 </body>

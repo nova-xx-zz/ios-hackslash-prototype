@@ -288,6 +288,28 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
   color: #171a1a; background: #f0b040; opacity: 0.9;
 }
+/* 編成メニュー（js/ui/menu.js） */
+.menu-message { margin: 4px 12px 0; padding: 8px 10px; border-radius: 8px; background: rgba(255,77,94,0.12); }
+.menu-message.hidden { display: none; }
+.menu-section-title {
+  margin: 12px 0 0; padding: 6px 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--accent); background: rgba(0,0,0,0.45); border-bottom: 1px solid var(--accent);
+}
+.menu-section-title:first-child { margin-top: 0; }
+.menu-list { border: 1px solid var(--border); border-top: none; background: rgba(255,255,255,0.03); }
+.menu-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 14px 12px; border: none; border-bottom: 1px solid var(--border);
+  background: transparent; color: var(--text); font-size: 15px; font-weight: 700; text-align: left;
+}
+.menu-row:last-child { border-bottom: none; }
+.menu-row:active { background: rgba(201, 164, 99, 0.16); }
+.menu-row-icon { width: 24px; height: 24px; flex: none; color: var(--accent); }
+.menu-row-label { flex: 1; letter-spacing: 0.06em; }
+.menu-row-sub { font-size: 11px; font-weight: 400; color: var(--sub-text); }
+.menu-row-chevron { font-size: 22px; line-height: 1; color: var(--sub-text); }
+.farewell-btn { width: 100%; margin-top: 12px; }
+
 /* ショップ（js/ui/shop.js） */
 .settings-shop-btn { width: 100%; margin: 10px 0 2px; }
 .shop-note { margin: 4px 0 12px; line-height: 1.6; }
