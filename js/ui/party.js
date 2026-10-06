@@ -173,6 +173,9 @@ function attachMemberDrag(card, c) {
         return;
       }
       dragging = true;
+      // 長押しで始まりかけた文字の範囲選択を消してからドラッグする
+      const sel = window.getSelection && window.getSelection();
+      if (sel) sel.removeAllRanges();
       startMemberDrag(c, card, start);
     }, DRAG_HOLD_MS);
 
@@ -203,6 +206,10 @@ function attachMemberDrag(card, c) {
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);
   });
+
+  // 長押しで出る文字選択・コンテキストメニューを止める
+  card.addEventListener("selectstart", (e) => e.preventDefault());
+  card.addEventListener("contextmenu", (e) => e.preventDefault());
 
   // キーボード操作など、ポインタを伴わない click のためのフォールバック
   card.addEventListener("click", (e) => {

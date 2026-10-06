@@ -30,8 +30,12 @@ html, body {
   margin: 0; padding: 0; width: 100%; height: 100%;
   background: var(--bg); color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
-  overscroll-behavior: none; touch-action: manipulation; user-select: none;
+  overscroll-behavior: none; touch-action: manipulation;
+  /* 長押しで文字の範囲選択・コピーのメニューが出ないようにする（iOS Safari は -webkit- 付きが必要） */
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
+/* 入力欄だけは文字を選択・編集できるようにする */
+input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 
 #app {
   position: fixed; inset: 0;
