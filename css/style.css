@@ -273,6 +273,17 @@ html, body {
 .settings-buttons .btn { flex: 1; }
 .settings-message { margin: 8px 0 0; line-height: 1.6; color: var(--text); white-space: pre-line; }
 .settings-message.error { color: var(--hp); }
+/* 確認用モード（?debug） */
+.settings-debug { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.settings-debug.hidden { display: none; }
+.debug-jump-buttons { flex-wrap: wrap; }
+.debug-jump-buttons .btn { flex: 1 1 45%; }
+.debug-badge {
+  position: fixed; z-index: 50; pointer-events: none;
+  top: calc(var(--safe-top) + 2px); left: calc(var(--safe-left) + 6px);
+  padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+  color: #171a1a; background: #f0b040; opacity: 0.9;
+}
 .settings-uid { font-size: 11px; font-weight: 400; color: var(--sub-text); word-break: break-all; text-align: right; }
 
 /* 冒険者ギルドからのお知らせ（タイトルアイコン／一覧／今後の予定） */

@@ -44,3 +44,15 @@ test("読み込み時に例外を投げるbackendでもfallbackになる", () =>
   assert.equal(store.getJSON(KEYS.save, null), null);
   assert.equal(store.set(KEYS.save, "{}"), false);
 });
+
+test("確認用モード: キーに頭を付けた別の保存場所に読み書きし、本番の値には触れない", () => {
+  const { prefixedBackend, DEBUG_PREFIX } = require("../js/core/storage.js");
+  const raw = createMemoryBackend();
+  const real = createStorage(raw);
+  const debug = createStorage(prefixedBackend(raw, DEBUG_PREFIX));
+  real.set(KEYS.material, 5);
+  debug.set(KEYS.material, 999);
+  assert.equal(real.getInt(KEYS.material, 0), 5);
+  assert.equal(debug.getInt(KEYS.material, 0), 999);
+  assert.equal(raw.getItem(DEBUG_PREFIX + KEYS.material), "999");
+});

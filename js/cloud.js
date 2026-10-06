@@ -8,6 +8,9 @@
 //   別の端末への引き継ぎは、Google・Apple のアカウント連携で行う（今後追加）
 (function (root) {
   "use strict";
+  // 確認用モード（?debug）では、確認用のデータを本番のバックアップに上書きしないよう、クラウドセーブを使わない
+  // （QPCloud を用意しないので、設定画面のクラウドセーブの欄も出ない）
+  if (root.QPCore && root.QPCore.storage && root.QPCore.storage.isDebugMode()) return;
   const UPLOAD_INTERVAL_MS = 60 * 1000;
   const START_DELAY_MS = 1500;
   const MAX_SAVE_CHARS = 900 * 1024; // Firestore の1件あたりの上限（1MiB）に余裕を持たせる
