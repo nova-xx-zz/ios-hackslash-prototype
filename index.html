@@ -60,6 +60,15 @@
           <span class="settings-label">バージョン</span>
           <span class="settings-value">プロトタイプ版</span>
         </div>
+        <!-- 自動周回の完了通知（アプリ版のみ表示。js/ui/notify.js） -->
+        <div class="settings-notify hidden" id="settingsNotify">
+          <div class="settings-row">
+            <span class="settings-label">自動周回の完了通知</span>
+            <button class="btn small ghost" id="btnNotifyToggle">ON</button>
+          </div>
+          <p class="settings-note">アプリを離れている間、自動周回が終わる頃（最長8時間後）に通知でお知らせします。</p>
+          <p class="settings-message hidden" id="notifyMessage"></p>
+        </div>
         <div class="settings-cloud">
           <div class="settings-row">
             <span class="settings-label">クラウドセーブ</span>
@@ -348,7 +357,7 @@
 </div>
 <script src="data/announcements.js?v=2"></script>
 <script src="data/roadmap.js?v=2"></script>
-<script src="js/core/storage.js?v=2"></script>
+<script src="js/core/storage.js?v=3"></script>
 <script src="js/core/rng.js?v=1"></script>
 <script src="js/core/enhance.js?v=1"></script>
 <script src="js/core/rewards.js?v=5"></script>
@@ -356,6 +365,7 @@
 <script src="js/core/stats.js?v=1"></script>
 <script src="js/core/battle.js?v=2"></script>
 <script src="js/core/equipment.js?v=4"></script>
+<script src="js/core/notices.js?v=1"></script>
 <script src="js/model/records.js?v=1"></script>
 <script src="js/model/save.js?v=6"></script>
 <script src="js/model/roster.js?v=5"></script>
@@ -374,6 +384,7 @@
 <script src="js/ui/offline.js?v=1"></script>
 <script src="js/ui/title-map.js?v=8"></script>
 <script src="js/ui/settings.js?v=1"></script>
+<script src="js/ui/notify.js?v=1"></script>
 <script src="js/ui/debug.js?v=3"></script>
 <script src="js/ui/party.js?v=4"></script>
 <script src="js/ui/create.js?v=2"></script>
@@ -383,10 +394,10 @@
 <script src="js/ui/inventory.js?v=6"></script>
 <script src="js/ui/battle.js?v=3"></script>
 <script src="js/ui/log.js?v=2"></script>
-<script src="js/ui/dock.js?v=6"></script>
+<script src="js/ui/dock.js?v=7"></script>
 <script src="js/ui/explore.js?v=6"></script>
 <script src="js/ui/book.js?v=5"></script>
-<script src="js/game.js?v=30"></script>
+<script src="js/game.js?v=31"></script>
 <script src="js/pwa.js?v=1"></script>
 </body>
 </html>
