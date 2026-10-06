@@ -14,6 +14,7 @@ const TARGET_RUNS = {
   frost_forest: 299, frozen_lake: 352, crystal_cave: 407, snow_fort: 468, ice_throne: 554, // グラシア地方（+30〜90周）
   ash_plains: 600, lava_river: 668, crater: 811, forge_ruins: 739, inferno_peak: 918, // イグニス地方（+45〜110周）
   coral_reef: 973, ghost_ship: 1054, sea_cave: 1137, sunken_city: 1222, leviathan_trench: 1341, // マリナ地方（+55〜120周）
+  cloud_road: 1403, floating_isle: 1493, sky_garden: 1584, thunder_spire: 1678, celestial_palace: 1741, // セレスタ地方（+60〜95周）
 };
 const RUNS_TOLERANCE = 0.3;
 const PLUS_TOLERANCE = 2; // 適正装備の+値とのずれの許容
