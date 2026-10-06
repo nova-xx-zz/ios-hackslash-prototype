@@ -268,6 +268,13 @@ const DRAG_HOLD_MS = 260;
 const DRAG_SLOP = 10;
 let dragState = null;
 
+// ドラッグが始まった後の指の動きをブラウザがスクロールとして扱うと、iOS Safari では
+// pointercancel が来てドラッグが途中で止まる。touch-action は指を置いた時点の値しか効かないため、
+// ドラッグ中は touchmove を止めてスクロールさせない（ドラッグ前の指の移動は今までどおりスクロールになる）
+document.addEventListener("touchmove", (e) => {
+  if (dragState) e.preventDefault();
+}, { passive: false });
+
 function attachMemberDrag(card, c) {
   card.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -306,7 +313,7 @@ function attachMemberDrag(card, c) {
       clearTimeout(holdTimer);
       detach();
       if (dragging) dropMemberDrag(ev);
-      else if (!canceled) openCharDetail(c);
+      else if (!canceled && ev.type === "pointerup") openCharDetail(c); // スクロールで中断された時は開かない
     };
     const detach = () => {
       window.removeEventListener("pointermove", onMove);
