@@ -13,20 +13,25 @@
     const runBuffs = deps.runBuffs || (() => null);
     const isTeamLocked = deps.isTeamLocked || (() => false);
     const {
-      JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
+      JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, CHAR_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
       getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
       JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
     } = deps.data;
 
-    // レベル上限: テイムしたモンスターは MONSTER_MAX_LEVEL まで（人間のキャラは上限なし）
+    // レベル上限: テイムしたモンスターは MONSTER_MAX_LEVEL、人間のキャラは CHAR_MAX_LEVEL（ジョブごとのレベルも同じ上限）
     function levelCap(c) {
-      return c.isMonster && MONSTER_MAX_LEVEL ? MONSTER_MAX_LEVEL : Infinity;
+      return (c.isMonster ? MONSTER_MAX_LEVEL : CHAR_MAX_LEVEL) || Infinity;
     }
     function isMaxLevel(c) { return c.level >= levelCap(c); }
-    // 上限を超えたレベル（上限を入れる前のセーブ）を上限に戻す
+    // 上限を超えたレベル（上限を入れる前のセーブ）を上限に戻す。人間はジョブごとのレベル記録も戻す
     function clampLevel(c) {
-      if (c.level <= levelCap(c)) return;
-      c.level = levelCap(c); c.exp = 0; c.expToNext = expForLevel(c.level);
+      const cap = levelCap(c);
+      const clampRec = (rec) => {
+        if (!rec || !(rec.level > cap)) return;
+        rec.level = cap; rec.exp = 0; rec.expToNext = expForLevel(cap);
+      };
+      clampRec(c);
+      if (!c.isMonster) for (const rec of Object.values(c.jobLevels || {})) clampRec(rec);
     }
 
     // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）。

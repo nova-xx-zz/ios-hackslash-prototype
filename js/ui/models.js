@@ -73,7 +73,7 @@ function loadGame() {
     // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく。
     // ジョブの装備制限・装飾品の枠数に合わない装備（旧セーブから移した装備など）は所持品に戻す
     for (const c of S.roster) {
-      clampLevel(c); // 上限を超えたモンスター（上限を入れる前のセーブ）はLv上限に戻す
+      clampLevel(c); // 上限を超えたレベル（上限を入れる前のセーブ）は上限に戻す
       normalizeCharEquip(c);
       const s = computeStats(c);
       c.hp = s.maxHp; c.mp = s.maxMp;
@@ -105,7 +105,7 @@ function loadGame() {
 // キャラまわりのルール（作成・EXP・転職・スキルツリー・能力値など）は js/model/roster.js
 const Roster = QPModel.roster.createRoster({
   data: {
-    JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
+    JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, CHAR_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
     getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
     JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
   },
@@ -114,7 +114,7 @@ const Roster = QPModel.roster.createRoster({
   isTeamLocked: (team) => isTeamLocked(team),
 });
 const {
-  gainExp, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
+  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
   equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
 } = Roster;
 

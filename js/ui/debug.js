@@ -52,8 +52,8 @@ function debugJumpTo(target) {
   const rarity = RARITIES.find((r) => r.key === gear.rarity) || RARITIES[0];
   const gearLevel = index > 0 ? DUNGEONS[index - 1].level : 1; // 適正装備の装備のレベル（難易度の基準と同じ）
   for (const c of members) {
-    c.level = level; c.exp = 0; c.expToNext = expForLevel(level);
-    if (!c.isMonster && c.job) c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level, exp: 0, expToNext: c.expToNext });
+    c.level = Math.min(level, levelCap(c)); c.exp = 0; c.expToNext = expForLevel(c.level); // 人間はLv99が上限
+    if (!c.isMonster && c.job) c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level: c.level, exp: 0, expToNext: c.expToNext });
     if (!c.isMonster) debugSpendSkillPoints(c); // 先に振って装飾品の枠を増やしておく
     // その地方のシリーズの全種類を適正装備のレア度・+値で用意し、おまかせ装備で付ける（残りは捨てる）
     const series = seriesForLevel(gearLevel);
