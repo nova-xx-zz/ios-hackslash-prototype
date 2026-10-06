@@ -305,17 +305,19 @@ function regionForLevel(level) {
   return found;
 }
 
-// 名のある装備を1個抽選する（その地方の29種類から等確率。レア度はSR以上）
-function rollUniqueDrop(level) {
-  const region = regionForLevel(level);
+// 名のある装備を1個抽選する（その地方の29種類から等確率。レア度はSR以上）。opts は rollItemDrop と同じ
+function rollUniqueDrop(level, opts) {
+  opts = opts || {};
+  const region = regionForLevel(opts.regionLevel || level);
   const pool = UNIQUE_ITEMS.filter((u) => u.region === region);
   const from = RARITIES.findIndex((r) => r.key === UNIQUE_MIN_RARITY);
-  return QPCore.rewards.rollItem(pool, RARITIES.slice(from), RNG, () => "item_" + itemSeq++,
+  const item = QPCore.rewards.rollItem(pool, RARITIES.slice(from), RNG, () => "item_" + itemSeq++,
     { level: level || 1, levelGrowth: ITEM_LEVEL_GROWTH });
+  return addItemOptions(item, opts.mode);
 }
 
 // レア敵・ボスが追加で落とす装備（js/core/rewards.js の rollRareDrops から敵ごとに呼ぶ。落とさなければ null）
-function rollSpecialDrop(level, enemy) {
-  if (enemy && enemy.isBoss) return RNG.chance(BOSS_UNIQUE_CHANCE) ? rollUniqueDrop(level) : null;
-  return RNG.chance(RARE_UNIQUE_CHANCE) ? rollUniqueDrop(level) : rollItemDrop(level, RARE_DROP_MIN_RARITY);
+function rollSpecialDrop(level, enemy, opts) {
+  if (enemy && enemy.isBoss) return RNG.chance(BOSS_UNIQUE_CHANCE) ? rollUniqueDrop(level, opts) : null;
+  return RNG.chance(RARE_UNIQUE_CHANCE) ? rollUniqueDrop(level, opts) : rollItemDrop(level, RARE_DROP_MIN_RARITY, opts);
 }

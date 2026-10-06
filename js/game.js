@@ -35,7 +35,7 @@ function settleAfterBackground(savedAt) {
   const infos = new Array(TEAM_COUNT).fill(null);
   for (const i of targets) {
     const run = teamRuns[i];
-    infos[i] = { active: true, target: S.autoRepeat[i].target, done: S.autoRepeat[i].done, dungeonId: run.dungeon.id };
+    infos[i] = { active: true, target: S.autoRepeat[i].target, done: S.autoRepeat[i].done, dungeonId: run.dungeon.id, mode: run.dungeon.mode || "normal" };
     // 離れる直前の周回は途中で止まっているため打ち切り、離れていた時間ぶんはまとめて精算する
     // （起動時の精算で途中の周回を破棄するのと同じ扱い。この周の未確定ドロップは持ち帰れない）
     clearTimeout(nextBattleTimer[i]);

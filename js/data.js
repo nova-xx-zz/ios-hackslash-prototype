@@ -1059,6 +1059,42 @@ function getDungeon(id) {
   return DUNGEONS.find((d) => d.id === id);
 }
 
+// ---------- ダンジョンのモード（ノーマル・ハード・エクストラ） ----------
+// ノーマルを踏破するとハード、ハードを踏破するとエクストラに挑める（ダンジョンごと）。
+// 敵は推奨Lvが levelUp だけ上のダンジョン相当の強さになり、EXPは expMult 倍。
+// 落ちる装備のレベルも同じだけ上がり（シリーズ・名のある装備はそのダンジョンの地方のまま）、
+// オプション効果（js/options.js）が付く
+const DUNGEON_MODES = [
+  { key: "normal", name: "ノーマル", levelUp: 0, expMult: 1 },
+  { key: "hard", name: "ハード", levelUp: 10, expMult: 1.5 },
+  { key: "extra", name: "エクストラ", levelUp: 25, expMult: 2 },
+];
+function getDungeonMode(key) { return DUNGEON_MODES.find((m) => m.key === key) || DUNGEON_MODES[0]; }
+// そのレベルのダンジョン相当の「敵の強さの倍率」（DUNGEONS[].power をレベルで補間。最後のダンジョンより上はその値）
+function powerForLevel(level) {
+  const pts = DUNGEONS.map((d) => [d.level, d.power || 1]);
+  if (level <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    const [l1, p1] = pts[i];
+    if (level <= l1) {
+      const [l0, p0] = pts[i - 1];
+      return p0 + (p1 - p0) * (level - l0) / (l1 - l0);
+    }
+  }
+  return pts[pts.length - 1][1];
+}
+// モードを反映したダンジョン（ノーマルならそのまま）。level は敵と装備のレベル、baseLevel は元の推奨Lv。
+// 敵の強さの倍率は、ダンジョンごとに合わせた DUNGEONS[].modePower（node tools/simulate.js --calibrate-modes）を使い、
+// 無ければそのレベルのダンジョン相当（powerForLevel）
+function getModeDungeon(id, mode) {
+  const d = getDungeon(id);
+  const m = getDungeonMode(mode);
+  if (!d || m.key === "normal") return d;
+  const level = d.level + m.levelUp;
+  const power = (d.modePower && d.modePower[m.key]) || powerForLevel(level);
+  return Object.assign({}, d, { mode: m.key, baseLevel: d.level, level, power, expMult: m.expMult });
+}
+
 const BOSS_MULT = 1.7;
 // レア敵（ダンジョンごとの DUNGEONS[].rares）: ボス戦以外の1戦闘ごとにこの確率で、敵1体がレア敵に入れ替わる
 // （1周4戦ならおよそ1割強の周回で出会う）。能力値は少し強く、EXPは多い。倒すとレア度の高い装備を必ず1個落とす
@@ -1093,6 +1129,8 @@ function buildEncounter(dungeon, battleIndex) {
     const i = Math.floor(RNG.float(0, list.length));
     list[i] = makeEnemy(getEnemyTemplate(RNG.pick(dungeon.rares)), mult, false, dungeon.power, true);
   }
+  // ハード・エクストラはEXPが多い（getModeDungeon）
+  if (dungeon.expMult && dungeon.expMult !== 1) for (const e of list) e.exp = Math.round(e.exp * dungeon.expMult);
   return list;
 }
 
@@ -1117,12 +1155,13 @@ function makeEnemy(t, mult, isBoss, power, isRare) {
 // LRはおおよそ100周に1個出るか出ないかのペース、URは10周やって出たら運がいいと感じるくらい
 // （10周で遭遇率およそ15〜25%、30周でも半分弱程度）になるよう重みを設定している）
 // material: 自動分解した時に得られる強化石の量
+// color: 名前・枠の色（ノーマル白・レア水色・スーパーレア緑・ウルトラレア紫・レジェンドレア金）
 const RARITIES = [
-  { key: "n", name: "ノーマル", color: "#cfd8dc", mult: 1, weight: 7100, material: 5 },
-  { key: "r", name: "レア", color: "#4dc3ff", mult: 1.4, weight: 2200, material: 20 },
-  { key: "sr", name: "スーパーレア", color: "#7c5cff", mult: 2.0, weight: 650, material: 80 },
-  { key: "ur", name: "ウルトラレア", color: "#ff9f4d", mult: 2.8, weight: 35, material: 350 },
-  { key: "lr", name: "レジェンドレア", color: "#ff4d8f", mult: 4.0, weight: 15, material: 1500 },
+  { key: "n", name: "ノーマル", color: "#f2f2f2", mult: 1, weight: 7100, material: 5 },
+  { key: "r", name: "レア", color: "#5ccbff", mult: 1.4, weight: 2200, material: 20 },
+  { key: "sr", name: "スーパーレア", color: "#5fd480", mult: 2.0, weight: 650, material: 80 },
+  { key: "ur", name: "ウルトラレア", color: "#b97dff", mult: 2.8, weight: 35, material: 350 },
+  { key: "lr", name: "レジェンドレア", color: "#f2c14e", mult: 4.0, weight: 15, material: 1500 },
 ];
 
 // 自動分解フィルターの初期値（未設定時はN/Rのみ）。実際に使う対象はプレイヤーが画面上で変更でき、端末に保存される
@@ -1180,6 +1219,11 @@ function guaranteedStonesRequired(item) { return QPCore.enhance.guaranteedRequir
 
 // 強化値込みの能力値（js/core/equipment.js）。装備の元の数値が小さいため率ではなくレア度に応じた
 // 固定量をceilで積み上げる（+1でも必ず変化が見え、かつレア度が高いほど伸びが大きい＝+99で元の値の約4倍になる）
+// レア度の色（アイテムに保存された rarityColor は古い色のことがあるので、表示は常にここから引く）
+function rarityColor(key) {
+  const rarity = RARITIES.find((r) => r.key === key);
+  return rarity ? rarity.color : "#f2f2f2";
+}
 function rarityMult(key) {
   const rarity = RARITIES.find((r) => r.key === key);
   return rarity ? rarity.mult : 1;
@@ -1348,12 +1392,14 @@ let itemSeq = 1;
 // level: 装備のレベル（拾ったダンジョンの推奨Lv）。minRarity: このレア度以上だけから抽選する（レア敵のドロップ）
 // 落ちる装備の部位の重み（装飾品は1人3枠まで付けるので多め、盾は持てるジョブが少ないので少なめ）
 const ITEM_DROP_SLOT_WEIGHTS = { weapon: 22, shield: 10, head: 15, body: 15, accessory: 38 };
-// 落ちるのは、そのダンジョンのレベルのシリーズ（地方ごと）の装備。部位を重みで選び、その部位の種類から等確率で選ぶ
-function rollItemDrop(level, minRarity) {
+// 落ちるのは、そのダンジョンのレベルのシリーズ（地方ごと）の装備。部位を重みで選び、その部位の種類から等確率で選ぶ。
+// opts: { regionLevel（シリーズ・名のある装備を決めるレベル。ハード・エクストラでは元の推奨Lv）, mode（オプション効果を付ける） }
+function rollItemDrop(level, minRarity, opts) {
+  opts = opts || {};
   // ふつうのドロップは、まれにその地方の名のある装備になる（js/uniques.js）
-  if (!minRarity && RNG.chance(UNIQUE_DROP_CHANCE)) return rollUniqueDrop(level);
+  if (!minRarity && RNG.chance(UNIQUE_DROP_CHANCE)) return rollUniqueDrop(level, opts);
   const from = minRarity ? RARITIES.findIndex((r) => r.key === minRarity) : 0;
-  const series = seriesForLevel(level);
+  const series = seriesForLevel(opts.regionLevel || level);
   const slotKeys = Object.keys(ITEM_DROP_SLOT_WEIGHTS);
   let roll = RNG.float(0, slotKeys.reduce((n, k) => n + ITEM_DROP_SLOT_WEIGHTS[k], 0));
   let slot = slotKeys[slotKeys.length - 1];
@@ -1362,8 +1408,9 @@ function rollItemDrop(level, minRarity) {
     roll -= ITEM_DROP_SLOT_WEIGHTS[k];
   }
   const bases = ITEM_BASES.filter((b) => b.series === series.key && b.slot === slot);
-  return QPCore.rewards.rollItem(bases, RARITIES.slice(Math.max(0, from)), RNG, () => "item_" + itemSeq++,
+  const item = QPCore.rewards.rollItem(bases, RARITIES.slice(Math.max(0, from)), RNG, () => "item_" + itemSeq++,
     { level: level || 1, levelGrowth: ITEM_LEVEL_GROWTH });
+  return addItemOptions(item, opts.mode);
 }
 // レア敵が落とす装備の下限のレア度（SR以上。重みの比でSR約93%・UR約5%・LR約2%）
 const RARE_DROP_MIN_RARITY = "sr";

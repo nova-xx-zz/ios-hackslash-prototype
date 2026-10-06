@@ -17,6 +17,7 @@ function saveGame() {
     const data = QPModel.save.serialize(S, {
       now,
       runDungeonIds: teamRuns.map((r) => (r && r.dungeon) ? r.dungeon.id : null),
+      runModes: teamRuns.map((r) => (r && r.dungeon && r.dungeon.mode) || "normal"),
       enabledFeatures: Object.keys(FEATURE_FLAGS).filter((k) => FEATURE_FLAGS[k]),
     });
     json = JSON.stringify(data);
@@ -105,7 +106,7 @@ const Roster = QPModel.roster.createRoster({
   data: {
     JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
     getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
-    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem,
+    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
   },
   state: S,
   runBuffs: (team) => Runner.runBuffs(team), // 石碑の加護（js/model/run.js）
@@ -113,7 +114,7 @@ const Roster = QPModel.roster.createRoster({
 });
 const {
   gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
-  equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
+  equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
 } = Roster;
 
 const TEAM_NAMES = ["第一のパーティ", "第二のパーティ", "第三のパーティ", "第四のパーティ"];
@@ -139,7 +140,7 @@ const {
 // js/model/run.js。ここではログの文章・画面の更新・次の処理までの待ち時間を受け持つ。
 // computeStats が石碑の加護(teamRuns[].buffs)を参照するため、roster を組み立てる前に用意しておく
 const Runner = QPModel.run.createRunner({
-  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, ITEM_BASES },
+  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES },
   state: S,
   roster: Roster,
   inventory: Inventory,

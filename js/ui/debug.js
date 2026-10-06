@@ -43,7 +43,8 @@ function debugJumpTo(target) {
   const members = teamMembers(0);
   if (!members.length) { showDebugMessage("第一のパーティに仲間がいません", true); return; }
   const index = DUNGEONS.indexOf(target);
-  for (const d of DUNGEONS.slice(0, index)) S.clearedDungeons.add(d.id);
+  // それより前のダンジョンは踏破済みにし、ハードも踏破済みにする（ハード・エクストラをすぐ試せるように）
+  for (const d of DUNGEONS.slice(0, index)) { S.clearedDungeons.add(d.id); S.clearedHard.add(d.id); }
   setBestStage(S.clearedDungeons.size);
 
   const level = target.level;

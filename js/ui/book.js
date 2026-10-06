@@ -54,6 +54,11 @@ const BOOK_GUIDE = [
     "装備は強化石を使って強化できます。強化値が高いほど成功しにくくなります。",
     "所持品の「分解する」で、選んだ装備を強化石に変えられます。",
   ] },
+  { title: "ハードとエクストラ", body: [
+    "ダンジョンをノーマルで踏破すると「ハード」、ハードを踏破すると「エクストラ」に挑めるようになります。マップでダンジョンを選んで、モードを切り替えてください。",
+    "ハードは推奨Lvが10、エクストラは25上がった強さの敵が出ます。EXPはハードで1.5倍、エクストラで2倍です。",
+    "ハード・エクストラで手に入る装備は、レベルが上がるうえに「オプション効果」が付きます（ハードは1〜2個、エクストラは強い効果が2〜3個）。能力値アップ・会心率や吸収などの戦闘の効果のほか、パーティの獲得EXPや強化石が増える周回向けの効果もあります。",
+  ] },
   { title: "地方とレアモンスター", body: [
     "ダンジョンは地方ごとに分かれています。地方の最後のダンジョンを踏破すると、次の地方へ進めるようになります。マップの上の地方の名前を押すと、地方を切り替えられます。",
     "奥のダンジョンで拾った装備ほど、装備のレベルが高く強くなります（装備のレベルは、拾ったダンジョンの推奨Lvです）。",
@@ -346,7 +351,7 @@ function itemSeriesPage(series) {
             chip.className = "book-rarity-chip" + (has ? " found" : "");
             chip.textContent = r.key.toUpperCase();
             chip.title = has ? `${r.name}の${base.name}` : "まだ手に入れていない";
-            if (has) chip.style.background = r.color;
+            if (has) { chip.style.background = r.color; chip.style.color = "#171a1a"; }
             chips.appendChild(chip);
           }
           row.appendChild(chips);
@@ -497,7 +502,8 @@ function historyEntry(e) {
     <div class="bhe-details"></div>`;
   card.querySelector(".bhe-date").textContent = date;
   card.querySelector(".bhe-team").textContent = TEAM_NAMES[e.team] || "";
-  card.querySelector(".bhe-dungeon").textContent = d ? d.name : e.dungeonId;
+  const modeText = e.mode && e.mode !== "normal" ? `（${getDungeonMode(e.mode).name}）` : "";
+  card.querySelector(".bhe-dungeon").textContent = (d ? d.name : e.dungeonId) + modeText;
   card.querySelector(".bhe-result").textContent = result;
   card.querySelector(".bhe-details").textContent = details.join("　");
   return card;

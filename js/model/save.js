@@ -23,6 +23,9 @@
       inventory: [],
       activeTeam: 0, // 探索画面/編成画面で「表示中」のチーム（探索の進行そのものとは独立）
       clearedDungeons: new Set(),
+      // ハード・エクストラを踏破したダンジョン（ノーマルの踏破でハード、ハードの踏破でエクストラが開く）
+      clearedHard: new Set(),
+      clearedExtra: new Set(),
       nextCharSeq: 1,
       // 自動周回（チームごとに独立して設定・進行する）
       autoRepeat: Array.from({ length: teamCount }, () => ({ active: false, target: opts.autoRepeatTarget || 5, done: 0 })),
@@ -80,16 +83,20 @@
   }
 
   // 状態をセーブデータ（JSONにできるオブジェクト）にする。
-  // opts: now（保存時刻）, runDungeonIds（チームごとの探索中ダンジョンのid。オフライン精算に使う）, enabledFeatures
+  // opts: now（保存時刻）, runDungeonIds（チームごとの探索中ダンジョンのid。オフライン精算に使う）,
+  //       runModes（チームごとの探索中ダンジョンのモード）, enabledFeatures
   function serialize(state, opts) {
     opts = opts || {};
     const runDungeonIds = opts.runDungeonIds || [];
+    const runModes = opts.runModes || [];
     return {
       schemaVersion: SCHEMA_VERSION,
       roster: state.roster,
       inventory: state.inventory,
       activeTeam: state.activeTeam,
       clearedDungeons: [...state.clearedDungeons],
+      clearedHard: [...(state.clearedHard || [])],
+      clearedExtra: [...(state.clearedExtra || [])],
       nextCharSeq: state.nextCharSeq,
       savedAt: opts.now,
       autoRepeat: state.autoRepeat.map((ar, i) => ({
@@ -97,6 +104,7 @@
         target: ar.target,
         done: ar.done,
         dungeonId: runDungeonIds[i] || null,
+        mode: runModes[i] || "normal",
       })),
       skillBooks: state.skillBooks,
       material: state.material,
@@ -125,6 +133,8 @@
       inventory: Array.isArray(data.inventory) ? data.inventory : [],
       activeTeam: typeof data.activeTeam === "number" ? data.activeTeam : 0,
       clearedDungeons: new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []),
+      clearedHard: new Set(Array.isArray(data.clearedHard) ? data.clearedHard : []),
+      clearedExtra: new Set(Array.isArray(data.clearedExtra) ? data.clearedExtra : []),
       nextCharSeq: typeof data.nextCharSeq === "number" ? data.nextCharSeq : 1,
       skillBooks: Array.isArray(data.skillBooks) ? data.skillBooks : [],
       material: (!isLegacy && typeof data.material === "number") ? data.material : (opts.legacyMaterial || 0),

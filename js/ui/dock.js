@@ -44,7 +44,7 @@ function renderDock() {
   document.getElementById("exploreSub").textContent = d
     ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
     : "ダンジョン未選択";
-  document.getElementById("dockDungeon").textContent = d ? d.name : "冒険者ギルド";
+  document.getElementById("dockDungeon").textContent = d ? `${d.mode ? `【${getDungeonMode(d.mode).name}】` : ""}${d.name}` : "冒険者ギルド";
   renderLogFeed(S.activeTeam);
   document.getElementById("dockStatus").textContent = !d
     ? "出発準備"
@@ -145,7 +145,7 @@ function renderAutoRepeatRow() {
     if (isTeamLocked(i) || !canStart) return;
     ar.active = true;
     ar.done = 0;
-    startDungeon(i, run.dungeon.id, { navigate: true });
+    startDungeon(i, run.dungeon.id, { navigate: true, mode: run.dungeon.mode });
   });
   row.appendChild(btn);
 }
@@ -203,7 +203,7 @@ function renderDisassembleFilter() {
     chip.textContent = rarity.key.toUpperCase();
     chip.title = rarity.name;
     chip.disabled = locked;
-    if (on) chip.style.background = rarity.color;
+    if (on) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
     chip.addEventListener("click", () => {
       if (isAutoDisassembleLocked()) return;
       if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
@@ -226,7 +226,7 @@ renderAutoRepeatRow();
 document.getElementById("btnRedeploy").addEventListener("click", () => {
   const run = teamRuns[S.activeTeam];
   if (isTeamLocked(S.activeTeam) || !run) return;
-  startDungeon(S.activeTeam, run.dungeon.id, { navigate: true });
+  startDungeon(S.activeTeam, run.dungeon.id, { navigate: true, mode: run.dungeon.mode });
 });
 document.getElementById("btnDockMap").addEventListener("click", () => {
   openMap();

@@ -10,12 +10,14 @@ const BASIC_ATTACK = QPCore.battle.BASIC_ATTACK;
 let partyEls = {};
 let nextBattleTimer = new Array(TEAM_COUNT).fill(null);
 
+// opts: { navigate（探索画面へ移る）, mode（"normal" | "hard" | "extra"） }
 function startDungeon(teamIndex, id, opts) {
   opts = opts || {};
   clearTimeout(nextBattleTimer[teamIndex]);
-  const run = Runner.startRun(teamIndex, id);
+  const run = Runner.startRun(teamIndex, id, opts.mode);
   const d = run.dungeon;
-  logEvent(teamIndex, "start", `${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
+  const modeText = d.mode ? `【${getDungeonMode(d.mode).name}】` : "";
+  logEvent(teamIndex, "start", `${modeText}${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
   trimTeamLog(teamIndex);
   if (teamIndex === S.activeTeam) {
     buildPartyDock();

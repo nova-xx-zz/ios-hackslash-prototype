@@ -1362,8 +1362,6 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 
 /* 名のある装備（◆）と呪いの装備（☠） */
-.equip-slot.unique .slot-item, .equip-choice.unique, .drop-row.unique { color: #f0cf86; }
-.equip-slot.cursed .slot-item, .equip-choice.cursed, .drop-row.cursed { color: #d896ff; }
 .equip-unique-row { margin-top: 6px; font-size: 10.5px; line-height: 1.5; }
 .equip-unique-name { display: block; font-weight: 700; color: #f0cf86; }
 .equip-unique-row.cursed .equip-unique-name { color: #d896ff; }
@@ -1378,3 +1376,23 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .book-unique-row.unknown .book-unique-name { color: var(--sub-text); }
 .book-unique-effect { font-size: 11px; margin-top: 2px; }
 .book-unique-flavor { font-size: 10.5px; color: var(--sub-text); font-style: italic; margin-top: 2px; line-height: 1.5; }
+
+/* ダンジョンのモード（ノーマル・ハード・エクストラ） */
+.mode-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 6px; }
+.mode-chip {
+  border: 1px solid var(--border); border-radius: 8px; padding: 4px 9px;
+  background: rgba(255,255,255,0.05); color: var(--text); font-size: 11px; cursor: pointer;
+}
+.mode-chip:disabled { opacity: 0.4; cursor: default; }
+.mode-chip.active.normal { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.mode-chip.active.hard { background: #c75a3a; color: #fff; border-color: #c75a3a; }
+.mode-chip.active.extra { background: #7b3fb8; color: #fff; border-color: #7b3fb8; }
+.mode-note { color: #f0cf86; }
+.map-node .dot { position: relative; }
+.mode-mark {
+  position: absolute; right: -10px; top: -8px;
+  font-size: 8px; font-weight: 700; line-height: 1; padding: 2px 3px; border-radius: 4px; color: #fff;
+}
+.mode-mark.hard { background: #c75a3a; }
+.mode-mark.extra { background: #7b3fb8; }
+.item-options { display: block; font-size: 10px; font-weight: 400; color: #8fe3ff; margin-top: 2px; }

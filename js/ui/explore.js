@@ -217,7 +217,8 @@ function finishRun(run, info) {
     logLine(run.team, `自動周回 ${ar.done}/${ar.target} 周完了。次のダンジョンへ出発します…`, "system");
     if (isViewed) renderAutoRepeatRow();
     const nextId = run.dungeon.id;
-    scheduleNext(run.team, () => startDungeon(run.team, nextId), 1400);
+    const nextMode = run.dungeon.mode;
+    scheduleNext(run.team, () => startDungeon(run.team, nextId, { mode: nextMode }), 1400);
   }
 }
 
@@ -226,11 +227,17 @@ function buildDropRow(item) {
   row.className = "drop-row";
   const dot = document.createElement("div");
   dot.className = "drop-dot";
-  dot.style.background = item.rarityColor;
+  dot.style.background = rarityColor(item.rarity);
   row.appendChild(dot);
   const label = document.createElement("div");
   label.textContent = itemLabel(item);
-  if (item.unique) row.classList.add(item.cursed ? "cursed" : "unique");
+  label.style.color = rarityColor(item.rarity); // レア度は名前の色で表す
+  if (item.options && item.options.length) {
+    const opt = document.createElement("span");
+    opt.className = "item-options";
+    opt.textContent = `オプション: ${itemOptionsText(item)}`;
+    label.appendChild(opt);
+  }
   row.appendChild(label);
   return row;
 }
@@ -239,6 +246,10 @@ function itemLabel(item) {
   const plusText = item.plus > 0 ? `+${item.plus}` : "";
   const levelText = item.level > 1 ? ` Lv.${item.level}` : ""; // 装備のレベル（拾ったダンジョンの推奨Lv）
   return `${itemMark(item)}${item.name}${plusText}${levelText}（${itemStatsText(item)}）`;
+}
+// オプション効果（ハード・エクストラで落ちた装備）の一覧「ATK+23・会心率+3%」。無ければ空文字
+function itemOptionsText(item) {
+  return (item.options || []).map(itemOptionText).filter(Boolean).join("・");
 }
 // 名のある装備は◆、呪いの装備は☠を名前の前に付ける
 function itemMark(item) { return item.cursed ? "☠" : item.unique ? "◆" : ""; }

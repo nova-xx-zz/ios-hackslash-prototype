@@ -170,12 +170,15 @@ function renderMap() {
   for (const d of inRegion) {
     const cleared = S.clearedDungeons.has(d.id);
     const open = isDungeonOpen(d);
+    // ハード・エクストラを踏破したダンジョンには小さな印（H・EX）を付ける
+    const modeMark = S.clearedExtra.has(d.id) ? '<span class="mode-mark extra">EX</span>'
+      : S.clearedHard.has(d.id) ? '<span class="mode-mark hard">H</span>' : "";
     const btn = document.createElement("button");
     btn.className = "map-node " + (cleared ? "cleared" : open ? "open" : "locked") +
       (selectedDungeonId === d.id ? " selected" : "");
     btn.style.left = d.x + "%";
     btn.style.top = d.y + "%";
-    btn.innerHTML = `<div class="dot">${cleared ? "✓" : open ? "▶" : "—"}</div>
+    btn.innerHTML = `<div class="dot">${cleared ? "✓" : open ? "▶" : "—"}${modeMark}</div>
       <div class="label">${d.name}</div>`;
     if (open) btn.addEventListener("click", () => selectDungeon(d));
     nodes.appendChild(btn);
@@ -183,20 +186,49 @@ function renderMap() {
 }
 
 function selectDungeon(d) {
+  if (selectedDungeonId !== d.id) selectedDungeonMode = "normal";
   selectedDungeonId = d.id;
   renderMap();
   renderDungeonInfo(d);
 }
 
+// モードを選べるか: ハードはノーマルの踏破、エクストラはハードの踏破で開く
+let selectedDungeonMode = "normal";
+function isDungeonModeOpen(d, mode) {
+  if (mode === "hard") return S.clearedDungeons.has(d.id);
+  if (mode === "extra") return S.clearedHard.has(d.id);
+  return isDungeonOpen(d);
+}
+function isDungeonModeCleared(d, mode) {
+  return (mode === "hard" ? S.clearedHard : mode === "extra" ? S.clearedExtra : S.clearedDungeons).has(d.id);
+}
+
 function renderDungeonInfo(d) {
   const el = document.getElementById("dungeonInfo");
   const party = activeParty();
+  if (!isDungeonModeOpen(d, selectedDungeonMode)) selectedDungeonMode = "normal";
+  const md = getModeDungeon(d.id, selectedDungeonMode);
+  const modeNote = { hard: "敵が強く、EXPが1.5倍。落ちる装備にオプション効果が1〜2個付く",
+    extra: "敵がとても強く、EXPが2倍。落ちる装備に強いオプション効果が2〜3個付く" }[selectedDungeonMode];
   el.innerHTML = `
-    <div class="dname">${d.name}${S.clearedDungeons.has(d.id) ? "　クリア済み" : ""}</div>
+    <div class="dname"></div>
+    <div class="mode-row"></div>
     <div class="dmeta">
       ${d.desc}<br>
-      戦闘数: ${d.battles}回（最後はボス戦）
+      推奨レベル: ${md.level}　戦闘数: ${d.battles}回（最後はボス戦）${modeNote ? `<br><span class="mode-note">${modeNote}</span>` : ""}
     </div>`;
+  el.querySelector(".dname").textContent = `${d.name}${isDungeonModeCleared(d, selectedDungeonMode) ? "　クリア済み" : ""}`;
+  // モードの切り替え（まだ開いていないモードは、開く条件を出して押せなくする）
+  const row = el.querySelector(".mode-row");
+  for (const m of DUNGEON_MODES) {
+    const open = isDungeonModeOpen(d, m.key);
+    const chip = document.createElement("button");
+    chip.className = `mode-chip ${m.key}` + (selectedDungeonMode === m.key ? " active" : "");
+    chip.textContent = open ? m.name : `${m.name}（${m.key === "hard" ? "ノーマル" : "ハード"}を踏破で解放）`;
+    chip.disabled = !open;
+    chip.addEventListener("click", () => { selectedDungeonMode = m.key; renderDungeonInfo(d); });
+    row.appendChild(chip);
+  }
   const btn = document.createElement("button");
   btn.className = "btn primary";
   btn.id = "btnEnterDungeon";
@@ -204,8 +236,9 @@ function renderDungeonInfo(d) {
     btn.textContent = `${TEAM_NAMES[S.activeTeam]}が空です（編成してください）`;
     btn.disabled = true;
   } else {
-    btn.textContent = `${TEAM_NAMES[S.activeTeam]}で出発する`;
-    btn.addEventListener("click", () => startDungeon(S.activeTeam, d.id, { navigate: true }));
+    btn.textContent = `${TEAM_NAMES[S.activeTeam]}で出発する${selectedDungeonMode !== "normal" ? `（${getDungeonMode(selectedDungeonMode).name}）` : ""}`;
+    const mode = selectedDungeonMode;
+    btn.addEventListener("click", () => startDungeon(S.activeTeam, d.id, { navigate: true, mode }));
   }
   el.appendChild(btn);
 }

@@ -113,17 +113,21 @@
   }
 
   // セット効果と、名のある装備の特殊効果（呪いのデメリットを含む）の合計。seriesTable: data.js の ITEM_SERIES、
-  // uniqueLookup(種類のkey): 名のある装備の定義（js/uniques.js の getUniqueItem。effect を持つ）。
-  // 戻り値: { stats: { atk: 0.05, ... }（能力値の割合ボーナス）, passives: { critBonus, lifesteal, healBonus, dmgTakenMult, mpCostMult },
+  // uniqueLookup(種類のkey): 名のある装備の定義（js/uniques.js の getUniqueItem。effect を持つ）、
+  // optionEffect({ key, value }): オプション効果1つの中身（js/options.js の itemOptionEffect。flat/stats/passives）。
+  // 戻り値: { stats: { atk: 0.05, ... }（能力値の割合ボーナス）, flat: { atk: 12, ... }（固定値。オプション効果）,
+  //          passives: { critBonus, lifesteal, healBonus, dmgTakenMult, mpCostMult, expBonus, materialBonus },
   //          active: [{ series, count, bonuses: [{ count, desc, active }] }]（画面表示用。2個以上付けているシリーズ）,
   //          uniques: [{ item, def }]（画面表示用。付けている名のある装備） }
-  function setBonusTotals(equip, seriesTable, uniqueLookup) {
+  function setBonusTotals(equip, seriesTable, uniqueLookup, optionEffect) {
     const stats = {};
-    const passives = { critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1 };
+    const flat = {};
+    const passives = { critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1, expBonus: 0, materialBonus: 0 };
     const active = [];
     const uniques = [];
     const addEffect = (eff) => {
       for (const [k, v] of Object.entries(eff.stats || {})) stats[k] = (stats[k] || 0) + v;
+      for (const [k, v] of Object.entries(eff.flat || {})) flat[k] = (flat[k] || 0) + v;
       for (const [k, v] of Object.entries(eff.passives || {})) {
         if (k === "dmgTakenMult" || k === "mpCostMult") passives[k] *= v;
         else passives[k] = (passives[k] || 0) + v;
@@ -134,6 +138,12 @@
         const item = equip && equip[p];
         const def = item && item.unique ? uniqueLookup(item.base) : null;
         if (def && def.effect) { addEffect(def.effect); uniques.push({ item, def }); }
+      }
+    }
+    if (optionEffect) {
+      for (const p of POSITIONS) {
+        const item = equip && equip[p];
+        for (const opt of (item && item.options) || []) addEffect(optionEffect(opt));
       }
     }
     const counts = seriesCounts(equip);
@@ -148,7 +158,7 @@
       }
       active.push({ series, count, bonuses });
     }
-    return { stats, passives, active, uniques };
+    return { stats, flat, passives, active, uniques };
   }
 
   // ---------- 旧セーブの移し替え ----------

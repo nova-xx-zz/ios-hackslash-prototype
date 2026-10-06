@@ -147,8 +147,10 @@
     // ---------- ドロップの受け取り ----------
     // 持ち帰ったドロップを、自動分解の設定（filter: { enabled, rarities }）に従って所持品と強化石に振り分ける。
     // 結果: js/core/rewards.js の settleDrops と同じ { kept, disassembled, materialGained }
-    function receiveDrops(drops, filter) {
+    // materialMult: 強化石の倍率（オプション効果「パーティの強化石」。省略時1）
+    function receiveDrops(drops, filter, materialMult) {
       const settled = rewards.settleDrops(drops, filter);
+      if (materialMult && materialMult !== 1) settled.materialGained = Math.round(settled.materialGained * materialMult);
       if (settled.materialGained > 0) addMaterial(settled.materialGained);
       S.inventory.push(...settled.kept);
       return settled;
