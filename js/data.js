@@ -22,14 +22,15 @@ function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 // ---------- ショップ（課金要素。docs/production-plan.md §5.7） ----------
 // プロトタイプではApp Storeの決済が無いため、購入ボタンで無料で受け取れる（本番化では決済の結果を受けて付与する）。
 // kind: unlock（買い切り。unlock のキーを解放）／guaranteedStone（確定強化石を amount 個）／rosterBox（仲間のBOXを ROSTER_CAPACITY.step 人ぶん拡張）。
-// price は表示用の仮の価格（円）
+// price は表示用の仮の価格（円）。requiresCleared: このダンジョンを（ノーマルで）踏破するまで買えない
+// （自動周回x100は稼ぐ量が大きく増えるため、ゲームの後半に入ってから。docs/production-plan.md §5.7）
 const SHOP_PRODUCTS = [
-  { id: "auto_repeat_100", kind: "unlock", unlock: "autoRepeat100", name: "自動周回x100", price: 480,
+  { id: "auto_repeat_100", kind: "unlock", unlock: "autoRepeat100", name: "自動周回x100", price: 480, requiresCleared: "inferno_peak",
     desc: "自動周回の回数に「x100」を追加する（買い切り）" },
   { id: "battle_speed_3", kind: "unlock", unlock: "speed3", name: "戦闘速度x3", price: 370,
     desc: "戦闘の速さに「x3」を追加する（買い切り）" },
   { id: "battle_speed_5", kind: "unlock", unlock: "speed5", name: "戦闘速度x5", price: 610,
-    desc: "戦闘の速さに「x5」を追加する（買い切り）" },
+    desc: "戦闘の速さに「x5」を追加する（買い切り。x3を持っていなくても使える）" },
   { id: "guaranteed_stone_1", kind: "guaranteedStone", amount: 1, name: "確定強化石 1個", price: 160,
     desc: "装備の強化を成功率100%で行える。必要な個数は強化の段階で変わる（LR+98→+99は10個）" },
   { id: "guaranteed_stone_11", kind: "guaranteedStone", amount: 11, name: "確定強化石 10個＋1個", price: 1600,

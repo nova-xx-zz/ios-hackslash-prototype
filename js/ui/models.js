@@ -148,7 +148,7 @@ const {
 // ---------- Shop ----------
 // ショップ（買い切りの解放・確定強化石・仲間のBOX）と、仲間の上限の判定は js/model/shop.js
 const Shop = QPModel.shop.createShop({
-  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS },
+  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon },
   state: S,
 });
 

@@ -75,7 +75,8 @@ function buildShopItem(product) {
   name.textContent = product.name;
   const desc = document.createElement("div");
   desc.className = "shop-item-desc";
-  desc.textContent = product.desc + (product.kind === "rosterBox" ? `（拡張 ${st.count}回・今の上限 ${Shop.rosterCapacity()}人）` : "");
+  desc.textContent = product.desc + (product.kind === "rosterBox" ? `（拡張 ${st.count}回・今の上限 ${Shop.rosterCapacity()}人）` : "") +
+    (st.locked ? `\n「${st.requires.dungeonName}」を踏破すると購入できます` : "");
   const price = document.createElement("div");
   price.className = "shop-item-price";
   price.innerHTML = `<s>¥${product.price.toLocaleString("ja-JP")}</s>　テスト中は無料`;
@@ -84,9 +85,9 @@ function buildShopItem(product) {
 
   const btn = document.createElement("button");
   const confirming = shopConfirmId === product.id;
-  btn.className = "btn small " + (st.soldOut ? "ghost" : "primary");
-  btn.textContent = st.owned ? "購入済み" : st.soldOut ? "上限です" : confirming ? "本当に受け取る" : "購入する";
-  btn.disabled = st.soldOut;
+  btn.className = "btn small " + (st.soldOut || st.locked ? "ghost" : "primary");
+  btn.textContent = st.owned ? "購入済み" : st.soldOut ? "上限です" : st.locked ? "未解放" : confirming ? "本当に受け取る" : "購入する";
+  btn.disabled = st.soldOut || st.locked;
   btn.addEventListener("click", () => {
     if (shopConfirmId !== product.id) { shopConfirmId = product.id; shopMessage = ""; renderShop(); return; }
     shopConfirmId = null;

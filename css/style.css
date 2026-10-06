@@ -300,7 +300,7 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 .shop-item.highlight { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .shop-item-main { flex: 1; min-width: 0; }
 .shop-item-name { font-size: 14px; font-weight: 700; }
-.shop-item-desc { font-size: 11px; color: var(--sub-text); line-height: 1.5; margin-top: 2px; }
+.shop-item-desc { font-size: 11px; color: var(--sub-text); line-height: 1.5; margin-top: 2px; white-space: pre-line; }
 .shop-item-price { font-size: 11px; margin-top: 4px; }
 .shop-item-price s { color: var(--sub-text); }
 .shop-item .btn { flex: none; min-width: 92px; }

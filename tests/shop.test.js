@@ -17,8 +17,9 @@ function setup(rosterSize) {
 }
 
 test("ショップ: 買い切りで自動周回x100と戦闘速度x3・x5が選べるようになる", () => {
-  const { shop } = setup();
+  const { state, shop } = setup();
   assert.deepEqual(arr(shop.autoRepeatChoices().filter((c) => c.locked).map((c) => c.n)), [100]);
+  state.clearedDungeons.add("inferno_peak"); // x100は業火の霊峰を踏破すると買える
   assert.deepEqual(arr(shop.battleSpeeds()), [1, 2]);
   assert.equal(shop.nextBattleSpeed(1), 2);
   assert.equal(shop.nextBattleSpeed(2), 1);
@@ -70,6 +71,7 @@ test("仲間のBOX: 最初は50人、拡張1回で+50人、1000人まで。超�
 
 test("購入の記録: セーブに保存して読み込める。壊れた値は捨て、無いセーブ（以前の版）は何も買っていない状態", () => {
   const { state, shop } = setup(5);
+  state.clearedDungeons.add("inferno_peak");
   shop.purchase("auto_repeat_100");
   shop.purchase("roster_box_50");
   const json = JSON.parse(JSON.stringify(serialize(state, { now: 1 })));
@@ -80,4 +82,19 @@ test("購入の記録: セーブに保存して読み込める。壊れた値は
   assert.deepEqual(deserialize(json, {}).state.purchases, { unlocks: {}, rosterBoxes: 0, history: [] });
   assert.deepEqual(normalizePurchases({ unlocks: { speed3: "yes", speed5: true }, rosterBoxes: -2, history: [{ id: 1 }, { id: "a", at: 2 }] }),
     { unlocks: { speed5: true }, rosterBoxes: 0, history: [{ id: "a", at: 2 }] });
+});
+
+test("自動周回x100: 業火の霊峰（ノーマル）を踏破するまで買えない。x5はx3を持っていなくても使える", () => {
+  const { state, shop } = setup();
+  const p = shop.getProduct("auto_repeat_100");
+  const st = shop.productStatus(p);
+  assert.equal(st.locked, true);
+  assert.equal(st.requires.dungeonName, "業火の霊峰");
+  assert.equal(shop.purchase("auto_repeat_100").reason, "locked");
+  assert.equal(shop.hasUnlock("autoRepeat100"), false);
+  state.clearedDungeons.add("inferno_peak");
+  assert.equal(shop.productStatus(p).locked, undefined);
+  assert.equal(shop.purchase("auto_repeat_100").ok, true);
+  // 他の商品は条件なし
+  assert.equal(shop.productStatus(shop.getProduct("battle_speed_5")).locked, undefined);
 });

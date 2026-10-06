@@ -2,7 +2,7 @@
 // 買い切りの解放（自動周回x100・戦闘速度x3/x5）・確定強化石・仲間のBOXの拡張と、それに伴う上限の判定をまとめる。
 // プロトタイプでは決済が無いため、purchase がそのまま付与する（本番化では決済の確認後に同じ処理で付与し、
 // 購入の記録と確定強化石の残高はサーバーを正本にする。docs/production-plan.md §5.7）。画面には依存しない。
-//   createShop({ data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS }, state, now })
+//   createShop({ data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon }, state, now })
 //     state.purchases: { unlocks: { autoRepeat100: true, ... }, rosterBoxes: 拡張した回数, history: [{ id, at }] }（js/model/save.js）
 (function (root) {
   "use strict";
@@ -40,8 +40,19 @@
     }
 
     // ---------- 商品 ----------
-    // 状態: { owned（買い切りで持っている）, soldOut（これ以上買えない）, count（拡張した回数）}
+    // 状態: { owned（買い切りで持っている）, soldOut（これ以上買えない）, count（拡張した回数）,
+    //        locked（まだ買えない）, requires（買えるようになる条件。{ dungeonId, dungeonName }）}
     function productStatus(product) {
+      const st = baseStatus(product);
+      const need = product.requiresCleared;
+      if (need && !st.owned && !(S.clearedDungeons && S.clearedDungeons.has(need))) {
+        const d = deps.data.getDungeon ? deps.data.getDungeon(need) : null;
+        st.locked = true;
+        st.requires = { dungeonId: need, dungeonName: d ? d.name : need };
+      }
+      return st;
+    }
+    function baseStatus(product) {
       if (product.kind === "unlock") {
         const owned = hasUnlock(product.unlock);
         return { owned, soldOut: owned };
@@ -56,7 +67,9 @@
     function purchase(id) {
       const product = getProduct(id);
       if (!product) return { ok: false, reason: "unknown" };
-      if (productStatus(product).soldOut) return { ok: false, product, reason: "soldOut" };
+      const st = productStatus(product);
+      if (st.soldOut) return { ok: false, product, reason: "soldOut" };
+      if (st.locked) return { ok: false, product, reason: "locked" };
       const p = purchases();
       if (product.kind === "unlock") p.unlocks[product.unlock] = true;
       else if (product.kind === "rosterBox") p.rosterBoxes += 1;
