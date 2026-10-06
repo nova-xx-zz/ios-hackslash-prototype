@@ -132,6 +132,14 @@ function renderRegionTabs() {
     btn.addEventListener("click", () => { mapRegionId = region.id; renderMap(); });
     tabs.appendChild(btn);
   }
+  // 地方が増えて横にはみ出す時も、表示中の地方のボタンが見えるようにする
+  // （マップを開く時は画面を表示する前に描くため、表示されてから位置を測る）
+  requestAnimationFrame(() => {
+    const active = tabs.querySelector(".map-region-tab.active");
+    if (!active) return;
+    const offset = active.getBoundingClientRect().left - tabs.getBoundingClientRect().left + tabs.scrollLeft;
+    tabs.scrollLeft = Math.max(0, offset - (tabs.clientWidth - active.offsetWidth) / 2);
+  });
   const current = REGIONS.find((r) => r.id === mapRegionId);
   document.getElementById("mapRegionDesc").textContent = current ? `${current.name}　${current.desc}` : "";
 }
