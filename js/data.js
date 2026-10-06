@@ -560,6 +560,24 @@ const ENEMY_TEMPLATES = [
   { key: "drowned_king", name: "ドラウンドキング", hp: 270, atk: 50, mag: 0, def: 27, spd: 10, exp: 148, color: "#4a6a8a", icon: "👑", element: "水", tamable: false, tameChance: 0, desc: "都と共に沈んだ古代の王。海の底から地上への復讐を誓っている。" },
   { key: "leviathan", name: "リヴァイアサン", hp: 300, atk: 52, mag: 0, def: 28, spd: 12, exp: 156, color: "#1a5a8a", icon: "🐋", element: "水", tamable: false, tameChance: 0, desc: "海の王と呼ばれる伝説の巨獣。海溝の底でひたすら眠り続けていた。" },
 
+  // ---- セレスタ地方 (Lv77〜88) ----
+  { key: "sky_wisp", name: "スカイウィスプ", hp: 76, atk: 38, mag: 0, def: 11, spd: 20, exp: 64, color: "#d8f0ff", icon: "☁️", element: "風", tamable: false, tameChance: 0, desc: "雲の切れ端が意思を持った精。ふわりと近づいて突風を浴びせる。" },
+  { key: "thunder_bird", name: "サンダーバード", hp: 88, atk: 41, mag: 0, def: 12, spd: 21, exp: 66, color: "#f0e04a", icon: "⚡", element: "風", tamable: false, tameChance: 0, desc: "羽ばたくたびに雷を落とす巨鳥。嵐の前触れとして恐れられる。" },
+  { key: "cloud_golem", name: "クラウドゴーレム", hp: 140, atk: 36, mag: 0, def: 24, spd: 5, exp: 68, color: "#e8eef4", icon: "🌥️", element: "風", tamable: false, tameChance: 0, desc: "雲を固めて作られたゴーレム。殴ってもふわりと受け止められる。" },
+  { key: "wind_sylph", name: "ウィンドシルフ", hp: 80, atk: 40, mag: 0, def: 12, spd: 22, exp: 66, color: "#9fe0c8", icon: "🌬️", element: "風", tamable: false, tameChance: 0, desc: "風の精霊。いたずらに旅人を吹き飛ばして笑っている。" },
+  { key: "griffon", name: "グリフォン", hp: 116, atk: 42, mag: 0, def: 17, spd: 17, exp: 70, color: "#c8a060", icon: "🦅", element: "風", tamable: false, tameChance: 0, desc: "鷲の頭と獅子の体を持つ空の獣。浮遊島の空を縄張りにしている。" },
+  { key: "sky_knight", name: "スカイナイト", hp: 128, atk: 43, mag: 0, def: 22, spd: 13, exp: 72, color: "#a8c0e0", icon: "🪽", element: "光", tamable: false, tameChance: 0, desc: "天空の民の騎士。翼のある馬にまたがり、空から槍を突き下ろす。" },
+  { key: "star_beast", name: "スタービースト", hp: 120, atk: 44, mag: 0, def: 18, spd: 16, exp: 72, color: "#6a5ab0", icon: "🌟", element: "光", tamable: false, tameChance: 0, desc: "星の光を浴びて生まれた獣。夜になると体が星のように瞬く。" },
+  { key: "seraph_guard", name: "セラフガード", hp: 124, atk: 46, mag: 0, def: 20, spd: 15, exp: 74, color: "#fff0b0", icon: "😇", element: "光", tamable: false, tameChance: 0, desc: "天空宮殿を守る天使の衛兵。光の剣で侵入者を裁く。" },
+  { key: "angel_statue", name: "エンジェルスタチュー", hp: 152, atk: 42, mag: 0, def: 28, spd: 6, exp: 74, color: "#e0e0e8", icon: "🗽", element: "光", tamable: false, tameChance: 0, desc: "庭園に並ぶ天使の像。近づく者がいると動き出して襲いかかる。" },
+  { key: "storm_elemental", name: "ストームエレメンタル", hp: 112, atk: 48, mag: 0, def: 15, spd: 19, exp: 76, color: "#7a8ab0", icon: "🌩️", element: "風", tamable: false, tameChance: 0, desc: "嵐そのものの精霊。近づくだけで稲妻に打たれる。" },
+  { key: "archon", name: "アルコン", hp: 134, atk: 50, mag: 0, def: 21, spd: 16, exp: 78, color: "#f0d080", icon: "🧝", element: "光", tamable: false, tameChance: 0, desc: "空の帝に仕える高位の天人。地上の者を試すように見下ろしている。" },
+  { key: "storm_roc", name: "ストームロック", hp: 300, atk: 53, mag: 0, def: 27, spd: 15, exp: 162, color: "#5a6a8a", icon: "🦤", element: "風", tamable: false, tameChance: 0, desc: "嵐を呼ぶ伝説の巨鳥。翼を広げると雲の道が影に沈む。" },
+  { key: "isle_guardian", name: "浮遊島の守護神", hp: 330, atk: 54, mag: 0, def: 32, spd: 9, exp: 168, color: "#8ab08a", icon: "🗿", element: "土", tamable: false, tameChance: 0, desc: "島を空に浮かべ続ける魔法の核を守る巨像。" },
+  { key: "garden_warden", name: "庭園の番人", hp: 316, atk: 56, mag: 0, def: 29, spd: 13, exp: 172, color: "#7ac08a", icon: "🌺", element: "土", tamable: false, tameChance: 0, desc: "天空庭園を手入れする花の巨人。花を荒らす者には容赦しない。" },
+  { key: "thunder_god_beast", name: "雷神獣", hp: 324, atk: 59, mag: 0, def: 28, spd: 16, exp: 178, color: "#f0d040", icon: "🐯", element: "風", tamable: false, tameChance: 0, desc: "雷を食らう神獣。尖塔の頂で雷とともに咆哮する。" },
+  { key: "sky_emperor", name: "空の帝", hp: 350, atk: 61, mag: 0, def: 31, spd: 15, exp: 186, color: "#ffe08a", icon: "👑", element: "光", tamable: false, tameChance: 0, desc: "天空宮殿の主。地上を見下ろし、天と地の境を守り続けてきた。" },
+
   // ---- レア敵（rare: true。各ダンジョンの DUNGEONS[].rares に出る。まれに通常の敵と入れ替わって現れ、倒すと良い装備を落とす） ----
   { key: "gold_slime", name: "ゴールドスライム", hp: 20, atk: 6, mag: 0, def: 7, spd: 12, exp: 8, color: "#f2c94c", icon: "🟡", element: "光", rare: true, tamable: false, tameChance: 0, desc: "黄金色に輝くスライム。めったに姿を見せず、見つかるとすぐ逃げようとする。" },
   { key: "lucky_hare", name: "フォーチュンラビット", hp: 24, atk: 8, mag: 0, def: 3, spd: 14, exp: 10, color: "#9be38f", icon: "🍀", element: "光", rare: true, tamable: false, tameChance: 0, desc: "四つ葉を額に宿したウサギ。出会えた冒険者には幸運が訪れるという。" },
@@ -611,6 +629,16 @@ const ENEMY_TEMPLATES = [
   { key: "sea_dragon_pup", name: "海竜の子", hp: 132, atk: 44, mag: 0, def: 22, spd: 16, exp: 74, color: "#4ac0e0", icon: "🐲", element: "水", rare: true, tamable: false, tameChance: 0, desc: "古代都市で生まれた海竜の子。人懐こいが、力は大人顔負け。" },
   { key: "deep_sea_whale", name: "深海の白鯨", hp: 200, atk: 44, mag: 0, def: 30, spd: 9, exp: 78, color: "#e8f0f8", icon: "🐳", element: "水", rare: true, tamable: false, tameChance: 0, desc: "海溝を泳ぐ白い鯨。見た船は必ず嵐に遭うと恐れられている。" },
   { key: "ocean_seraph", name: "オーシャンセラフ", hp: 140, atk: 50, mag: 0, def: 20, spd: 21, exp: 78, color: "#8ae0ff", icon: "👼", element: "光", rare: true, tamable: false, tameChance: 0, desc: "海の底に降り立った天使。リヴァイアサンの眠りを見守っている。" },
+  { key: "cloud_sheep", name: "わたぐも羊", hp: 150, atk: 36, mag: 0, def: 26, spd: 12, exp: 82, color: "#ffffff", icon: "🐑", element: "風", rare: true, tamable: false, tameChance: 0, desc: "雲でできた毛を持つ羊。毛を刈ると極上の雲織物になる。" },
+  { key: "rainbow_bird", name: "レインボーバード", hp: 108, atk: 44, mag: 0, def: 16, spd: 24, exp: 82, color: "#ff9fd0", icon: "🌈", element: "光", rare: true, tamable: false, tameChance: 0, desc: "虹をくぐって現れる鳥。通った後には小さな虹が残る。" },
+  { key: "sky_whale_calf", name: "空クジラの子", hp: 190, atk: 42, mag: 0, def: 28, spd: 10, exp: 86, color: "#a8d0f0", icon: "🐋", element: "風", rare: true, tamable: false, tameChance: 0, desc: "雲の海を泳ぐ空クジラの子ども。母クジラの姿は見当たらない。" },
+  { key: "pegasus", name: "ペガサス", hp: 136, atk: 48, mag: 0, def: 20, spd: 24, exp: 86, color: "#f8f8ff", icon: "🦄", element: "光", rare: true, tamable: false, tameChance: 0, desc: "翼を持つ白馬。心の清い者にしか近づかないと言われる。" },
+  { key: "golden_hen", name: "黄金のめんどり", hp: 140, atk: 44, mag: 0, def: 30, spd: 16, exp: 88, color: "#f2c94c", icon: "🐔", element: "光", rare: true, tamable: false, tameChance: 0, desc: "金の卵を産むという庭園のめんどり。捕まえた者はいない。" },
+  { key: "moon_rabbit", name: "月のうさぎ", hp: 128, atk: 46, mag: 0, def: 18, spd: 25, exp: 88, color: "#e0e0f8", icon: "🐇", element: "光", rare: true, tamable: false, tameChance: 0, desc: "月から降りてきたうさぎ。天空庭園で餅をついている。" },
+  { key: "lightning_drake", name: "ライトニングドレイク", hp: 168, atk: 54, mag: 0, def: 24, spd: 20, exp: 92, color: "#f0e060", icon: "🐲", element: "風", rare: true, tamable: false, tameChance: 0, desc: "雷を浴びて育った竜。鱗は帯電し、触れる者を痺れさせる。" },
+  { key: "storm_crystal", name: "ストームクリスタル", hp: 180, atk: 50, mag: 0, def: 34, spd: 14, exp: 92, color: "#8ac0ff", icon: "💎", element: "風", rare: true, tamable: false, tameChance: 0, desc: "雷が結晶になって動き出したもの。砕くと嵐の力が手に入るという。" },
+  { key: "holy_kirin", name: "聖獣キリン", hp: 190, atk: 56, mag: 0, def: 28, spd: 21, exp: 96, color: "#f8e0a0", icon: "🦌", element: "光", rare: true, tamable: false, tameChance: 0, desc: "天空宮殿に住む聖なる獣。現れた年は豊作になると伝えられる。" },
+  { key: "stardust_fairy", name: "星屑の妖精", hp: 140, atk: 60, mag: 0, def: 20, spd: 26, exp: 96, color: "#c8b0ff", icon: "✨", element: "光", rare: true, tamable: false, tameChance: 0, desc: "流れ星のかけらから生まれた妖精。きらきらと光の粉をまき散らす。" },
 ];
 
 function getEnemyTemplate(key) {
@@ -716,6 +744,7 @@ const REGIONS = [
   { id: "glacia", name: "グラシア地方", desc: "一年中雪と氷に閉ざされた北の地方。氷の奥深くに古い竜が眠るという。" },
   { id: "ignis", name: "イグニス地方", desc: "火山が連なる灼熱の地方。溶岩の川が流れ、炎の魔物が群れをなす。" },
   { id: "marina", name: "マリナ地方", desc: "大海原と群島からなる地方。海の底には沈んだ古代都市が眠っている。" },
+  { id: "celesta", name: "セレスタ地方", desc: "雲の上に浮かぶ島々の地方。天空の民と神獣たちが暮らしている。" },
 ];
 
 const DUNGEONS = [
@@ -892,10 +921,46 @@ const DUNGEONS = [
   },
   {
     id: "leviathan_trench", region: "marina", name: "大海溝", x: 30, y: 12, level: 75, battles: 5,
-    pool: ["abyss_angler", "trident_guard", "siren", "kraken_spawn", "coral_golem", "reef_shark"], boss: "leviathan", rares: ["deep_sea_whale", "ocean_seraph"], unlocks: [],
+    pool: ["abyss_angler", "trident_guard", "siren", "kraken_spawn", "coral_golem", "reef_shark"], boss: "leviathan", rares: ["deep_sea_whale", "ocean_seraph"], unlocks: ["cloud_road"],
     desc: "光の届かない深い海溝。海の王リヴァイアサンの棲み処。",
     power: 0.24, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "ur", plus: 8 },
+  },
+  // ---- セレスタ地方（推奨Lv77〜88） ----
+  {
+    id: "cloud_road", region: "celesta", name: "雲上の道", x: 50, y: 84, level: 77, battles: 5,
+    pool: ["sky_wisp", "thunder_bird", "cloud_golem", "wind_sylph", "griffon", "siren"], boss: "storm_roc", rares: ["cloud_sheep", "rainbow_bird"], unlocks: ["floating_isle"],
+    desc: "雲の上に続く白い道。踏み外せば地上まで真っ逆さま。",
+    power: 0.19, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 8 },
+  },
+  {
+    id: "floating_isle", region: "celesta", name: "浮遊島", x: 20, y: 58, level: 80, battles: 5,
+    pool: ["griffon", "wind_sylph", "sky_knight", "thunder_bird", "star_beast", "cloud_golem"], boss: "isle_guardian", rares: ["sky_whale_calf", "pegasus"], unlocks: ["sky_garden"],
+    desc: "空に浮かぶ岩の島。古い魔法の力で今も落ちずに浮かんでいる。",
+    power: 0.21, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 8 },
+  },
+  {
+    id: "sky_garden", region: "celesta", name: "天空庭園", x: 78, y: 48, level: 83, battles: 5,
+    pool: ["star_beast", "seraph_guard", "wind_sylph", "angel_statue", "sky_wisp", "sky_knight"], boss: "garden_warden", rares: ["golden_hen", "moon_rabbit"], unlocks: ["thunder_spire"],
+    desc: "天空の民が造った庭園。見たこともない花が咲き乱れている。",
+    power: 0.2, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 9 },
+  },
+  {
+    id: "thunder_spire", region: "celesta", name: "雷鳴の尖塔", x: 34, y: 26, level: 86, battles: 5,
+    pool: ["thunder_bird", "storm_elemental", "sky_knight", "angel_statue", "seraph_guard", "griffon"], boss: "thunder_god_beast", rares: ["lightning_drake", "storm_crystal"], unlocks: ["celestial_palace"],
+    desc: "雷雲を貫いてそびえる塔。絶えず稲妻が塔を打ちつけている。",
+    power: 0.18, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 9 },
+  },
+  {
+    id: "celestial_palace", region: "celesta", name: "天空宮殿", x: 66, y: 10, level: 88, battles: 5,
+    pool: ["seraph_guard", "storm_elemental", "angel_statue", "star_beast", "sky_knight", "archon"], boss: "sky_emperor", rares: ["holy_kirin", "stardust_fairy"], unlocks: [],
+    desc: "雲の頂に建つ天空の宮殿。空の帝がすべてを見下ろしている。",
+    power: 0.18, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    benchmarkGear: { rarity: "ur", plus: 9 },
   },
 ];
 
