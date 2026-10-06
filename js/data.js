@@ -38,6 +38,7 @@ function syncExpToNext(rec) {
 }
 
 const JOB_MASTER_LEVEL = 50; // 上級職の解放に必要な、対応する基本職のレベル
+const MONSTER_MAX_LEVEL = 100; // テイムしたモンスターのレベル上限（推奨Lvの上限と同じ。js/model/roster.js の gainExp）
 const JOBS = {
   warrior: {
     id: "warrior", name: "せんし", commandName: "とくぎ", icon: "⚔️", tier: "basic",

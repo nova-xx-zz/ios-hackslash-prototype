@@ -25,7 +25,7 @@ function loadGameData() {
    LEGACY_ITEM_BASES, ITEM_DROP_SLOT_WEIGHTS, UNIQUE_ITEMS, getUniqueItem, rollUniqueDrop, rollSpecialDrop, regionForLevel,
    UNIQUE_DROP_CHANCE, RARE_UNIQUE_CHANCE, DUNGEON_MODES, getDungeonMode, getModeDungeon, powerForLevel,
    ITEM_OPTIONS, OPTION_COUNTS, addItemOptions, itemOptionEffect, itemOptionText, rarityColor, BOSS_UNIQUE_CHANCE, UNIQUE_STAT_MULT, CURSED_STAT_MULT, JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, EXCLUSIVE_TREES, jobTag, getExclusiveTreeByTag, getGeneralTree, GENERAL_SLOTS,
-   buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, RARE_DROP_MIN_RARITY, ITEM_LEVEL_GROWTH, REGIONS, enhanceSuccessRate, guaranteedStonesRequired, expForLevel, syncExpToNext, tameHomeLevel, fusionBaseExp, FUSION_SAME_RACE_MULT, MONSTER_JOBS, getGeneralSlotDef, getAbilityById, isFeatureEnabled })`, context);
+   buildEncounter, getEnemyTemplate, getDungeon, rollItemDrop, RARE_DROP_MIN_RARITY, ITEM_LEVEL_GROWTH, REGIONS, enhanceSuccessRate, guaranteedStonesRequired, expForLevel, syncExpToNext, tameHomeLevel, fusionBaseExp, FUSION_SAME_RACE_MULT, MONSTER_MAX_LEVEL, MONSTER_JOBS, getGeneralSlotDef, getAbilityById, isFeatureEnabled })`, context);
 }
 
 module.exports = { loadGameData };

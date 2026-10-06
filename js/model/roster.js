@@ -13,17 +13,29 @@
     const runBuffs = deps.runBuffs || (() => null);
     const isTeamLocked = deps.isTeamLocked || (() => false);
     const {
-      JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
+      JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
       getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
       JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
     } = deps.data;
 
-    // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
+    // レベル上限: テイムしたモンスターは MONSTER_MAX_LEVEL まで（人間のキャラは上限なし）
+    function levelCap(c) {
+      return c.isMonster && MONSTER_MAX_LEVEL ? MONSTER_MAX_LEVEL : Infinity;
+    }
+    function isMaxLevel(c) { return c.level >= levelCap(c); }
+    // 上限を超えたレベル（上限を入れる前のセーブ）を上限に戻す
+    function clampLevel(c) {
+      if (c.level <= levelCap(c)) return;
+      c.level = levelCap(c); c.exp = 0; c.expToNext = expForLevel(c.level);
+    }
+
+    // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）。
+    // レベル上限に達したら、それ以上のEXPは捨てる
     function gainExp(c, amount) {
       const levelUps = [];
       const abilityUnlocks = [];
       c.exp += amount;
-      while (c.exp >= c.expToNext) {
+      while (!isMaxLevel(c) && c.exp >= c.expToNext) {
         c.exp -= c.expToNext;
         c.level += 1;
         c.expToNext = expForLevel(c.level);
@@ -34,6 +46,7 @@
           if (a.reqLevel === c.level) abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
         }
       }
+      if (isMaxLevel(c)) c.exp = 0;
       // 転職してもレベルを保持できるよう、現在のジョブの進行を都度書き戻す。
       // スキルツリーの取得ノード等(skillTree)は丸ごと置換せずマージして保持する
       if (!c.isMonster) c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level: c.level, exp: c.exp, expToNext: c.expToNext });
@@ -335,7 +348,7 @@
     function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
     return {
-      gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore,
+      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore,
       equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
