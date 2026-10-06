@@ -99,3 +99,27 @@ test("クラウドからの復元: 自動周回は止め、内容の要約を返
   assert.deepEqual(restored.roster, JSON.parse(json).roster);
   for (const bad of ["", "{", "null", JSON.stringify({ roster: [] })]) assert.equal(save.prepareRestore(bad), null, bad);
 });
+
+test("未編成グループ: 書き出して読み直すと同じ。キャラのgroupは存在するグループのみ、パーティ所属中はnull", () => {
+  const s = sampleState();
+  s.groups = [{ id: "g1", name: "育成中" }, { id: "g2", name: "メイン" }];
+  s.roster[1].group = "g2";
+  s.roster.push({ id: "c3", name: "ミナ", job: "mage", level: 1, exp: 0, expToNext: data.expForLevel(1), team: null, group: "gone", jobLevels: {} });
+  s.roster[0].group = "g1"; // パーティ所属中なのにグループを持っている（壊れたデータ）
+  const loaded = roundTrip(s);
+  assert.deepEqual(loaded.state.groups, s.groups);
+  assert.equal(loaded.state.roster[0].group, null);
+  assert.equal(loaded.state.roster[1].group, "g2");
+  assert.equal(loaded.state.roster[2].group, null);
+});
+
+test("未編成グループ: グループの無い旧セーブは空。壊れた項目・重複したid・長すぎる名前をそろえる", () => {
+  const s = sampleState();
+  const json = JSON.parse(JSON.stringify(save.serialize(s)));
+  delete json.groups;
+  assert.deepEqual(save.deserialize(json).state.groups, []);
+  assert.deepEqual(save.normalizeGroups([
+    null, { id: "" }, { id: "g1", name: "  あいうえおかきくけこさしすせそ  " }, { id: "g1", name: "重複" }, { id: "g2" },
+  ]), [{ id: "g1", name: "あいうえおかきくけこさし" }, { id: "g2", name: "グループ" }]);
+  assert.equal(save.normalizeGroups(Array.from({ length: 30 }, (_, i) => ({ id: "g" + i, name: "x" }))).length, save.GROUP_MAX);
+});

@@ -6,6 +6,7 @@
 // ---------- パーティ一覧（編成画面） ----------
 const expandedTeams = new Set([0]);
 let benchExpanded = true;
+const expandedGroups = new Set(); // 開いている未編成グループのid
 let detailCharId = null;
 let detailTab = "stats";
 let fusionSelection = new Set(); // モンスター合成: 選択中の素材モンスターのid
@@ -45,8 +46,36 @@ function renderJobsScreen() {
     }));
   }
 
+  // 未編成グループ: パーティに入れていない仲間を「育成中」などに分けておく（プレイヤーが名前を付けて作る）
+  wrap.appendChild(sectionLabel("未編成グループ"));
+  for (const g of S.groups) {
+    const members = S.roster.filter((c) => c.team === null && c.group === g.id);
+    wrap.appendChild(buildPartyRow({
+      key: "g:" + g.id,
+      name: g.name,
+      meta: `${members.length}人`,
+      expanded: expandedGroups.has(g.id),
+      onToggle: () => {
+        if (expandedGroups.has(g.id)) expandedGroups.delete(g.id); else expandedGroups.add(g.id);
+        renderJobsScreen();
+      },
+      onMenu: () => openGroupModal(g),
+      members,
+      dropKey: "g:" + g.id,
+      emptyTile: null,
+      emptyText: "（長押しで仲間をここへ移動できます）",
+    }));
+  }
+  if (S.groups.length < QPModel.save.GROUP_MAX) {
+    const add = document.createElement("button");
+    add.className = "group-add";
+    add.textContent = "＋ 新しいグループを作る";
+    add.addEventListener("click", () => openGroupModal(null));
+    wrap.appendChild(add);
+  }
+
   wrap.appendChild(sectionLabel("未編成"));
-  const bench = S.roster.filter((c) => c.team === null);
+  const bench = S.roster.filter((c) => c.team === null && !c.group);
   wrap.appendChild(buildPartyRow({
     key: "bench",
     name: "控え",
@@ -80,11 +109,13 @@ function sectionLabel(text) {
 function buildPartyRow(opts) {
   const frag = document.createDocumentFragment();
 
-  const head = document.createElement("button");
+  const head = document.createElement("div");
   head.className = "party-row-head";
+  head.setAttribute("role", "button");
+  head.tabIndex = 0;
   head.dataset.drop = opts.dropKey;
-  head.innerHTML = `<span class="chev">${opts.expanded ? "∨" : "＞"}</span>
-    <span class="pname">${opts.name}</span>`;
+  head.innerHTML = `<span class="chev">${opts.expanded ? "∨" : "＞"}</span><span class="pname"></span>`;
+  head.querySelector(".pname").textContent = opts.name; // グループ名はプレイヤーが入力するので文字として入れる
   if (opts.viewed) {
     const tag = document.createElement("span");
     tag.className = "deployed";
@@ -101,7 +132,18 @@ function buildPartyRow(opts) {
   meta.className = "pmeta";
   meta.textContent = opts.meta;
   head.appendChild(meta);
+  if (opts.onMenu) {
+    const menu = document.createElement("button");
+    menu.className = "party-row-menu";
+    menu.setAttribute("aria-label", "グループの設定");
+    menu.textContent = "…";
+    menu.addEventListener("click", (e) => { e.stopPropagation(); opts.onMenu(); });
+    head.appendChild(menu);
+  }
   head.addEventListener("click", opts.onToggle);
+  head.addEventListener("keydown", (e) => {
+    if (e.target === head && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); opts.onToggle(); }
+  });
   frag.appendChild(head);
 
   if (!opts.expanded) return frag;
@@ -122,7 +164,8 @@ function buildPartyRow(opts) {
     const none = document.createElement("div");
     none.className = "sub-ability-row";
     none.style.padding = "2px 4px 8px";
-    none.textContent = "（このパーティは空です）";
+    none.dataset.drop = opts.dropKey;
+    none.textContent = opts.emptyText || "（このパーティは空です）";
     frag.appendChild(none);
   }
   frag.appendChild(strip);
@@ -137,6 +180,74 @@ function buildPartyRow(opts) {
   }
   return frag;
 }
+
+// ---------- 未編成グループの作成・名前の変更・削除 ----------
+let groupModalTarget = null; // 編集中のグループ（新しく作る時は null）
+let groupDeleteConfirm = false; // 削除ボタンを1回押して確認待ちか
+
+function openGroupModal(g) {
+  groupModalTarget = g;
+  groupDeleteConfirm = false;
+  document.getElementById("groupModalTitle").textContent = g ? "グループの設定" : "新しいグループ";
+  document.getElementById("btnGroupSave").textContent = g ? "名前を変更する" : "作成する";
+  const del = document.getElementById("btnGroupDelete");
+  del.classList.toggle("hidden", !g);
+  del.textContent = "このグループを削除する";
+  document.getElementById("groupModalMsg").textContent = "";
+  const input = document.getElementById("groupNameInput");
+  input.value = g ? g.name : "";
+  document.getElementById("groupModal").classList.remove("hidden");
+  if (!g) input.focus();
+}
+
+function closeGroupModal() {
+  document.getElementById("groupModal").classList.add("hidden");
+  groupModalTarget = null;
+}
+
+function saveGroupModal() {
+  const name = document.getElementById("groupNameInput").value.trim().slice(0, QPModel.save.GROUP_NAME_MAX);
+  if (!name) {
+    document.getElementById("groupModalMsg").textContent = "名前を入力してください";
+    return;
+  }
+  if (groupModalTarget) {
+    groupModalTarget.name = name;
+  } else {
+    if (S.groups.length >= QPModel.save.GROUP_MAX) return closeGroupModal();
+    let n = 1;
+    while (S.groups.some((x) => x.id === "g" + n)) n += 1;
+    S.groups.push({ id: "g" + n, name });
+    expandedGroups.add("g" + n);
+  }
+  closeGroupModal();
+  renderJobsScreen();
+}
+
+// 削除してもグループにいた仲間はいなくならず、「未編成」に戻る
+function deleteGroupModal() {
+  const g = groupModalTarget;
+  if (!g) return;
+  const count = S.roster.filter((c) => c.group === g.id).length;
+  if (!groupDeleteConfirm) {
+    groupDeleteConfirm = true;
+    document.getElementById("btnGroupDelete").textContent = "もう一度押すと削除します";
+    document.getElementById("groupModalMsg").textContent = count > 0 ? `中の仲間${count}人は「未編成」に戻ります` : "";
+    return;
+  }
+  for (const c of S.roster) if (c.group === g.id) c.group = null;
+  S.groups = S.groups.filter((x) => x !== g);
+  expandedGroups.delete(g.id);
+  closeGroupModal();
+  renderJobsScreen();
+}
+
+document.getElementById("btnGroupSave").addEventListener("click", saveGroupModal);
+document.getElementById("btnGroupDelete").addEventListener("click", deleteGroupModal);
+document.getElementById("btnGroupCancel").addEventListener("click", closeGroupModal);
+document.getElementById("groupNameInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); saveGroupModal(); }
+});
 
 function buildMemberCard(c) {
   const stats = computeStats(c);
@@ -217,6 +328,27 @@ function attachMemberDrag(card, c) {
   });
 }
 
+// ドラッグ中に指が一覧の上端・下端の近くにある間は、一覧を自動でスクロールする
+// （第一のパーティから下のパーティへ、またはその逆へ運べるようにする）
+const DRAG_SCROLL_EDGE = 70; // 端からこの距離(px)以内でスクロールする
+const DRAG_SCROLL_MAX_SPEED = 14; // 1フレームあたりの最大スクロール量(px)
+
+function dragAutoScrollStep() {
+  if (!dragState) return;
+  const body = document.getElementById("rosterBody");
+  const rect = body.getBoundingClientRect();
+  const y = dragState.pos.y;
+  let dy = 0;
+  if (y < rect.top + DRAG_SCROLL_EDGE) dy = -DRAG_SCROLL_MAX_SPEED * Math.min(1, (rect.top + DRAG_SCROLL_EDGE - y) / DRAG_SCROLL_EDGE);
+  else if (y > rect.bottom - DRAG_SCROLL_EDGE) dy = DRAG_SCROLL_MAX_SPEED * Math.min(1, (y - (rect.bottom - DRAG_SCROLL_EDGE)) / DRAG_SCROLL_EDGE);
+  if (dy) {
+    const before = body.scrollTop;
+    body.scrollTop += dy;
+    if (body.scrollTop !== before) updateDropZone(); // 指の下に来た行が変わるので、移動先の表示を更新する
+  }
+  dragState.scrollRaf = requestAnimationFrame(dragAutoScrollStep);
+}
+
 function startMemberDrag(c, card, pos) {
   const ghost = card.cloneNode(true);
   ghost.classList.add("drag-ghost");
@@ -226,14 +358,20 @@ function startMemberDrag(c, card, pos) {
   document.body.appendChild(ghost);
   card.classList.add("dragging");
   document.body.classList.add("dragging-member");
-  dragState = { char: c, card, ghost, zone: null };
+  dragState = { char: c, card, ghost, zone: null, pos: { x: pos.x, y: pos.y }, scrollRaf: 0 };
+  dragState.scrollRaf = requestAnimationFrame(dragAutoScrollStep);
 }
 
 function moveMemberDrag(ev) {
   if (!dragState) return;
   dragState.ghost.style.left = ev.clientX + "px";
   dragState.ghost.style.top = ev.clientY + "px";
-  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  dragState.pos = { x: ev.clientX, y: ev.clientY };
+  updateDropZone();
+}
+
+function updateDropZone() {
+  const el = document.elementFromPoint(dragState.pos.x, dragState.pos.y);
   const zone = el ? el.closest("[data-drop]") : null;
   if (zone === dragState.zone) return;
   if (dragState.zone) dragState.zone.classList.remove("drop-target", "full");
@@ -245,7 +383,7 @@ function moveMemberDrag(ev) {
 }
 
 function canDropOn(key, c) {
-  if (key === "bench") return true;
+  if (key === "bench" || key.startsWith("g:")) return true;
   const i = parseInt(key, 10);
   if (isTeamLocked(i)) return false;
   if (c.team === i) return true;
@@ -255,6 +393,7 @@ function canDropOn(key, c) {
 function dropMemberDrag() {
   if (!dragState) return;
   const { char, card, ghost, zone } = dragState;
+  cancelAnimationFrame(dragState.scrollRaf);
   ghost.remove();
   card.classList.remove("dragging");
   document.body.classList.remove("dragging-member");
@@ -265,7 +404,13 @@ function dropMemberDrag() {
     const key = zone.dataset.drop;
     if (key === "bench") {
       char.team = null;
+      char.group = null;
       benchExpanded = true;
+    } else if (key.startsWith("g:")) {
+      const id = key.slice(2);
+      char.team = null;
+      char.group = id;
+      expandedGroups.add(id);
     } else {
       const i = parseInt(key, 10);
       if (char.team !== i) {
@@ -280,6 +425,7 @@ function dropMemberDrag() {
           return;
         }
         char.team = i;
+        char.group = null;
         clampVitals(char);
         expandedTeams.add(i);
       }
