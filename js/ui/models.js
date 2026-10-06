@@ -64,12 +64,15 @@ function loadGame() {
       legacyMaterial: store.getInt(KEYS.material, 0),
       syncExpToNext,
       itemBases: ITEM_BASES,
+      legacyItemBases: LEGACY_ITEM_BASES,
     });
     if (!loaded) return false;
     Object.assign(S, loaded.state);
     store.set(KEYS.material, S.material);
-    // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく
+    // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく。
+    // ジョブの装備制限・装飾品の枠数に合わない装備（旧セーブから移した装備など）は所持品に戻す
     for (const c of S.roster) {
+      normalizeCharEquip(c);
       const s = computeStats(c);
       c.hp = s.maxHp; c.mp = s.maxMp;
       c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
@@ -100,15 +103,17 @@ function loadGame() {
 // キャラまわりのルール（作成・EXP・転職・スキルツリー・能力値など）は js/model/roster.js
 const Roster = QPModel.roster.createRoster({
   data: {
-    JOBS, MONSTER_JOBS, RACES, SLOTS, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
-    getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemEffectiveValue,
+    JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
+    getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
+    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES,
   },
   state: S,
   runBuffs: (team) => Runner.runBuffs(team), // 石碑の加護（js/model/run.js）
   isTeamLocked: (team) => isTeamLocked(team),
 });
 const {
-  gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
+  gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
+  equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
 } = Roster;
 
 const TEAM_NAMES = ["第一のパーティ", "第二のパーティ", "第三のパーティ", "第四のパーティ"];
@@ -118,7 +123,7 @@ const TEAM_LABELS = ["I", "II", "III", "IV"];
 // ---------- Inventory ----------
 // 所持品まわりのルール（装備・強化石・装備強化・ドロップの受け取り・モンスター合成）は js/model/inventory.js
 const Inventory = QPModel.inventory.createInventory({
-  data: { SLOTS, ENHANCE_RULES, ENHANCE_MAX_PLUS, RARITIES },
+  data: { ENHANCE_RULES, ENHANCE_MAX_PLUS, RARITIES },
   state: S,
   roster: Roster,
   rng: RNG,
@@ -126,7 +131,7 @@ const Inventory = QPModel.inventory.createInventory({
   onMaterialChange: (material) => store.set(KEYS.material, material), // 旧キーは互換ミラー
 });
 const {
-  clampVitals, equipItem, unequipSlot, autoEquip, guaranteedStoneTotal, isPityReady,
+  clampVitals, equipItem, unequipSlot, autoEquip, guaranteedStoneTotal, isPityReady, normalizeCharEquip,
 } = Inventory;
 
 // ---------- ダンジョン1周の進行 ----------

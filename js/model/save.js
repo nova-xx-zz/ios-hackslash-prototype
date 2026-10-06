@@ -7,6 +7,7 @@
 (function (root) {
   "use strict";
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
+  const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
 
   // schemaVersion 2からは、このメインセーブのmaterialを正本とし、旧jobquest_materialキーは
   // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
@@ -57,6 +58,17 @@
     return out;
   }
 
+  // アイテム辞典の記録（"sword:n" など旧形式の種類のキー）を新しい種類のキーにそろえる
+  function migrateFoundKeys(keys, legacy) {
+    const out = [];
+    for (const k of keys) {
+      const [base, rarity] = k.split(":");
+      const nk = legacy[base] ? `${legacy[base].key}:${rarity}` : k;
+      if (!out.includes(nk)) out.push(nk);
+    }
+    return out;
+  }
+
   // キャラの group を、存在するグループのidかnullにそろえる（パーティ所属中のキャラはグループに入らない）。
   // group を持たないキャラ（グループ機能より前のセーブ）はそのまま（無い＝未編成）
   function normalizeCharGroups(roster, groups) {
@@ -98,7 +110,8 @@
   // セーブデータ（JSON.parse済み）から状態を復元する。使えないデータならnullを返す。
   // opts: legacyMaterial（旧形式セーブ用。旧jobquest_materialキーの値）,
   //       syncExpToNext（レベル記録の必要EXPを現在の曲線で計算し直す関数。js/data.js）,
-  //       itemBases（data.js の ITEM_BASES。持っている装備をアイテム辞典に載せるのに使う）
+  //       itemBases（data.js の ITEM_BASES。持っている装備をアイテム辞典に載せるのに使う）,
+  //       legacyItemBases（data.js の LEGACY_ITEM_BASES。旧形式の8種類の装備を新しい種類に移す）
   // 戻り値: { state（保存対象の項目のみ。自動周回は含めない）, isLegacy, savedAt, savedAutoRepeat }
   function deserialize(data, opts) {
     opts = opts || {};
@@ -122,6 +135,17 @@
       groups: normalizeGroups(data.groups),
     };
     normalizeCharGroups(state.roster, state.groups);
+    // 装備の枠が3つ（武器・防具・装飾品）だった頃のセーブは、新しい枠（右手・左手・頭・体・装飾品1〜3）と
+    // 新しい種類の装備に移す（ジョブの装備制限に合わない装備は、読み込み後に game.js 側で所持品に戻す）
+    if (opts.legacyItemBases) {
+      const legacy = opts.legacyItemBases;
+      for (const c of state.roster) {
+        c.equip = equipment.migrateEquip(c.equip);
+        for (const it of Object.values(c.equip)) if (it) equipment.migrateItem(it, legacy);
+      }
+      for (const it of state.inventory) equipment.migrateItem(it, legacy);
+      state.records.itemsFound = migrateFoundKeys(state.records.itemsFound, legacy);
+    }
     // 記録が無かった頃のセーブでも、いま持っている装備（所持品・装備中）はアイテム辞典に載せる
     if (opts.itemBases) {
       const owned = state.inventory.slice();

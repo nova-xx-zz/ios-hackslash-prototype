@@ -6,14 +6,16 @@
 (function (root) {
   "use strict";
   const stats = (root.QPCore && root.QPCore.stats) || (typeof require === "function" ? require("../core/stats.js") : null);
+  const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
 
   function createRoster(deps) {
     const S = deps.state;
     const runBuffs = deps.runBuffs || (() => null);
     const isTeamLocked = deps.isTeamLocked || (() => false);
     const {
-      JOBS, MONSTER_JOBS, RACES, SLOTS, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
-      getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemEffectiveValue,
+      JOBS, MONSTER_JOBS, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
+      getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
+      JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES,
     } = deps.data;
 
     // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）
@@ -55,7 +57,7 @@
         abilityPriority: {}, // abilityId -> 1(温存)/2(通常)/3(優先)、既定2
         targetPriority: "weakest", // weakest / strongest / random
         level: opts.level || 1, exp: 0, expToNext: expForLevel(opts.level || 1),
-        equip: { weapon: null, armor: null, accessory: null },
+        equip: equipment.emptyEquip(), // 右手・左手・頭・体・装飾品1〜3（js/core/equipment.js）
         atb: 0, defending: false, alive: true,
         team: opts.team !== undefined ? opts.team : null, // 0..3 所属チーム / null は控え
         isMonster: opts.isMonster || false,
@@ -199,7 +201,7 @@
     // 取得済みパッシブノードの効果を、固有＋汎用3枠ぶん合算する。加算系(能力値/会心率等)は0、
     // 乗算系(被ダメ/消費MP)は1を既定値にする
     function treePassiveTotals(c) {
-      const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1 };
+      const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1, accessorySlots: 0 };
       const st = getTreeState(c);
       if (!st) return totals;
       const applyTree = (treeDef, ranks) => {
@@ -212,6 +214,7 @@
             if (eff.type === "statAdd") totals[eff.stat] += eff.value * rank;
             else if (eff.type === "passiveAdd") totals[eff.key] += eff.value * rank;
             else if (eff.type === "passiveMult") totals[eff.key] *= eff.value;
+            else if (eff.type === "equipSlot" && eff.slot === "accessory") totals.accessorySlots += eff.value * rank;
           }
         }
       };
@@ -224,22 +227,46 @@
     }
     function treePassive(c, key) { return treePassiveTotals(c)[key]; }
 
+    // ---------- 装備 ----------
+    // ジョブの装備制限（js/data.js の JOB_EQUIP。モンスターは MONSTER_EQUIP）
+    function equipProfile(c) {
+      return c.isMonster ? MONSTER_EQUIP : (JOB_EQUIP[c.job] || MONSTER_EQUIP);
+    }
+    // 使える装飾品の枠数（1〜3）。今のジョブのスキルツリーの「装備の心得」「装備の極意」で増える。
+    // スキルツリーを持たないモンスター（とスキルツリーが無効な時）はLvで増える
+    function accessorySlots(c) {
+      let n = 1;
+      if (getExclusiveTree(c)) n += treePassiveTotals(c).accessorySlots;
+      else for (const lv of MONSTER_ACCESSORY_SLOT_LEVELS || []) if (c.level >= lv) n += 1;
+      return Math.max(1, Math.min(equipment.MAX_ACCESSORY_SLOTS, n));
+    }
+    function canPlaceItem(c, item, position) {
+      return equipment.canPlace(equipProfile(c), item, position, c.equip, accessorySlots(c));
+    }
+    // 付けている装備のセット効果（同じシリーズを2・4・6個）
+    function setBonuses(c) { return equipment.setBonusTotals(c.equip, ITEM_SERIES); }
+    // 会心率・吸収・回復量・被ダメージ・消費MPのうち、セット効果のぶん（戦闘で種族・スキルツリーの値と合わせる）
+    function gearPassive(c, key) { return setBonuses(c).passives[key]; }
+
     function computeStats(c) {
       const s = stats.baseStats(jobDef(c), RACES[c.race] || RACES.human, c.level);
-      for (const slot of SLOTS) {
-        const item = c.equip[slot.key];
-        // HP・MPの装備は最大HP・最大MPに足す（能力値の hp/mp は maxHp/maxMp という名前で持っているため）
-        if (item) s[item.stat === "hp" ? "maxHp" : item.stat === "mp" ? "maxMp" : item.stat] += itemEffectiveValue(item);
+      // HP・MPの装備は最大HP・最大MPに足す（能力値の hp/mp は maxHp/maxMp という名前で持っているため）
+      const key = (k) => (k === "hp" ? "maxHp" : k === "mp" ? "maxMp" : k);
+      for (const item of Object.values(c.equip || {})) {
+        if (!item) continue;
+        for (const [k, v] of Object.entries(itemStats(item))) s[key(k)] += v;
       }
       const tp = treePassiveTotals(c);
       s.maxHp += tp.hp; s.maxMp += tp.mp; s.atk += tp.atk; s.mag += tp.mag; s.def += tp.def; s.spd += tp.spd;
+      // セット効果（能力値の割合ボーナス）は、装備・スキルツリーまで足した値に掛ける
+      for (const [k, pct] of Object.entries(setBonuses(c).stats)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
       // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
       const buffs = c.team !== null ? runBuffs(c.team) : null;
       if (buffs) stats.applyBuffs(s, buffs);
       return s;
     }
 
-    // ジョブの基礎値を重みにして、そのキャラにとっての装備の価値を測る
+    // ジョブの基礎値を重みにして、そのキャラにとっての装備の価値を測る（能力値が複数ある装備は合計）
     function itemScore(c, item) {
       const base = jobDef(c).base;
       const weights = {
@@ -247,7 +274,9 @@
         atk: base.atk / 10, mag: base.mag / 10,
         def: base.def / 8, spd: base.spd / 7,
       };
-      return itemEffectiveValue(item) * (weights[item.stat] || 0.5);
+      let score = 0;
+      for (const [k, v] of Object.entries(itemStats(item))) score += v * (weights[k] || 0.5);
+      return score;
     }
 
     function racePassive(c, key) {
@@ -300,7 +329,8 @@
     function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
     return {
-      gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
+      gainExp, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore,
+      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
 

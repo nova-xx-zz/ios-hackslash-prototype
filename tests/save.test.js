@@ -123,3 +123,26 @@ test("未編成グループ: グループの無い旧セーブは空。壊れた
   ]), [{ id: "g1", name: "あいうえおかきくけこさし" }, { id: "g2", name: "グループ" }]);
   assert.equal(save.normalizeGroups(Array.from({ length: 30 }, (_, i) => ({ id: "g" + i, name: "x" }))).length, save.GROUP_MAX);
 });
+
+test("旧セーブの装備: 3枠（武器・防具・装飾品）を右手・体・装飾品1に、8種類の装備をブロンズの同じ種類に移す", () => {
+  const s = sampleState();
+  const json = JSON.parse(JSON.stringify(save.serialize(s)));
+  json.roster[0].equip = {
+    weapon: { id: "w", name: "ノーマルの剣", base: "sword", slot: "weapon", stat: "atk", value: 3, rarity: "n", plus: 2 },
+    armor: { id: "a", slot: "armor", stat: "mp", value: 4, rarity: "r", plus: 0 }, // base の無いさらに古い形
+    accessory: null,
+  };
+  json.inventory = [{ id: "i", base: "boots", slot: "accessory", stat: "spd", value: 2, rarity: "sr", plus: 0 }];
+  const loaded = save.deserialize(json, { legacyItemBases: data.LEGACY_ITEM_BASES });
+  const eq = loaded.state.roster[0].equip;
+  assert.deepEqual(Object.keys(eq), ["main", "off", "head", "body", "acc1", "acc2", "acc3"]);
+  assert.deepEqual([eq.main.base, eq.main.name, eq.main.slot, eq.main.series, eq.main.plus], ["bronze_sword", "ブロンズソード", "weapon", "bronze", 2]);
+  assert.deepEqual(eq.main.stats, { atk: 3 });
+  assert.equal(eq.main.stat, undefined);
+  assert.deepEqual([eq.body.base, eq.body.slot, eq.body.stats], ["bronze_robe", "body", { mp: 4 }]);
+  assert.equal(eq.acc1, null);
+  assert.deepEqual([loaded.state.inventory[0].base, loaded.state.inventory[0].stats], ["bronze_boots", { spd: 2 }]);
+  // 新しい形のセーブは読み直しても変わらない
+  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize(Object.assign(sampleState(), loaded.state)))), { legacyItemBases: data.LEGACY_ITEM_BASES });
+  assert.deepEqual(again.state.roster[0].equip, eq);
+});

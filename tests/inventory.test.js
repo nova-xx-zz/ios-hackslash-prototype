@@ -23,7 +23,18 @@ function setup(opts) {
   });
   return { state, roster, inv, mirror };
 }
-const item = (slot, stat, value, rarity, plus, extra) => Object.assign({ id: `${slot}-${rarity}-${value}`, name: "x", slot, stat, value, rarity, plus: plus || 0, materialValue: 10 }, extra);
+// テスト用の装備。baseKey は data.js の ITEM_BASES の key（例: "bronze_sword"）、stats は実際の能力値
+let itemSeq = 0;
+const gear = (baseKey, stats, rarity, plus, extra) => {
+  const b = data.getItemBase(baseKey);
+  return Object.assign({ id: `${baseKey}-${itemSeq++}`, name: b.name, base: b.key, slot: b.slot, type: b.type, series: b.series, hands: b.hands,
+    stats, rarity: rarity || "n", plus: plus || 0, materialValue: 10 }, extra);
+};
+// 能力値1つだけの簡単な装備（強化・分解のテスト用）
+const item = (slot, stat, value, rarity, plus, extra) => {
+  const baseKey = { weapon: "bronze_sword", shield: "bronze_buckler", head: "bronze_helm", body: "bronze_plate", accessory: "bronze_amulet" }[slot];
+  return gear(baseKey, { [stat]: value }, rarity, plus, extra);
+};
 const alwaysFail = { chance: () => false, float: () => 0.99 };
 
 test("装備: 付けると所持品から外れ、元の装備は所持品に戻る。外すと所持品に戻る", () => {
@@ -31,36 +42,158 @@ test("装備: 付けると所持品から外れ、元の装備は所持品に戻
   const c = roster.newCharacter("アレン", "warrior", "human");
   const a = item("weapon", "atk", 3, "n"), b = item("weapon", "atk", 5, "r");
   state.inventory.push(a, b);
-  inv.equipItem(c, a);
-  assert.equal(c.equip.weapon, a);
+  assert.equal(inv.equipItem(c, a), true);
+  assert.equal(c.equip.main, a);
   assert.deepEqual(state.inventory, [b]);
-  inv.equipItem(c, b);
-  assert.equal(c.equip.weapon, b);
+  inv.equipItem(c, b, "main");
+  assert.equal(c.equip.main, b);
   assert.deepEqual(state.inventory, [a]);
-  inv.unequipSlot(c, "weapon");
-  assert.equal(c.equip.weapon, null);
+  inv.unequipSlot(c, "main");
+  assert.equal(c.equip.main, null);
   assert.deepEqual(state.inventory, [a, b]);
 });
 
 test("装備: 外してHPの上限が下がったら、今のHPも上限まで下げる", () => {
   const { roster, inv } = setup();
   const c = roster.newCharacter("アレン", "warrior", "human");
-  inv.equipItem(c, item("armor", "hp", 30, "sr", 5));
+  inv.equipItem(c, item("body", "hp", 30, "sr", 5));
   c.hp = roster.computeStats(c).maxHp;
-  inv.unequipSlot(c, "armor");
+  inv.unequipSlot(c, "body");
   assert.equal(c.hp, roster.computeStats(c).maxHp);
 });
 
-test("おまかせ装備: 部位ごとにそのキャラにとって価値が高いものを付ける", () => {
+test("装備の制限: ジョブが持てない種類は付けられない。装飾品はだれでも付けられる", () => {
+  const { state, roster, inv } = setup();
+  const mage = roster.newCharacter("ミナ", "mage", "human");
+  const sword = gear("bronze_sword", { atk: 3 }), plate = gear("bronze_plate", { def: 3, hp: 4 });
+  const ring = gear("bronze_ring", { mag: 2 }), staff = gear("bronze_staff", { mag: 3 });
+  state.inventory.push(sword, plate, ring, staff);
+  assert.equal(inv.equipItem(mage, sword), false); // まほうつかいは剣を持てない
+  assert.equal(inv.equipItem(mage, plate), false); // よろいも着られない
+  assert.equal(inv.equipItem(mage, staff), true);
+  assert.equal(inv.equipItem(mage, ring), true);
+  assert.equal(mage.equip.main, staff);
+  assert.equal(mage.equip.acc1, ring);
+  assert.equal(inv.equipItem(mage, sword, "off"), false);
+});
+
+test("両手武器: 右手に持つと左手の装備を外す。持っている間は左手に何も付けられない", () => {
+  const { state, roster, inv } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  const sword = gear("bronze_sword", { atk: 3 }), buckler = gear("bronze_buckler", { def: 2 }), great = gear("bronze_greatsword", { atk: 6 });
+  state.inventory.push(sword, buckler, great);
+  inv.equipItem(c, sword);
+  inv.equipItem(c, buckler);
+  assert.equal(c.equip.off, buckler);
+  inv.equipItem(c, great, "main");
+  assert.equal(c.equip.main, great);
+  assert.equal(c.equip.off, null);
+  assert.deepEqual(state.inventory.slice().sort((a, b) => a.id.localeCompare(b.id)), [buckler, sword].sort((a, b) => a.id.localeCompare(b.id)));
+  assert.equal(inv.equipItem(c, buckler, "off"), false);
+});
+
+test("二刀流: 二刀流のジョブだけ左手に片手武器を持てる", () => {
+  const { state, roster, inv } = setup();
+  const thief = roster.newCharacter("ノア", "thief", "human");
+  const warrior = roster.newCharacter("アレン", "warrior", "human");
+  const d1 = gear("bronze_dagger", { atk: 2, spd: 2 }), d2 = gear("bronze_dagger", { atk: 2, spd: 2 });
+  const s1 = gear("bronze_sword", { atk: 3 }), s2 = gear("bronze_sword", { atk: 3 });
+  state.inventory.push(d1, d2, s1, s2);
+  inv.equipItem(thief, d1);
+  assert.equal(inv.equipItem(thief, d2), true);
+  assert.equal(thief.equip.off, d2);
+  inv.equipItem(warrior, s1);
+  assert.equal(inv.equipItem(warrior, s2, "off"), false); // せんしは二刀流できない
+});
+
+test("装飾品の枠: 最初は1枠。固有ツリーの「装備の心得」「装備の極意」で3枠まで増える", () => {
+  const { roster } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human", { level: 30 });
+  assert.equal(roster.accessorySlots(c), 1);
+  const tree = roster.getExclusiveTree(c);
+  const ranks = roster.getTreeState(c).exclusiveRanks;
+  const node = (id) => tree.nodes.find((n) => n.id === id);
+  for (const id of ["w1", "w2", "w_acc1"]) assert.ok(roster.acquireNode(c, tree, ranks, node(id)), id);
+  assert.equal(roster.accessorySlots(c), 2);
+  for (const id of ["w3", "w_acc2"]) assert.ok(roster.acquireNode(c, tree, ranks, node(id)), id);
+  assert.equal(roster.accessorySlots(c), 3);
+});
+
+test("装飾品の枠: モンスターはLvで増える", () => {
+  const { roster } = setup();
+  const m = roster.newCharacter("スラ", null, "slime", { isMonster: true, level: 1 });
+  assert.equal(roster.accessorySlots(m), 1);
+  m.level = data.MONSTER_ACCESSORY_SLOT_LEVELS[0];
+  assert.equal(roster.accessorySlots(m), 2);
+  m.level = data.MONSTER_ACCESSORY_SLOT_LEVELS[1];
+  assert.equal(roster.accessorySlots(m), 3);
+});
+
+test("転職: 新しいジョブで持てない装備・使えない装飾品の枠の装備は所持品に戻す", () => {
+  const { state, roster, inv } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human", { level: 30 });
+  const tree = roster.getExclusiveTree(c);
+  const ranks = roster.getTreeState(c).exclusiveRanks;
+  for (const id of ["w1", "w2", "w_acc1"]) roster.acquireNode(c, tree, ranks, tree.nodes.find((n) => n.id === id));
+  const sword = gear("bronze_sword", { atk: 3 }), a1 = gear("bronze_ring", { mag: 2 }), a2 = gear("bronze_amulet", { hp: 6 });
+  state.inventory.push(sword, a1, a2);
+  inv.equipItem(c, sword);
+  inv.equipItem(c, a1);
+  inv.equipItem(c, a2);
+  assert.equal(c.equip.acc2, a2);
+  roster.switchJob(c, "mage"); // まほうつかいは Lv1・ツリーなし → 剣は持てず、装飾品は1枠
+  assert.equal(inv.normalizeCharEquip(c), 2);
+  assert.equal(c.equip.main, null);
+  assert.equal(c.equip.acc1, a1);
+  assert.equal(c.equip.acc2, null);
+  assert.ok(state.inventory.includes(sword) && state.inventory.includes(a2));
+});
+
+test("セット効果: 同じシリーズを2・4・6個付けると能力値の割合ボーナス・パッシブが付く", () => {
+  const { roster } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  const before = roster.computeStats(c);
+  c.equip.head = gear("iron_helm", { def: 1, hp: 1 });
+  c.equip.body = gear("iron_plate", { def: 1, hp: 1 });
+  const two = roster.setBonuses(c);
+  assert.equal(two.stats.def, 0.05);
+  assert.equal(roster.computeStats(c).def, Math.round((before.def + 2) * 1.05));
+  c.equip.main = gear("iron_sword", { atk: 1 });
+  c.equip.off = gear("iron_shield", { def: 1 });
+  c.equip.acc1 = gear("iron_brooch", { def: 1 });
+  c.equip.acc2 = gear("iron_amulet", { hp: 1 });
+  const six = roster.setBonuses(c);
+  assert.equal(six.stats.hp, 0.06);
+  assert.equal(six.passives.dmgTakenMult, 0.95);
+  assert.equal(roster.gearPassive(c, "dmgTakenMult"), 0.95);
+  assert.deepEqual(six.active[0].bonuses.map((b) => b.active), [true, true, true]);
+});
+
+test("おまかせ装備: 今の装備と所持品から、そのキャラにとって価値が高い組み合わせを付ける", () => {
   const { state, roster, inv } = setup();
   const warrior = roster.newCharacter("アレン", "warrior", "human");
-  const atk = item("weapon", "atk", 5, "n"), mag = item("weapon", "mag", 5, "n"), acc = item("accessory", "spd", 2, "n");
-  state.inventory.push(mag, atk, acc);
+  const atk = item("weapon", "atk", 5, "n"), staff = gear("bronze_staff", { mag: 9 }), acc = item("accessory", "spd", 2, "n");
+  state.inventory.push(staff, atk, acc);
   inv.autoEquip(warrior);
-  assert.equal(warrior.equip.weapon, atk); // せんしはATKを重視
-  assert.equal(warrior.equip.accessory, acc);
-  assert.equal(warrior.equip.armor, null); // 候補が無い部位はそのまま
-  assert.deepEqual(state.inventory, [mag]);
+  assert.equal(warrior.equip.main, atk); // せんしは杖を持てない
+  assert.equal(warrior.equip.acc1, acc);
+  assert.equal(warrior.equip.body, null); // 候補が無い枠はそのまま
+  assert.deepEqual(state.inventory, [staff]);
+});
+
+test("おまかせ装備: 両手武器と「片手武器＋盾」は合計で比べる", () => {
+  const { state, roster, inv } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  const sword = gear("bronze_sword", { atk: 3 }), shield = gear("bronze_shield", { def: 3, hp: 4 }), great = gear("bronze_greatsword", { atk: 4 });
+  state.inventory.push(sword, shield, great);
+  inv.autoEquip(c);
+  assert.equal(c.equip.main, sword);
+  assert.equal(c.equip.off, shield);
+  const huge = gear("bronze_greatsword", { atk: 30 });
+  state.inventory.push(huge);
+  inv.autoEquip(c);
+  assert.equal(c.equip.main, huge);
+  assert.equal(c.equip.off, null);
 });
 
 test("強化: 成功で+1・強化石を消費・旧キーへミラー。石が足りない／上限なら何もしない", () => {
@@ -127,7 +260,7 @@ test("確定強化石: 無償分から消費して必ず+1。足りない／機�
 
 test("ドロップの受け取り: 自動分解の対象は強化石に、それ以外は所持品に入る", () => {
   const { state, inv } = setup();
-  const n = item("weapon", "atk", 3, "n", 0, { materialValue: 5 }), r = item("armor", "def", 4, "r", 0, { materialValue: 20 });
+  const n = item("weapon", "atk", 3, "n", 0, { materialValue: 5 }), r = item("body", "def", 4, "r", 0, { materialValue: 20 });
   const settled = inv.receiveDrops([n, r], { enabled: true, rarities: new Set(["n"]) });
   assert.deepEqual(state.inventory, [r]);
   assert.equal(state.material, 5);
@@ -139,7 +272,7 @@ test("ドロップの受け取り: 自動分解の対象は強化石に、それ
 test("手動の分解: 選んだ所持品だけを強化石に変える。値が無い古いアイテムはレア度の既定値、所持品に無いものは無視", () => {
   const { state, inv, mirror } = setup();
   const a = item("weapon", "atk", 3, "n", 0, { materialValue: 5 });
-  const b = item("armor", "def", 4, "sr", 7, { materialValue: 80 });
+  const b = item("body", "def", 4, "sr", 7, { materialValue: 80 });
   const c = item("accessory", "spd", 2, "r", 0, { materialValue: undefined });
   const keep = item("weapon", "atk", 9, "ur", 0, { materialValue: 350 });
   const notOwned = item("weapon", "atk", 1, "lr", 0, { materialValue: 1500 });
@@ -164,8 +297,8 @@ test("モンスター合成: 控えのモンスターだけが素材。積み上
   state.roster = [target, mat1, mat2, inTeam, human];
   assert.deepEqual(inv.fusionCandidates(target).map((m) => m.name), ["ソザイ1", "ソザイ2"]);
 
-  const gear = item("weapon", "atk", 3, "n");
-  mat1.equip.weapon = gear;
+  const gearItem = item("weapon", "atk", 3, "n");
+  mat1.equip.main = gearItem;
   const expected = Math.round(roster.totalExpInvested(mat1) * 0.5) + Math.round(roster.totalExpInvested(mat2) * 0.5);
   assert.equal(inv.fusionExpGain([mat1, mat2]), expected);
   const r = inv.fuse(target, [mat1, mat2]);
@@ -173,7 +306,7 @@ test("モンスター合成: 控えのモンスターだけが素材。積み上
   assert.deepEqual(r.consumedNames, ["ソザイ1", "ソザイ2"]);
   assert.equal(r.returnedItems, 1);
   assert.deepEqual(state.roster.map((c) => c.name), ["ターゲット", "編成中", "アレン"]);
-  assert.deepEqual(state.inventory, [gear]);
+  assert.deepEqual(state.inventory, [gearItem]);
   assert.equal(roster.totalExpInvested(target), expected);
   assert.ok(r.levelUps.length > 0);
 });

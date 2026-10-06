@@ -22,17 +22,23 @@
   }
 
   // opts: { level（装備のレベル。拾ったダンジョンの推奨Lv）, levelGrowth }
+  // base: data.js の ITEM_BASES の1件（stats は能力値の重み）。能力値は 重み×レア度の倍率×装備のレベルの倍率（最低1）
   function createItem(base, rarity, id, opts) {
     opts = opts || {};
     const level = opts.level || 1;
+    const mult = rarity.mult * itemLevelMult(level, opts.levelGrowth);
+    const stats = {};
+    for (const [k, w] of Object.entries(base.stats)) stats[k] = Math.max(1, Math.round(w * mult));
     return {
       id,
-      name: `${rarity.name}の${base.name}`,
+      name: base.name,
       base: base.key,
       slot: base.slot,
-      stat: base.stat,
+      type: base.type,
+      series: base.series,
+      hands: base.hands || 1,
+      stats,
       level,
-      value: Math.round(base.base * rarity.mult * itemLevelMult(level, opts.levelGrowth)),
       rarity: rarity.key,
       rarityColor: rarity.color,
       materialValue: rarity.material,

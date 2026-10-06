@@ -251,8 +251,8 @@ document.getElementById("btnDisassembleConfirm").addEventListener("click", () =>
   renderInventoryScreen();
 });
 
-// 装備セクション（スロットをタップで所持品から選ぶ）
-let openSlot = null; // "charId:slotKey"
+// 装備セクション（枠をタップで所持品から選ぶ）
+let openSlot = null; // "charId:枠のkey"
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
@@ -262,23 +262,58 @@ function buildEquipSection(c) {
   head.textContent = `装備（所持品 ${S.inventory.length}個）`;
   wrap.appendChild(head);
 
-  const row = document.createElement("div");
-  row.className = "equip-slot-row";
-  for (const slot of SLOTS) {
-    const item = c.equip[slot.key];
-    const key = `${c.id}:${slot.key}`;
+  // このジョブが持てる種類
+  const profile = equipProfile(c);
+  const typeNames = (keys) => keys.map((k) => getItemType(k).name).join("・");
+  const canUse = document.createElement("div");
+  canUse.className = "equip-can-use";
+  canUse.textContent = `持てる武器: ${typeNames(profile.weapons) || "なし"}${profile.dualWield ? "（二刀流）" : ""}` +
+    ` ／ 盾: ${typeNames(profile.shields) || "なし"} ／ 頭: ${typeNames(profile.head)} ／ 体: ${typeNames(profile.body)}`;
+  wrap.appendChild(canUse);
+
+  const accSlots = accessorySlots(c);
+  const grid = document.createElement("div");
+  grid.className = "equip-slot-grid";
+  for (const pos of EQUIP_POSITIONS) {
+    const item = c.equip[pos.key];
+    const key = `${c.id}:${pos.key}`;
+    const accIndex = QPCore.equipment.ACC_POSITIONS.indexOf(pos.key);
+    const locked = accIndex >= accSlots;
+    const blocked = pos.key === "off" && c.equip.main && c.equip.main.hands === 2;
     const btn = document.createElement("button");
-    btn.className = "equip-slot" + (item ? " filled" : "") + (openSlot === key ? " open" : "");
+    btn.className = "equip-slot" + (item ? " filled" : "") + (openSlot === key ? " open" : "") + (locked || blocked ? " locked" : "");
     if (item) btn.style.borderColor = item.rarityColor;
-    btn.innerHTML = `<span class="slot-name">${slot.name}</span>
-      <span class="slot-item">${item ? itemLabel(item) : "なし"}</span>`;
+    const emptyText = locked ? (c.isMonster ? `Lv${MONSTER_ACCESSORY_SLOT_LEVELS[accIndex - 1]}で解放` : "スキルツリーで解放")
+      : blocked ? "（両手武器）" : "なし";
+    btn.innerHTML = `<span class="slot-name"></span><span class="slot-item"></span><span class="slot-stats"></span>`;
+    btn.querySelector(".slot-name").textContent = pos.name;
+    btn.querySelector(".slot-item").textContent = item ? `${item.name}${item.plus > 0 ? "+" + item.plus : ""}` : emptyText;
+    btn.querySelector(".slot-stats").textContent = item ? itemStatsText(item) : "";
+    if (locked || blocked) btn.disabled = true;
     btn.addEventListener("click", () => {
       openSlot = openSlot === key ? null : key;
       renderCharDetail();
     });
-    row.appendChild(btn);
+    grid.appendChild(btn);
   }
-  wrap.appendChild(row);
+  wrap.appendChild(grid);
+
+  // セット効果（同じシリーズを2個以上付けている時）
+  for (const set of setBonuses(c).active) {
+    const row = document.createElement("div");
+    row.className = "equip-set-row";
+    const name = document.createElement("span");
+    name.className = "equip-set-name";
+    name.textContent = `${set.series.name}セット ${set.count}個`;
+    row.appendChild(name);
+    for (const b of set.bonuses) {
+      const chip = document.createElement("span");
+      chip.className = "equip-set-bonus" + (b.active ? " on" : "");
+      chip.textContent = `${b.count}: ${b.desc}`;
+      row.appendChild(chip);
+    }
+    wrap.appendChild(row);
+  }
 
   const autoBtn = document.createElement("button");
   autoBtn.className = "equip-choice";
@@ -287,13 +322,13 @@ function buildEquipSection(c) {
   autoBtn.addEventListener("click", () => { autoEquip(c); renderCharDetail(); });
   wrap.appendChild(autoBtn);
 
-  // 開いているスロットの候補一覧
-  const opened = SLOTS.find((s) => openSlot === `${c.id}:${s.key}`);
+  // 開いている枠の候補一覧（そのキャラが付けられる物だけ）
+  const opened = EQUIP_POSITIONS.find((p) => openSlot === `${c.id}:${p.key}`);
   if (opened) {
     const list = document.createElement("div");
     list.className = "equip-choice-list";
     const candidates = S.inventory
-      .filter((i) => i.slot === opened.key)
+      .filter((i) => canPlaceItem(c, i, opened.key))
       .sort((a, b) => itemScore(c, b) - itemScore(c, a));
 
     if (c.equip[opened.key]) {
@@ -312,15 +347,15 @@ function buildEquipSection(c) {
     if (candidates.length === 0) {
       const none = document.createElement("div");
       none.className = "sub-ability-row";
-      none.textContent = `（${opened.name}の手持ちがありません）`;
+      none.textContent = `（${opened.name}に付けられる手持ちがありません）`;
       list.appendChild(none);
     }
     for (const item of candidates) {
       const btn = document.createElement("button");
       btn.className = "equip-choice";
       btn.style.borderColor = item.rarityColor;
-      btn.textContent = itemLabel(item);
-      btn.addEventListener("click", () => { equipItem(c, item); openSlot = null; renderCharDetail(); });
+      btn.textContent = itemLabel(item) + (item.hands === 2 ? "・両手" : "");
+      btn.addEventListener("click", () => { equipItem(c, item, opened.key); openSlot = null; renderCharDetail(); });
       list.appendChild(btn);
     }
     wrap.appendChild(list);
@@ -330,7 +365,7 @@ function buildEquipSection(c) {
 }
 
 // ---------- 装備強化 ----------
-const SLOT_ICONS = { weapon: "⚔️", armor: "🛡️", accessory: "💍" };
+const SLOT_ICONS = Object.fromEntries(SLOTS.map((sl) => [sl.key, sl.icon]));
 let enhanceItem = null;
 let enhanceMessage = "";
 let enhanceOnClose = null; // 呼び出し元の画面を再描画するコールバック（未指定ならキャラ詳細を再描画）
@@ -357,13 +392,13 @@ function renderEnhanceModal() {
   if (!item) return;
   const rarity = RARITIES.find((r) => r.key === item.rarity);
   const maxed = item.plus >= ENHANCE_MAX_PLUS;
-  const nextValue = itemEffectiveValue({ ...item, plus: item.plus + 1 });
+  const nextText = itemStatsText({ ...item, plus: item.plus + 1 });
 
   document.getElementById("enIcon").textContent = SLOT_ICONS[item.slot] || "❓";
   document.getElementById("enName").textContent = `${item.name}${item.plus > 0 ? "+" + item.plus : ""}`;
   document.getElementById("enDesc").textContent =
-    `${rarity.name} / ${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}` +
-    (maxed ? "（強化値が上限に達しています）" : ` → 成功で ${STAT_LABELS[item.stat]}+${nextValue}`);
+    `${rarity.name} / ${itemStatsText(item)}` +
+    (maxed ? "（強化値が上限に達しています）" : ` → 成功で ${nextText}`);
 
   const rate = enhanceSuccessRate(item);
   const cost = enhanceCost(item);

@@ -53,15 +53,20 @@ function debugJumpTo(target) {
   for (const c of members) {
     c.level = level; c.exp = 0; c.expToNext = expForLevel(level);
     if (!c.isMonster && c.job) c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level, exp: 0, expToNext: c.expToNext });
-    for (const slot of SLOTS) {
-      const options = ITEM_BASES.filter((b) => b.slot === slot.key).map((b) => {
-        const item = QPCore.rewards.createItem(b, rarity, "dbg_" + debugItemSeq++, { level: gearLevel, levelGrowth: ITEM_LEVEL_GROWTH });
-        item.plus = gear.plus;
-        return item;
-      });
-      c.equip[slot.key] = options.reduce((best, it) => (itemScore(c, it) > itemScore(c, best) ? it : best));
-    }
-    if (!c.isMonster) debugSpendSkillPoints(c);
+    if (!c.isMonster) debugSpendSkillPoints(c); // 先に振って装飾品の枠を増やしておく
+    // その地方のシリーズの全種類を適正装備のレア度・+値で用意し、おまかせ装備で付ける（残りは捨てる）
+    const series = seriesForLevel(gearLevel);
+    const pool = ITEM_BASES.filter((b) => b.series === series.key).map((b) => {
+      const item = QPCore.rewards.createItem(b, rarity, "dbg_" + debugItemSeq++, { level: gearLevel, levelGrowth: ITEM_LEVEL_GROWTH });
+      item.plus = gear.plus;
+      return item;
+    });
+    c.equip = QPCore.equipment.emptyEquip();
+    const kept = S.inventory.slice();
+    S.inventory.push(...pool);
+    autoEquip(c);
+    S.inventory.length = 0;
+    S.inventory.push(...kept);
     const s = computeStats(c);
     c.hp = s.maxHp; c.mp = s.maxMp; c.alive = true;
   }

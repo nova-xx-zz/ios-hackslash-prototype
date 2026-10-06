@@ -24,6 +24,18 @@ const DETAIL_TABS = [
   { key: "job", label: "ジョブ" },
 ];
 
+// キャラ詳細の上に一時的に出す知らせ（転職で装備を外した時など）
+let detailNotice = "";
+let detailNoticeTimer = null;
+function flashDetailNotice(text) {
+  detailNotice = text;
+  clearTimeout(detailNoticeTimer);
+  detailNoticeTimer = setTimeout(() => {
+    detailNotice = "";
+    if (!document.getElementById("screen-chardetail").classList.contains("hidden")) renderCharDetail();
+  }, 3500);
+}
+
 function renderCharDetail() {
   scheduleSave();
   const c = S.roster.find((x) => x.id === detailCharId);
@@ -43,6 +55,13 @@ function renderCharDetail() {
     const notice = document.createElement("div");
     notice.className = "sub-ability-row locked-notice";
     notice.textContent = `${TEAM_NAMES[c.team]}は探索中のため、この画面では変更できません（表示のみ）`;
+    wrap.appendChild(notice);
+  }
+
+  if (detailNotice) {
+    const notice = document.createElement("div");
+    notice.className = "sub-ability-row detail-notice";
+    notice.textContent = detailNotice;
     wrap.appendChild(notice);
   }
 

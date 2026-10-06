@@ -105,12 +105,12 @@ test("冒険の記録: 出会った敵をダンジョン別に、手に入れた
   assert.ok(battle.enemies.every((e) => seen.includes(e.key)));
   assert.equal(new Set(seen).size, seen.length); // 同じ敵は1回だけ
   run.pendingDrops.push(
-    { id: "a", base: "sword", slot: "weapon", stat: "atk", value: 3, rarity: "n", plus: 0, materialValue: 5 }, // 自動分解される
-    { id: "b", slot: "armor", stat: "def", value: 3, rarity: "r", plus: 0, materialValue: 20 } // base の無い古い形
+    { id: "a", base: "bronze_sword", slot: "weapon", stats: { atk: 3 }, rarity: "n", plus: 0, materialValue: 5 }, // 自動分解される
+    { id: "b", base: "bronze_plate", slot: "body", stats: { def: 3 }, rarity: "r", plus: 0, materialValue: 20 }
   );
   run.expTotal = 42;
   Runner.finishRun(run, true, { tamed: "スライム" });
-  assert.deepEqual(state.records.itemsFound.sort(), ["armor:r", "sword:n"]);
+  assert.deepEqual(state.records.itemsFound.sort(), ["bronze_plate:r", "bronze_sword:n"]);
   assert.deepEqual(state.records.runHistory[0], {
     at: 1_000_000_000_000, team: 0, dungeonId: "plains", cleared: true, battlesWon: 3, battles: 3,
     exp: 42, items: 1, disassembled: 1, material: 5, tamed: "スライム",
@@ -118,9 +118,9 @@ test("冒険の記録: 出会った敵をダンジョン別に、手に入れた
   // 全滅: 持ち帰れなかった装備は記録しない。履歴は新しい順
   const run2 = Runner.startRun(0, "plains");
   run2.battleIndex = 1;
-  run2.pendingDrops.push({ id: "c", base: "staff", slot: "weapon", stat: "mag", value: 3, rarity: "ur", plus: 0, materialValue: 350 });
+  run2.pendingDrops.push({ id: "c", base: "bronze_staff", slot: "weapon", stats: { mag: 3 }, rarity: "ur", plus: 0, materialValue: 350 });
   Runner.finishRun(run2, false);
-  assert.equal(state.records.itemsFound.includes("staff:ur"), false);
+  assert.equal(state.records.itemsFound.includes("bronze_staff:ur"), false);
   assert.equal(state.records.runHistory.length, 2);
   assert.deepEqual([state.records.runHistory[0].cleared, state.records.runHistory[0].battlesWon], [false, 1]);
 });
