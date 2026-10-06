@@ -67,6 +67,9 @@ function syncExpToNext(rec) {
 }
 
 const JOB_MASTER_LEVEL = 50; // 上級職の解放に必要な、対応する基本職のレベル
+// レベル上限（js/model/roster.js の levelCap）。テイムしたモンスターは推奨Lvの上限と同じLv100、人間のキャラはLv99
+const MONSTER_MAX_LEVEL = 100;
+const CHAR_MAX_LEVEL = 99;
 const JOBS = {
   warrior: {
     id: "warrior", name: "せんし", commandName: "とくぎ", icon: "⚔️", tier: "basic",

@@ -201,13 +201,16 @@ function buildFusionTab(c) {
   footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: +${totalExpGain}</span>`;
   wrap.appendChild(footer);
 
+  // レベル上限に達したモンスターはEXPを受け取れないため、素材を無駄にしないよう合成させない
+  const maxed = isMaxLevel(c);
   const btn = document.createElement("button");
   btn.className = "btn primary";
-  btn.textContent = selectedMonsters.length === 0 ? "素材を選んでください"
+  btn.textContent = maxed ? `Lv.${c.level}（上限）に達しているため合成できません`
+    : selectedMonsters.length === 0 ? "素材を選んでください"
     : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する（取り消せません）` : `${selectedMonsters.length}体を合成する`);
-  btn.disabled = selectedMonsters.length === 0;
+  btn.disabled = maxed || selectedMonsters.length === 0;
   btn.addEventListener("click", () => {
-    if (selectedMonsters.length === 0) return;
+    if (maxed || selectedMonsters.length === 0) return;
     if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
     fusionConfirm = false;
     // 素材が装備していたアイテムは消滅させず所持品へ戻し、素材を取り除いてEXPを還元する（js/model/inventory.js）

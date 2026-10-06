@@ -181,3 +181,40 @@ test("チーム: 所属メンバー・表示中のパーティ・最高レベル
   assert.deepEqual(R.activeParty().map((c) => c.name), ["A"]);
   assert.equal(R.currentMaxLevel(), 7);
 });
+
+test("レベル上限: モンスターはLv100、人間のキャラはLv99で止まり、余ったEXPは捨てる", () => {
+  const { R } = setup();
+  assert.equal(data.MONSTER_MAX_LEVEL, 100);
+  assert.equal(data.CHAR_MAX_LEVEL, 99);
+  const mon = R.newCharacter("スライム", null, "slime", { isMonster: true, level: 99 });
+  const r = R.gainExp(mon, data.expForLevel(99) * 5);
+  assert.equal(mon.level, 100);
+  assert.equal(mon.exp, 0);
+  assert.equal(R.isMaxLevel(mon), true);
+  assert.deepEqual(r.levelUps, ["スライム Lv.100"]);
+  R.gainExp(mon, 1e9);
+  assert.equal(mon.level, 100);
+  assert.equal(mon.exp, 0);
+  const hero = R.newCharacter("アレン", "warrior", "human", { level: 98 });
+  R.gainExp(hero, data.expForLevel(98) * 5);
+  assert.equal(hero.level, 99);
+  assert.equal(hero.exp, 0);
+  assert.equal(R.isMaxLevel(hero), true);
+  assert.deepEqual({ level: hero.jobLevels.warrior.level, exp: hero.jobLevels.warrior.exp }, { level: 99, exp: 0 });
+});
+
+test("レベル上限: 上限を超えたレベル（旧セーブ）は上限に戻す。人間はジョブごとの記録も戻す", () => {
+  const { R } = setup();
+  const mon = R.newCharacter("スライム", null, "slime", { isMonster: true, level: 130 });
+  mon.exp = 500;
+  R.clampLevel(mon);
+  assert.deepEqual({ level: mon.level, exp: mon.exp, expToNext: mon.expToNext }, { level: 100, exp: 0, expToNext: data.expForLevel(100) });
+  const hero = R.newCharacter("アレン", "warrior", "human", { level: 120 });
+  hero.jobLevels.mage = { level: 105, exp: 10, expToNext: data.expForLevel(105) };
+  hero.jobLevels.thief = { level: 40, exp: 10, expToNext: data.expForLevel(40) };
+  R.clampLevel(hero);
+  assert.equal(hero.level, 99);
+  assert.equal(hero.jobLevels.warrior.level, 99);
+  assert.deepEqual({ ...hero.jobLevels.mage }, { level: 99, exp: 0, expToNext: data.expForLevel(99) });
+  assert.equal(hero.jobLevels.thief.level, 40);
+});
