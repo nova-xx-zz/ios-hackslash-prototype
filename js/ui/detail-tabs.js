@@ -39,6 +39,7 @@ function buildStatsTab(c) {
     btn.addEventListener("click", () => {
       if (disabled) return;
       c.team = i;
+      c.group = null; // パーティに入ったら未編成グループからは外れる
       clampVitals(c);
       renderCharDetail();
     });

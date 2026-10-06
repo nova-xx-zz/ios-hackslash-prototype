@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=26">
+<link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body>
 <div id="app">
@@ -297,6 +297,19 @@
     </div>
   </div>
 
+  <!-- 未編成グループの作成・名前の変更・削除モーダル（js/ui/party.js） -->
+  <div id="groupModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-name" id="groupModalTitle">新しいグループ</div>
+      <div class="modal-desc">パーティに入れていない仲間を「育成中」などに分けて並べられます</div>
+      <input id="groupNameInput" class="group-name-input" type="text" maxlength="12" placeholder="グループの名前（12文字まで）" autocomplete="off">
+      <div class="group-modal-msg" id="groupModalMsg"></div>
+      <button class="btn primary modal-ok" id="btnGroupSave">作成する</button>
+      <button class="btn modal-ok danger hidden" id="btnGroupDelete">このグループを削除する</button>
+      <button class="btn ghost modal-ok" id="btnGroupCancel">キャンセル</button>
+    </div>
+  </div>
+
   <!-- 自動周回オフライン進行の結果モーダル -->
   <div id="offlineModal" class="modal-overlay hidden">
     <div class="modal-card">
@@ -343,7 +356,7 @@
 <script src="js/core/stats.js?v=1"></script>
 <script src="js/core/battle.js?v=2"></script>
 <script src="js/model/records.js?v=1"></script>
-<script src="js/model/save.js?v=3"></script>
+<script src="js/model/save.js?v=4"></script>
 <script src="js/model/roster.js?v=2"></script>
 <script src="js/model/inventory.js?v=2"></script>
 <script src="js/model/run.js?v=3"></script>
@@ -359,11 +372,11 @@
 <script src="js/ui/title-map.js?v=7"></script>
 <script src="js/ui/settings.js?v=1"></script>
 <script src="js/ui/debug.js?v=1"></script>
-<script src="js/ui/party.js?v=2"></script>
+<script src="js/ui/party.js?v=3"></script>
 <script src="js/ui/create.js?v=2"></script>
 <script src="js/ui/detail.js?v=1"></script>
 <script src="js/ui/detail-tree.js?v=1"></script>
-<script src="js/ui/detail-tabs.js?v=2"></script>
+<script src="js/ui/detail-tabs.js?v=3"></script>
 <script src="js/ui/inventory.js?v=3"></script>
 <script src="js/ui/battle.js?v=2"></script>
 <script src="js/ui/log.js?v=2"></script>

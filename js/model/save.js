@@ -33,7 +33,38 @@
       guaranteedStones: { free: 0, paid: 0 },
       // 冒険の記録（ダンジョン別に出会った敵・手に入れた装備・潜った履歴。js/model/records.js）
       records: recordsMod.createRecords(),
+      // 未編成グループ（パーティに入れていない仲間を「育成中」などに分けて並べる入れ物）。[{ id, name }, ...]。
+      // 仲間がどのグループにいるかは各キャラの group（グループのid。パーティ所属中・未編成なら null）に持つ
+      groups: [],
     };
+  }
+
+  const GROUP_MAX = 20;
+  const GROUP_NAME_MAX = 12;
+
+  // セーブから読んだグループの一覧を使える形にそろえる（壊れた項目・重複したidは捨てる）
+  function normalizeGroups(data) {
+    if (!Array.isArray(data)) return [];
+    const out = [];
+    const seen = new Set();
+    for (const g of data) {
+      if (!g || typeof g.id !== "string" || !g.id || seen.has(g.id)) continue;
+      const name = typeof g.name === "string" ? g.name.trim().slice(0, GROUP_NAME_MAX) : "";
+      seen.add(g.id);
+      out.push({ id: g.id, name: name || "グループ" });
+      if (out.length >= GROUP_MAX) break;
+    }
+    return out;
+  }
+
+  // キャラの group を、存在するグループのidかnullにそろえる（パーティ所属中のキャラはグループに入らない）。
+  // group を持たないキャラ（グループ機能より前のセーブ）はそのまま（無い＝未編成）
+  function normalizeCharGroups(roster, groups) {
+    const ids = new Set(groups.map((g) => g.id));
+    for (const c of roster) {
+      if (c.group === undefined || c.group === null) continue;
+      if ((c.team !== null && c.team !== undefined) || !ids.has(c.group)) c.group = null;
+    }
   }
 
   // 状態をセーブデータ（JSONにできるオブジェクト）にする。
@@ -59,6 +90,7 @@
       material: state.material,
       guaranteedStones: state.guaranteedStones,
       records: state.records,
+      groups: state.groups,
       enabledFeaturesAtSave: opts.enabledFeatures || [],
     };
   }
@@ -87,7 +119,9 @@
         ? { free: Number(gs.free) || 0, paid: Number(gs.paid) || 0 }
         : { free: typeof gs === "number" ? gs : 0, paid: 0 }, // 区別のない旧形式は無償分として扱う
       records: recordsMod.normalizeRecords(data.records),
+      groups: normalizeGroups(data.groups),
     };
+    normalizeCharGroups(state.roster, state.groups);
     // 記録が無かった頃のセーブでも、いま持っている装備（所持品・装備中）はアイテム辞典に載せる
     if (opts.itemBases) {
       const owned = state.inventory.slice();
@@ -133,7 +167,7 @@
     };
   }
 
-  const exported = { SCHEMA_VERSION, createState, serialize, deserialize, prepareRestore };
+  const exported = { SCHEMA_VERSION, GROUP_MAX, GROUP_NAME_MAX, createState, serialize, deserialize, prepareRestore, normalizeGroups };
   root.QPModel = root.QPModel || {};
   root.QPModel.save = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
