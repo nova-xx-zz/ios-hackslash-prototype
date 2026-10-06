@@ -836,6 +836,16 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .map-header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 8px; }
 .map-title { font-size: 15px; font-weight: 700; }
+/* 地方の切り替え（地方が2つ以上ある時だけ表示） */
+.map-region-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 0 2px 6px; -webkit-overflow-scrolling: touch; }
+.map-region-tabs.hidden { display: none; }
+.map-region-tab {
+  flex: none; padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  background: rgba(255, 255, 255, 0.05); color: var(--sub-text); border: 1px solid var(--border); cursor: pointer;
+}
+.map-region-tab.active { background: rgba(201, 164, 99, 0.2); color: #f1dfb0; border-color: var(--accent); }
+.map-region-tab:disabled { opacity: 0.45; cursor: default; }
+.map-region-desc { padding: 0 4px 8px; font-size: 11px; color: var(--sub-text); line-height: 1.5; }
 
 .map-board {
   position: relative;

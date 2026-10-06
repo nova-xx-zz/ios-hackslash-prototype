@@ -1,7 +1,8 @@
 // ---------- 画面: 冒険者の書（書物） ----------
 // 探索画面の下の「書物」から開く。目次から各項目へ進み、「もどる」で1つ前のページに戻る（目次では探索画面へ）。
 //   冒険の手引き … 遊び方の説明（BOOK_GUIDE）
-//   モンスター辞典 … すべてのモンスター（出会ったことのある敵）と、ダンジョンごとに出会った敵（S.records.dungeonEncounters）
+//   モンスター辞典 … すべてのモンスター（出会ったことのある敵）と、ダンジョンごとに出会った敵（S.records.dungeonEncounters）。
+//                    地方ごとにダンジョンを並べ、レア敵には★レアの印を付ける
 //   アイテム辞典 … 手に入れた装備の種類とレア度（S.records.itemsFound。自動分解した物も含む）
 //   種族辞典・ジョブ辞典 … 種族とジョブの説明・能力値の傾向・特性・アビリティ
 //   冒険の記録 … ダンジョンに潜った履歴（S.records.runHistory。新しい順に最大50件）
@@ -47,6 +48,11 @@ const BOOK_GUIDE = [
     "ダンジョンで見つけた装備は、踏破すると手に入ります。全滅すると、その周回で見つけた装備は持ち帰れません。",
     "装備は強化石を使って強化できます。強化値が高いほど成功しにくくなります。",
     "所持品の「分解する」で、選んだ装備を強化石に変えられます。",
+  ] },
+  { title: "地方とレアモンスター", body: [
+    "ダンジョンは地方ごとに分かれています。地方の最後のダンジョンを踏破すると、次の地方へ進めるようになります。マップの上の地方の名前を押すと、地方を切り替えられます。",
+    "奥のダンジョンで拾った装備ほど、装備のレベルが高く強くなります（装備のレベルは、拾ったダンジョンの推奨Lvです）。",
+    "ダンジョンには、まれにそのダンジョンだけのレアモンスター（★）が現れます。強めですがEXPが多く、倒すとスーパーレア以上の装備を必ず落とします。",
   ] },
   { title: "探索と自動周回", body: [
     "探索画面の「マップ」からダンジョンを選んで出発します。ダンジョンでは何回か戦闘があり、最後はボスとの戦いです。",
@@ -170,7 +176,7 @@ function guideTopicPage(g) {
 
 // ---------- モンスター辞典 ----------
 function dungeonMonsterKeys(d) {
-  return [...new Set([...d.pool, d.boss])];
+  return [...new Set([...d.pool, d.boss, ...(d.rares || [])])];
 }
 function monsterIndexPage() {
   return {
@@ -180,13 +186,18 @@ function monsterIndexPage() {
       body.appendChild(bookList([
         bookRow({ iconHtml: bookIcon("all"), label: "すべてのモンスター", meta: `${dexSeen.size}/${ENEMY_TEMPLATES.length}`, onClick: () => pushBookPage(allMonstersPage()) }),
       ]));
-      body.appendChild(bookHeading("ダンジョン一覧"));
-      body.appendChild(bookList(DUNGEONS.map((d) => {
+      for (const region of REGIONS) {
+        const dungeons = DUNGEONS.filter((d) => d.region === region.id);
+        if (!dungeons.length) continue;
+        const reached = dungeons.some((d) => isDungeonOpen(d));
+        body.appendChild(bookHeading(reached ? region.name : "？？？地方"));
+        body.appendChild(bookList(dungeons.map((d) => {
         if (!isDungeonOpen(d) && !S.clearedDungeons.has(d.id)) return bookRow({ iconHtml: bookIcon("dungeon"), label: "？？？", meta: "未到達" });
         const keys = dungeonMonsterKeys(d);
         const met = (S.records.dungeonEncounters[d.id] || []).filter((k) => keys.includes(k)).length;
         return bookRow({ iconHtml: bookIcon("dungeon"), label: d.name, meta: `${met}/${keys.length}`, onClick: () => pushBookPage(dungeonMonstersPage(d)) });
-      })));
+        })));
+      }
     },
   };
 }
@@ -198,14 +209,15 @@ function monsterGrid(keys, isSeen, bossKey) {
     if (!t) continue;
     const seen = isSeen(key);
     const card = document.createElement("button");
-    card.className = "dex-card" + (seen ? "" : " locked");
+    card.className = "dex-card" + (seen ? "" : " locked") + (t.rare ? " rare" : "");
+    const tag = key === bossKey ? "ボス" : t.rare ? "★レア" : "";
     card.innerHTML = seen
       ? `<div class="dex-card-icon">${t.icon || "❓"}</div>
          <div class="dex-card-name"></div>
-         <div class="dex-card-element">${t.element}${key === bossKey ? "・ボス" : ""}</div>`
+         <div class="dex-card-element">${t.element}${tag ? "・" + tag : ""}</div>`
       : `<div class="dex-card-icon">❓</div>
          <div class="dex-card-name">？？？</div>
-         <div class="dex-card-element">${key === bossKey ? "ボス" : "&nbsp;"}</div>`;
+         <div class="dex-card-element">${tag || "&nbsp;"}</div>`;
     if (seen) {
       card.querySelector(".dex-card-name").textContent = t.name;
       card.addEventListener("click", () => openDexDetail(key));

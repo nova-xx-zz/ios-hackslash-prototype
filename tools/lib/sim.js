@@ -2,7 +2,7 @@
 // 戦闘そのものはゲーム本体と同じ js/core/battle.js で動かす。
 //
 // 想定プレイヤー（opts）:
-//   gear: { rarity, plus } … 3部位すべてにこのレア度・+値の装備を付ける（null/省略なら装備なし）。
+//   gear: { rarity, plus, level } … 3部位すべてにこのレア度・+値・装備のレベルの装備を付ける（null/省略なら装備なし）。
 //                             部位ごとの種類は、ゲームの「おまかせ装備」と同じくジョブの基礎値を重みにして選ぶ
 //   tree: true             … スキルツリーを「素直な振り方」で振る（standardTreeRanks 参照）
 // 共通の簡略化: サブアビリティなし・技の優先度はすべて「通常」・道中イベント（泉・石碑・罠）なし。
@@ -29,15 +29,16 @@ function itemWeight(job, stat) {
   const weights = { hp: b.hp / 30, mp: b.mp / 20, atk: b.atk / 10, mag: b.mag / 10, def: b.def / 8, spd: b.spd / 7 };
   return weights[stat] || 0.5;
 }
-function makeItem(base, rarity, plus) {
+function makeItem(base, rarity, plus, level) {
   const r = data.RARITIES.find((x) => x.key === rarity);
-  return { slot: base.slot, stat: base.stat, value: Math.round(base.base * r.mult), rarity, plus };
+  const levelMult = 1 + Math.max(0, (level || 1) - 1) * data.ITEM_LEVEL_GROWTH; // js/core/rewards.js の itemLevelMult と同じ
+  return { slot: base.slot, stat: base.stat, value: Math.round(base.base * r.mult * levelMult), rarity, plus };
 }
 function standardGear(jobId, gear) {
   if (!gear) return [];
   const job = data.JOBS[jobId];
   return data.SLOTS.map((slot) => {
-    const items = data.ITEM_BASES.filter((b) => b.slot === slot.key).map((b) => makeItem(b, gear.rarity, gear.plus));
+    const items = data.ITEM_BASES.filter((b) => b.slot === slot.key).map((b) => makeItem(b, gear.rarity, gear.plus, gear.level));
     return items.reduce((best, it) => (data.itemEffectiveValue(it) * itemWeight(job, it.stat) > data.itemEffectiveValue(best) * itemWeight(job, best.stat) ? it : best));
   });
 }

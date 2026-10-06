@@ -18,7 +18,15 @@ const STANDARD = {
   seed: 4242,
 };
 
-function benchmark(d) { return { gear: d.benchmarkGear, tree: true }; }
+// 適正装備の装備のレベル: 指定が無ければ、ひとつ前のダンジョン（そこを周回して集めた装備で挑む想定）の推奨Lv
+function benchmarkGearLevel(d) {
+  if (d.benchmarkGear && d.benchmarkGear.level) return d.benchmarkGear.level;
+  const i = data.DUNGEONS.indexOf(d);
+  return i > 0 ? data.DUNGEONS[i - 1].level : 1;
+}
+function benchmark(d) {
+  return { gear: d.benchmarkGear ? Object.assign({}, d.benchmarkGear, { level: benchmarkGearLevel(d) }) : null, tree: true };
+}
 function rateAt(d, level, opts) { return clearRate(d.id, level, STANDARD.trials, STANDARD.seed + level, opts).rate; }
 function pct(x) { return `${Math.round(x * 100)}%`; }
 
@@ -71,4 +79,4 @@ function calibrate(d) {
   return Math.round(((lo + hi) / 2) * 100) / 100;
 }
 
-module.exports = { STANDARD, check, calibrate, pct };
+module.exports = { STANDARD, check, calibrate, pct, benchmarkGearLevel };

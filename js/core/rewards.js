@@ -16,14 +16,23 @@
     return rarities[0];
   }
 
-  function createItem(base, rarity, id) {
+  // 装備のレベル（拾ったダンジョンの推奨Lv）による能力値の倍率。levelGrowth: 1Lvごとの伸び（data.js の ITEM_LEVEL_GROWTH）
+  function itemLevelMult(level, levelGrowth) {
+    return 1 + Math.max(0, (level || 1) - 1) * (levelGrowth || 0);
+  }
+
+  // opts: { level（装備のレベル。拾ったダンジョンの推奨Lv）, levelGrowth }
+  function createItem(base, rarity, id, opts) {
+    opts = opts || {};
+    const level = opts.level || 1;
     return {
       id,
       name: `${rarity.name}の${base.name}`,
       base: base.key,
       slot: base.slot,
       stat: base.stat,
-      value: Math.round(base.base * rarity.mult),
+      level,
+      value: Math.round(base.base * rarity.mult * itemLevelMult(level, opts.levelGrowth)),
       rarity: rarity.key,
       rarityColor: rarity.color,
       materialValue: rarity.material,
@@ -32,10 +41,10 @@
   }
 
   // 装備を1個抽選する。nextId: 新しいアイテムIDを返す関数
-  function rollItem(itemBases, rarities, rng, nextId) {
+  function rollItem(itemBases, rarities, rng, nextId, opts) {
     const base = rng.pick(itemBases);
     const rarity = rollRarity(rarities, rng);
-    return createItem(base, rarity, nextId());
+    return createItem(base, rarity, nextId(), opts);
   }
 
   // 1戦闘に勝ったときのドロップ（基本1個＋確率で追加1個）。rollOne: 装備を1個抽選する関数
@@ -43,6 +52,11 @@
     const drops = [rollOne()];
     if (rng.chance(rules.extraDropChance)) drops.push(rollOne());
     return drops;
+  }
+
+  // 倒したレア敵1体につき1個、レア度の高い装備を追加で落とす。rollRareOne: レア敵用に装備を1個抽選する関数
+  function rollRareDrops(enemies, rollRareOne) {
+    return enemies.filter((e) => e.isRare).map(() => rollRareOne());
   }
 
   // 戦闘と戦闘の間に起きる道中イベントの種類を抽選する（起きなければnull）
@@ -93,7 +107,7 @@
 
   const exported = {
     rollRarity, createItem, rollItem, rollBattleDrops, rollEventKind, rollTreasure, rollTame,
-    settleDrops, battleExp, expForMember,
+    settleDrops, battleExp, expForMember, itemLevelMult, rollRareDrops,
   };
   root.QPCore = root.QPCore || {};
   root.QPCore.rewards = exported;

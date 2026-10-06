@@ -235,5 +235,6 @@ function buildDropRow(item) {
 
 function itemLabel(item) {
   const plusText = item.plus > 0 ? `+${item.plus}` : "";
-  return `${item.name}${plusText}（${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}）`;
+  const levelText = item.level > 1 ? ` Lv.${item.level}` : ""; // 装備のレベル（拾ったダンジョンの推奨Lv）
+  return `${item.name}${plusText}${levelText}（${STAT_LABELS[item.stat]}+${itemEffectiveValue(item)}）`;
 }

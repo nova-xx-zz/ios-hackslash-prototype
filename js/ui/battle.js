@@ -28,6 +28,8 @@ function startDungeon(teamIndex, id, opts) {
 function startBattle(run) {
   const { battle, isBoss } = Runner.startBattle(run);
   logEvent(run.team, "encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster(battle));
+  const rare = battle.enemies.find((e) => e.isRare);
+  if (rare) logLine(run.team, `レアモンスター ${rare.name} が現れた！（倒すと良い装備を落とす）`, "system");
   if (run.team === S.activeTeam) renderDock();
 }
 
