@@ -288,6 +288,24 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
   color: #171a1a; background: #f0b040; opacity: 0.9;
 }
+/* ショップ（js/ui/shop.js） */
+.settings-shop-btn { width: 100%; margin: 10px 0 2px; }
+.shop-note { margin: 4px 0 12px; line-height: 1.6; }
+.shop-section-title { margin: 14px 0 6px; font-size: 12px; font-weight: 700; color: var(--accent); }
+.shop-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; margin-bottom: 8px;
+  border: 1px solid var(--border); border-radius: 10px; background: rgba(255,255,255,0.04);
+}
+.shop-item.highlight { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.shop-item-main { flex: 1; min-width: 0; }
+.shop-item-name { font-size: 14px; font-weight: 700; }
+.shop-item-desc { font-size: 11px; color: var(--sub-text); line-height: 1.5; margin-top: 2px; }
+.shop-item-price { font-size: 11px; margin-top: 4px; }
+.shop-item-price s { color: var(--sub-text); }
+.shop-item .btn { flex: none; min-width: 92px; }
+.shop-status { font-size: 12px; line-height: 1.7; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.05); }
+.auto-repeat-chip.shop-locked { opacity: 0.7; border-style: dashed; }
 .settings-uid { font-size: 11px; font-weight: 400; color: var(--sub-text); word-break: break-all; text-align: right; }
 
 /* 冒険者ギルドからのお知らせ（タイトルアイコン／一覧／今後の予定） */

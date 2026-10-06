@@ -453,9 +453,10 @@ function renderEnhanceModal() {
   gBtn.classList.toggle("hidden", !isFeatureEnabled("guaranteedStone"));
   const required = maxed ? 0 : guaranteedStonesRequired(item);
   const enough = guaranteedStoneTotal() >= required;
-  gBtn.disabled = maxed || !enough;
+  // 足りない時は押すとショップを開く（確定強化石はショップで手に入る）
+  gBtn.disabled = maxed;
   gBtn.textContent = maxed ? "強化値が上限です"
-    : (enough ? `確定強化石${required}個で強化する（成功率100%）` : `確定強化石が足りません（あと${required - guaranteedStoneTotal()}個）`);
+    : (enough ? `確定強化石${required}個で強化する（成功率100%）` : `確定強化石が足りません（あと${required - guaranteedStoneTotal()}個）→ショップへ`);
 }
 
 function buildPityRow(item) {
@@ -484,6 +485,12 @@ document.getElementById("btnEnhanceGo").addEventListener("click", () => {
 // 確定強化石: その段の期待消費に応じた個数を消費して必ず+1する（通常の強化石は消費しない）。
 // 消費は取り消せないため即時保存する
 document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
+  if (enhanceItem && !Inventory.isMaxed(enhanceItem) && guaranteedStoneTotal() < guaranteedStonesRequired(enhanceItem)) {
+    const screen = document.querySelector(".screen:not(.hidden)");
+    closeEnhanceModal();
+    openShop(screen ? screen.id : "screen-battle", "guaranteed_stone_11");
+    return;
+  }
   const result = Inventory.enhanceWithGuaranteed(enhanceItem); // 消費は無償分から
   if (!result) return;
   enhanceMessage = `成功！ +${result.plus} になった（確定強化石${result.required}個を使用）`;

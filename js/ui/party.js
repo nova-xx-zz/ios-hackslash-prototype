@@ -88,7 +88,7 @@ function renderJobsScreen() {
   }));
 
   document.getElementById("rosterCount").textContent = rosterMessage ||
-    `所持なかま ${S.roster.length}人　/　所持品 ${S.inventory.length}個　（カードを長押しでドラッグ移動）`;
+    `所持なかま ${S.roster.length}/${Shop.rosterCapacity()}人　/　所持品 ${S.inventory.length}個　（カードを長押しでドラッグ移動）`;
 }
 
 let rosterMessage = "";

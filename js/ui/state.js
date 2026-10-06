@@ -3,7 +3,8 @@
 // 同じ順番で <script> として読み込み、トップレベルの関数・変数を共有する（index.html の読み込み順を変えないこと）。
 "use strict";
 
-const AUTO_REPEAT_OPTIONS = [1, 3, 5, 10, 20, 50];
+// 自動周回の回数（x100はショップで買うと選べる。js/data.js の AUTO_REPEAT_CHOICES）
+const AUTO_REPEAT_OPTIONS = AUTO_REPEAT_CHOICES.map((c) => c.n);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const MAX_ACTIVE = 5;
 const TEAM_COUNT = 4;

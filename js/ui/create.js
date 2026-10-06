@@ -7,6 +7,12 @@
 let draft = null;
 
 function openCreateScreen() {
+  // 仲間のBOXが満員なら作れない（ショップで拡張できる）
+  if (!Shop.canAddToRoster(1)) {
+    flashRosterMessage(`仲間のBOXがいっぱいです（${S.roster.length}/${Shop.rosterCapacity()}人）。設定のショップでBOXを拡張できます`);
+    renderJobsScreen();
+    return;
+  }
   const r = rollNewRecruit();
   draft = { name: r.name, race: r.race, job: r.job };
   renderCreateScreen();
@@ -199,6 +205,7 @@ const PASSIVE_LABELS = {
 };
 
 function confirmCreate() {
+  if (!Shop.canAddToRoster(1)) { renderJobsScreen(); showScreen("screen-jobs"); return null; }
   const name = (draft.name || "").trim() || "ななし";
   const c = newCharacter(name, draft.job, draft.race, { level: createStartLevel() });
   S.roster.push(c);

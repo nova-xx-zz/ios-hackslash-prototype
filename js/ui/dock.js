@@ -114,13 +114,16 @@ function renderAutoRepeatRow() {
   } else {
     const chips = document.createElement("div");
     chips.className = "auto-repeat-chips";
-    for (const n of AUTO_REPEAT_OPTIONS) {
+    for (const choice of Shop.autoRepeatChoices()) {
+      const n = choice.n;
       const chip = document.createElement("button");
-      chip.className = "auto-repeat-chip" + (ar.target === n ? " active" : "");
-      chip.textContent = `x${n}`;
+      chip.className = "auto-repeat-chip" + (ar.target === n ? " active" : "") + (choice.locked ? " shop-locked" : "");
+      chip.textContent = choice.locked ? `🔒x${n}` : `x${n}`;
       chip.disabled = locked;
       chip.addEventListener("click", () => {
         if (isTeamLocked(i)) return;
+        // まだ買っていない回数は、ショップで買えることを案内する
+        if (choice.locked) { openShop("screen-battle", "auto_repeat_100"); return; }
         ar.target = n;
         store.set(KEYS.autoRepeatTarget, n);
         renderAutoRepeatRow();
@@ -143,6 +146,9 @@ function renderAutoRepeatRow() {
       return;
     }
     if (isTeamLocked(i) || !canStart) return;
+    // 買っていない回数が選ばれていたら（クラウドから戻したセーブなど）、買える範囲の最大にする
+    const choice = Shop.autoRepeatChoices().find((c) => c.n === ar.target);
+    if (!choice || choice.locked) ar.target = Math.max(...Shop.autoRepeatChoices().filter((c) => !c.locked).map((c) => c.n));
     ar.active = true;
     ensureNotifyPermission(); // アプリ版: 初めて自動周回を始めた時に、完了通知の許可を求める
     ar.done = 0;
@@ -166,8 +172,9 @@ function updateBattleDOM() {
   }
 }
 
+// 戦闘の速さ: 持っている速さだけを x1→x2→x3→x5→x1 の順に回る（x3・x5はショップで買うと選べる）
 document.getElementById("btnSpeedToggle").addEventListener("click", () => {
-  speedMult = speedMult === 1 ? 2 : 1;
+  speedMult = Shop.nextBattleSpeed(speedMult);
   document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
 });
 // 自動分解のON/OFF・フィルターは全パーティ共通の設定で、出発のたび（自動周回の各周も）にrunへ

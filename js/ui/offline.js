@@ -15,6 +15,7 @@ function showOfflineModal(summaries) {
       lines.push(`獲得EXP: +${summary.expGained}　獲得アイテム: ${summary.itemsGained}個`);
     }
     if (summary.tamedNames.length) lines.push(`テイム: ${summary.tamedNames.join("・")}`);
+    if (summary.tameBlocked) lines.push(`仲間のBOXがいっぱいのため、${summary.tameBlocked}回テイムできませんでした`);
     if (summary.wipedOut) lines.push("パーティが全滅したため、途中で自動周回が停止しました");
     return lines.join("<br>");
   });
