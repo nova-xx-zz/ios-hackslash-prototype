@@ -295,3 +295,43 @@ test("テイム: どのダンジョンでテイムしても、仲間になるモ
   assert.equal(mon.isMonster, true);
   assert.ok(state.roster.includes(mon));
 });
+
+test("オフライン精算の保存保証: 報酬と自動周回の停止は1つのセーブで確定し、保存に失敗しても二重にも消失にもならない", () => {
+  const save = require("../js/model/save.js");
+  const opts = { syncExpToNext: data.syncExpToNext, itemBases: data.ITEM_BASES, legacyItemBases: data.LEGACY_ITEM_BASES };
+  const savedAt = 1_000_000_000_000;
+  // 離れる直前のセーブ: チーム1が自動周回中
+  const before = setup({ level: 8 });
+  before.state.autoRepeat[0] = { active: true, target: 5, done: 1 };
+  const beforeJson = JSON.stringify(save.serialize(before.state, { now: savedAt, runDungeonIds: ["plains"] }));
+
+  // 起動して精算する（game.js の loadGame と同じ順）
+  const settle = (json) => {
+    const env = setup({ level: 8 });
+    const loaded = save.deserialize(JSON.parse(json), opts);
+    Object.assign(env.state, loaded.state);
+    env.setClock(savedAt + 60 * 60 * 1000);
+    const active = loaded.savedAutoRepeat.some((ar) => ar && ar.active);
+    const summaries = active ? env.Runner.runOfflineProgress(loaded.savedAutoRepeat, loaded.savedAt) : null;
+    return { env, summaries };
+  };
+  const first = settle(beforeJson);
+  assert.equal(first.summaries[0].cleared, 4);
+  const expAfter = first.env.state.roster[0].exp;
+  const levelAfter = first.env.state.roster[0].level;
+
+  // 保存に成功した場合: そのセーブは自動周回が止まっているので、次に起動しても精算しない（二重にならない）
+  const afterJson = JSON.stringify(save.serialize(first.env.state, { now: savedAt + 60 * 60 * 1000, runDungeonIds: ["plains"] }));
+  const reloaded = settle(afterJson);
+  assert.equal(reloaded.summaries, null);
+  assert.equal(reloaded.env.state.roster[0].level, levelAfter);
+  assert.equal(reloaded.env.state.roster[0].exp, expAfter);
+  assert.deepEqual(JSON.parse(afterJson).autoRepeat[0], { active: false, target: 5, done: 5, dungeonId: "plains", mode: "normal" });
+
+  // 保存に失敗した場合: 端末には離れる前のセーブが残るので、次に起動するともう一度精算される（消失しない）。
+  // 精算前の状態からやり直すので、報酬が上乗せされることもない
+  const retried = settle(beforeJson);
+  assert.equal(retried.summaries[0].cleared, 4);
+  assert.equal(retried.env.state.autoRepeat[0].done, 5);
+  assert.equal(retried.env.state.records.runHistory.length, 1); // 履歴も1件だけ（前回の精算は残っていない）
+});

@@ -24,8 +24,9 @@ function showOfflineModal(summaries) {
 }
 function showOfflineSettleFailedModal() {
   document.getElementById("offlineDesc").innerHTML =
-    "端末の保存容量が不足しているため、離れていた間の自動周回を精算できませんでした。<br><br>" +
-    "保存できるようになると、次回起動時に精算されます（自動分解の対象レア度を増やすと所持品を減らせます）。自動周回は停止中です";
+    "端末の保存容量が不足しているため、離れていた間の自動周回の結果をまだ保存できていません。<br><br>" +
+    "保存できるようになると自動で保存されます（自動分解の対象レア度を増やすと所持品を減らせます）。" +
+    "保存される前にアプリを閉じた場合は、次回起動時にもう一度精算されるので、報酬が失われたり二重にもらえたりすることはありません";
   document.getElementById("offlineModal").classList.remove("hidden");
 }
 document.getElementById("btnOfflineClose").addEventListener("click", () => {

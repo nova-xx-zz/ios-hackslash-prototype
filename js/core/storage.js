@@ -16,7 +16,7 @@
     autoRepeatTarget: "jobquest_autorepeat_target",
     dexSeen: "jobquest_dex_seen",
     readAnnouncements: "jobquest_read_announcements",
-    // オフライン進行を精算済みのセーブのsavedAt（同じ離脱期間の二重精算を防ぐ）
+    // 旧版でオフライン精算の前に書いていた「精算済み」の印。今は使わず、起動時に消すだけ（精算済みかどうかはメインセーブで判定）
     offlineSettled: "jobquest_offline_settled",
     notifyAutoRepeat: "jobquest_notify_auto_repeat", // 自動周回の完了通知（アプリ版のみ）。"0" ならOFF
   };

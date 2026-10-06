@@ -32,7 +32,6 @@ function settleAfterBackground(savedAt) {
     targets.push(i);
   }
   if (targets.length === 0) return;
-  if (!claimOfflineSettlement(savedAt)) { enqueueModal(showOfflineSettleFailedModal); processModalQueue(); return; }
 
   const infos = new Array(TEAM_COUNT).fill(null);
   for (const i of targets) {
@@ -46,10 +45,13 @@ function settleAfterBackground(savedAt) {
     }
   }
   const summaries = runOfflineProgress(infos, savedAt);
-  saveGame();
+  // 精算した報酬と自動周回の停止を1回の保存で確定する（失敗しても端末には精算前のセーブが残る。js/ui/models.js）
+  const saved = saveAfterOfflineSettlement();
   buildPartyDock();
   renderDock();
-  if (summaries) { enqueueModal(() => showOfflineModal(summaries)); processModalQueue(); }
+  if (summaries) enqueueModal(() => showOfflineModal(summaries));
+  if (!saved) enqueueModal(showOfflineSettleFailedModal);
+  processModalQueue();
 }
 window.addEventListener("pagehide", saveGame);
 // バックグラウンド中は定期保存しない（保存済みのsavedAtを「離れた時刻」として固定し、復帰時の精算と
