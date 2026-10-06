@@ -1396,3 +1396,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .mode-mark.hard { background: #c75a3a; }
 .mode-mark.extra { background: #7b3fb8; }
 .item-options { display: block; font-size: 10px; font-weight: 400; color: #8fe3ff; margin-top: 2px; }
+
+/* モンスター合成: まとめて選ぶ・お気に入り */
+.fusion-bulk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 8px 0 6px; }
+.favorite-toggle { margin-top: 6px; }
+.favorite-toggle.on { color: #f2c14e; border-color: #f2c14e; }
