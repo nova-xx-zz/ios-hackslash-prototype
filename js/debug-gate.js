@@ -1,12 +1,18 @@
-// ---------- 確認用モード（?debug）の合言葉 ----------
-// storage.js より前に読み込む。URLに ?debug を付けて開いた時、この端末でまだ合言葉を入れていなければ聞く。
+// ---------- 確認用モードの合言葉 ----------
+// storage.js より前に読み込む。確認用モードに入る道は2つ:
+//   - 設定画面の「開発者用」に合言葉を入れる（enter）。端末に覚え（ACTIVE_KEY）、次からはURLに関係なく
+//     確認用モードで開く。ホーム画面のアイコンからでも使える。「ふつうのモードに戻る」で抜ける（leave）
+//   - URLに ?debug を付けて開く。この端末でまだ合言葉を入れていなければ聞く
 // 合っていれば端末に覚え（UNLOCK_KEY）、確認用モードで開く。違っていれば、ふつうのモードで開く。
 // 合言葉そのものはコードに書かず、SHA-256のハッシュだけを持つ（公開リポジトリのため）。
 // プロトタイプ用の簡単な守りで、テストプレイヤーがうっかり入るのを防ぐためのもの（強い守りではない）
 (function (root) {
   "use strict";
   const UNLOCK_KEY = "qp_debug_unlocked";
-  const PASS_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+  const ACTIVE_KEY = "qp_debug_active";
+  // 設定画面から入った直後の1回だけ、コンプリート（すべてを終えた状態）にする印（js/ui/debug.js）
+  const AUTO_COMPLETE_KEY = "qp_debug_autocomplete";
+  const PASS_HASH = "e0e626fe3c9986c92c26307f79962e16465063db06b21bd28324ffb8c01eb9a4";
 
   // SHA-256（UTF-8の文字列 → 16進数）。起動の前に同期で確かめたいので、crypto.subtle（非同期）は使わない
   function sha256(text) {
@@ -56,11 +62,36 @@
   function requested() {
     try { return /[?&]debug(?:[=&]|$)/.test((root.location && root.location.search) || ""); } catch (e) { return false; }
   }
-  function unlocked() {
-    try { return root.localStorage.getItem(UNLOCK_KEY) === "1"; } catch (e) { return false; }
+  function flag(key) {
+    try { return root.localStorage.getItem(key) === "1"; } catch (e) { return false; }
+  }
+  function unlocked() { return flag(UNLOCK_KEY); }
+  // 確認用モードで開くか: 合言葉を入れ済みで、URLに ?debug があるか、設定画面から入ったままの時
+  function active() { return unlocked() && (requested() || flag(ACTIVE_KEY)); }
+  // 設定画面の「開発者用」: 合言葉が合っていれば、確認用モードに入る印を付ける（呼んだ側で開き直す）
+  function enter(text) {
+    if (!check(text)) return false;
+    try {
+      root.localStorage.setItem(UNLOCK_KEY, "1");
+      root.localStorage.setItem(ACTIVE_KEY, "1");
+      root.localStorage.setItem(AUTO_COMPLETE_KEY, "1");
+    } catch (e) { return false; }
+    return true;
+  }
+  // ふつうのモードに戻る: 合言葉も忘れる（次に入る時は、また合言葉を聞く）
+  function leave() {
+    try {
+      for (const key of [UNLOCK_KEY, ACTIVE_KEY, AUTO_COMPLETE_KEY]) root.localStorage.removeItem(key);
+    } catch (e) { /* 何もしない */ }
+  }
+  // コンプリートの印を1回だけ読む（読んだら消す）
+  function takeAutoComplete() {
+    const on = flag(AUTO_COMPLETE_KEY);
+    try { root.localStorage.removeItem(AUTO_COMPLETE_KEY); } catch (e) { /* 何もしない */ }
+    return on;
   }
 
-  const exported = { UNLOCK_KEY, PASS_HASH, sha256, normalize, check, requested, unlocked };
+  const exported = { UNLOCK_KEY, ACTIVE_KEY, AUTO_COMPLETE_KEY, PASS_HASH, sha256, normalize, check, requested, unlocked, active, enter, leave, takeAutoComplete };
   root.QPDebugGate = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
 

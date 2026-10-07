@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=35">
+<link rel="stylesheet" href="css/style.css?v=36">
 </head>
 <body>
 <div id="app">
@@ -91,6 +91,7 @@
           </div>
         </div>
         <button class="btn small ghost" id="btnSettingsAnnounce" style="margin-top:12px;">冒険者ギルドからのお知らせ</button>
+        <button class="btn small ghost settings-dev-btn" id="btnDevEnter">開発者用</button>
         <div class="settings-debug hidden" id="settingsDebug">
           <div class="settings-row"><span class="settings-label">確認用モード</span><span class="settings-value">本番のデータとは別</span></div>
           <p class="settings-note">後半のダンジョンを先に確かめるためのモードです。押したダンジョンの手前までを踏破済みにし、第一のパーティをその推奨Lvと適正装備にします。ここで遊んだ内容は、ふだんのセーブやクラウドには残りません。</p>
@@ -99,7 +100,7 @@
           <button class="btn small primary" id="btnDebugComplete">コンプリート（すべてを終えた状態にする）</button>
           <p class="settings-note">開発者用。全ダンジョンを全モード踏破、第一〜第四のパーティを最強の状態（Lv上限・アビスのLR+99・スキル全振り・全ジョブLv99）、テイムできる37種を1体ずつ（Lv100・個体値最大）、図鑑・辞典・ショップの解放・強化石と確定強化石を全部そろえます。</p>
           <button class="btn small ghost" id="btnDebugReset">確認用のデータを最初からにする</button>
-          <button class="btn small ghost" id="btnDebugLock">この端末の合言葉を忘れて、ふつうのモードに戻る</button>
+          <button class="btn small ghost" id="btnDebugLock">ふつうのモードに戻る（この端末の合言葉も忘れる）</button>
         </div>
         <p class="sub" style="margin-top:16px;">設定項目は今後ここに追加していく予定です。</p>
       </div>
@@ -428,8 +429,8 @@
 </div>
 <script src="data/announcements.js?v=10"></script>
 <script src="data/roadmap.js?v=2"></script>
-<script src="js/debug-gate.js?v=3"></script>
-<script src="js/core/storage.js?v=5"></script>
+<script src="js/debug-gate.js?v=4"></script>
+<script src="js/core/storage.js?v=6"></script>
 <script src="js/core/rng.js?v=1"></script>
 <script src="js/core/enhance.js?v=1"></script>
 <script src="js/core/rewards.js?v=5"></script>
@@ -457,7 +458,7 @@
 <script src="js/ui/offline.js?v=3"></script>
 <script src="js/ui/title-map.js?v=11"></script>
 <script src="js/ui/settings.js?v=1"></script>
-<script src="js/ui/debug.js?v=5"></script>
+<script src="js/ui/debug.js?v=6"></script>
 <script src="js/ui/party.js?v=8"></script>
 <script src="js/ui/create.js?v=4"></script>
 <script src="js/ui/detail.js?v=3"></script>

@@ -280,6 +280,8 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 /* 確認用モード（?debug） */
 .settings-debug { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .settings-debug.hidden { display: none; }
+.settings-dev-btn { margin-top: 8px; opacity: .7; }
+.settings-dev-btn.hidden { display: none; }
 .debug-jump-buttons { flex-wrap: wrap; }
 .debug-jump-buttons .btn { flex: 1 1 45%; }
 .debug-badge {

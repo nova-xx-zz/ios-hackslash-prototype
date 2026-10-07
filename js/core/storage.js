@@ -92,13 +92,13 @@
     };
   }
 
-  // 確認用モード: URLに ?debug を付けて開いた時。後半のダンジョンの確認などのために、本番のセーブとは
+  // 確認用モード: 設定画面の「開発者用」から入った時か、URLに ?debug を付けて開いた時。後半のダンジョンの確認などのために、本番のセーブとは
   // 別の保存場所（キーの頭に DEBUG_PREFIX）を使い、クラウドセーブも使わない（js/cloud.js・js/ui/debug.js）
   const DEBUG_PREFIX = "qpdebug:";
-  // 確認用モード: URLに ?debug があり、この端末で合言葉を入れ済み（js/debug-gate.js）の時だけ
+  // 確認用モード: この端末で合言葉を入れ済みで、設定画面から入ったままか ?debug がある時だけ（js/debug-gate.js）
   function isDebugMode() {
     const gate = root.QPDebugGate;
-    return !!(gate && gate.requested() && gate.unlocked());
+    return !!(gate && gate.active());
   }
   // キーに頭を付けて、別の保存場所として使う
   function prefixedBackend(backend, prefix) {
