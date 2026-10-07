@@ -1225,6 +1225,10 @@ function getDungeon(id) {
 // 素材1体の基本EXP＝その種族が出てくる一番早いダンジョンのLvで、1レベル上げるのに必要なEXP。
 // テイムしたばかりのLv1でも素材として役に立ち、先の地方の種族ほど多い（js/model/inventory.js の fusionExpGain）
 const FUSION_SAME_RACE_MULT = 1.5; // 合成先と同じ種族の素材はEXPが1.5倍
+// テイムしたモンスターの個体値（js/core/stats.js）: 能力値ごとに 1±MONSTER_IV_RANGE 倍。平均は1.0倍なので難易度は変わらない。
+// 同じ種族の素材を合成すると、素材の方が高い能力値を差の MONSTER_IV_INHERIT 倍ずつ引き継ぐ
+const MONSTER_IV_RANGE = 0.1;
+const MONSTER_IV_INHERIT = 0.3;
 const tameHomeLevelCache = {};
 function tameHomeLevel(key) {
   if (!(key in tameHomeLevelCache)) {

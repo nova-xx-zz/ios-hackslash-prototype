@@ -9,7 +9,9 @@ function buildStatsTab(c) {
   const race = RACES[c.race];
   const stats = computeStats(c);
 
-  wrap.innerHTML = `<div class="cname">${c.favorite ? "★" : ""}${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}</div>
+  const rank = QPCore.stats.ivRank(c.ivs);
+  wrap.innerHTML = `<div class="cname">${c.favorite ? "★" : ""}${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}` +
+    (rank ? ` <span class="iv-rank iv-${rank}" title="個体値の評価">個体${rank}</span>` : "") + `</div>
     <div class="sub-ability-row">${race.desc}</div>`;
 
   // テイムしたモンスターはお気に入りにできる（お気に入りは合成の素材に選べなくなる）
@@ -64,12 +66,26 @@ function buildStatsTab(c) {
   const statBox = document.createElement("div");
   statBox.className = "detail-stat-box";
   const rows = [
-    ["HP", stats.maxHp], ["MP", stats.maxMp],
-    ["ATK", stats.atk], ["MAG", stats.mag],
-    ["DEF", stats.def], ["SPD", Math.round(stats.spd * 10) / 10],
+    ["HP", stats.maxHp, "hp"], ["MP", stats.maxMp, "mp"],
+    ["ATK", stats.atk, "atk"], ["MAG", stats.mag, "mag"],
+    ["DEF", stats.def, "def"], ["SPD", Math.round(stats.spd * 10) / 10, "spd"],
   ];
-  statBox.innerHTML = rows.map(([k, v]) => `<div class="detail-stat-row"><span>${k}</span><span>${v}</span></div>`).join("");
+  // テイムしたモンスターは、個体値が高い能力値に▲（1.05倍以上）、低い能力値に▼（0.95倍以下）
+  const ivMark = (k) => {
+    const v = c.ivs && c.ivs[k];
+    if (!v) return "";
+    if (v >= 1.05) return ' <span class="iv-mark up" title="個体値が高い">▲</span>';
+    if (v <= 0.95) return ' <span class="iv-mark down" title="個体値が低い">▼</span>';
+    return "";
+  };
+  statBox.innerHTML = rows.map(([k, v, key]) => `<div class="detail-stat-row"><span>${k}${ivMark(key)}</span><span>${v}</span></div>`).join("");
   wrap.appendChild(statBox);
+  if (c.ivs) {
+    const note = document.createElement("div");
+    note.className = "sub-ability-row";
+    note.textContent = "個体値: テイムした時に能力値ごとに決まる個体差（0.9〜1.1倍）。同じ種族を合成すると、素材の方が高い能力値が少しずつ上がります";
+    wrap.appendChild(note);
+  }
 
   return wrap;
 }
@@ -175,7 +191,8 @@ function buildFusionTab(c) {
     const name = document.createElement("div");
     name.className = "skill-row-name";
     const sameRace = m.race === c.race ? "［同族×1.5］" : "";
-    name.textContent = `${m.name}（${RACES[m.race].name}） Lv.${m.level}　EXP+${Inventory.materialExp(c, m)}${sameRace}`;
+    const mRank = QPCore.stats.ivRank(m.ivs);
+    name.textContent = `${m.name}（${RACES[m.race].name}）${mRank ? " 個体" + mRank : ""} Lv.${m.level}　EXP+${Inventory.materialExp(c, m)}${sameRace}`;
     row.appendChild(name);
     const selected = fusionSelection.has(m.id);
     const toggle = document.createElement("button");
@@ -198,27 +215,32 @@ function buildFusionTab(c) {
 
   const footer = document.createElement("div");
   footer.className = "fusion-footer";
-  footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: +${totalExpGain}</span>`;
+  footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: ${isMaxLevel(c) ? "+0（Lv上限）" : "+" + totalExpGain}</span>`;
   wrap.appendChild(footer);
 
-  // レベル上限に達したモンスターはEXPを受け取れないため、素材を無駄にしないよう合成させない
+  // レベル上限に達したモンスターはEXPを受け取れないため、素材を無駄にしないよう合成させない。
+  // ただし素材が全員同じ種族なら個体値は上がるので、合成できる（EXPは入らないことを書いておく）
   const maxed = isMaxLevel(c);
+  const ivOnly = maxed && selectedMonsters.length > 0 && selectedMonsters.every((m) => m.race === c.race);
+  const blocked = maxed && !ivOnly;
+  const note = ivOnly ? "（上限のためEXPは入らず、個体値だけ上がる）" : "";
   const btn = document.createElement("button");
   btn.className = "btn primary";
-  btn.textContent = maxed ? `Lv.${c.level}（上限）に達しているため合成できません`
+  btn.textContent = blocked ? `Lv.${c.level}（上限）のため、同じ種族の素材だけ合成できます（個体値が上がる）`
     : selectedMonsters.length === 0 ? "素材を選んでください"
-    : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する（取り消せません）` : `${selectedMonsters.length}体を合成する`);
-  btn.disabled = maxed || selectedMonsters.length === 0;
+    : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する${note}（取り消せません）` : `${selectedMonsters.length}体を合成する${note}`);
+  btn.disabled = blocked || selectedMonsters.length === 0;
   btn.addEventListener("click", () => {
-    if (maxed || selectedMonsters.length === 0) return;
+    if (blocked || selectedMonsters.length === 0) return;
     if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
     fusionConfirm = false;
     // 素材が装備していたアイテムは消滅させず所持品へ戻し、素材を取り除いてEXPを還元する（js/model/inventory.js）
     const result = Inventory.fuse(c, selectedMonsters);
     fusionSelection = new Set();
-    fusionMessage = `${result.consumedNames.join("・")}を合成し、${c.name}はEXP+${result.expGain}を獲得した` +
+    fusionMessage = `${result.consumedNames.join("・")}を合成し、` + (maxed ? `${c.name}はLv上限のためEXPは入らなかった` : `${c.name}はEXP+${result.expGain}を獲得した`) +
       (result.returnedItems ? `／素材の装備${result.returnedItems}個は所持品に戻した` : "") +
       (result.levelUps.length ? "／" + result.levelUps.join("・") : "") +
+      (result.ivRaised.length ? `／個体値が上がった: ${result.ivRaised.map((k) => STAT_LABELS[k]).join("・")}` : "") +
       (result.abilityUnlocks.length ? "／" + result.abilityUnlocks.join("・") : "");
     saveGame(); // 素材の消滅は取り消せないため、遅延保存を待たずに確定させる
     renderCharDetail();

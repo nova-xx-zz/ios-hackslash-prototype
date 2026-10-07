@@ -312,6 +312,12 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 .detail-switch-pos { font-size: 10px; color: var(--sub-text); margin-top: 1px; }
 .detail-switch-btn { flex: none; min-width: 40px; font-size: 20px; line-height: 1; padding: 6px 0; }
 
+/* テイムしたモンスターの個体値（評価と、能力値ごとの▲▼） */
+.iv-rank { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid currentColor; }
+.iv-rank.iv-S { color: #f2c14e; } .iv-rank.iv-A { color: #b97dff; } .iv-rank.iv-B { color: #5fd480; }
+.iv-rank.iv-C { color: #5ccbff; } .iv-rank.iv-D { color: var(--sub-text); }
+.iv-mark.up { color: #5fd480; font-size: 10px; } .iv-mark.down { color: #ff8a95; font-size: 10px; }
+
 /* 編成メニュー（js/ui/menu.js） */
 .menu-message { margin: 4px 12px 0; padding: 8px 10px; border-radius: 8px; background: rgba(255,77,94,0.12); }
 .menu-message.hidden { display: none; }
