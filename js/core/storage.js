@@ -95,8 +95,10 @@
   // 確認用モード: URLに ?debug を付けて開いた時。後半のダンジョンの確認などのために、本番のセーブとは
   // 別の保存場所（キーの頭に DEBUG_PREFIX）を使い、クラウドセーブも使わない（js/cloud.js・js/ui/debug.js）
   const DEBUG_PREFIX = "qpdebug:";
+  // 確認用モード: URLに ?debug があり、この端末で合言葉を入れ済み（js/debug-gate.js）の時だけ
   function isDebugMode() {
-    try { return /[?&]debug(?:[=&]|$)/.test((root.location && root.location.search) || ""); } catch (e) { return false; }
+    const gate = root.QPDebugGate;
+    return !!(gate && gate.requested() && gate.unlocked());
   }
   // キーに頭を付けて、別の保存場所として使う
   function prefixedBackend(backend, prefix) {
