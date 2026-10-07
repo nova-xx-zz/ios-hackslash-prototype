@@ -16,6 +16,34 @@ function openCharDetail(c) {
   showScreen("screen-chardetail");
 }
 
+// ---------- 仲間の切り替え（‹ ›） ----------
+// 詳細を開いたまま、前後の仲間に切り替える（今のタブのまま）。並びはパーティ編成の画面と同じ
+// 第一〜第四のパーティの順、その後に控え（未編成）
+function detailOrder() {
+  const order = [];
+  for (let t = 0; t < TEAM_COUNT; t++) order.push(...teamMembers(t));
+  for (const c of S.roster) if (!order.includes(c)) order.push(c);
+  return order;
+}
+function switchDetail(delta) {
+  const order = detailOrder();
+  const i = order.findIndex((x) => x.id === detailCharId);
+  if (order.length < 2 || i < 0) return;
+  const next = order[(i + delta + order.length) % order.length];
+  detailCharId = next.id;
+  // そのキャラだけの選択状態（合成の素材・ツリーのノード・開いている装備枠）は持ち越さない
+  fusionSelection = new Set();
+  fusionConfirm = false;
+  fusionMessage = "";
+  treeSelectedNode = null;
+  treeSwapConfirm = null;
+  openSlot = null;
+  renderCharDetail();
+  document.getElementById("detailBody").scrollTop = 0;
+}
+document.getElementById("btnDetailPrev").addEventListener("click", () => switchDetail(-1));
+document.getElementById("btnDetailNext").addEventListener("click", () => switchDetail(1));
+
 const DETAIL_TABS = [
   { key: "stats", label: "能力値" },
   { key: "equip", label: "装備" },
@@ -42,6 +70,11 @@ function renderCharDetail() {
   if (!c) { showScreen("screen-jobs"); return; }
   document.getElementById("detailName").textContent =
     `${c.name}${c.isMonster ? "（テイム）" : ""}`;
+  const order = detailOrder();
+  const where = c.team !== null ? TEAM_LABELS[c.team] : "控え";
+  document.getElementById("detailPos").textContent = `${where}・${order.indexOf(c) + 1}/${order.length}`;
+  document.getElementById("btnDetailPrev").disabled = order.length < 2;
+  document.getElementById("btnDetailNext").disabled = order.length < 2;
 
   renderDetailTabs();
 

@@ -288,6 +288,30 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
   padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
   color: #171a1a; background: #f0b040; opacity: 0.9;
 }
+/* 全画面共通の下のナビ（タイトル・探索画面以外。探索画面のナビと同じ見た目） */
+.global-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: rgba(10, 16, 18, 0.96);
+}
+.global-nav.hidden { display: none; }
+.global-nav .hub-nav-row { gap: 5px; padding: 6px 9px 8px; }
+.global-nav .hub-nav-btn {
+  min-height: 52px; padding: 6px 4px; border-radius: 5px;
+  background: rgba(14, 28, 34, 0.8); color: #b9c6c9; border-color: transparent;
+}
+.global-nav .hub-nav-btn.active { background: rgba(201, 164, 99, 0.12); color: #ebd3a0; border-color: #a78950; }
+.global-nav .hub-nav-icon { width: 22px; height: 22px; }
+/* ナビを出している間は、画面の下端をナビの上にそろえる（一覧の最後やタブがナビに隠れないように） */
+body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-nav-h, 68px)); }
+
+/* キャラ詳細: 前後の仲間への切り替え */
+.detail-switch { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.detail-switch-name { flex: 1; min-width: 0; text-align: center; }
+.detail-switch-name .map-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-switch-pos { font-size: 10px; color: var(--sub-text); margin-top: 1px; }
+.detail-switch-btn { flex: none; min-width: 40px; font-size: 20px; line-height: 1; padding: 6px 0; }
+
 /* 編成メニュー（js/ui/menu.js） */
 .menu-message { margin: 4px 12px 0; padding: 8px 10px; border-radius: 8px; background: rgba(255,77,94,0.12); }
 .menu-message.hidden { display: none; }

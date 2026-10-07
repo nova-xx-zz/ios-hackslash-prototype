@@ -7,6 +7,35 @@
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((el) => el.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
+  updateGlobalNav(id);
+}
+
+// ---------- 全画面共通の下のナビ ----------
+// タイトル（ゲームを始める前）と探索画面（ドックの中に同じナビがある）以外で出し、今いる画面のタブを光らせる
+const NAV_TAB_OF_SCREEN = {
+  "screen-menu": "jobs", "screen-jobs": "jobs", "screen-create": "jobs", "screen-chardetail": "jobs",
+  "screen-farewell": "jobs", "screen-enhance": "jobs", "screen-inventory": "jobs", "screen-shop": "jobs",
+  "screen-map": "explore",
+  "screen-book": "book",
+  "screen-settings": "settings", "screen-announcements": "settings",
+};
+const SCREENS_WITHOUT_NAV = ["screen-title", "screen-battle"];
+function updateGlobalNav(id) {
+  const show = !SCREENS_WITHOUT_NAV.includes(id);
+  document.getElementById("globalNav").classList.toggle("hidden", !show);
+  document.body.classList.toggle("with-global-nav", show);
+  // ナビの高さ（文字の大きさで変わる）を測り、画面の下端をそこにそろえる
+  if (show) {
+    const row = document.querySelector("#globalNav .hub-nav-row");
+    if (row && row.offsetHeight) document.documentElement.style.setProperty("--global-nav-h", row.offsetHeight + "px");
+  }
+  const tab = NAV_TAB_OF_SCREEN[id] || null;
+  for (const btn of document.querySelectorAll("#globalNav [data-nav]")) btn.classList.toggle("active", btn.dataset.nav === tab);
+}
+// 共通のナビのボタンは、探索画面のナビと同じ動きをする（同じボタンを押したことにする）
+const NAV_BUTTONS = { jobs: "btnHubJobs", explore: "btnHubExplore", book: "btnHubDex", settings: "btnHubSettings" };
+for (const btn of document.querySelectorAll("#globalNav [data-nav]")) {
+  btn.addEventListener("click", () => document.getElementById(NAV_BUTTONS[btn.dataset.nav]).click());
 }
 
 // ---------- Title screen ----------
