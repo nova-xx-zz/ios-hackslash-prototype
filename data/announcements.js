@@ -4,6 +4,22 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_global_nav",
+    revision: 1,
+    publishedAt: "2026-10-07T21:00:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "下のナビをどの画面でも表示／仲間の切り替え",
+    body: [
+      "下のナビ（編成・探索・書物・設定）を、タイトル以外のどの画面でも出すようにしました。「もどる」を何回も押さなくても、別の画面へ移れます。",
+      "仲間の詳細画面の上の「‹」「›」で、開いているタブ（装備など）のまま前後の仲間に切り替えられます。並びはパーティの順で、その後に控えの仲間が続きます。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_party_menu",
     revision: 1,
     publishedAt: "2026-10-07T18:00:00+09:00",
