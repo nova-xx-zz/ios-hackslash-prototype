@@ -568,13 +568,20 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 .member-card .mtitle {
   font-size: 9px; color: var(--sub-text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-right: 22px; /* 右上の紋章の分 */
 }
+.member-card { position: relative; }
+.member-card .micon { position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; color: var(--accent); }
+.member-card .micon .job-insignia { width: 100%; height: 100%; display: block; }
+/* 控え・未編成グループ: 折り返して縦に並べる（1行に3枚） */
+.member-strip.grid { flex-wrap: wrap; overflow-x: visible; }
+.member-strip.grid .member-card { width: calc((100% - 12px) / 3); }
 .member-card .mname {
   font-size: 13px; font-weight: 700; margin-top: 1px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .member-card .mstats {
-  display: flex; gap: 8px; margin-top: 8px;
+  display: flex; gap: 8px; margin-top: 6px;
   font-size: 10px; color: var(--sub-text);
 }
 .member-card.monster { border-color: rgba(201, 164, 99, 0.5); }

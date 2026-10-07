@@ -64,6 +64,7 @@ function renderJobsScreen() {
       dropKey: "g:" + g.id,
       emptyTile: null,
       emptyText: "（長押しで仲間をここへ移動できます）",
+      grid: true, // 人数が多くなるので、横スクロールではなく折り返して縦に並べる
     }));
   }
   if (S.groups.length < QPModel.save.GROUP_MAX) {
@@ -84,11 +85,12 @@ function renderJobsScreen() {
     onToggle: () => { benchExpanded = !benchExpanded; renderJobsScreen(); },
     members: bench,
     dropKey: "bench",
+    grid: true,
     emptyTile: () => openCreateScreen(),
   }));
 
   document.getElementById("rosterCount").textContent = rosterMessage ||
-    `所持なかま ${S.roster.length}/${Shop.rosterCapacity()}人　/　所持品 ${S.inventory.length}個　（カードを長押しでドラッグ移動）`;
+    `所持なかま ${S.roster.length}/${Shop.rosterCapacity()}人　（カードを長押しでドラッグ移動）`;
 }
 
 let rosterMessage = "";
@@ -149,7 +151,7 @@ function buildPartyRow(opts) {
   if (!opts.expanded) return frag;
 
   const strip = document.createElement("div");
-  strip.className = "member-strip" + (opts.locked ? " locked" : "");
+  strip.className = "member-strip" + (opts.grid ? " grid" : "") + (opts.locked ? " locked" : "");
   strip.dataset.drop = opts.dropKey;
   for (const c of opts.members) strip.appendChild(buildMemberCard(c));
   if (opts.emptyTile) {
@@ -249,14 +251,16 @@ document.getElementById("groupNameInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); saveGroupModal(); }
 });
 
+// 仲間のカード: ジョブの紋章・種族・名前・レベル（ジョブ名は紋章で表す。モンスターは共通の盾）
 function buildMemberCard(c) {
-  const stats = computeStats(c);
   const btn = document.createElement("button");
   btn.className = "member-card" + (c.isMonster ? " monster" : "");
+  btn.title = `${RACES[c.race].name}・${jobDef(c).name}`;
   btn.innerHTML = `
-    <div class="mtitle">${RACES[c.race].name}・${jobDef(c).name}${c.ivs ? " " + QPCore.stats.ivRank(c.ivs) : ""}</div>
+    <div class="micon">${jobInsignia(c.isMonster ? null : c.job)}</div>
+    <div class="mtitle">${RACES[c.race].name}${c.ivs ? " " + QPCore.stats.ivRank(c.ivs) : ""}</div>
     <div class="mname">${c.favorite ? "★" : ""}${c.name}</div>
-    <div class="mstats"><span>Lv.${c.level}</span><span>HP${stats.maxHp}</span></div>`;
+    <div class="mstats"><span>Lv.${c.level}</span></div>`;
   attachMemberDrag(btn, c);
   return btn;
 }

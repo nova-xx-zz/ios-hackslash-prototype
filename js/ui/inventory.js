@@ -242,7 +242,6 @@ function buildInventorySkillBookRow(book) {
   return row;
 }
 
-document.getElementById("btnOpenInventory").addEventListener("click", () => { openInventoryScreen(); });
 document.getElementById("btnInventoryBack").addEventListener("click", () => {
   exitDisassembleMode();
   if (inventoryReturnScreen === "screen-menu") { openPartyMenu(); return; }
@@ -523,7 +522,6 @@ document.getElementById("btnMapJobs").addEventListener("click", () => {
   renderJobsScreen();
   showScreen("screen-jobs");
 });
-document.getElementById("btnRecruit").addEventListener("click", () => { openCreateScreen(); });
 document.getElementById("btnDetailBack").addEventListener("click", () => {
   detailCharId = null;
   openSlot = null;
