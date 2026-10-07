@@ -63,8 +63,17 @@ function logBattleEvent(run, battle, ev) {
       logLine(t, "かいしんの一撃！", "");
       break;
     case "damage":
-      logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}に${ev.dmg}のダメージ！` + (ev.drained > 0 ? `（${ev.drained}吸収）` : ""), "hit");
+      if (ev.immune) { logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}には効かない！`, "system"); break; }
+      logLine(t, `${ev.actor.name} の${ev.ability.name}！ ` + (ev.weak ? "弱点！ " : ev.resist ? "効きが悪い… " : "")
+        + `${ev.target.name}に${ev.dmg}のダメージ！` + (ev.drained > 0 ? `（${ev.drained}吸収）` : ""), "hit");
       break;
+    case "status": {
+      const names = { atk: "攻撃力", mag: "魔力", def: "防御力", spd: "素早さ" };
+      if (ev.kind === "imbue") logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}の攻撃が${ELEMENTS[ev.element]}属性になった！`, "heal");
+      else if (ev.kind === "buff") logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}の${names[ev.stat]}が上がった！`, "heal");
+      else logLine(t, `${ev.target.name}の${names[ev.stat]}が下がった！`, "system");
+      break;
+    }
     case "enemyDown":
       logLine(t, `${ev.enemy.name} をたおした！`, "system");
       updateCardSubtitle(t, enemyRoster(battle));

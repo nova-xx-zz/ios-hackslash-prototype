@@ -48,7 +48,7 @@
   // ---- 戦闘中の強化・弱体・属性付与（battle.fx: 対象 → { atk: {mult, until}, ..., imbue: {element, until} }） ----
   function fxOf(battle, who) {
     if (!battle) return null;
-    if (!battle.fx) battle.fx = new Map();
+    if (!(battle.fx instanceof Map)) battle.fx = new Map();
     return battle.fx.get(who) || null;
   }
   function now(battle) { return (battle && battle.time) || 0; }
@@ -63,7 +63,7 @@
   }
   function setFx(battle, who, key, value) {
     if (!battle) return;
-    if (!battle.fx) battle.fx = new Map();
+    if (!(battle.fx instanceof Map)) battle.fx = new Map();
     const f = battle.fx.get(who) || {};
     f[key] = value;
     battle.fx.set(who, f);
@@ -140,7 +140,7 @@
   function actionsPerSecond(spd, env) { return Math.max(0.01, spd * env.atbRate / 100); }
   // 一時的に強化・弱体を掛けた状態で fn を計算する（AIの見積もり用。終わったら元に戻す）
   function withFx(battle, who, key, value, fn) {
-    if (!battle.fx) battle.fx = new Map();
+    if (!(battle.fx instanceof Map)) battle.fx = new Map();
     const had = battle.fx.has(who);
     const f = battle.fx.get(who) || {};
     const prev = f[key];

@@ -23,6 +23,37 @@ function buildTreeTab(c) {
   head.innerHTML = `<span>スキルツリー</span><span class="count">SP ${total - spent}/${total}</span>`;
   wrap.appendChild(head);
 
+  // 振り直し（4本ぶんのSPを全部戻す。費用は強化石）
+  if (spent > 0) {
+    const cost = treeResetCost(c);
+    const confirming = treeSwapConfirm === "reset";
+    const resetRow = document.createElement("div");
+    resetRow.className = "tree-reset-row";
+    const resetBtn = document.createElement("button");
+    resetBtn.className = "tree-swap-btn" + (confirming ? " confirming" : "");
+    resetBtn.textContent = confirming ? `本当に振り直す？（強化石${cost.toLocaleString()}）` : `↺ ツリーを振り直す（強化石${cost.toLocaleString()}）`;
+    resetBtn.disabled = !canResetTree(c);
+    resetBtn.addEventListener("click", () => {
+      if (confirming) {
+        resetTree(c);
+        treeSwapConfirm = null;
+        treeSelectedNode = null;
+      } else {
+        treeSwapConfirm = "reset";
+      }
+      scheduleSave();
+      renderCharDetail();
+    });
+    resetRow.appendChild(resetBtn);
+    if (!canResetTree(c) && (S.material || 0) < cost) {
+      const note = document.createElement("span");
+      note.className = "tree-reset-note";
+      note.textContent = `強化石が足りません（${(S.material || 0).toLocaleString()}）`;
+      resetRow.appendChild(note);
+    }
+    wrap.appendChild(resetRow);
+  }
+
   wrap.appendChild(buildTreeSection(c, {
     scopeKey: "exclusive",
     title: `${exclusiveTree.name}（固有）`,
@@ -92,10 +123,26 @@ function buildTreeSection(c, opts) {
   return section;
 }
 
-// ノードをx/y座標で配置し、前提関係をSVGの線で結ぶ「本当の分岐図」を描画する
+// ノードを段（row）と横位置（x）で配置し、前提関係をSVGの線で結ぶ「本当の分岐図」を描画する。
+// 左端に、段が開くレベル（reqLevel）を表示する
+const TREE_ROW_PX = 54;
+function nodeY(node, rows) { return ((node.row + 0.5) / rows) * 100; }
 function buildTreeGraph(c, scopeKey, treeDef, ranks) {
   const graph = document.createElement("div");
-  graph.className = "tree-graph " + (treeDef.nodes.length >= 5 ? "tree-graph-tall" : "tree-graph-short");
+  graph.className = "tree-graph";
+  const rows = Math.max(...treeDef.nodes.map((n) => n.row)) + 1;
+  graph.style.height = rows * TREE_ROW_PX + "px";
+  // 段のレベル（同じ段の最初のマスのreqLevel。Lv1の段は出さない）
+  const shownRows = new Set();
+  for (const node of treeDef.nodes) {
+    if (shownRows.has(node.row) || !(node.reqLevel > 1)) continue;
+    shownRows.add(node.row);
+    const lv = document.createElement("div");
+    lv.className = "tree-row-level" + (c.level >= node.reqLevel ? " open" : "");
+    lv.style.top = nodeY(node, rows) + "%";
+    lv.textContent = `Lv${node.reqLevel}`;
+    graph.appendChild(lv);
+  }
 
   const svgNs = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(svgNs, "svg");
@@ -110,9 +157,9 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
       if (!from) continue;
       const line = document.createElementNS(svgNs, "line");
       line.setAttribute("x1", from.x);
-      line.setAttribute("y1", from.y);
+      line.setAttribute("y1", nodeY(from, rows));
       line.setAttribute("x2", node.x);
-      line.setAttribute("y2", node.y);
+      line.setAttribute("y2", nodeY(node, rows));
       const acquired = (ranks[node.id] || 0) > 0 && (ranks[from.id] || 0) > 0;
       line.setAttribute("class", acquired ? "tree-edge acquired" : "tree-edge");
       svg.appendChild(line);
@@ -123,13 +170,14 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
   for (const node of treeDef.nodes) {
     const acquired = (ranks[node.id] || 0) > 0;
     const canGet = canAcquireNode(c, treeDef, ranks, node);
+    const levelLocked = node.reqLevel > c.level;
     const btn = document.createElement("button");
     btn.className = "tree-node" + (node.kind === "active" ? " active-kind" : " passive-kind")
-      + (acquired ? " acquired" : canGet ? " available" : " locked")
+      + (acquired ? " acquired" : canGet ? " available" : " locked") + (levelLocked ? " level-locked" : "")
       + (treeSelectedNode && treeSelectedNode.scope === scopeKey && treeSelectedNode.nodeId === node.id ? " selected" : "");
     btn.style.left = node.x + "%";
-    btn.style.top = node.y + "%";
-    btn.textContent = node.kind === "active" ? "⚔️" : "🔹";
+    btn.style.top = nodeY(node, rows) + "%";
+    btn.textContent = levelLocked ? "🔒" : node.kind === "active" ? "⚔️" : "🔹";
     btn.setAttribute("aria-label", node.name);
     btn.addEventListener("click", () => {
       treeSelectedNode = { scope: scopeKey, nodeId: node.id };
@@ -141,7 +189,7 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
     const label = document.createElement("div");
     label.className = "tree-node-label";
     label.style.left = node.x + "%";
-    label.style.top = node.y + "%";
+    label.style.top = nodeY(node, rows) + "%";
     label.textContent = node.name;
     graph.appendChild(label);
   }
@@ -164,6 +212,12 @@ function buildTreeNodeDetail(c, treeDef, ranks, node) {
   desc.className = "tree-node-detail-desc";
   desc.textContent = node.desc || "";
   panel.appendChild(desc);
+  if (!acquired && node.reqLevel > c.level) {
+    const lock = document.createElement("div");
+    lock.className = "tree-node-detail-lock";
+    lock.textContent = `🔒 ジョブのLv${node.reqLevel}で解放（今はLv${c.level}）`;
+    panel.appendChild(lock);
+  }
 
   if (acquired) {
     const state = document.createElement("div");

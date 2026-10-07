@@ -111,7 +111,15 @@ function openDexDetail(key) {
   document.getElementById("dexName").textContent = t.name;
   document.getElementById("dexElement").textContent =
     `属性: ${t.element}　${t.tamable ? "テイム可能" : "テイム不可"}`;
-  document.getElementById("dexDesc").textContent = t.desc || "";
+  // 特性と、技の属性の弱点・耐性
+  const aff = ENEMY_ELEMENT_AFFINITY[t.element] || {};
+  const weak = Object.keys(aff).filter((k) => aff[k] > 1).concat(enemyTraits(t.key).includes("undead") && !aff.holy ? ["holy"] : []);
+  const resist = Object.keys(aff).filter((k) => aff[k] < 1);
+  const traitText = enemyTraits(t.key).map((k) => `【${ENEMY_TRAITS[k].name}】${ENEMY_TRAITS[k].desc}`);
+  const lines = [];
+  if (weak.length) lines.push(`弱点: ${weak.map((k) => ELEMENTS[k]).join("・")}`);
+  if (resist.length) lines.push(`耐性: ${resist.map((k) => ELEMENTS[k]).join("・")}`);
+  document.getElementById("dexDesc").textContent = [t.desc || ""].concat(lines.length ? [lines.join("　")] : [], traitText).join("\n");
   const statsBox = document.getElementById("dexStats");
   const rows = [
     ["HP", t.hp], ["ATK", t.atk], ["DEF", t.def], ["SPD", t.spd], ["EXP", t.exp],

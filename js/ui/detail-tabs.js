@@ -288,7 +288,18 @@ function buildJobTab(c) {
 }
 
 // ---------- 詳細: スキルタブ ----------
-const ABILITY_KIND_ICONS = { physical: "⚔️", magic: "🔥", heal: "✨" };
+const ABILITY_KIND_ICONS = { physical: "⚔️", magic: "🔥", heal: "✨", buff: "📯" };
+const FX_STAT_NAMES = { atk: "攻撃", mag: "魔力", def: "防御", spd: "素早さ" };
+// 技の名前の横に付ける小さな印（属性・弱体・強化・防御無視）
+function abilityTags(a) {
+  const tags = [];
+  const el = a.element || (a.imbue && a.imbue.element);
+  if (el) tags.push([`el-${el}`, `${ELEMENTS[el]}${a.imbue ? "付与" : ""}`]);
+  if (a.debuff) tags.push(["fx", `${FX_STAT_NAMES[a.debuff.stat]}↓`]);
+  if (a.buff) tags.push(["fx", `${FX_STAT_NAMES[a.buff.stat]}↑`]);
+  if (a.pierce) tags.push(["fx", "防御無視"]);
+  return tags.map(([cls, text]) => `<span class="skill-tag ${cls}">${text}</span>`).join("");
+}
 
 function buildSkillRow(c, a, opts) {
   opts = opts || {};
@@ -303,6 +314,8 @@ function buildSkillRow(c, a, opts) {
   const name = document.createElement("div");
   name.className = "skill-row-name";
   name.textContent = a.name;
+  name.insertAdjacentHTML("beforeend", abilityTags(a));
+  if (a.desc) name.title = a.desc;
   row.appendChild(name);
 
   if (opts.locked) {
