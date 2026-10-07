@@ -79,7 +79,14 @@ function renderCharDetail() {
   renderDetailTabs();
 
   const wrap = document.getElementById("detailBody");
+  // 同じ仲間・同じタブを描き直す時は、スクロール位置を保つ（ツリーでマスを習得するたびに上に戻らないように）
+  const sameView = wrap.dataset.view === `${c.id}:${detailTab}`;
+  const keepScroll = sameView ? wrap.scrollTop : 0;
   wrap.innerHTML = "";
+  // ツリーの選んだマスの詳細は、画面の下に固定して出す（buildTreeTab が中身を入れる）
+  const sheet = document.getElementById("detailSheet");
+  sheet.innerHTML = "";
+  sheet.classList.add("hidden");
 
   // 探索中のチームに所属するキャラは、装備・スキル・転職・合成などを変更すると
   // 戦闘中の状態が不整合になるため、表示のみ（操作不可）にする
@@ -107,6 +114,8 @@ function renderCharDetail() {
   else if (detailTab === "job") card.appendChild(buildJobTab(c));
   else card.appendChild(buildStatsTab(c));
   wrap.appendChild(card);
+  wrap.dataset.view = `${c.id}:${detailTab}`;
+  wrap.scrollTop = keepScroll;
 }
 
 function renderDetailTabs() {

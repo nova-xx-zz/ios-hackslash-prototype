@@ -115,10 +115,14 @@ function buildTreeSection(c, opts) {
 
   section.appendChild(buildTreeGraph(c, scopeKey, treeDef, ranks));
 
+  // 選んだマスの詳細は、スクロールしなくても押せるように画面の下（タブの上）に固定して出す
   if (treeSelectedNode && treeSelectedNode.scope === scopeKey) {
     const selNode = treeDef.nodes.find((n) => n.id === treeSelectedNode.nodeId);
-    if (selNode) section.appendChild(buildTreeNodeDetail(c, treeDef, ranks, selNode));
-    else treeSelectedNode = null;
+    const sheet = document.getElementById("detailSheet");
+    if (selNode && sheet) {
+      sheet.appendChild(buildTreeNodeDetail(c, treeDef, ranks, selNode, title));
+      sheet.classList.remove("hidden");
+    } else treeSelectedNode = null;
   }
   return section;
 }
@@ -197,16 +201,31 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
 }
 
 // 選択中ノードの詳細（説明・コスト・習得状況・習得ボタン）を分岐図の下に表示する
-function buildTreeNodeDetail(c, treeDef, ranks, node) {
+function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
   const panel = document.createElement("div");
   panel.className = "tree-node-detail";
   const rank = ranks[node.id] || 0;
   const acquired = rank > 0;
 
+  const head = document.createElement("div");
+  head.className = "tree-node-detail-head";
   const name = document.createElement("div");
   name.className = "tree-node-detail-name";
   name.textContent = node.name;
-  panel.appendChild(name);
+  if (treeTitle) {
+    const from = document.createElement("span");
+    from.className = "tree-node-detail-from";
+    from.textContent = treeTitle;
+    name.appendChild(from);
+  }
+  head.appendChild(name);
+  const close = document.createElement("button");
+  close.className = "tree-node-detail-close";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "閉じる");
+  close.addEventListener("click", () => { treeSelectedNode = null; renderCharDetail(); });
+  head.appendChild(close);
+  panel.appendChild(head);
 
   const desc = document.createElement("div");
   desc.className = "tree-node-detail-desc";
@@ -228,7 +247,7 @@ function buildTreeNodeDetail(c, treeDef, ranks, node) {
     const canGet = canAcquireNode(c, treeDef, ranks, node);
     const btn = document.createElement("button");
     btn.className = "btn primary small";
-    btn.textContent = `習得する (SP${node.costByRank[rank]})`;
+    btn.textContent = `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`;
     btn.disabled = !canGet;
     btn.addEventListener("click", () => {
       acquireNode(c, treeDef, ranks, node);
