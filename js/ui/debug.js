@@ -1,5 +1,6 @@
-// ---------- 確認用モード（?debug） ----------
-// URLに ?debug を付けて開き、合言葉（js/debug-gate.js）を入れた端末でだけ使える、開発者向けの確認用の機能。
+// ---------- 確認用モード ----------
+// 設定画面の「開発者用」に合言葉（js/debug-gate.js）を入れるか、URLに ?debug を付けて開き合言葉を入れた端末でだけ使える、
+// 開発者向けの確認用の機能。「開発者用」から入った時は、開いた直後にコンプリート（すべてを終えた状態）にする。
 // 保存場所は本番と別（js/core/storage.js の DEBUG_PREFIX）で、クラウドセーブも使わないので、ふだんのデータには影響しない。
 // 設定画面の「確認用モード」から、地方の入口（またはLv100の最後のダンジョンの前）まで一気に進める:
 //   - それより前のダンジョンをすべて踏破済みにする
@@ -192,9 +193,9 @@ if (DEBUG_MODE) {
     btn.dataset.confirm = "1";
     btn.textContent = "本当にコンプリートする（確認用の仲間・所持品は置き換わります）";
   });
-  // この端末の合言葉を忘れる（次に ?debug で開いた時に、また合言葉を聞く）
+  // ふつうのモードに戻る。この端末の合言葉も忘れる（次に入る時は、また合言葉を聞く）
   document.getElementById("btnDebugLock").addEventListener("click", () => {
-    try { localStorage.removeItem(QPDebugGate.UNLOCK_KEY); } catch (e) { /* 何もしない */ }
+    QPDebugGate.leave();
     location.href = location.pathname;
   });
   document.getElementById("btnDebugReset").addEventListener("click", () => {
@@ -202,5 +203,21 @@ if (DEBUG_MODE) {
     if (btn.dataset.confirm) { debugResetData(); return; }
     btn.dataset.confirm = "1";
     btn.textContent = "本当に最初からにする（確認用のデータだけ消えます）";
+  });
+}
+// 設定画面の「開発者用」: 合言葉が合えば、確認用モードで開き直してコンプリートにする（テストプレイヤーには合言葉が分からない）
+// 確認用モードの間はボタンを隠す（「ふつうのモードに戻る」で抜ける）
+document.getElementById("btnDevEnter").classList.toggle("hidden", DEBUG_MODE);
+document.getElementById("btnDevEnter").addEventListener("click", () => {
+  const input = window.prompt("開発者用の合言葉を入力してください");
+  if (input === null) return;
+  if (!QPDebugGate.enter(input)) { window.alert("合言葉が違います"); return; }
+  location.href = location.pathname;
+});
+// 「開発者用」から入った直後の1回だけ、コンプリートにする（ゲームの読み込みが終わってから）
+if (DEBUG_MODE && QPDebugGate.takeAutoComplete()) {
+  window.addEventListener("load", () => {
+    debugComplete();
+    window.alert("確認用モードに入り、コンプリート状態にしました（ふだんのデータとは別です）。設定画面の「ふつうのモードに戻る」で戻れます");
   });
 }
