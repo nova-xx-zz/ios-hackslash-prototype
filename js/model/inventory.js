@@ -11,6 +11,7 @@
   const enhance = (root.QPCore && root.QPCore.enhance) || (typeof require === "function" ? require("../core/enhance.js") : null);
   const rewards = (root.QPCore && root.QPCore.rewards) || (typeof require === "function" ? require("../core/rewards.js") : null);
   const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
+  const stats = (root.QPCore && root.QPCore.stats) || (typeof require === "function" ? require("../core/stats.js") : null);
 
   // モンスター合成で、素材が積み上げてきたEXPのうち対象に還元する割合
   const FUSION_EXP_RATE = 0.5;
@@ -198,6 +199,14 @@
     // 結果: { expGain, consumedNames, returnedItems, levelUps, abilityUnlocks }
     function fuse(target, materials) {
       const expGain = fusionExpGain(target, materials);
+      // 同じ種族の素材からは、素材の方が高い個体値を少しずつ引き継ぐ（js/core/stats.js の inheritIvs）
+      const ivRaised = new Set();
+      if (deps.data.MONSTER_IV_RANGE) {
+        for (const m of materials) {
+          if (m.race !== target.race) continue;
+          for (const k of stats.inheritIvs(target, m, deps.data.MONSTER_IV_INHERIT, deps.data.MONSTER_IV_RANGE)) ivRaised.add(k);
+        }
+      }
       const consumedNames = materials.map((m) => m.name);
       let returnedItems = 0;
       for (const m of materials) {
@@ -208,7 +217,7 @@
         if (idx !== -1) S.roster.splice(idx, 1);
       }
       const result = R.gainExp(target, expGain);
-      return { expGain, consumedNames, returnedItems, levelUps: result.levelUps, abilityUnlocks: result.abilityUnlocks };
+      return { expGain, consumedNames, returnedItems, levelUps: result.levelUps, abilityUnlocks: result.abilityUnlocks, ivRaised: [...ivRaised] };
     }
 
     // ---------- 仲間と別れる ----------

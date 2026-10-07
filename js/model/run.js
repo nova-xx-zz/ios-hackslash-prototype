@@ -18,6 +18,7 @@
   const rewards = core.rewards || (typeof require === "function" ? require("../core/rewards.js") : null);
   const battleCore = core.battle || (typeof require === "function" ? require("../core/battle.js") : null);
   const offline = core.offline || (typeof require === "function" ? require("../core/offline.js") : null);
+  const statsCore = core.stats || (typeof require === "function" ? require("../core/stats.js") : null);
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
 
   // オフライン精算: これを超えた経過時間は切り捨てる
@@ -180,6 +181,12 @@
     function addTamedMonster(key) {
       const tpl = getEnemyTemplate(key);
       const mon = R.newCharacter(tpl.name, null, key, { level: 1, isMonster: true });
+      // 個体値（能力値ごとの個体差）はテイムした時に1回だけ決まる
+      if (deps.data.MONSTER_IV_RANGE) {
+        mon.ivs = statsCore.rollIvs(rng, deps.data.MONSTER_IV_RANGE);
+        const s = R.computeStats(mon);
+        mon.hp = s.maxHp; mon.mp = s.maxMp;
+      }
       S.roster.push(mon);
       return mon;
     }

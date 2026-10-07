@@ -4,6 +4,24 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_monster_ivs",
+    revision: 1,
+    publishedAt: "2026-10-07T22:00:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "テイムしたモンスターに個体値",
+    body: [
+      "テイムしたモンスターの能力値に、1体ごとの個体差（0.9〜1.1倍）が付くようになりました。同じ種族でも、強い子・打たれ強い子・速い子などが出ます。",
+      "詳細画面の名前の横に評価（個体S〜D）が出て、能力値の高いところに▲、低いところに▼が付きます。",
+      "同じ種族のモンスターを合成すると、素材の方が高い能力値が少しずつ上がります（上限は1.1倍）。",
+      "※ すでに仲間になっているモンスターは標準（1.0倍）のままです。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_global_nav",
     revision: 1,
     publishedAt: "2026-10-07T21:00:00+09:00",

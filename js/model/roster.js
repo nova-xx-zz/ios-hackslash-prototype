@@ -272,6 +272,7 @@
 
     function computeStats(c) {
       const s = stats.baseStats(jobDef(c), RACES[c.race] || RACES.human, c.level);
+      stats.applyIvs(s, c.ivs); // テイムしたモンスターの個体値
       // HP・MPの装備は最大HP・最大MPに足す（能力値の hp/mp は maxHp/maxMp という名前で持っているため）
       const key = (k) => (k === "hp" ? "maxHp" : k === "mp" ? "maxMp" : k);
       for (const item of Object.values(c.equip || {})) {
