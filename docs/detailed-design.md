@@ -364,7 +364,8 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | 項目 | 内容 |
 |---|---|
 | 解放条件 | ハード: そのダンジョンのノーマル踏破。エクストラ: そのダンジョンのハード踏破（`isDungeonModeOpen`） |
-| 敵の強さ | `DUNGEONS[].modePower[mode]`（`node tools/simulate.js --calibrate-modes` で推奨Lv＋levelUpの想定パーティが踏破率88%、Lv100超は1Lvごとに−2%になるよう決めた値）。無ければ `powerForLevel(level)` |
+| 敵の強さ | `DUNGEONS[].modePower[mode]`（`node tools/simulate.js --calibrate-modes` で推奨Lv＋levelUpの想定パーティ（適正装備＋スキル。エクストラは4つの構成のうち一番合ったもの）が踏破率88%、Lv100超は1Lvごとに−2%になるよう決めた値）。無ければ `powerForLevel(level)` |
+| 敵の特性 | `makeEnemy(t, mult, isBoss, power, isRare, mode)` が `enemyResistances(t, mode)` で `traits`・`res`（物理・魔法・聖属性以外・属性ごとのダメージ倍率）と堅牢の防御の倍率を入れる（`TRAIT_STRENGTH`: ノーマル0.6／ハード0.3／エクストラ0、防御1.5／2.5／4倍） |
 | EXP | 敵のEXP × `expMult` |
 | 装備 | 装備のレベルはモード込みの `level`、シリーズ・名のある装備の地方は元の推奨Lv（`regionLevel`）で決める。ハードは1〜2個、エクストラは2〜3個のオプション効果を付ける（`addItemOptions`） |
 | 踏破状態 | `S.clearedDungeons` / `S.clearedHard` / `S.clearedExtra`（Setをセーブでは配列化）。次のダンジョンの解放はノーマル踏破だけで判定する |

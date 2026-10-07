@@ -28,7 +28,7 @@
 //   heal       { actor, ability, target, amount }
 //   crit       { actor }（直後のdamageが会心）
 //   damage     { actor, ability, target, dmg, drained, immune, weak, resist }（drained: 吸収したHP。immune: 効かない。weak: 弱点。resist: 効きにくい）
-//   status     { actor, ability, target, kind: "buff"|"debuff"|"imbue", stat, mult, element, first }（強化・弱体・属性付与を掛けた。first: 味方全体に掛けた時の1人目）
+//   status     { actor, ability, target, kind: "buff"|"debuff"|"imbue", stat, mult, element, first }（強化・弱体・属性付与を掛けた。first: 全体に掛けた時の1体目）
 //   enemyDown  { enemy }
 //   acted      { actor }（味方が行動した。画面の点滅用）
 //   enemyAttack{ enemy, target, dmg }
@@ -75,9 +75,20 @@
     const stronger = mult < 1 ? Math.min(mult, active ? cur.mult : 1) : Math.max(mult, active ? cur.mult : 1);
     setFx(battle, who, stat, { mult: stronger, until: now(battle) + duration });
   }
+  // 戦闘中は能力値・パッシブが変わらない（レベルアップ・装備の変更・石碑の加護は戦闘の外）ので、
+  // 1つの戦闘の中では1人1回だけ env から取り出して使い回す（AIの見積もりで何度も呼ぶため）
+  function cached(battle, key, c, fn) {
+    if (!battle) return fn(c);
+    if (!(battle[key] instanceof Map)) battle[key] = new Map();
+    const m = battle[key];
+    if (!m.has(c)) m.set(c, fn(c));
+    return m.get(c);
+  }
+  function baseStatsOf(c, env, battle) { return cached(battle, "statsCache", c, env.stats); }
+  function passivesOf(c, env, battle) { return cached(battle, "passiveCache", c, env.passives); }
   // 味方の能力値（強化を反映）
   function memberStats(c, env, battle) {
-    const s = env.stats(c);
+    const s = baseStatsOf(c, env, battle);
     if (!battle || !fxOf(battle, c)) return s;
     const out = Object.assign({}, s);
     for (const k of Object.keys(STAT_KEYS)) out[k] = s[k] * fxMult(battle, c, k);
@@ -104,8 +115,8 @@
     const res = target && target.res;
     return element && res && res.el && res.el[element] ? res.el[element] : 1;
   }
-  function pierceOf(c, ability, env) {
-    return Math.min(MAX_PIERCE, ((env.passives(c).pierce) || 0) + (ability.pierce || 0));
+  function pierceOf(c, ability, env, battle) {
+    return Math.min(MAX_PIERCE, ((passivesOf(c, env, battle).pierce) || 0) + (ability.pierce || 0));
   }
   // 1回のヒットの基本ダメージ（乱数・会心の前）
   function baseHit(c, ability, target, env, battle) {
@@ -113,7 +124,7 @@
     const isMagic = ability.kind === "magic";
     const atkStat = isMagic ? stats.mag : stats.atk;
     const mitig = isMagic ? 0.15 : 0.3;
-    const def = enemyStat(target, "def", battle) * (1 - pierceOf(c, ability, env));
+    const def = enemyStat(target, "def", battle) * (1 - pierceOf(c, ability, env, battle));
     return Math.max(1, Math.round(atkStat * ability.power - def * mitig));
   }
 
@@ -123,7 +134,7 @@
     if (mult <= 0) return 0;
     const base = baseHit(c, ability, target, env, battle) * AVG_DAMAGE_ROLL * mult;
     const isMagic = ability.kind === "magic";
-    const critChance = isMagic ? 0 : 0.1 + env.passives(c).critBonus;
+    const critChance = isMagic ? 0 : 0.1 + passivesOf(c, env, battle).critBonus;
     return base * (1 + critChance * (CRIT_MULT - 1));
   }
   function isDamaging(a) { return a.kind === "physical" || a.kind === "magic"; }
@@ -155,7 +166,7 @@
   function enemyHitOn(e, member, env, battle) {
     const def = memberStats(member, env, battle).def;
     const dmg = Math.max(1, enemyStat(e, "atk", battle) - def * 0.4) * AVG_DAMAGE_ROLL;
-    return dmg * ((env.passives(member).dmgTakenMult) || 1);
+    return dmg * ((passivesOf(member, env, battle).dmgTakenMult) || 1);
   }
   const FX_LOOKAHEAD = 0.8; // 先の効果は少し割り引いて、今すぐのダメージと比べる
 
@@ -234,6 +245,17 @@
     return Math.min(total, hpLeft) * FX_LOOKAHEAD;
   }
 
+  function buffNeeded(c, ability, party, battle) {
+    const targets = ability.target === "self" ? [c] : party.filter((p) => p.alive);
+    const soon = now(battle) + 2;
+    return targets.some((m) => {
+      const f = fxOf(battle, m);
+      if (ability.imbue) return !(f && f.imbue && f.imbue.until > soon);
+      const e = f && f[ability.buff.stat];
+      return !(e && e.until > soon && e.mult >= ability.buff.mult);
+    });
+  }
+
   // その技を今使った時の期待効果（与ダメージ、または回復量。敵の残りHP・味方の減ったHPを超える分は数えない）
   function expectedValue(c, ability, party, enemies, env, battle) {
     battle = battle || { time: 0 };
@@ -244,10 +266,11 @@
       return buffValue(c, ability, targets, party, enemies, env, battle);
     }
     if (ability.kind === "heal") {
-      const amount = env.stats(c).mag * ability.power * (1 + env.passives(c).healBonus) * ability.hits;
-      const missing = (p) => Math.max(0, env.stats(p).maxHp - p.hp);
+      // 実際の回復と同じく、魔力アップが掛かっていればその魔力で見積もる
+      const amount = memberStats(c, env, battle).mag * ability.power * (1 + passivesOf(c, env, battle).healBonus) * ability.hits;
+      const missing = (p) => Math.max(0, baseStatsOf(p, env, battle).maxHp - p.hp);
       if (ability.target === "all-ally") return party.filter((p) => p.alive).reduce((s, p) => s + Math.min(missing(p), amount), 0);
-      const t = pickAllyTarget(party, env);
+      const t = pickAllyTarget(party, env, battle);
       return t ? Math.min(missing(t), amount) : 0;
     }
     if (aliveEnemies.length === 0) return 0;
@@ -271,10 +294,13 @@
   function chooseAction(c, party, env, enemies, battle) {
     enemies = enemies || [];
     const abilities = env.abilities(c).filter((a) => c.mp >= env.mpCost(c, a));
+    const maxHp = (p) => baseStatsOf(p, env, battle).maxHp;
     const usable = abilities.filter((a) => {
+      // 強化・属性付与は、まだ掛かっていない味方がいる時だけ（「優先」にしていても掛け直しを繰り返さない）
+      if (a.kind === "buff") return buffNeeded(c, a, party, battle);
       if (a.kind !== "heal") return true;
-      if (a.target === "single-ally") return party.some((p) => p.alive && p.hp < env.stats(p).maxHp * 0.8);
-      if (a.target === "all-ally") return party.filter((p) => p.alive).some((p) => p.hp < env.stats(p).maxHp * 0.7);
+      if (a.target === "single-ally") return party.some((p) => p.alive && p.hp < maxHp(p) * 0.8);
+      if (a.target === "all-ally") return party.filter((p) => p.alive).some((p) => p.hp < maxHp(p) * 0.7);
       return true;
     });
     if (usable.length === 0) return BASIC_ATTACK;
@@ -297,18 +323,19 @@
     const alive = enemies.filter((e) => e.alive);
     if (alive.length === 0) return null;
     const mode = (c && c.targetPriority) || "weakest";
-    if (mode === "random") return rng.pick(alive);
+    // ランダム狙いでも、AIの見積もり（rng なし）では弱い敵で見積もる
+    if (mode === "random" && rng) return rng.pick(alive);
     if (mode === "strongest") return alive.reduce((hi, e) => (e.hp > hi.hp ? e : hi), alive[0]);
     return alive.reduce((lowest, e) => (e.hp < lowest.hp ? e : lowest), alive[0]);
   }
 
   // 回復対象: 残りHPの割合が一番低い味方
-  function pickAllyTarget(party, env) {
+  function pickAllyTarget(party, env, battle) {
     const alive = party.filter((p) => p.alive);
     if (alive.length === 0) return null;
     return alive.reduce((lowest, p) => {
-      const lr = lowest.hp / env.stats(lowest).maxHp;
-      const pr = p.hp / env.stats(p).maxHp;
+      const lr = lowest.hp / baseStatsOf(lowest, env, battle).maxHp;
+      const pr = p.hp / baseStatsOf(p, env, battle).maxHp;
       return pr < lr ? p : lowest;
     }, alive[0]);
   }
@@ -327,10 +354,10 @@
     const ability = chooseAction(c, party, env, battle.enemies, battle);
     c.mp = Math.max(0, c.mp - env.mpCost(c, ability));
     const stats = memberStats(c, env, battle);
-    const pas = env.passives(c);
+    const pas = passivesOf(c, env, battle);
     let targets = [];
     if (ability.target === "single") { const t = pickEnemyTarget(c, battle.enemies, rng); if (t) targets = [t]; }
-    else if (ability.target === "single-ally") { const t = pickAllyTarget(party, env); if (t) targets = [t]; }
+    else if (ability.target === "single-ally") { const t = pickAllyTarget(party, env, battle); if (t) targets = [t]; }
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
     else if (ability.target === "all-ally") targets = party.filter((p) => p.alive);
     else if (ability.target === "self") targets = [c];
@@ -352,10 +379,11 @@
 
     const lifesteal = pas.lifesteal + (ability.lifesteal || 0);
     const element = abilityElement(c, ability, battle);
+    let firstDebuff = true;
     for (const t of targets) {
       for (let h = 0; h < ability.hits; h++) {
         if (ability.kind === "heal") {
-          const s = env.stats(t);
+          const s = baseStatsOf(t, env, battle);
           const healMult = 1 + pas.healBonus;
           const amount = Math.max(1, Math.round(stats.mag * ability.power * healMult * rng.float(0.9, 1.1)));
           t.hp = Math.min(s.maxHp, t.hp + amount);
@@ -373,7 +401,7 @@
           let drained = 0;
           if (lifesteal > 0 && dmg > 0) {
             drained = Math.max(1, Math.round(dmg * lifesteal));
-            c.hp = Math.min(env.stats(c).maxHp, c.hp + drained);
+            c.hp = Math.min(baseStatsOf(c, env, battle).maxHp, c.hp + drained);
           }
           const elMult = elementOnlyMult(element, t);
           events.push({ type: "damage", actor: c, ability, target: t, dmg, drained, element,
@@ -383,7 +411,8 @@
       }
       if (ability.debuff && t.alive && ability.kind !== "heal") {
         applyStatFx(battle, t, ability.debuff.stat, ability.debuff.mult, ability.debuff.duration);
-        events.push({ type: "status", actor: c, ability, target: t, kind: "debuff", stat: ability.debuff.stat, mult: ability.debuff.mult });
+        events.push({ type: "status", actor: c, ability, target: t, kind: "debuff", stat: ability.debuff.stat, mult: ability.debuff.mult, first: firstDebuff });
+        firstDebuff = false;
       }
     }
     events.push({ type: "acted", actor: c });
@@ -398,7 +427,7 @@
     const stats = memberStats(target, env, battle);
     let dmg = Math.max(1, Math.round(enemyStat(e, "atk", battle) - stats.def * 0.4));
     dmg = Math.round(dmg * env.rng.float(0.9, 1.15));
-    dmg = Math.max(1, Math.round(dmg * (env.passives(target).dmgTakenMult || 1)));
+    dmg = Math.max(1, Math.round(dmg * (passivesOf(target, env, battle).dmgTakenMult || 1)));
     target.hp -= dmg;
     events.push({ type: "enemyAttack", enemy: e, target, dmg });
     if (target.hp <= 0 && target.alive) {

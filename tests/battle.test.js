@@ -230,3 +230,32 @@ test("実データ: 敵の特性はモードで強くなる（アンデッドへ
   const crab = d.getEnemyTemplate("mud_crab");
   assert.equal(d.makeEnemy(crab, 1, false, 1, false, "extra").def, crab.def * 4);
 });
+
+test("強化を「優先」にしていても、全員に掛かっている間は掛け直さない（他の技・通常攻撃を使う）", () => {
+  const env = envWith();
+  const c = member("A", S, { abilities: [warCry], tiers: { cry: 3 } });
+  const party = [c, member("B", S)];
+  const b = { enemies: [enemy("x", 3000)], time: 0 };
+  assert.equal(battle.chooseAction(c, party, env, b.enemies, b).id, "cry");
+  battle.performCharacterAction(c, party, b, env, []);
+  assert.equal(battle.chooseAction(c, party, env, b.enemies, b).id, "attack");
+  b.time = 14; // 切れる直前は掛け直す
+  assert.equal(battle.chooseAction(c, party, env, b.enemies, b).id, "cry");
+});
+
+test("1つの戦闘の中では、能力値とパッシブを1人1回だけ env から取り出す", () => {
+  let calls = 0;
+  const env = envWith({ stats: (c) => { calls += 1; return c.stats; } });
+  const party = [member("A", S, { abilities: [armorBreak, warCry] }), member("B", S), member("C", S)];
+  const b = { enemies: [enemy("x", 3000, { def: 30 }), enemy("y", 3000)], time: 0 };
+  for (let i = 0; i < 50; i++) battle.step(b, party, 0.1, env);
+  assert.ok(calls <= party.length, `env.stats が${calls}回呼ばれた`);
+});
+
+test("攻撃対象が「ランダム」の味方がいても、強化・弱体の見積もりができる", () => {
+  const env = envWith();
+  const c = member("A", S, { abilities: [warCry, armorBreak] });
+  const party = [c, member("B", S, { targetPriority: "random" })];
+  const b = { enemies: [enemy("x", 3000, { def: 40 }), enemy("y", 3000)], time: 0 };
+  assert.doesNotThrow(() => battle.chooseAction(c, party, env, b.enemies, b));
+});
