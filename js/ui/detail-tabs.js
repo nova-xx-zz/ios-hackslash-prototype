@@ -215,25 +215,29 @@ function buildFusionTab(c) {
 
   const footer = document.createElement("div");
   footer.className = "fusion-footer";
-  footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: +${totalExpGain}</span>`;
+  footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: ${isMaxLevel(c) ? "+0（Lv上限）" : "+" + totalExpGain}</span>`;
   wrap.appendChild(footer);
 
-  // レベル上限に達したモンスターはEXPを受け取れないため、素材を無駄にしないよう合成させない
+  // レベル上限に達したモンスターはEXPを受け取れないため、素材を無駄にしないよう合成させない。
+  // ただし素材が全員同じ種族なら個体値は上がるので、合成できる（EXPは入らないことを書いておく）
   const maxed = isMaxLevel(c);
+  const ivOnly = maxed && selectedMonsters.length > 0 && selectedMonsters.every((m) => m.race === c.race);
+  const blocked = maxed && !ivOnly;
+  const note = ivOnly ? "（上限のためEXPは入らず、個体値だけ上がる）" : "";
   const btn = document.createElement("button");
   btn.className = "btn primary";
-  btn.textContent = maxed ? `Lv.${c.level}（上限）に達しているため合成できません`
+  btn.textContent = blocked ? `Lv.${c.level}（上限）のため、同じ種族の素材だけ合成できます（個体値が上がる）`
     : selectedMonsters.length === 0 ? "素材を選んでください"
-    : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する（取り消せません）` : `${selectedMonsters.length}体を合成する`);
-  btn.disabled = maxed || selectedMonsters.length === 0;
+    : (fusionConfirm ? `本当に${selectedMonsters.length}体を合成する${note}（取り消せません）` : `${selectedMonsters.length}体を合成する${note}`);
+  btn.disabled = blocked || selectedMonsters.length === 0;
   btn.addEventListener("click", () => {
-    if (maxed || selectedMonsters.length === 0) return;
+    if (blocked || selectedMonsters.length === 0) return;
     if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
     fusionConfirm = false;
     // 素材が装備していたアイテムは消滅させず所持品へ戻し、素材を取り除いてEXPを還元する（js/model/inventory.js）
     const result = Inventory.fuse(c, selectedMonsters);
     fusionSelection = new Set();
-    fusionMessage = `${result.consumedNames.join("・")}を合成し、${c.name}はEXP+${result.expGain}を獲得した` +
+    fusionMessage = `${result.consumedNames.join("・")}を合成し、` + (maxed ? `${c.name}はLv上限のためEXPは入らなかった` : `${c.name}はEXP+${result.expGain}を獲得した`) +
       (result.returnedItems ? `／素材の装備${result.returnedItems}個は所持品に戻した` : "") +
       (result.levelUps.length ? "／" + result.levelUps.join("・") : "") +
       (result.ivRaised.length ? `／個体値が上がった: ${result.ivRaised.map((k) => STAT_LABELS[k]).join("・")}` : "") +
