@@ -87,10 +87,10 @@ const JOBS = {
     desc: "属性魔法で敵を攻撃する後衛職。MPを多く消費するが、敵全体を巻き込む魔法も得意とする。",
     base: { hp: 20, mp: 20, atk: 4, mag: 12, def: 3, spd: 7 },
     abilities: [
-      { id: "fire", name: "炎紋弾", reqLevel: 1, mpCost: 4, kind: "magic", target: "single", power: 1.5, hits: 1, desc: "敵1体に炎属性の魔法攻撃" },
-      { id: "mega_fire", name: "炎紋陣", reqLevel: 5, mpCost: 10, kind: "magic", target: "all-enemy", power: 1.2, hits: 1, desc: "敵全体に炎属性の魔法攻撃" },
-      { id: "blizzard", name: "氷紋槍", reqLevel: 10, mpCost: 7, kind: "magic", target: "single", power: 2.0, hits: 1, desc: "敵1体に氷属性の強力な魔法攻撃" },
-      { id: "great_blast", name: "爆紋陣", reqLevel: 15, mpCost: 16, kind: "magic", target: "all-enemy", power: 1.6, hits: 1, desc: "敵全体に極大の魔法攻撃" },
+      { id: "fire", name: "炎紋弾", reqLevel: 1, mpCost: 4, kind: "magic", element: "fire", target: "single", power: 1.5, hits: 1, desc: "敵1体に炎属性の魔法攻撃" },
+      { id: "mega_fire", name: "炎紋陣", reqLevel: 5, mpCost: 10, kind: "magic", element: "fire", target: "all-enemy", power: 1.2, hits: 1, desc: "敵全体に炎属性の魔法攻撃" },
+      { id: "blizzard", name: "氷紋槍", reqLevel: 10, mpCost: 7, kind: "magic", element: "ice", target: "single", power: 2.0, hits: 1, desc: "敵1体に氷属性の強力な魔法攻撃" },
+      { id: "great_blast", name: "爆紋陣", reqLevel: 15, mpCost: 16, kind: "magic", element: "fire", target: "all-enemy", power: 1.6, hits: 1, desc: "敵全体に極大の魔法攻撃" },
     ],
   },
   priest: {
@@ -123,7 +123,7 @@ const JOBS = {
       { id: "straight", name: "破岩拳", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.2, hits: 1, desc: "鍛えた拳で突く" },
       { id: "rush", name: "三連拳", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.45, hits: 3, desc: "拳を3回叩き込む" },
       { id: "chi_heal", name: "練気", reqLevel: 10, mpCost: 5, kind: "heal", target: "single-ally", power: 1.6, hits: 1, desc: "気を巡らせて味方1体を回復する" },
-      { id: "wave", name: "闘気波", reqLevel: 15, mpCost: 8, kind: "magic", target: "all-enemy", power: 1.3, hits: 1, desc: "闘気の波動で敵全体を撃つ" },
+      { id: "wave", name: "闘気波", reqLevel: 15, mpCost: 8, kind: "magic", element: "holy", target: "all-enemy", power: 1.3, hits: 1, desc: "闘気の波動で敵全体を撃つ" },
     ],
   },
   darkknight: {
@@ -132,8 +132,8 @@ const JOBS = {
     base: { hp: 30, mp: 10, atk: 12, mag: 6, def: 7, spd: 6 },
     abilities: [
       { id: "dark_slash", name: "黒刃", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.2, hits: 1, desc: "闇をまとった斬撃" },
-      { id: "drain", name: "吸命", reqLevel: 5, mpCost: 5, kind: "magic", target: "single", power: 1.3, hits: 1, lifesteal: 0.6, desc: "与えたダメージの6割を吸収する" },
-      { id: "black_mist", name: "黒霧", reqLevel: 10, mpCost: 9, kind: "magic", target: "all-enemy", power: 1.1, hits: 1, desc: "黒い霧で敵全体を侵す" },
+      { id: "drain", name: "吸命", reqLevel: 5, mpCost: 5, kind: "magic", element: "dark", target: "single", power: 1.3, hits: 1, lifesteal: 0.6, desc: "与えたダメージの6割を吸収する" },
+      { id: "black_mist", name: "黒霧", reqLevel: 10, mpCost: 9, kind: "magic", element: "dark", target: "all-enemy", power: 1.1, hits: 1, desc: "黒い霧で敵全体を侵す" },
       { id: "soul_edge", name: "魂削ぎ", reqLevel: 15, mpCost: 6, kind: "physical", target: "single", power: 2.6, hits: 1, desc: "魂を削る渾身の一撃" },
     ],
   },
@@ -156,9 +156,9 @@ const JOBS = {
     desc: "まほうつかいの上位職。より強大な魔法を扱い、大魔法で戦況を一変させる。",
     base: { hp: 24, mp: 28, atk: 4, mag: 17, def: 4, spd: 8 },
     abilities: [
-      { id: "thunder_bolt", name: "雷紋矢", reqLevel: 1, mpCost: 5, kind: "magic", target: "single", power: 1.9, hits: 1, desc: "鋭い雷撃を放つ" },
-      { id: "grand_thunder", name: "雷紋陣", reqLevel: 5, mpCost: 12, kind: "magic", target: "all-enemy", power: 1.55, hits: 1, desc: "極大の雷撃で敵全体を撃つ" },
-      { id: "absolute_zero", name: "凍紋獄", reqLevel: 10, mpCost: 10, kind: "magic", target: "single", power: 2.7, hits: 1, desc: "凍てつく極寒の一撃" },
+      { id: "thunder_bolt", name: "雷紋矢", reqLevel: 1, mpCost: 5, kind: "magic", element: "thunder", target: "single", power: 1.9, hits: 1, desc: "鋭い雷撃を放つ" },
+      { id: "grand_thunder", name: "雷紋陣", reqLevel: 5, mpCost: 12, kind: "magic", element: "thunder", target: "all-enemy", power: 1.55, hits: 1, desc: "極大の雷撃で敵全体を撃つ" },
+      { id: "absolute_zero", name: "凍紋獄", reqLevel: 10, mpCost: 10, kind: "magic", element: "ice", target: "single", power: 2.7, hits: 1, desc: "凍てつく極寒の一撃" },
       { id: "limit_magic", name: "極紋解放", reqLevel: 15, mpCost: 20, kind: "magic", target: "all-enemy", power: 2.0, hits: 1, desc: "魔力を限界まで解き放つ大魔法" },
     ],
   },
@@ -195,7 +195,7 @@ const JOBS = {
       { id: "vacuum_thrust", name: "空破拳", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.5, hits: 1, desc: "衝撃波を伴う一撃" },
       { id: "fist_barrage", name: "四連拳", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.42, hits: 4, desc: "拳による4連撃" },
       { id: "chi_flow_heal", name: "循気の癒し", reqLevel: 10, mpCost: 6, kind: "heal", target: "all-ally", power: 1.8, hits: 1, desc: "気を巡らせ味方全体を癒やす" },
-      { id: "ougi_no_sho", name: "覇掌", reqLevel: 15, mpCost: 9, kind: "physical", target: "all-enemy", power: 1.7, hits: 1, desc: "会得した掌打の極意で敵全体を打つ" },
+      { id: "ougi_no_sho", name: "覇掌", reqLevel: 15, mpCost: 9, kind: "physical", element: "holy", target: "all-enemy", power: 1.7, hits: 1, desc: "会得した掌打の極意で敵全体を打つ" },
     ],
   },
   reaper: {
@@ -205,8 +205,8 @@ const JOBS = {
     base: { hp: 36, mp: 14, atk: 17, mag: 9, def: 8, spd: 8 },
     abilities: [
       { id: "sickle_wind", name: "風切り鎌", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.4, hits: 1, desc: "鎌のような斬撃で切り裂く" },
-      { id: "soul_sickle", name: "魂刈り", reqLevel: 5, mpCost: 6, kind: "magic", target: "single", power: 1.6, hits: 1, lifesteal: 0.5, desc: "魂を刈り取るような一撃。与ダメージの5割を吸収する" },
-      { id: "kiss_of_death", name: "冥府の囁き", reqLevel: 10, mpCost: 11, kind: "magic", target: "all-enemy", power: 1.3, hits: 1, lifesteal: 0.3, desc: "触れた者の力を吸い取る。与ダメージの3割を吸収する" },
+      { id: "soul_sickle", name: "魂刈り", reqLevel: 5, mpCost: 6, kind: "magic", element: "dark", target: "single", power: 1.6, hits: 1, lifesteal: 0.5, desc: "魂を刈り取るような一撃。与ダメージの5割を吸収する" },
+      { id: "kiss_of_death", name: "冥府の囁き", reqLevel: 10, mpCost: 11, kind: "magic", element: "dark", target: "all-enemy", power: 1.3, hits: 1, lifesteal: 0.3, desc: "触れた者の力を吸い取る。与ダメージの3割を吸収する" },
       { id: "grand_sickle", name: "葬魂の大鎌", reqLevel: 15, mpCost: 10, kind: "physical", target: "single", power: 3.0, hits: 1, lifesteal: 0.4, desc: "魂ごと刈り取る渾身の一撃。与ダメージの4割を吸収する" },
     ],
   },
@@ -275,8 +275,10 @@ function jobTag(jobId) {
 // ノードのeffects種別: statAdd(能力値に加算)/passiveAdd(会心率などに加算)/passiveMult(被ダメ等に乗算)。
 // activeノードはabilityに通常のアビリティと同じ形のオブジェクトを持ち、習得すると使える技が1つ増える。
 // costByRank/maxRankは将来ランク制に拡張できる形にしているが、現状は全ノードmaxRank:1。
-// x/yはツリー図の表示座標（0-100のパーセンテージ、分岐図を手作業でレイアウト）。
-// SPの数値・ノード内容は初期実装のための調整値であり、確定した最終バランスではない。
+// row/xはツリー図の表示位置（row: 上から何段目、x: 横位置0-100%）。reqLevel: 習得に必要なジョブのレベル（段が開くLv）。
+// statPct: 能力値の割合ボーナス（装備のセット効果などの割合と同じ段で掛ける）。passiveAdd の pierce: 防御無視の割合。
+// 全部取るのに必要なSPは、固有56＋汎用14×3枠＝98（Lv99のSP）。どのレベルでも「開いているマスの必要SP ≧ 持っているSP」
+// になるように段を置いている（docs/skill-tree-design.md）。
 //
 // 1キャラは「固有ツリー（系統タグごとに1本、交換不可）」＋「汎用ツリー3枠（GENERAL_SLOTS、
 // 枠ごとに決まった2択から交換可能）」の計4本を同時に持つ。SPは全4本で共有する1つのプールから
@@ -285,124 +287,138 @@ const EXCLUSIVE_TREES = {
   warrior: {
     id: "warrior", tag: "warrior", name: "剛勇の心得",
     nodes: [
-      { id: "w1", kind: "passive", name: "鍛えた腕", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 8,
-        effects: [{ type: "statAdd", stat: "atk", value: 3 }], desc: "ATK+3" },
-      { id: "w2", kind: "passive", name: "戦いの勘", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "w1", minRank: 1 }], exclusiveGroup: null, x: 50, y: 32,
-        effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%" },
-      { id: "w3", kind: "active", name: "剣撃突き", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w2", minRank: 1 }], exclusiveGroup: null, x: 50, y: 56,
-        ability: { id: "tree_w3", name: "剣撃突き", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.8, hits: 1, desc: "剛勇の心得で会得した強撃" },
-        effects: [], desc: "新しい技「剣撃突き」を習得" },
-      { id: "w4a", kind: "passive", name: "不動の構え", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: "w_style", x: 25, y: 88,
-        effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）" },
-      { id: "w4b", kind: "passive", name: "猛攻の構え", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: "w_style", x: 75, y: 88,
-        effects: [{ type: "statAdd", stat: "atk", value: 6 }], desc: "ATK+6（4aと選択）" },
-      { id: "w_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "w2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
-      { id: "w_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "w1", kind: "passive", name: "鍛えた腕", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "atk", value: 3 }], desc: "ATK+3", row: 0, reqLevel: 1 },
+      { id: "w2", kind: "passive", name: "戦いの勘", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "w1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%", row: 1, reqLevel: 1 },
+      { id: "w3", kind: "active", name: "剣撃突き", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_w3", name: "剣撃突き", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.8, hits: 1, desc: "剛勇の心得で会得した強撃" }, effects: [], desc: "新しい技「剣撃突き」を習得", row: 2, reqLevel: 1 },
+      { id: "w4a", kind: "passive", name: "不動の構え", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: "w_style", x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "w4b", kind: "passive", name: "猛攻の構え", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: "w_style", x: 66, effects: [{ type: "statAdd", stat: "atk", value: 6 }], desc: "ATK+6（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "w_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "w2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "w_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "w5", kind: "active", name: "鎧砕き", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "w3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, ability: { id: "tree_w5", name: "鎧砕き", reqLevel: 1, hits: 1, mpCost: 4, kind: "physical", target: "single", power: 1, debuff: { stat: "def", mult: 0.5, duration: 12 }, desc: "敵1体に攻撃。当たった敵のDEFを12秒間50%下げる" }, effects: [], desc: "新しい技「鎧砕き」を習得: 敵1体に攻撃。当たった敵のDEFを12秒間50%下げる" },
+      { id: "w6", kind: "passive", name: "剛力", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "w5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.05 }], desc: "ATK+5%" },
+      { id: "w7a", kind: "passive", name: "鉄壁の構え", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "w6", minRank: 1 }], exclusiveGroup: "w_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%（どちらか一方）" },
+      { id: "w7b", kind: "passive", name: "豪腕", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "w6", minRank: 1 }], exclusiveGroup: "w_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.08 }], desc: "会心率+8%（どちらか一方）" },
+      { id: "w8", kind: "active", name: "鬨の声", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "w6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_w8", name: "鬨の声", reqLevel: 1, hits: 1, mpCost: 10, kind: "buff", target: "all-ally", buff: { stat: "atk", mult: 1.25, duration: 15 }, power: 0, desc: "15秒間、味方全体のATKを25%上げる" }, effects: [], desc: "新しい技「鬨の声」を習得: 15秒間、味方全体のATKを25%上げる" },
+      { id: "w9", kind: "passive", name: "歴戦の体", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "w8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.1 }], desc: "HP+10%" },
+      { id: "w10a", kind: "passive", name: "闘志", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "w9", minRank: 1 }], exclusiveGroup: "w_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%（どちらか一方）" },
+      { id: "w10b", kind: "passive", name: "覇気", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "w9", minRank: 1 }], exclusiveGroup: "w_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "statPct", stat: "atk", value: 0.06 }], desc: "ATK+6%（どちらか一方）" },
+      { id: "w11", kind: "passive", name: "剣の頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "w9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.08 }], desc: "ATK+8%" },
+      { id: "w12", kind: "active", name: "剛勇覇斬", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "w11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_w12", name: "剛勇覇斬", reqLevel: 1, hits: 1, mpCost: 14, kind: "physical", target: "all-enemy", power: 2, pierce: 0.3, desc: "敵全体に攻撃。防御を30%無視" }, effects: [], desc: "新しい技「剛勇覇斬」を習得: 敵全体に攻撃。防御を30%無視" },
     ],
   },
   magic: {
     id: "magic", tag: "magic", name: "魔導の探求",
     nodes: [
-      { id: "m1", kind: "passive", name: "魔力の素地", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 8,
-        effects: [{ type: "statAdd", stat: "mag", value: 3 }], desc: "MAG+3" },
-      { id: "m2", kind: "passive", name: "省魔の心得", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "m1", minRank: 1 }], exclusiveGroup: null, x: 50, y: 32,
-        effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%" },
-      { id: "m3", kind: "active", name: "深淵の矢", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m2", minRank: 1 }], exclusiveGroup: null, x: 50, y: 56,
-        ability: { id: "tree_m3", name: "深淵の矢", reqLevel: 1, mpCost: 8, kind: "magic", target: "single", power: 2.2, hits: 1, desc: "魔導の探求で会得した深淵の魔法" },
-        effects: [], desc: "新しい技「深淵の矢」を習得" },
-      { id: "m4a", kind: "passive", name: "魔力の深化", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: "m_style", x: 25, y: 88,
-        effects: [{ type: "statAdd", stat: "mag", value: 6 }], desc: "MAG+6（4bと選択）" },
-      { id: "m4b", kind: "passive", name: "魔導障壁", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: "m_style", x: 75, y: 88,
-        effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4aと選択）" },
-      { id: "m_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "m2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
-      { id: "m_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "m1", kind: "passive", name: "魔力の素地", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "mag", value: 3 }], desc: "MAG+3", row: 0, reqLevel: 1 },
+      { id: "m2", kind: "passive", name: "省魔の心得", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "m1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%", row: 1, reqLevel: 1 },
+      { id: "m3", kind: "active", name: "深淵の矢", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_m3", name: "深淵の矢", reqLevel: 1, mpCost: 8, kind: "magic", element: "dark", target: "single", power: 2.2, hits: 1, desc: "魔導の探求で会得した深淵の魔法" }, effects: [], desc: "新しい技「深淵の矢」を習得", row: 2, reqLevel: 1 },
+      { id: "m4a", kind: "passive", name: "魔力の深化", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: "m_style", x: 30, effects: [{ type: "statAdd", stat: "mag", value: 6 }], desc: "MAG+6（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "m4b", kind: "passive", name: "魔導障壁", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: "m_style", x: 66, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "m_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "m2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "m_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "m5", kind: "active", name: "魔力の紋", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "m3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, ability: { id: "tree_m5", name: "魔力の紋", reqLevel: 1, hits: 1, mpCost: 10, kind: "buff", target: "all-ally", buff: { stat: "mag", mult: 1.25, duration: 15 }, power: 0, desc: "15秒間、味方全体のMAGを25%上げる" }, effects: [], desc: "新しい技「魔力の紋」を習得: 15秒間、味方全体のMAGを25%上げる" },
+      { id: "m6", kind: "passive", name: "魔力の高まり", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "m5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.05 }], desc: "MAG+5%" },
+      { id: "m7a", kind: "passive", name: "魔力集中", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "m6", minRank: 1 }], exclusiveGroup: "m_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "statPct", stat: "mag", value: 0.06 }], desc: "MAG+6%（どちらか一方）" },
+      { id: "m7b", kind: "passive", name: "魔導の衣", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "m6", minRank: 1 }], exclusiveGroup: "m_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%（どちらか一方）" },
+      { id: "m8", kind: "active", name: "雷紋嵐", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "m6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_m8", name: "雷紋嵐", reqLevel: 1, hits: 1, mpCost: 14, kind: "magic", target: "all-enemy", power: 1.4, element: "thunder", desc: "敵全体に雷属性の魔法攻撃" }, effects: [], desc: "新しい技「雷紋嵐」を習得: 敵全体に雷属性の魔法攻撃" },
+      { id: "m9", kind: "passive", name: "魔力の泉", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "m8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "mp", value: 0.15 }], desc: "MP+15%" },
+      { id: "m10a", kind: "passive", name: "省魔の極み", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "m9", minRank: 1 }], exclusiveGroup: "m_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP−10%（どちらか一方）" },
+      { id: "m10b", kind: "passive", name: "深淵の魔力", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "m9", minRank: 1 }], exclusiveGroup: "m_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "statPct", stat: "mag", value: 0.06 }], desc: "MAG+6%（どちらか一方）" },
+      { id: "m11", kind: "passive", name: "魔導の頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "m9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.08 }], desc: "MAG+8%" },
+      { id: "m12", kind: "active", name: "原初の紋", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "m11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_m12", name: "原初の紋", reqLevel: 1, hits: 1, mpCost: 26, kind: "magic", target: "all-enemy", power: 2.2, desc: "敵全体に魔法攻撃" }, effects: [], desc: "新しい技「原初の紋」を習得: 敵全体に魔法攻撃" },
     ],
   },
   healer: {
     id: "healer", tag: "healer", name: "癒しの祈り",
     nodes: [
-      { id: "h1", kind: "passive", name: "祈りの基礎", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 8,
-        effects: [{ type: "statAdd", stat: "mag", value: 3 }], desc: "MAG+3" },
-      { id: "h2", kind: "passive", name: "癒しの心得", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "h1", minRank: 1 }], exclusiveGroup: null, x: 50, y: 32,
-        effects: [{ type: "passiveAdd", key: "healBonus", value: 0.15 }], desc: "回復量+15%" },
-      { id: "h3", kind: "active", name: "精霊の雫", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h2", minRank: 1 }], exclusiveGroup: null, x: 50, y: 56,
-        ability: { id: "tree_h3", name: "精霊の雫", reqLevel: 1, mpCost: 6, kind: "heal", target: "single-ally", power: 2.0, hits: 1, desc: "癒しの祈りで会得した回復術" },
-        effects: [], desc: "新しい技「精霊の雫」を習得" },
-      { id: "h4a", kind: "passive", name: "深い祈り", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: "h_style", x: 25, y: 88,
-        effects: [{ type: "passiveAdd", key: "healBonus", value: 0.1 }], desc: "回復量さらに+10%（4bと選択）" },
-      { id: "h4b", kind: "passive", name: "清貧の心", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: "h_style", x: 75, y: 88,
-        effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（4aと選択）" },
-      { id: "h_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "h2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
-      { id: "h_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "h1", kind: "passive", name: "祈りの基礎", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "mag", value: 3 }], desc: "MAG+3", row: 0, reqLevel: 1 },
+      { id: "h2", kind: "passive", name: "癒しの心得", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "h1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.15 }], desc: "回復量+15%", row: 1, reqLevel: 1 },
+      { id: "h3", kind: "active", name: "精霊の雫", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_h3", name: "精霊の雫", reqLevel: 1, mpCost: 6, kind: "heal", target: "single-ally", power: 2, hits: 1, desc: "癒しの祈りで会得した回復術" }, effects: [], desc: "新しい技「精霊の雫」を習得", row: 2, reqLevel: 1 },
+      { id: "h4a", kind: "passive", name: "深い祈り", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: "h_style", x: 30, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.1 }], desc: "回復量さらに+10%（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "h4b", kind: "passive", name: "清貧の心", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: "h_style", x: 66, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "h_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "h2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "h_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "h5", kind: "active", name: "光の矢", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "h3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, ability: { id: "tree_h5", name: "光の矢", reqLevel: 1, hits: 1, mpCost: 6, kind: "magic", target: "single", power: 1.6, element: "holy", desc: "敵1体に聖属性の魔法攻撃" }, effects: [], desc: "新しい技「光の矢」を習得: 敵1体に聖属性の魔法攻撃" },
+      { id: "h6", kind: "passive", name: "祈りの深まり", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "h5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.05 }], desc: "MAG+5%" },
+      { id: "h7a", kind: "passive", name: "慈しみ", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "h6", minRank: 1 }], exclusiveGroup: "h_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.1 }], desc: "回復量+10%（どちらか一方）" },
+      { id: "h7b", kind: "passive", name: "節制", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "h6", minRank: 1 }], exclusiveGroup: "h_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.92 }], desc: "消費MP−8%（どちらか一方）" },
+      { id: "h8", kind: "active", name: "聖なる加護", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "h6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_h8", name: "聖なる加護", reqLevel: 1, hits: 1, mpCost: 14, kind: "buff", target: "all-ally", imbue: { element: "holy", duration: 15 }, power: 0, desc: "15秒間、味方全体の無属性の攻撃が聖属性になる" }, effects: [], desc: "新しい技「聖なる加護」を習得: 15秒間、味方全体の無属性の攻撃が聖属性になる" },
+      { id: "h9", kind: "passive", name: "守りの祈り", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "h8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.1 }], desc: "HP+10%" },
+      { id: "h10a", kind: "passive", name: "加護の祈り", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "h9", minRank: 1 }], exclusiveGroup: "h_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%（どちらか一方）" },
+      { id: "h10b", kind: "passive", name: "慈愛", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "h9", minRank: 1 }], exclusiveGroup: "h_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.1 }], desc: "回復量+10%（どちらか一方）" },
+      { id: "h11", kind: "passive", name: "聖なる頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "h9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.08 }], desc: "MAG+8%" },
+      { id: "h12", kind: "active", name: "祝福の雨", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "h11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_h12", name: "祝福の雨", reqLevel: 1, hits: 1, mpCost: 24, kind: "heal", target: "all-ally", power: 3, desc: "味方全体に回復" }, effects: [], desc: "新しい技「祝福の雨」を習得: 味方全体に回復" },
     ],
   },
   rogue: {
     id: "rogue", tag: "rogue", name: "迅速の型",
     nodes: [
-      { id: "r1", kind: "passive", name: "身のこなし", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 8,
-        effects: [{ type: "statAdd", stat: "spd", value: 2 }], desc: "SPD+2" },
-      { id: "r2", kind: "passive", name: "急所の見極め", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "r1", minRank: 1 }], exclusiveGroup: null, x: 50, y: 32,
-        effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%" },
-      { id: "r3", kind: "active", name: "疾風三連", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r2", minRank: 1 }], exclusiveGroup: null, x: 50, y: 56,
-        ability: { id: "tree_r3", name: "疾風三連", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 0.5, hits: 3, desc: "迅速の型で会得した3連撃" },
-        effects: [], desc: "新しい技「疾風三連」を習得" },
-      { id: "r4a", kind: "passive", name: "疾風の足", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: "r_style", x: 25, y: 88,
-        effects: [{ type: "statAdd", stat: "spd", value: 3 }], desc: "SPD+3（4bと選択）" },
-      { id: "r4b", kind: "passive", name: "必殺の視点", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: "r_style", x: 75, y: 88,
-        effects: [{ type: "passiveAdd", key: "critBonus", value: 0.08 }], desc: "会心率さらに+8%（4aと選択）" },
-      { id: "r_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "r2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
-      { id: "r_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "r1", kind: "passive", name: "身のこなし", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "spd", value: 2 }], desc: "SPD+2", row: 0, reqLevel: 1 },
+      { id: "r2", kind: "passive", name: "急所の見極め", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "r1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%", row: 1, reqLevel: 1 },
+      { id: "r3", kind: "active", name: "疾風三連", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_r3", name: "疾風三連", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 0.5, hits: 3, desc: "迅速の型で会得した3連撃" }, effects: [], desc: "新しい技「疾風三連」を習得", row: 2, reqLevel: 1 },
+      { id: "r4a", kind: "passive", name: "疾風の足", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: "r_style", x: 30, effects: [{ type: "statAdd", stat: "spd", value: 3 }], desc: "SPD+3（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "r4b", kind: "passive", name: "必殺の視点", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: "r_style", x: 66, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.08 }], desc: "会心率さらに+8%（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "r_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "r2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "r_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "r5", kind: "active", name: "足止めの刃", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "r3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, ability: { id: "tree_r5", name: "足止めの刃", reqLevel: 1, hits: 1, mpCost: 3, kind: "physical", target: "single", power: 0.9, debuff: { stat: "spd", mult: 0.6, duration: 12 }, desc: "敵1体に攻撃。当たった敵のSPDを12秒間40%下げる" }, effects: [], desc: "新しい技「足止めの刃」を習得: 敵1体に攻撃。当たった敵のSPDを12秒間40%下げる" },
+      { id: "r6", kind: "passive", name: "鋭い刃", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "r5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.05 }], desc: "ATK+5%" },
+      { id: "r7a", kind: "passive", name: "急所狙い", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "r6", minRank: 1 }], exclusiveGroup: "r_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.08 }], desc: "会心率+8%（どちらか一方）" },
+      { id: "r7b", kind: "passive", name: "俊足", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "r6", minRank: 1 }], exclusiveGroup: "r_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "statAdd", stat: "spd", value: 2 }], desc: "SPD+2（どちらか一方）" },
+      { id: "r8", kind: "active", name: "弱点暴き", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "r6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_r8", name: "弱点暴き", reqLevel: 1, hits: 1, mpCost: 10, kind: "physical", target: "all-enemy", power: 0.5, debuff: { stat: "def", mult: 0.7, duration: 10 }, desc: "敵全体に攻撃。当たった敵のDEFを10秒間30%下げる" }, effects: [], desc: "新しい技「弱点暴き」を習得: 敵全体に攻撃。当たった敵のDEFを10秒間30%下げる" },
+      { id: "r9", kind: "passive", name: "研ぎ澄ます", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "r8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.06 }], desc: "ATK+6%" },
+      { id: "r10a", kind: "passive", name: "盗み取る刃", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "r9", minRank: 1 }], exclusiveGroup: "r_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%（どちらか一方）" },
+      { id: "r10b", kind: "passive", name: "必殺", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "r9", minRank: 1 }], exclusiveGroup: "r_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.08 }], desc: "会心率+8%（どちらか一方）" },
+      { id: "r11", kind: "passive", name: "疾風の頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "r9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "statAdd", stat: "spd", value: 2 }], desc: "SPD+2" },
+      { id: "r12", kind: "active", name: "百花繚乱", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "r11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_r12", name: "百花繚乱", reqLevel: 1, hits: 8, mpCost: 14, kind: "physical", target: "single", power: 0.5, desc: "敵1体に攻撃（8回）" }, effects: [], desc: "新しい技「百花繚乱」を習得: 敵1体に攻撃（8回）" },
     ],
   },
   martial: {
     id: "martial", tag: "martial", name: "闘気の鍛錬",
     nodes: [
-      { id: "k1", kind: "passive", name: "頑健な体", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 8,
-        effects: [{ type: "statAdd", stat: "hp", value: 15 }], desc: "HP+15" },
-      { id: "k2", kind: "passive", name: "気の巡り", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "k1", minRank: 1 }], exclusiveGroup: null, x: 50, y: 32,
-        effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "与ダメージの5%を吸収" },
-      { id: "k3", kind: "active", name: "気圧潰し", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k2", minRank: 1 }], exclusiveGroup: null, x: 50, y: 56,
-        ability: { id: "tree_k3", name: "気圧潰し", reqLevel: 1, mpCost: 4, kind: "physical", target: "single", power: 1.6, hits: 1, desc: "闘気の鍛錬で会得した気の一撃" },
-        effects: [], desc: "新しい技「気圧潰し」を習得" },
-      { id: "k4a", kind: "passive", name: "鉄壁の体", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: "k_style", x: 25, y: 88,
-        effects: [{ type: "statAdd", stat: "def", value: 6 }], desc: "DEF+6（4bと選択）" },
-      { id: "k4b", kind: "passive", name: "気吸の極意", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: "k_style", x: 75, y: 88,
-        effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "吸収さらに+5%（4aと選択）" },
-      { id: "k_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "k2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
-      { id: "k_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "k1", kind: "passive", name: "頑健な体", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "hp", value: 15 }], desc: "HP+15", row: 0, reqLevel: 1 },
+      { id: "k2", kind: "passive", name: "気の巡り", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "k1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "与ダメージの5%を吸収", row: 1, reqLevel: 1 },
+      { id: "k3", kind: "active", name: "気圧潰し", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_k3", name: "気圧潰し", reqLevel: 1, mpCost: 4, kind: "physical", target: "single", power: 1.6, hits: 1, desc: "闘気の鍛錬で会得した気の一撃" }, effects: [], desc: "新しい技「気圧潰し」を習得", row: 2, reqLevel: 1 },
+      { id: "k4a", kind: "passive", name: "鉄壁の体", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: "k_style", x: 30, effects: [{ type: "statAdd", stat: "def", value: 6 }], desc: "DEF+6（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "k4b", kind: "passive", name: "気吸の極意", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: "k_style", x: 66, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "吸収さらに+5%（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "k_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "k2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "k_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "k5", kind: "passive", name: "徹し", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "k3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, effects: [{ type: "passiveAdd", key: "pierce", value: 0.25 }], desc: "防御無視+25%" },
+      { id: "k6", kind: "passive", name: "鍛えた体", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "k5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.08 }], desc: "HP+8%" },
+      { id: "k7a", kind: "passive", name: "金剛の体", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "k6", minRank: 1 }], exclusiveGroup: "k_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "statPct", stat: "def", value: 0.08 }], desc: "DEF+8%（どちらか一方）" },
+      { id: "k7b", kind: "passive", name: "気吸", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "k6", minRank: 1 }], exclusiveGroup: "k_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%（どちらか一方）" },
+      { id: "k8", kind: "active", name: "金剛の陣", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "k6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_k8", name: "金剛の陣", reqLevel: 1, hits: 1, mpCost: 10, kind: "buff", target: "all-ally", buff: { stat: "def", mult: 1.3, duration: 15 }, power: 0, desc: "15秒間、味方全体のDEFを30%上げる" }, effects: [], desc: "新しい技「金剛の陣」を習得: 15秒間、味方全体のDEFを30%上げる" },
+      { id: "k9", kind: "passive", name: "剛拳", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "k8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.06 }], desc: "ATK+6%" },
+      { id: "k10a", kind: "passive", name: "不動心", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "k9", minRank: 1 }], exclusiveGroup: "k_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%（どちらか一方）" },
+      { id: "k10b", kind: "passive", name: "闘魂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "k9", minRank: 1 }], exclusiveGroup: "k_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "statPct", stat: "atk", value: 0.06 }], desc: "ATK+6%（どちらか一方）" },
+      { id: "k11", kind: "passive", name: "闘気の頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "k9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.1 }], desc: "HP+10%" },
+      { id: "k12", kind: "active", name: "不動豪拳", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "k11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_k12", name: "不動豪拳", reqLevel: 1, hits: 1, mpCost: 14, kind: "physical", target: "all-enemy", power: 2, element: "holy", desc: "敵全体に聖属性の攻撃" }, effects: [], desc: "新しい技「不動豪拳」を習得: 敵全体に聖属性の攻撃" },
     ],
   },
   dark: {
     id: "dark", tag: "dark", name: "深淵の契約",
     nodes: [
-      { id: "d1", kind: "passive", name: "闇との親和", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 8,
-        effects: [{ type: "statAdd", stat: "mag", value: 3 }], desc: "MAG+3" },
-      { id: "d2", kind: "passive", name: "生気の収奪", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "d1", minRank: 1 }], exclusiveGroup: null, x: 50, y: 32,
-        effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "与ダメージの5%を吸収" },
-      { id: "d3", kind: "active", name: "魂吸い", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d2", minRank: 1 }], exclusiveGroup: null, x: 50, y: 56,
-        ability: { id: "tree_d3", name: "魂吸い", reqLevel: 1, mpCost: 7, kind: "magic", target: "single", power: 1.8, hits: 1, lifesteal: 0.4, desc: "深淵の契約で会得した吸魂の魔法。与ダメージの4割を吸収する" },
-        effects: [], desc: "新しい技「魂吸い」を習得" },
-      { id: "d4a", kind: "passive", name: "深淵の加護", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: "d_style", x: 25, y: 88,
-        effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）" },
-      { id: "d4b", kind: "passive", name: "渇望の契約", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: "d_style", x: 75, y: 88,
-        effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "吸収さらに+5%（4aと選択）" },
-      { id: "d_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "d2", minRank: 1 }], exclusiveGroup: null, x: 14, y: 44,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
-      { id: "d_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: null, x: 86, y: 68,
-        effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1" },
+      { id: "d1", kind: "passive", name: "闇との親和", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "mag", value: 3 }], desc: "MAG+3", row: 0, reqLevel: 1 },
+      { id: "d2", kind: "passive", name: "生気の収奪", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "d1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "与ダメージの5%を吸収", row: 1, reqLevel: 1 },
+      { id: "d3", kind: "active", name: "魂吸い", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_d3", name: "魂吸い", reqLevel: 1, mpCost: 7, kind: "magic", element: "dark", target: "single", power: 1.8, hits: 1, lifesteal: 0.4, desc: "深淵の契約で会得した吸魂の魔法。与ダメージの4割を吸収する" }, effects: [], desc: "新しい技「魂吸い」を習得", row: 2, reqLevel: 1 },
+      { id: "d4a", kind: "passive", name: "深淵の加護", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: "d_style", x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "d4b", kind: "passive", name: "渇望の契約", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: "d_style", x: 66, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.05 }], desc: "吸収さらに+5%（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "d_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "d2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "d_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "d5", kind: "active", name: "呪縛", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "d3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, ability: { id: "tree_d5", name: "呪縛", reqLevel: 1, hits: 1, mpCost: 6, kind: "magic", target: "single", power: 1, element: "dark", debuff: { stat: "atk", mult: 0.7, duration: 12 }, desc: "敵1体に闇属性の魔法攻撃。当たった敵のATKを12秒間30%下げる" }, effects: [], desc: "新しい技「呪縛」を習得: 敵1体に闇属性の魔法攻撃。当たった敵のATKを12秒間30%下げる" },
+      { id: "d6", kind: "passive", name: "闇の膂力", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "d5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.05 }], desc: "ATK+5%" },
+      { id: "d7a", kind: "passive", name: "闇の衣", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "d6", minRank: 1 }], exclusiveGroup: "d_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%（どちらか一方）" },
+      { id: "d7b", kind: "passive", name: "渇き", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "d6", minRank: 1 }], exclusiveGroup: "d_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%（どちらか一方）" },
+      { id: "d8", kind: "active", name: "闇の帳", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "d6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_d8", name: "闇の帳", reqLevel: 1, hits: 1, mpCost: 12, kind: "magic", target: "all-enemy", power: 1, element: "dark", debuff: { stat: "atk", mult: 0.8, duration: 10 }, desc: "敵全体に闇属性の魔法攻撃。当たった敵のATKを10秒間20%下げる" }, effects: [], desc: "新しい技「闇の帳」を習得: 敵全体に闇属性の魔法攻撃。当たった敵のATKを10秒間20%下げる" },
+      { id: "d9", kind: "passive", name: "深淵の魔力", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "d8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.06 }], desc: "MAG+6%" },
+      { id: "d10a", kind: "passive", name: "不死の契約", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "d9", minRank: 1 }], exclusiveGroup: "d_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "statPct", stat: "hp", value: 0.1 }], desc: "HP+10%（どちらか一方）" },
+      { id: "d10b", kind: "passive", name: "狂気", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "d9", minRank: 1 }], exclusiveGroup: "d_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "statPct", stat: "atk", value: 0.06 }], desc: "ATK+6%（どちらか一方）" },
+      { id: "d11", kind: "passive", name: "深淵の頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "d9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%" },
+      { id: "d12", kind: "active", name: "深淵の刃", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "d11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_d12", name: "深淵の刃", reqLevel: 1, hits: 1, mpCost: 16, kind: "physical", target: "all-enemy", power: 1.9, element: "dark", lifesteal: 0.3, desc: "敵全体に闇属性の攻撃。与ダメージの3割を吸収" }, effects: [], desc: "新しい技「深淵の刃」を習得: 敵全体に闇属性の攻撃。与ダメージの3割を吸収" },
     ],
   },
 };
+// ツリーの振り直しの費用: 使ったSP1につき強化石この数（js/model/roster.js の resetTree）
+const TREE_RESET_COST_PER_SP = 20;
 function getExclusiveTreeByTag(tag) { return EXCLUSIVE_TREES[tag] || null; }
 
 // ---------- 汎用ツリー（全ジョブ共通のプール。系統を問わず誰でも習得できる） ----------
@@ -413,67 +429,67 @@ const GENERAL_TREES = {
   offense: {
     id: "offense", name: "攻めの心得",
     nodes: [
-      { id: "go1", kind: "passive", name: "会心の芽生え", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 12,
-        effects: [{ type: "passiveAdd", key: "critBonus", value: 0.04 }], desc: "会心率+4%" },
-      { id: "go2a", kind: "passive", name: "会心の極み", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "go1", minRank: 1 }], exclusiveGroup: "offense_style", x: 25, y: 82,
-        effects: [{ type: "passiveAdd", key: "critBonus", value: 0.06 }], desc: "会心率さらに+6%（右と選択）" },
-      { id: "go2b", kind: "passive", name: "猛攻の型", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "go1", minRank: 1 }], exclusiveGroup: "offense_style", x: 75, y: 82,
-        effects: [{ type: "statAdd", stat: "atk", value: 4 }, { type: "statAdd", stat: "mag", value: 4 }], desc: "ATK+4・MAG+4（左と選択）" },
+      { id: "go1", kind: "passive", name: "会心の芽生え", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.04 }], desc: "会心率+4%", row: 0, reqLevel: 1 },
+      { id: "go2a", kind: "passive", name: "会心の極み", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "go1", minRank: 1 }], exclusiveGroup: "offense_style", x: 30, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.06 }], desc: "会心率さらに+6%（右と選択）", row: 1, reqLevel: 1 },
+      { id: "go2b", kind: "passive", name: "猛攻の型", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "go1", minRank: 1 }], exclusiveGroup: "offense_style", x: 70, effects: [{ type: "statAdd", stat: "atk", value: 4 }, { type: "statAdd", stat: "mag", value: 4 }], desc: "ATK+4・MAG+4（左と選択）", row: 1, reqLevel: 1 },
+      { id: "go3", kind: "passive", name: "攻めの型", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "go1", minRank: 1 }], exclusiveGroup: null, reqLevel: 25, row: 2, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.04 }, { type: "statPct", stat: "mag", value: 0.04 }], desc: "ATK+4%・MAG+4%" },
+      { id: "go4", kind: "passive", name: "見切り", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "go3", minRank: 1 }], exclusiveGroup: null, reqLevel: 45, row: 3, x: 50, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%" },
+      { id: "go5", kind: "passive", name: "攻めの極み", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "go4", minRank: 1 }], exclusiveGroup: null, reqLevel: 65, row: 4, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.05 }, { type: "statPct", stat: "mag", value: 0.05 }], desc: "ATK+5%・MAG+5%" },
     ],
   },
   speed: {
     id: "speed", name: "俊敏の心得",
     nodes: [
-      { id: "gs1", kind: "passive", name: "軽い足取り", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 12,
-        effects: [{ type: "statAdd", stat: "spd", value: 3 }], desc: "SPD+3" },
-      { id: "gs2a", kind: "passive", name: "疾風", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gs1", minRank: 1 }], exclusiveGroup: "speed_style", x: 25, y: 82,
-        effects: [{ type: "statAdd", stat: "spd", value: 4 }], desc: "SPDさらに+4（右と選択）" },
-      { id: "gs2b", kind: "passive", name: "先手必勝", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gs1", minRank: 1 }], exclusiveGroup: "speed_style", x: 75, y: 82,
-        effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%（左と選択）" },
+      { id: "gs1", kind: "passive", name: "軽い足取り", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "spd", value: 3 }], desc: "SPD+3", row: 0, reqLevel: 1 },
+      { id: "gs2a", kind: "passive", name: "疾風", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gs1", minRank: 1 }], exclusiveGroup: "speed_style", x: 30, effects: [{ type: "statAdd", stat: "spd", value: 4 }], desc: "SPDさらに+4（右と選択）", row: 1, reqLevel: 1 },
+      { id: "gs2b", kind: "passive", name: "先手必勝", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gs1", minRank: 1 }], exclusiveGroup: "speed_style", x: 70, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%（左と選択）", row: 1, reqLevel: 1 },
+      { id: "gs3", kind: "passive", name: "身軽さ", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "gs1", minRank: 1 }], exclusiveGroup: null, reqLevel: 25, row: 2, x: 50, effects: [{ type: "statAdd", stat: "spd", value: 2 }], desc: "SPD+2" },
+      { id: "gs4", kind: "passive", name: "先読み", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gs3", minRank: 1 }], exclusiveGroup: null, reqLevel: 45, row: 3, x: 50, effects: [{ type: "passiveAdd", key: "critBonus", value: 0.05 }], desc: "会心率+5%" },
+      { id: "gs5", kind: "passive", name: "神速", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gs4", minRank: 1 }], exclusiveGroup: null, reqLevel: 65, row: 4, x: 50, effects: [{ type: "statAdd", stat: "spd", value: 2 }], desc: "SPD+2" },
     ],
   },
   defense: {
     id: "defense", name: "守りの心得",
     nodes: [
-      { id: "gd1", kind: "passive", name: "鉄の肌", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 12,
-        effects: [{ type: "statAdd", stat: "def", value: 4 }], desc: "DEF+4" },
-      { id: "gd2a", kind: "passive", name: "不屈の盾", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gd1", minRank: 1 }], exclusiveGroup: "defense_style", x: 25, y: 82,
-        effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（右と選択）" },
-      { id: "gd2b", kind: "passive", name: "頑強", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gd1", minRank: 1 }], exclusiveGroup: "defense_style", x: 75, y: 82,
-        effects: [{ type: "statAdd", stat: "hp", value: 20 }], desc: "HP+20（左と選択）" },
+      { id: "gd1", kind: "passive", name: "鉄の肌", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "def", value: 4 }], desc: "DEF+4", row: 0, reqLevel: 1 },
+      { id: "gd2a", kind: "passive", name: "不屈の盾", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gd1", minRank: 1 }], exclusiveGroup: "defense_style", x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（右と選択）", row: 1, reqLevel: 1 },
+      { id: "gd2b", kind: "passive", name: "頑強", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gd1", minRank: 1 }], exclusiveGroup: "defense_style", x: 70, effects: [{ type: "statAdd", stat: "hp", value: 20 }], desc: "HP+20（左と選択）", row: 1, reqLevel: 1 },
+      { id: "gd3", kind: "passive", name: "堅い守り", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "gd1", minRank: 1 }], exclusiveGroup: null, reqLevel: 25, row: 2, x: 50, effects: [{ type: "statPct", stat: "def", value: 0.06 }], desc: "DEF+6%" },
+      { id: "gd4", kind: "passive", name: "鍛えた命", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gd3", minRank: 1 }], exclusiveGroup: null, reqLevel: 45, row: 3, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.08 }], desc: "HP+8%" },
+      { id: "gd5", kind: "passive", name: "守りの極み", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gd4", minRank: 1 }], exclusiveGroup: null, reqLevel: 65, row: 4, x: 50, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%" },
     ],
   },
   vampiric: {
     id: "vampiric", name: "吸魂の心得",
     nodes: [
-      { id: "gv1", kind: "passive", name: "渇きの芽生え", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 12,
-        effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.03 }], desc: "与ダメージの3%を吸収" },
-      { id: "gv2a", kind: "passive", name: "渇望", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gv1", minRank: 1 }], exclusiveGroup: "vampiric_style", x: 25, y: 82,
-        effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収さらに+4%（右と選択）" },
-      { id: "gv2b", kind: "passive", name: "頑強な渇き", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gv1", minRank: 1 }], exclusiveGroup: "vampiric_style", x: 75, y: 82,
-        effects: [{ type: "statAdd", stat: "hp", value: 15 }], desc: "HP+15（左と選択）" },
+      { id: "gv1", kind: "passive", name: "渇きの芽生え", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.03 }], desc: "与ダメージの3%を吸収", row: 0, reqLevel: 1 },
+      { id: "gv2a", kind: "passive", name: "渇望", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gv1", minRank: 1 }], exclusiveGroup: "vampiric_style", x: 30, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収さらに+4%（右と選択）", row: 1, reqLevel: 1 },
+      { id: "gv2b", kind: "passive", name: "頑強な渇き", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gv1", minRank: 1 }], exclusiveGroup: "vampiric_style", x: 70, effects: [{ type: "statAdd", stat: "hp", value: 15 }], desc: "HP+15（左と選択）", row: 1, reqLevel: 1 },
+      { id: "gv3", kind: "passive", name: "血の渇き", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "gv1", minRank: 1 }], exclusiveGroup: null, reqLevel: 25, row: 2, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.03 }], desc: "吸収+3%" },
+      { id: "gv4", kind: "passive", name: "生命の器", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gv3", minRank: 1 }], exclusiveGroup: null, reqLevel: 45, row: 3, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.06 }], desc: "HP+6%" },
+      { id: "gv5", kind: "passive", name: "吸魂の極み", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gv4", minRank: 1 }], exclusiveGroup: null, reqLevel: 65, row: 4, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%" },
     ],
   },
   support: {
     id: "support", name: "支援の心得",
     nodes: [
-      { id: "gu1", kind: "passive", name: "癒しの手", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 12,
-        effects: [{ type: "passiveAdd", key: "healBonus", value: 0.08 }], desc: "回復量+8%" },
-      { id: "gu2a", kind: "passive", name: "深い慈愛", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gu1", minRank: 1 }], exclusiveGroup: "support_style", x: 25, y: 82,
-        effects: [{ type: "passiveAdd", key: "healBonus", value: 0.08 }], desc: "回復量さらに+8%（右と選択）" },
-      { id: "gu2b", kind: "passive", name: "節約の心得", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gu1", minRank: 1 }], exclusiveGroup: "support_style", x: 75, y: 82,
-        effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（左と選択）" },
+      { id: "gu1", kind: "passive", name: "癒しの手", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.08 }], desc: "回復量+8%", row: 0, reqLevel: 1 },
+      { id: "gu2a", kind: "passive", name: "深い慈愛", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gu1", minRank: 1 }], exclusiveGroup: "support_style", x: 30, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.08 }], desc: "回復量さらに+8%（右と選択）", row: 1, reqLevel: 1 },
+      { id: "gu2b", kind: "passive", name: "節約の心得", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "gu1", minRank: 1 }], exclusiveGroup: "support_style", x: 70, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（左と選択）", row: 1, reqLevel: 1 },
+      { id: "gu3", kind: "passive", name: "癒しの技", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "gu1", minRank: 1 }], exclusiveGroup: null, reqLevel: 25, row: 2, x: 50, effects: [{ type: "passiveAdd", key: "healBonus", value: 0.08 }], desc: "回復量+8%" },
+      { id: "gu4", kind: "passive", name: "魔力の器", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gu3", minRank: 1 }], exclusiveGroup: null, reqLevel: 45, row: 3, x: 50, effects: [{ type: "statPct", stat: "mp", value: 0.15 }], desc: "MP+15%" },
+      { id: "gu5", kind: "passive", name: "節約の極み", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "gu4", minRank: 1 }], exclusiveGroup: null, reqLevel: 65, row: 4, x: 50, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.92 }], desc: "消費MP−8%" },
     ],
   },
   arcane: {
     id: "arcane", name: "魔導の心得",
     nodes: [
-      { id: "ga1", kind: "passive", name: "魔力の残滓", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, y: 12,
-        effects: [{ type: "statAdd", stat: "mag", value: 4 }], desc: "MAG+4" },
-      { id: "ga2a", kind: "passive", name: "深奥の力", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "ga1", minRank: 1 }], exclusiveGroup: "arcane_style", x: 25, y: 82,
-        effects: [{ type: "statAdd", stat: "mag", value: 6 }], desc: "MAGさらに+6（右と選択）" },
-      { id: "ga2b", kind: "passive", name: "省魔の極意", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "ga1", minRank: 1 }], exclusiveGroup: "arcane_style", x: 75, y: 82,
-        effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（左と選択）" },
+      { id: "ga1", kind: "passive", name: "魔力の残滓", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "mag", value: 4 }], desc: "MAG+4", row: 0, reqLevel: 1 },
+      { id: "ga2a", kind: "passive", name: "深奥の力", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "ga1", minRank: 1 }], exclusiveGroup: "arcane_style", x: 30, effects: [{ type: "statAdd", stat: "mag", value: 6 }], desc: "MAGさらに+6（右と選択）", row: 1, reqLevel: 1 },
+      { id: "ga2b", kind: "passive", name: "省魔の極意", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "ga1", minRank: 1 }], exclusiveGroup: "arcane_style", x: 70, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.9 }], desc: "消費MP-10%（左と選択）", row: 1, reqLevel: 1 },
+      { id: "ga3", kind: "passive", name: "魔力の流れ", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "ga1", minRank: 1 }], exclusiveGroup: null, reqLevel: 25, row: 2, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.05 }], desc: "MAG+5%" },
+      { id: "ga4", kind: "passive", name: "省魔の技", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "ga3", minRank: 1 }], exclusiveGroup: null, reqLevel: 45, row: 3, x: 50, effects: [{ type: "passiveMult", key: "mpCostMult", value: 0.94 }], desc: "消費MP−6%" },
+      { id: "ga5", kind: "passive", name: "魔導の極み", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "ga4", minRank: 1 }], exclusiveGroup: null, reqLevel: 65, row: 4, x: 50, effects: [{ type: "statPct", stat: "mag", value: 0.06 }], desc: "MAG+6%" },
     ],
   },
 };
@@ -1277,6 +1293,55 @@ function getModeDungeon(id, mode) {
   return Object.assign({}, d, { mode: m.key, baseLevel: d.level, level, power, expMult: m.expMult });
 }
 
+// ---------- 敵の特性と属性（js/core/battle.js がダメージの倍率に使う） ----------
+// 特性はモードで強くなる: ノーマルは装備を強くすれば押し切れる程度、エクストラは対策（聖属性・魔法・防御ダウンなど）が要る
+const ENEMY_TRAITS = {
+  undead: { name: "アンデッド", desc: "聖属性以外の攻撃が効きにくい（エクストラでは効かない）。聖属性が弱点" },
+  spirit: { name: "霊体", desc: "物理攻撃が効きにくい（エクストラでは効かない）" },
+  ward: { name: "魔法耐性", desc: "魔法が効きにくい（エクストラでは効かない）" },
+  armored: { name: "堅牢", desc: "防御がとても高い。魔法や防御ダウン・防御無視が有効" },
+};
+// resist: 効きにくい攻撃のダメージ倍率／armor: 堅牢な敵の防御の倍率
+const TRAIT_STRENGTH = {
+  normal: { resist: 0.6, armor: 1.5 },
+  hard: { resist: 0.3, armor: 2.5 },
+  extra: { resist: 0, armor: 4 },
+};
+const ENEMY_TRAIT_LIST = {
+  undead: ["skeleton", "wight", "necro_hound", "bone_drake", "mummy", "mummy_king", "drowned_sailor", "ghost_pirate", "phantom_captain",
+    "drowned_king", "phantom_lord", "ghost_commander", "bone_colossus", "void_wraith", "ghost_parrot", "fallen_king", "cursed_crown"],
+  spirit: ["mirage_spirit", "ice_wisp", "flame_spirit", "sky_wisp", "storm_elemental", "void_wraith", "wight", "ghost_pirate", "phantom_captain",
+    "phantom_lord", "ghost_commander", "oasis_spirit", "aurora_spirit", "lost_lantern", "dust_devil", "anvil_spirit", "ghost_parrot", "nightmare"],
+  ward: ["rock_golem", "ice_golem", "sand_golem", "crystal_golem", "obsidian_golem", "coral_golem", "cloud_golem", "atlantis_golem", "diamond_golem",
+    "mithril_golem", "stone_gargoyle", "angel_statue", "mirror_slime", "storm_crystal", "sphinx", "isle_guardian", "garden_warden", "crystal_queen"],
+  armored: ["mud_crab", "gold_crab", "scarab", "golden_scarab", "gold_tortoise", "coal_tortoise", "rainbow_turtle", "pearl_clam", "ruby_crab",
+    "black_pearl_crab", "emperor_scorpion", "desert_scorpion", "iron_drake", "gem_beetle", "trident_guard", "living_armor", "frozen_knight",
+    "abyss_knight", "sky_knight", "bone_colossus", "salamander_knight", "temple_guardian"],
+};
+function enemyTraits(key) { return Object.keys(ENEMY_TRAIT_LIST).filter((k) => ENEMY_TRAIT_LIST[k].includes(key)); }
+// 技の属性（技の element）と表示名
+const ELEMENTS = { fire: "炎", ice: "氷", thunder: "雷", holy: "聖", dark: "闇" };
+// 敵の属性（ENEMY_TEMPLATES[].element）ごとの、技の属性の倍率（弱点1.5・耐性0.5）
+const ENEMY_ELEMENT_AFFINITY = {
+  火: { ice: 1.5, fire: 0.5 },
+  氷: { fire: 1.5, ice: 0.5 },
+  水: { thunder: 1.5, fire: 0.5 },
+  風: { thunder: 1.5 },
+  土: { thunder: 0.5 },
+  闇: { holy: 1.5, dark: 0.5 },
+  光: { dark: 1.5, holy: 0.5 },
+};
+// 敵のダメージ倍率（battle.js の res）。mode: ハード・エクストラ（省略時ノーマル）
+function enemyResistances(t, mode) {
+  const st = TRAIT_STRENGTH[mode] || TRAIT_STRENGTH.normal;
+  const traits = enemyTraits(t.key);
+  const res = { el: Object.assign({}, ENEMY_ELEMENT_AFFINITY[t.element] || {}) };
+  if (traits.includes("undead")) { res.nonHoly = st.resist; res.el.holy = 1.5; }
+  if (traits.includes("spirit")) res.physical = st.resist;
+  if (traits.includes("ward")) res.magic = st.resist;
+  return { traits, res, defMult: traits.includes("armored") ? st.armor : 1 };
+}
+
 const BOSS_MULT = 1.7;
 // レア敵（ダンジョンごとの DUNGEONS[].rares）: ボス戦以外の1戦闘ごとにこの確率で、敵1体がレア敵に入れ替わる
 // （1周4戦ならおよそ1割強の周回で出会う）。能力値は少し強く、EXPは多い。倒すとレア度の高い装備を必ず1個落とす
@@ -1303,13 +1368,13 @@ function buildEncounter(dungeon, battleIndex) {
 
   for (let i = 0; i < count; i++) {
     const key = RNG.pick(dungeon.pool);
-    list.push(makeEnemy(getEnemyTemplate(key), mult, false, dungeon.power));
+    list.push(makeEnemy(getEnemyTemplate(key), mult, false, dungeon.power, false, dungeon.mode));
   }
   if (isBossBattle) {
-    list.unshift(makeEnemy(getEnemyTemplate(dungeon.boss), mult * BOSS_MULT, true, dungeon.power));
+    list.unshift(makeEnemy(getEnemyTemplate(dungeon.boss), mult * BOSS_MULT, true, dungeon.power, false, dungeon.mode));
   } else if (dungeon.rares && dungeon.rares.length && RNG.chance(RARE_ENCOUNTER_CHANCE)) {
     const i = Math.floor(RNG.float(0, list.length));
-    list[i] = makeEnemy(getEnemyTemplate(RNG.pick(dungeon.rares)), mult, false, dungeon.power, true);
+    list[i] = makeEnemy(getEnemyTemplate(RNG.pick(dungeon.rares)), mult, false, dungeon.power, true, dungeon.mode);
   }
   // ハード・エクストラはEXPが多い（getModeDungeon）
   if (dungeon.expMult && dungeon.expMult !== 1) for (const e of list) e.exp = Math.round(e.exp * dungeon.expMult);
@@ -1317,9 +1382,10 @@ function buildEncounter(dungeon, battleIndex) {
 }
 
 // power: ダンジョンごとの敵の強さの倍率（DUNGEONS[].power、省略時1）。HP・ATK・DEFだけに掛け、EXPには掛けない
-// （難易度の調整でレベル上げのペースが変わらないようにするため）
-function makeEnemy(t, mult, isBoss, power, isRare) {
+// （難易度の調整でレベル上げのペースが変わらないようにするため）。mode: 特性の強さ（enemyResistances）
+function makeEnemy(t, mult, isBoss, power, isRare, mode) {
   const p = mult * (power || 1) * (isRare ? RARE_STAT_MULT : 1);
+  const r = enemyResistances(t, mode);
   return {
     key: t.key,
     name: isBoss ? `${t.name}の主` : isRare ? `★${t.name}` : t.name,
@@ -1327,8 +1393,9 @@ function makeEnemy(t, mult, isBoss, power, isRare) {
     isBoss: !!isBoss,
     isRare: !!isRare,
     hp: Math.round(t.hp * p), maxHp: Math.round(t.hp * p),
-    atk: Math.round(t.atk * p), mag: t.mag, def: Math.round(t.def * p),
+    atk: Math.round(t.atk * p), mag: t.mag, def: Math.round(t.def * p * r.defMult),
     spd: t.spd, exp: Math.round(t.exp * mult * (isRare ? RARE_EXP_MULT : 1)),
+    element: t.element, traits: r.traits, res: r.res,
     atb: RNG.float(0, 30),
   };
 }

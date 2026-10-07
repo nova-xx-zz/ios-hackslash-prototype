@@ -218,3 +218,83 @@ test("レベル上限: 上限を超えたレベル（旧セーブ）は上限に
   assert.deepEqual({ ...hero.jobLevels.mage }, { level: 99, exp: 0, expToNext: data.expForLevel(99) });
   assert.equal(hero.jobLevels.thief.level, 40);
 });
+
+// 前提を満たしながら、取れるマスを上から順に全部取る（二択は先に並んでいる方）
+function takeAll(R, c) {
+  const st = R.getTreeState(c);
+  const trees = [[R.getExclusiveTree(c), st.exclusiveRanks]].concat(data.GENERAL_SLOTS.map((s) => [R.generalSlotTreeDef(c, s.key), st.general[s.key].ranks]));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [t, ranks] of trees) for (const n of t.nodes) if (R.acquireNode(c, t, ranks, n)) changed = true;
+  }
+}
+
+test("スキルツリー: 全部取るとSPはLv99でちょうど98。段のレベルに届かないマスは取れない", () => {
+  const { R } = setup();
+  for (const job of ["warrior", "mage", "priest", "thief", "monk", "darkknight"]) {
+    const c = R.newCharacter("A", job, "human", { level: 99 });
+    takeAll(R, c);
+    assert.equal(R.totalSpentSp(c), 98, job);
+    assert.equal(R.availableSp(c), 0, job);
+  }
+  const low = R.newCharacter("B", "warrior", "human", { level: 40 });
+  takeAll(R, low);
+  const ranks = R.getTreeState(low).exclusiveRanks;
+  assert.ok(ranks.w5 && ranks.w6, "Lv20・Lv30の段は取れる");
+  assert.ok(!ranks.w8, "Lv50の段はまだ取れない");
+  assert.ok(R.availableSp(low) >= 0);
+});
+
+test("スキルツリー: どのレベルでも、開いているマスの必要SPは持っているSP以上（SPが余って振る先がない時期がない）", () => {
+  // 開いているマス（段のレベルに届いたもの。二択は1つ分）の必要SPの合計
+  const openCost = (tree, lv) => {
+    const groups = {};
+    let sum = 0;
+    for (const n of tree.nodes) {
+      if ((n.reqLevel || 1) > lv) continue;
+      if (n.exclusiveGroup) groups[n.exclusiveGroup] = Math.max(groups[n.exclusiveGroup] || 0, n.costByRank[0]);
+      else sum += n.costByRank[0];
+    }
+    return sum + Object.values(groups).reduce((a, b) => a + b, 0);
+  };
+  for (const tag of Object.keys(data.EXCLUSIVE_TREES)) {
+    for (const ids of [["offense", "defense", "support"], ["speed", "vampiric", "arcane"]]) {
+      for (let lv = 1; lv <= 99; lv++) {
+        const open = openCost(data.EXCLUSIVE_TREES[tag], lv) + ids.reduce((s, id) => s + openCost(data.GENERAL_TREES[id], lv), 0);
+        assert.ok(open >= lv - 1, `${tag} Lv${lv}: 開いているマス${open} < SP${lv - 1}`);
+      }
+    }
+  }
+});
+
+test("スキルツリー: 割合ボーナス（statPct）は装備・ツリーの固定値まで足した値に掛かる。防御無視はパッシブに入る", () => {
+  const { R } = setup();
+  const c = R.newCharacter("A", "warrior", "human", { level: 60 });
+  const before = R.computeStats(c).atk;
+  takeAll(R, c);
+  const totals = R.treePassiveTotals(c);
+  assert.ok(totals.pct.atk >= 0.05);
+  assert.ok(R.computeStats(c).atk > before);
+  const m = R.newCharacter("B", "monk", "human", { level: 20 });
+  takeAll(R, m);
+  assert.equal(R.treePassive(m, "pierce"), 0.25);
+});
+
+test("スキルツリー: 振り直しは強化石（使ったSP×20）で4本ぶんを戻す。足りない・探索中はできない", () => {
+  const { state, R } = setup({ locked: { 1: true } });
+  const c = R.newCharacter("A", "priest", "human", { level: 30, team: 0 });
+  takeAll(R, c);
+  const spent = R.totalSpentSp(c);
+  assert.equal(R.treeResetCost(c), spent * 20);
+  state.material = spent * 20 - 1;
+  assert.equal(R.resetTree(c), false);
+  state.material = spent * 20 + 5;
+  assert.equal(R.resetTree(c), true);
+  assert.equal(state.material, 5);
+  assert.equal(R.totalSpentSp(c), 0);
+  const busy = R.newCharacter("B", "priest", "human", { level: 30, team: 1 });
+  takeAll(R, busy);
+  state.material = 99999;
+  assert.equal(R.resetTree(busy), false);
+});

@@ -48,6 +48,7 @@ function battleEnv() {
       healBonus: racePassive(c, "healBonus") + treePassive(c, "healBonus") + gearPassive(c, "healBonus"),
       critBonus: racePassive(c, "critBonus") + treePassive(c, "critBonus") + gearPassive(c, "critBonus"),
       dmgTakenMult: (racePassive(c, "dmgTakenMult") || 1) * (treePassive(c, "dmgTakenMult") || 1) * (gearPassive(c, "dmgTakenMult") || 1),
+      pierce: treePassive(c, "pierce") || 0, // スキルツリーの防御無視
     }),
   };
 }

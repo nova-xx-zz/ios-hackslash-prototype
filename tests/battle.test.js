@@ -139,3 +139,94 @@ test("実データ: 同じシードなら同じ結果（戦闘の再現性）", 
   const b = sim.clearRate("forest", 3, 50, 77);
   assert.deepEqual(a, b);
 });
+
+// ---------- 敵の特性・属性・強化と弱体 ----------
+const holyBolt = { id: "holy", name: "光の矢", reqLevel: 1, mpCost: 4, kind: "magic", target: "single", power: 1.5, hits: 1, element: "holy" };
+const armorBreak = { id: "break", name: "鎧砕き", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 0.8, hits: 1, debuff: { stat: "def", mult: 0.5, duration: 12 } };
+const warCry = { id: "cry", name: "鬨の声", reqLevel: 1, mpCost: 5, kind: "buff", target: "all-ally", power: 0, hits: 1, buff: { stat: "atk", mult: 1.3, duration: 15 } };
+const sacred = { id: "sacred", name: "聖なる加護", reqLevel: 1, mpCost: 5, kind: "buff", target: "all-ally", power: 0, hits: 1, imbue: { element: "holy", duration: 15 } };
+
+test("特性: 効かない攻撃は0ダメージ（immune）、弱点は1.5倍（weak）。聖属性はアンデッドに効く", () => {
+  const env = envWith();
+  const undead = () => enemy("骸骨", 500, { res: { nonHoly: 0, el: { holy: 1.5 } } });
+  const c = member("A", S, { abilities: [] });
+  const events = [];
+  const b1 = { enemies: [undead()] };
+  battle.performCharacterAction(c, [c], b1, env, events);
+  const hit = events.find((e) => e.type === "damage");
+  assert.equal(hit.dmg, 0);
+  assert.equal(hit.immune, true);
+  const p = member("B", S, { abilities: [holyBolt] });
+  const ev2 = [];
+  const b2 = { enemies: [undead()] };
+  battle.performCharacterAction(p, [p], b2, env, ev2);
+  const h2 = ev2.find((e) => e.type === "damage");
+  assert.equal(h2.weak, true);
+  assert.equal(h2.dmg, 47); // round(MAG20×1.5 × 乱数1.025)=31 × 弱点1.5 = 46.5 → 47
+});
+
+test("AI: 物理が効かない敵には魔法を、アンデッドには聖属性を選ぶ", () => {
+  const env = envWith();
+  const swordAndFire = member("A", S, { abilities: [fire] });
+  const spirit = enemy("霊", 500, { res: { physical: 0 } });
+  assert.equal(battle.chooseAction(swordAndFire, [swordAndFire], env, [spirit]).id, "fire");
+  const undead = enemy("骸骨", 500, { res: { nonHoly: 0, el: { holy: 1.5 } } });
+  const priest = member("P", S, { abilities: [fire, holyBolt] });
+  assert.equal(battle.chooseAction(priest, [priest], env, [undead]).id, "holy");
+});
+
+test("弱体: 防御ダウンは当たった敵の防御を一定時間下げ、硬い敵には先に使う", () => {
+  const env = envWith();
+  const hard = () => enemy("甲羅", 2000, { def: 60 });
+  const party = [member("A", S, { abilities: [armorBreak] }), member("B", S), member("C", S)];
+  assert.equal(battle.chooseAction(party[0], party, env, [hard()]).id, "break");
+  const b = { enemies: [hard()], time: 0 };
+  const events = [];
+  battle.performCharacterAction(party[0], party, b, env, events);
+  assert.ok(events.some((e) => e.type === "status" && e.kind === "debuff" && e.stat === "def"));
+  assert.equal(battle.fxMult(b, b.enemies[0], "def"), 0.5);
+  // 掛かっている間は掛け直さない
+  assert.equal(battle.chooseAction(party[0], party, env, b.enemies, b).id, "attack");
+  b.time = 13; // 切れた
+  assert.equal(battle.fxMult(b, b.enemies[0], "def"), 1);
+});
+
+test("強化: 攻撃力アップは味方全員のATKを上げ、聖属性付与は物理攻撃を聖属性にする", () => {
+  const env = envWith();
+  const party = [member("A", S, { abilities: [warCry] }), member("B", S), member("C", S)];
+  const b = { enemies: [enemy("x", 3000)], time: 0 };
+  const events = [];
+  battle.performCharacterAction(party[0], party, b, env, events);
+  assert.equal(events.filter((e) => e.type === "status" && e.kind === "buff").length, 3);
+  assert.equal(battle.memberStats(party[1], env, b).atk, 26);
+  // 聖属性付与: アンデッドに物理が通る
+  const priest = member("P", S, { abilities: [sacred] });
+  const fighter = member("F", S);
+  const undead = enemy("骸骨", 3000, { res: { nonHoly: 0, el: { holy: 1.5 } } });
+  const b2 = { enemies: [undead], time: 0 };
+  assert.equal(battle.chooseAction(priest, [priest, fighter], env, b2.enemies, b2).id, "sacred");
+  battle.performCharacterAction(priest, [priest, fighter], b2, env, []);
+  const ev = [];
+  battle.performCharacterAction(fighter, [priest, fighter], b2, env, ev);
+  const hit = ev.find((e) => e.type === "damage");
+  assert.equal(hit.element, "holy");
+  assert.ok(hit.dmg > 0);
+});
+
+test("防御無視（pierce）は敵の防御の一部を無視する", () => {
+  const env = envWith();
+  const c = member("A", S, { passives: { pierce: 0.5 } });
+  const b = { enemies: [enemy("甲羅", 500, { def: 40 })] };
+  const events = [];
+  battle.performCharacterAction(c, [c], b, env, events);
+  // (20 − 40×0.5×0.3) × 1.025 = 14.35 → 14
+  assert.equal(events.find((e) => e.type === "damage").dmg, 14);
+});
+
+test("実データ: 敵の特性はモードで強くなる（アンデッドへの聖属性以外: ノーマル0.6・ハード0.3・エクストラ0）", () => {
+  const d = sim.data;
+  const t = d.getEnemyTemplate("skeleton");
+  assert.deepEqual(["normal", "hard", "extra"].map((m) => d.makeEnemy(t, 1, false, 1, false, m === "normal" ? undefined : m).res.nonHoly), [0.6, 0.3, 0]);
+  const crab = d.getEnemyTemplate("mud_crab");
+  assert.equal(d.makeEnemy(crab, 1, false, 1, false, "extra").def, crab.def * 4);
+});

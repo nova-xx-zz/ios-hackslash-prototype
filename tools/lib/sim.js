@@ -93,6 +93,7 @@ function standardTreeRanks(jobId, level) {
     for (const node of tree.nodes) {
       const cost = node.costByRank[0];
       if (cost > sp) continue;
+      if (node.reqLevel && level < node.reqLevel) continue; // その段が開くレベル
       if (!node.prerequisites.every((p) => (ranks[p.nodeId] || 0) >= p.minRank)) continue;
       if (node.exclusiveGroup && tree.nodes.some((o) => o.exclusiveGroup === node.exclusiveGroup && ranks[o.id])) continue;
       ranks[node.id] = 1;
@@ -103,7 +104,8 @@ function standardTreeRanks(jobId, level) {
   return result;
 }
 function treeTotals(c) {
-  const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1, accessorySlots: 0 };
+  const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, pierce: 0, dmgTakenMult: 1, mpCostMult: 1, accessorySlots: 0,
+    pct: { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0 } };
   const abilities = [];
   for (const { tree, ranks } of c.treeRanks || []) {
     for (const node of tree.nodes) {
@@ -111,6 +113,7 @@ function treeTotals(c) {
       if (node.kind === "active" && node.ability) abilities.push(node.ability);
       for (const eff of node.effects || []) {
         if (eff.type === "statAdd") totals[eff.stat] += eff.value;
+        else if (eff.type === "statPct") totals.pct[eff.stat] += eff.value;
         else if (eff.type === "passiveAdd") totals[eff.key] += eff.value;
         else if (eff.type === "passiveMult") totals[eff.key] *= eff.value;
         else if (eff.type === "equipSlot" && eff.slot === "accessory") totals.accessorySlots += eff.value;
@@ -145,7 +148,10 @@ function makeEnv(rng) {
     const t = c.tree;
     if (t) { s.maxHp += t.hp; s.maxMp += t.mp; s.atk += t.atk; s.mag += t.mag; s.def += t.def; s.spd += t.spd; }
     if (c.set) for (const [k, v] of Object.entries(c.set.flat)) s[key(k)] += v;
-    if (c.set) for (const [k, pct] of Object.entries(c.set.stats)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
+    // セット効果とスキルツリーの割合ボーナスは同じ段で足して掛ける（js/model/roster.js の computeStats と同じ）
+    const pcts = Object.assign({}, c.set ? c.set.stats : {});
+    if (t) for (const [k, v] of Object.entries(t.pct)) if (v) pcts[k] = (pcts[k] || 0) + v;
+    for (const [k, pct] of Object.entries(pcts)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
     return s;
   };
   const tree = (c, key, def) => (c.tree ? c.tree[key] : def);
@@ -162,6 +168,7 @@ function makeEnv(rng) {
       healBonus: (race(c).healBonus || 0) + tree(c, "healBonus", 0) + gearP(c, "healBonus", 0),
       critBonus: (race(c).critBonus || 0) + tree(c, "critBonus", 0) + gearP(c, "critBonus", 0),
       dmgTakenMult: (race(c).dmgTakenMult || 1) * tree(c, "dmgTakenMult", 1) * gearP(c, "dmgTakenMult", 1),
+      pierce: tree(c, "pierce", 0),
     }),
   };
 }

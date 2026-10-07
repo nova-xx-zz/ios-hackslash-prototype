@@ -12,11 +12,13 @@
     const S = deps.state;
     const runBuffs = deps.runBuffs || (() => null);
     const isTeamLocked = deps.isTeamLocked || (() => false);
+    const onMaterialChange = deps.onMaterialChange || (() => {});
     const {
       JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, CHAR_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
       getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
       JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
     } = deps.data;
+    const TREE_RESET_COST_PER_SP = deps.data.TREE_RESET_COST_PER_SP || 20;
 
     // レベル上限: テイムしたモンスターは MONSTER_MAX_LEVEL、人間のキャラは CHAR_MAX_LEVEL（ジョブごとのレベルも同じ上限）
     function levelCap(c) {
@@ -182,6 +184,7 @@
       if (!treeDef) return false;
       const rank = ranks[node.id] || 0;
       if (rank >= node.maxRank) return false;
+      if (node.reqLevel && c.level < node.reqLevel) return false; // その段が開くレベル
       if (availableSp(c) < node.costByRank[rank]) return false;
       for (const pre of node.prerequisites) {
         if ((ranks[pre.nodeId] || 0) < pre.minRank) return false;
@@ -216,10 +219,29 @@
       slotState.ranks = {};
       return true;
     }
+    // ツリーの振り直し: 今のジョブの4本ぶん（固有＋汎用3枠）のSPをすべて戻す。費用は使ったSP×TREE_RESET_COST_PER_SPの強化石
+    function treeResetCost(c) { return totalSpentSp(c) * TREE_RESET_COST_PER_SP; }
+    function canResetTree(c) {
+      if (!getExclusiveTree(c) || totalSpentSp(c) === 0) return false;
+      if (c.team !== null && isTeamLocked(c.team)) return false;
+      return (S.material || 0) >= treeResetCost(c);
+    }
+    function resetTree(c) {
+      if (!canResetTree(c)) return false;
+      const cost = treeResetCost(c);
+      const st = getTreeState(c);
+      st.exclusiveRanks = {};
+      for (const slot of GENERAL_SLOTS) st.general[slot.key].ranks = {};
+      S.material -= cost;
+      onMaterialChange(S.material);
+      return true;
+    }
+
     // 取得済みパッシブノードの効果を、固有＋汎用3枠ぶん合算する。加算系(能力値/会心率等)は0、
-    // 乗算系(被ダメ/消費MP)は1を既定値にする
+    // 乗算系(被ダメ/消費MP)は1を既定値にする。pct: 能力値の割合ボーナス（statPct）
     function treePassiveTotals(c) {
-      const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, dmgTakenMult: 1, mpCostMult: 1, accessorySlots: 0 };
+      const totals = { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0, critBonus: 0, lifesteal: 0, healBonus: 0, pierce: 0, dmgTakenMult: 1, mpCostMult: 1, accessorySlots: 0,
+        pct: { atk: 0, def: 0, mag: 0, spd: 0, hp: 0, mp: 0 } };
       const st = getTreeState(c);
       if (!st) return totals;
       const applyTree = (treeDef, ranks) => {
@@ -230,6 +252,7 @@
           if (rank <= 0) continue;
           for (const eff of node.effects) {
             if (eff.type === "statAdd") totals[eff.stat] += eff.value * rank;
+            else if (eff.type === "statPct") totals.pct[eff.stat] += eff.value * rank;
             else if (eff.type === "passiveAdd") totals[eff.key] += eff.value * rank;
             else if (eff.type === "passiveMult") totals[eff.key] *= eff.value;
             else if (eff.type === "equipSlot" && eff.slot === "accessory") totals.accessorySlots += eff.value * rank;
@@ -281,10 +304,13 @@
       }
       const tp = treePassiveTotals(c);
       s.maxHp += tp.hp; s.maxMp += tp.mp; s.atk += tp.atk; s.mag += tp.mag; s.def += tp.def; s.spd += tp.spd;
-      // オプション効果の固定値を足し、セット効果などの能力値の割合ボーナスは、装備・スキルツリーまで足した値に掛ける
+      // オプション効果の固定値を足し、セット効果などの能力値の割合ボーナスは、装備・スキルツリーまで足した値に掛ける。
+      // スキルツリーの割合ボーナス（statPct）も同じ段で足し合わせて掛ける
       const bonus = setBonuses(c);
       for (const [k, v] of Object.entries(bonus.flat)) s[key(k)] += v;
-      for (const [k, pct] of Object.entries(bonus.stats)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
+      const pcts = Object.assign({}, bonus.stats);
+      for (const [k, v] of Object.entries(tp.pct)) if (v) pcts[k] = (pcts[k] || 0) + v;
+      for (const [k, pct] of Object.entries(pcts)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
       // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
       const buffs = c.team !== null ? runBuffs(c.team) : null;
       if (buffs) stats.applyBuffs(s, buffs);
@@ -354,7 +380,7 @@
     function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
     return {
-      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore,
+      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
       equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
