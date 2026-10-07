@@ -504,6 +504,8 @@ jobLevels[jobId] = {
 - **未実装のまま**: `sourceRarity`（ブック由来ツリーの区別）、`mastery`フィールド、ブックを消費する交換への置き換え
 
 ### 6.2 ツリー・ブック・極みマスター（固有＋汎用ツリー定義は実装済み。ブック／極みマスターは未実装）
+> **2026-10-07 拡張（実装済み）**: マスに `reqLevel`（段が開くジョブのLv）と `row`（図の段）を追加し、効果に `statPct`（能力値の割合。`computeStats` でセット効果の割合と同じ段で掛ける）と `passiveAdd` の `pierce`（防御無視）を追加。全部取るとSP98（固有56＋汎用14×3）。振り直しは `treeResetCost`／`canResetTree`／`resetTree`（使ったSP×`TREE_RESET_COST_PER_SP`の強化石）。技に `element`・`debuff`・`buff`・`imbue`・`pierce` を持てるようにし、戦闘中の強化・弱体は `battle.fx`（戦闘ごと）に持つ。敵は `makeEnemy` がモードに応じた `traits`・`res`・防御の倍率を持つ。内容は [スキルツリー設計書](skill-tree-design.md)。以下の「固有＋汎用の定義」の記述は拡張前のもの。
+
 実装済みの実際のツリー定義（`js/data.js`）。固有ツリーはジョブ系統タグ単位で1本固定、汎用ツリーは全ジョブ共通プールから3つの固定枠で2択交換する（いずれも`allowedTags`/`allowedJobIds`/`rarity`は持たない簡略形）:
 ```js
 // 実装済み: js/data.js の EXCLUSIVE_TREES[tag]（交換不可、系統タグに1本固定）

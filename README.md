@@ -191,7 +191,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/detailed-design.md` — 詳細設計書（データ構造・計算式・関数マッピング）
 - `docs/monster-design.md` — モンスター設計書（地方・ダンジョンごとの敵、敵の強さ、ボス・レア敵、テイム・型・合成）
 - `docs/equipment-design.md` — 装備設計書（種類・ジョブの装備制限・シリーズとセット効果・レア度・強化・ドロップ・名のある装備・オプション効果）
-- `docs/skill-tree-design.md` — スキルツリー設計書（拡張案・未実装。Lv99までの段・追加のマスと技・振り直し）
+- `docs/skill-tree-design.md` — スキルツリー設計書（Lv99までの段・追加のマスと技・振り直し・敵の特性と属性・強化と弱体・モードごとの難易度の考え方）
 - `docs/production-plan.md` — 本番化・課金方針（技術構成・データの置き場所・課金の法務・既知の課題）
 - `tools/economy.js` — 課金経済の再計算。強化石の収入（進行帯・モード別）、天井込みの強化消費、ログイン回数・全滅を入れた1日の収入、無課金／月パス／購入ごとのLR+99までの日数を出す（`node tools/economy.js`、結果は `docs/production-plan.md` §5.4）
 - `tools/simulate.js` — 戦闘シミュレーション。画面なしでダンジョンごと・レベルごとの踏破率と1周の戦闘時間を計算する（`node tools/simulate.js [試行回数]`）。`--check` で難易度の基準を満たすか確認、`--calibrate` で基準に合う敵の強さ倍率を提案、`--build` で装備とスキルの効き具合を比較する（ダンジョンを追加する手順は `docs/production-plan.md` §8.6）
