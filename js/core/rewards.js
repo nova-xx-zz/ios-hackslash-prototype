@@ -94,13 +94,13 @@
   }
 
   // 踏破して持ち帰ったドロップを、自動分解の設定に従って所持品と強化石に振り分ける
-  // disassemble: { enabled, rarities: Set<レア度キー> }
+  // disassemble: { enabled, rarities: Set<レア度キー> }。名のある装備とロックした装備は、レア度が合っても分解せず所持品に残す
   function settleDrops(items, disassemble) {
     const kept = [];
     let materialGained = 0;
     let disassembled = 0;
     for (const item of items) {
-      if (disassemble.enabled && disassemble.rarities.has(item.rarity)) {
+      if (disassemble.enabled && disassemble.rarities.has(item.rarity) && !item.unique && !item.locked) {
         materialGained += item.materialValue;
         disassembled += 1;
       } else {

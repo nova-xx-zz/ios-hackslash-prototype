@@ -35,11 +35,13 @@ function buildTreeTab(c) {
     resetBtn.disabled = !canResetTree(c);
     resetBtn.addEventListener("click", () => {
       if (confirming) {
+        if (!confirmReady()) return;
         resetTree(c);
         treeSwapConfirm = null;
         treeSelectedNode = null;
       } else {
         treeSwapConfirm = "reset";
+        armConfirm();
       }
       scheduleSave();
       renderCharDetail();
@@ -100,11 +102,13 @@ function buildTreeSection(c, opts) {
     swapBtn.disabled = locked;
     swapBtn.addEventListener("click", () => {
       if (confirming) {
+        if (!confirmReady()) return;
         swapGeneralSlot(c, slotDef.key);
         treeSwapConfirm = null;
         treeSelectedNode = null;
       } else {
         treeSwapConfirm = slotDef.key;
+        armConfirm();
       }
       scheduleSave();
       renderCharDetail();

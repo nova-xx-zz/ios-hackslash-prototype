@@ -127,7 +127,7 @@ function tickTeam(i, dt) {
   for (const ev of events) logBattleEvent(run, battle, ev);
   if (result) {
     if (result === "victory") onVictory(run, battle);
-    else onDefeat(run);
+    else onDefeat(run, result === "timeout");
   }
   if (i === S.activeTeam) updateBattleDOM();
 }
@@ -149,8 +149,9 @@ function onVictory(run, battle) {
   }
 }
 
-function onDefeat(run) {
-  scheduleNext(run.team, () => finishRun(run, { cleared: false }), 700);
+function onDefeat(run, timedOut) {
+  if (timedOut) logLine(run.team, "決着がつかないため撤退した（攻撃が効いていないかもしれません）", "down");
+  scheduleNext(run.team, () => finishRun(run, { cleared: false, retreated: timedOut }), 700);
 }
 
 function scheduleNext(teamIndex, fn, delayMs) {
@@ -189,8 +190,8 @@ function finishRun(run, info) {
 
   logEvent(run.team,
     info.cleared ? "clear" : "wipe",
-    info.cleared ? `${run.dungeon.name} を踏破した！` : "パーティは全滅した・・・",
-    info.cleared ? `合計 EXP +${run.expTotal}` : `${run.dungeon.name} の ${run.battleIndex + 1}戦目で力尽きた`
+    info.cleared ? `${run.dungeon.name} を踏破した！` : info.retreated ? "パーティは撤退した・・・" : "パーティは全滅した・・・",
+    info.cleared ? `合計 EXP +${run.expTotal}` : `${run.dungeon.name} の ${run.battleIndex + 1}戦目で${info.retreated ? "撤退した" : "力尽きた"}`
   );
 
   if (run.levelUps.length) logLine(run.team, "LEVEL UP! " + run.levelUps.join(" / "), "system");
@@ -218,7 +219,7 @@ function finishRun(run, info) {
     logLine(run.team, `自動分解: ${run.disassembleCount}個（+強化石${run.materialGained}）　所持強化石 ${S.material}`, "system");
   }
   if (run.wiped && run.pendingDrops.length > 0) {
-    logLine(run.team, `全滅したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
+    logLine(run.team, `${info.retreated ? "撤退" : "全滅"}したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
   }
 
   saveGame();
@@ -231,7 +232,7 @@ function finishRun(run, info) {
   const ar = S.autoRepeat[run.team];
   const next = Runner.advanceAutoRepeat(run);
   if (next === "stoppedByWipe") {
-    logLine(run.team, "パーティが全滅したため自動周回を停止しました", "system");
+    logLine(run.team, `パーティが${info.retreated ? "撤退" : "全滅"}したため自動周回を停止しました`, "system");
     if (isViewed) renderDock();
   } else if (next === "completed") {
     logLine(run.team, `自動周回が完了しました（${ar.done}周）`, "system");

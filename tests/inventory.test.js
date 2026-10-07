@@ -287,6 +287,20 @@ test("手動の分解: 選んだ所持品だけを強化石に変える。値が
   assert.equal(state.material, 205);
 });
 
+test("ロック: ロックした装備は分解しない。外せばまた分解できる", () => {
+  const { state, inv } = setup();
+  const a = item("weapon", "atk", 1, "ur", 0, { materialValue: 350 });
+  state.inventory.push(a);
+  state.material = 0;
+  inv.setLocked(a, true);
+  assert.equal(a.locked, true);
+  assert.deepEqual(inv.disassembleItems([a]), { count: 0, materialGained: 0 });
+  assert.deepEqual(state.inventory, [a]);
+  inv.setLocked(a, false);
+  assert.equal("locked" in a, false); // 外したらセーブに残さない
+  assert.deepEqual(inv.disassembleItems([a]), { count: 1, materialGained: 350 });
+});
+
 test("モンスター合成: 控えのモンスターだけが素材。基本EXP＋積み上げたEXPの半分（同族1.5倍）を還元し、装備は所持品に戻る", () => {
   const { state, roster, inv } = setup();
   const target = roster.newCharacter("ターゲット", null, "slime", { isMonster: true });

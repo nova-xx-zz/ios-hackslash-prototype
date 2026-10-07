@@ -149,7 +149,8 @@ function renderFarewell() {
   btn.textContent = n === 0 ? "別れる仲間を選んでください" : farewellConfirm ? `本当に${n}人と別れる（取り消せません）` : `${n}人と別れる`;
   btn.disabled = n === 0;
   btn.addEventListener("click", () => {
-    if (!farewellConfirm) { farewellConfirm = true; renderFarewell(); return; }
+    if (!farewellConfirm) { farewellConfirm = true; armConfirm(); renderFarewell(); return; }
+    if (!confirmReady()) return;
     farewellConfirm = false;
     const r = Inventory.releaseMembers([...farewellSelection]);
     farewellSelection = new Set();

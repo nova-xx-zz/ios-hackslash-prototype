@@ -64,6 +64,35 @@
     return out;
   }
 
+  const NAME_MAX = 8; // 仲間の名前（作成画面の入力の上限と同じ）
+  const MONSTER_NAME_MAX = 16; // テイムしたモンスターは種族名が入る（いちばん長いもので10文字）
+
+  // 書き換えたセーブや壊れたセーブでも画面や計算が崩れないよう、数値と文字を使える範囲にそろえる。
+  // 0以上の整数（NaN・マイナス・小数は直す）
+  const count = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Math.floor(Number(v))) : 0);
+  function normalizeItem(it, maxPlus) {
+    if (!it || typeof it !== "object") return null;
+    it.plus = Math.min(maxPlus, count(it.plus));
+    if (it.locked !== undefined) it.locked = it.locked === true;
+    return it;
+  }
+  // limits: { maxPlus（+値の上限）, ivRange（個体値は 1±ivRange）}。レベルの上限は読み込み後に roster 側（clampLevel）でそろえる
+  function normalizeChar(c, limits) {
+    c.name = (typeof c.name === "string" ? c.name : String(c.name == null ? "" : c.name)).slice(0, c.isMonster ? MONSTER_NAME_MAX : NAME_MAX) || "ななし";
+    c.level = Math.max(1, count(c.level));
+    c.exp = count(c.exp);
+    if (c.ivs && typeof c.ivs === "object") {
+      for (const k of Object.keys(c.ivs)) {
+        const v = Number(c.ivs[k]);
+        c.ivs[k] = Number.isFinite(v) ? Math.min(1 + limits.ivRange, Math.max(1 - limits.ivRange, v)) : 1;
+      }
+    }
+    if (c.equip && typeof c.equip === "object") {
+      for (const slot of Object.keys(c.equip)) c.equip[slot] = c.equip[slot] ? normalizeItem(c.equip[slot], limits.maxPlus) : null;
+    }
+    return c;
+  }
+
   // アイテム辞典の記録（"sword:n" など旧形式の種類のキー）を新しい種類のキーにそろえる
   function migrateFoundKeys(keys, legacy) {
     const out = [];
@@ -127,24 +156,28 @@
   // 戻り値: { state（保存対象の項目のみ。自動周回は含めない）, isLegacy, savedAt, savedAutoRepeat }
   function deserialize(data, opts) {
     opts = opts || {};
-    if (!data || !Array.isArray(data.roster) || data.roster.length === 0) return null;
+    if (!data || !Array.isArray(data.roster)) return null;
+    const limits = { maxPlus: opts.maxPlus || 99, ivRange: opts.ivRange || 0.1 };
+    const roster = data.roster.filter((c) => c && typeof c === "object").map((c) => normalizeChar(c, limits));
+    if (roster.length === 0) return null;
+    const teamCount = opts.teamCount || 4;
     // schemaVersion 2以降はこのセーブのmaterialを正本として使う。それ未満（旧形式）の
     // セーブでは jobquest_material キーが正本だったため、そちらから一度だけ引き継ぐ
     const isLegacy = !(typeof data.schemaVersion === "number" && data.schemaVersion >= SCHEMA_VERSION);
     const gs = data.guaranteedStones;
     const state = {
-      roster: data.roster,
-      inventory: Array.isArray(data.inventory) ? data.inventory : [],
-      activeTeam: typeof data.activeTeam === "number" ? data.activeTeam : 0,
+      roster,
+      inventory: Array.isArray(data.inventory) ? data.inventory.map((it) => normalizeItem(it, limits.maxPlus)).filter(Boolean) : [],
+      activeTeam: typeof data.activeTeam === "number" ? Math.min(teamCount - 1, count(data.activeTeam)) : 0,
       clearedDungeons: new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []),
       clearedHard: new Set(Array.isArray(data.clearedHard) ? data.clearedHard : []),
       clearedExtra: new Set(Array.isArray(data.clearedExtra) ? data.clearedExtra : []),
-      nextCharSeq: typeof data.nextCharSeq === "number" ? data.nextCharSeq : 1,
+      nextCharSeq: Math.max(1, count(data.nextCharSeq)),
       skillBooks: Array.isArray(data.skillBooks) ? data.skillBooks : [],
-      material: (!isLegacy && typeof data.material === "number") ? data.material : (opts.legacyMaterial || 0),
+      material: count((!isLegacy && typeof data.material === "number") ? data.material : (opts.legacyMaterial || 0)),
       guaranteedStones: (gs && typeof gs === "object")
-        ? { free: Number(gs.free) || 0, paid: Number(gs.paid) || 0 }
-        : { free: typeof gs === "number" ? gs : 0, paid: 0 }, // 区別のない旧形式は無償分として扱う
+        ? { free: count(gs.free), paid: count(gs.paid) }
+        : { free: typeof gs === "number" ? count(gs) : 0, paid: 0 }, // 区別のない旧形式は無償分として扱う
       records: recordsMod.normalizeRecords(data.records),
       groups: normalizeGroups(data.groups),
       purchases: shopMod.normalizePurchases(data.purchases),
@@ -206,7 +239,7 @@
     };
   }
 
-  const exported = { SCHEMA_VERSION, GROUP_MAX, GROUP_NAME_MAX, createState, serialize, deserialize, prepareRestore, normalizeGroups };
+  const exported = { SCHEMA_VERSION, GROUP_MAX, GROUP_NAME_MAX, NAME_MAX, createState, serialize, deserialize, prepareRestore, normalizeGroups };
   root.QPModel = root.QPModel || {};
   root.QPModel.save = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;

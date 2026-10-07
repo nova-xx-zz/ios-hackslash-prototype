@@ -189,8 +189,12 @@ if (DEBUG_MODE) {
   renderDebugTools();
   document.getElementById("btnDebugComplete").addEventListener("click", () => {
     const btn = document.getElementById("btnDebugComplete");
-    if (btn.dataset.confirm) { delete btn.dataset.confirm; btn.textContent = "コンプリート（すべてを終えた状態にする）"; debugComplete(); return; }
+    if (btn.dataset.confirm) {
+      if (!confirmReady()) return;
+      delete btn.dataset.confirm; btn.textContent = "コンプリート（すべてを終えた状態にする）"; debugComplete(); return;
+    }
     btn.dataset.confirm = "1";
+    armConfirm();
     btn.textContent = "本当にコンプリートする（確認用の仲間・所持品は置き換わります）";
   });
   // ふつうのモードに戻る。この端末の合言葉も忘れる（次に入る時は、また合言葉を聞く）
@@ -200,8 +204,9 @@ if (DEBUG_MODE) {
   });
   document.getElementById("btnDebugReset").addEventListener("click", () => {
     const btn = document.getElementById("btnDebugReset");
-    if (btn.dataset.confirm) { debugResetData(); return; }
+    if (btn.dataset.confirm) { if (confirmReady()) debugResetData(); return; }
     btn.dataset.confirm = "1";
+    armConfirm();
     btn.textContent = "本当に最初からにする（確認用のデータだけ消えます）";
   });
 }
