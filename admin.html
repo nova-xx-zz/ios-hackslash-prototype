@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 確認用モード（開発者用）をホーム画面に追加するための入口。
+     ホーム画面から起動した時は、すぐに確認用モード（index.html?debug）を開く。
+     Safariで開いた時は、ホーム画面への追加のしかたを出す（ここで移動すると、追加するページが変わってしまうため） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="開発用">
+<meta name="theme-color" content="#0e0c16">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="admin.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<title>ソードクレスト（開発）</title>
+<script>
+  // ホーム画面から起動した時だけ、確認用モードへ
+  (function () {
+    var standalone = window.navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    if (standalone) location.replace("./index.html?debug");
+  })();
+</script>
+<style>
+  body { margin: 0; padding: 32px 20px; background: #0e0c16; color: #e9e3d4; font-family: -apple-system, "Hiragino Sans", sans-serif; line-height: 1.8; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  ol { padding-left: 20px; }
+  a { color: #dbc28a; }
+  .note { font-size: 12px; color: #9a94a8; }
+</style>
+</head>
+<body>
+  <h1>ソードクレスト（開発用）</h1>
+  <p>確認用モードを、ふつうのアイコンとは別のアイコンとしてホーム画面に追加できます。</p>
+  <ol>
+    <li>下の共有ボタン（□に↑）を押す</li>
+    <li>「ホーム画面に追加」を押す</li>
+    <li>追加した「開発用」のアイコンから開き、合言葉を入れる</li>
+  </ol>
+  <p><a href="./index.html?debug">今このまま確認用モードを開く</a></p>
+  <p class="note">ホーム画面のアイコンは、Safariとは別に保存されます。初めて開いた時にもう一度合言葉を聞かれ、確認用のデータもSafariとは別になります（コンプリートはアイコンから開いた後に押してください）。</p>
+</body>
+</html>
