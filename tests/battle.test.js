@@ -23,9 +23,9 @@ const member = (name, stats, extra) => Object.assign({ name, stats, hp: stats.ma
 const enemy = (name, hp, extra) => Object.assign({ name, hp, maxHp: hp, atk: 10, def: 0, spd: 5, atb: 0, alive: true }, extra || {});
 const S = { maxHp: 100, maxMp: 20, atk: 20, mag: 20, def: 10, spd: 10 };
 
-const fire = { id: "fire", name: "ファイア", reqLevel: 1, mpCost: 4, kind: "magic", target: "single", power: 1.5, hits: 1 };
-const bigFire = { id: "big", name: "だいばくれつ", reqLevel: 15, mpCost: 16, kind: "magic", target: "all-enemy", power: 1.6, hits: 1 };
-const heal = { id: "heal", name: "ヒール", reqLevel: 1, mpCost: 4, kind: "heal", target: "single-ally", power: 1.8, hits: 1 };
+const fire = { id: "fire", name: "炎紋弾", reqLevel: 1, mpCost: 4, kind: "magic", target: "single", power: 1.5, hits: 1 };
+const bigFire = { id: "big", name: "爆紋陣", reqLevel: 15, mpCost: 16, kind: "magic", target: "all-enemy", power: 1.6, hits: 1 };
+const heal = { id: "heal", name: "癒しの灯", reqLevel: 1, mpCost: 4, kind: "heal", target: "single-ally", power: 1.8, hits: 1 };
 
 test("技は優先度で絞り込み、その中で今の敵に対する期待効果が大きい技を選ぶ。MPが足りなければ使わない", () => {
   const env = envWith();
@@ -43,8 +43,8 @@ test("技は優先度で絞り込み、その中で今の敵に対する期待�
 
 test("後から覚える技でも、今の敵に効きにくければ使わない（多段技は1回ごとに防御で減る）", () => {
   const env = envWith();
-  const strong = { id: "crit", name: "かいしんのいちげき", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 2.1, hits: 1 };
-  const multi = { id: "multi", name: "みだれづき", reqLevel: 10, mpCost: 0, kind: "physical", target: "single", power: 0.55, hits: 3 };
+  const strong = { id: "crit", name: "剛断撃", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 2.1, hits: 1 };
+  const multi = { id: "multi", name: "三連閃", reqLevel: 10, mpCost: 0, kind: "physical", target: "single", power: 0.55, hits: 3 };
   const c = member("A", { ...S, atk: 40 }, { abilities: [strong, multi] });
   assert.equal(battle.chooseAction(c, [c], env, [enemy("golem", 500, { def: 60 })]).id, "crit");
 });

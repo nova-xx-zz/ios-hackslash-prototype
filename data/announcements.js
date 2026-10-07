@@ -4,6 +4,24 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_skill_names",
+    revision: 1,
+    publishedAt: "2026-10-07T19:00:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "技の名前が新しくなりました",
+    body: [
+      "ジョブの技とスキルツリーの技の名前を、ソードクレストの世界に合わせた新しい名前に変えました。魔法は「紋章」の力を使う名前（炎紋弾・雷紋陣など）になっています。",
+      "例: れんげき → 双閃、ファイア → 炎紋弾、ヒール → 癒しの灯、ドレイン → 吸命、いあいぎり → 抜刀閃",
+      "テイムしたモンスターの技も、一部の名前が変わりました。",
+      "※ 名前が変わっただけで、技の強さ・覚えるレベル・ON/OFFや優先度の設定はそのままです。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_monster_ivs",
     revision: 1,
     publishedAt: "2026-10-07T22:00:00+09:00",
