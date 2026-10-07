@@ -46,6 +46,13 @@
     return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
   }
 
+  // iPhoneの入力でずれやすいところをそろえてから比べる: 先頭の自動大文字・全角の英数字や記号（NFKC）・
+  // 日本語キーボードの「ー」「－」や似たダッシュ・前後や途中の空白
+  function normalize(text) {
+    return String(text).normalize("NFKC").toLowerCase().replace(/[\u2010-\u2015\u2212\u30fc\uff70]/g, "-").replace(/\s+/g, "");
+  }
+  function check(text) { return sha256(normalize(text)) === PASS_HASH; }
+
   function requested() {
     try { return /[?&]debug(?:[=&]|$)/.test((root.location && root.location.search) || ""); } catch (e) { return false; }
   }
@@ -53,17 +60,21 @@
     try { return root.localStorage.getItem(UNLOCK_KEY) === "1"; } catch (e) { return false; }
   }
 
-  const exported = { UNLOCK_KEY, PASS_HASH, sha256, requested, unlocked };
+  const exported = { UNLOCK_KEY, PASS_HASH, sha256, normalize, check, requested, unlocked };
   root.QPDebugGate = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
 
   // ブラウザで ?debug を付けて開いた時だけ、合言葉を聞く
-  if (typeof document !== "undefined" && requested() && !unlocked()) {
-    const input = root.prompt ? root.prompt("確認用モードの合言葉を入力してください") : null;
-    if (input !== null && sha256(input.trim()) === PASS_HASH) {
-      try { root.localStorage.setItem(UNLOCK_KEY, "1"); } catch (e) { /* 覚えられない時は、次回また聞く */ }
-    } else if (input !== null) {
-      root.alert && root.alert("合言葉が違います。ふつうのモードで開きます");
+  // 打ち間違えに備えて3回まで聞く（キャンセルしたら、ふつうのモードで開く）
+  if (typeof document !== "undefined" && requested() && !unlocked() && root.prompt) {
+    for (let i = 0; i < 3; i++) {
+      const input = root.prompt(i === 0 ? "確認用モードの合言葉を入力してください" : `合言葉が違います。もう一度入力してください（あと${3 - i}回）`);
+      if (input === null) break;
+      if (check(input)) {
+        try { root.localStorage.setItem(UNLOCK_KEY, "1"); } catch (e) { /* 覚えられない時は、次回また聞く */ }
+        break;
+      }
+      if (i === 2) root.alert && root.alert("合言葉が違います。ふつうのモードで開きます");
     }
   }
 })(typeof globalThis !== "undefined" ? globalThis : this);

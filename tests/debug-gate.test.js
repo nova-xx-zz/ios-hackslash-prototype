@@ -11,3 +11,11 @@ test("確認用モードの合言葉: SHA-256がNode.jsの実装と一致する�
   }
   assert.match(gate.PASS_HASH, /^[0-9a-f]{64}$/);
 });
+
+test("確認用モードの合言葉: iPhoneの入力でずれやすいところ（先頭の大文字・全角・「ー」・空白）をそろえて比べる", () => {
+  const n = gate.normalize;
+  assert.equal(n("Abc-Def"), "abc-def");
+  assert.equal(n("ＡＢＣ－１２"), "abc-12");
+  assert.equal(n(" abcーdef—1 "), "abc-def-1");
+  assert.equal(gate.check(""), false);
+});
