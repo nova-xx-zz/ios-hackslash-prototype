@@ -49,7 +49,7 @@ test("EXP: 必要量に達するとレベルが上がり、余りは持ち越す
   assert.equal(c.exp, 10);
   assert.equal(c.expToNext, data.expForLevel(5));
   assert.deepEqual(result.levelUps, ["アレン Lv.2", "アレン Lv.3", "アレン Lv.4", "アレン Lv.5"]);
-  assert.deepEqual(result.abilityUnlocks, ["アレンが「かいしんのいちげき」を習得！"]); // reqLevel 5
+  assert.deepEqual(result.abilityUnlocks, ["アレンが「剛断撃」を習得！"]); // reqLevel 5
   assert.deepEqual({ level: c.jobLevels.warrior.level, exp: c.jobLevels.warrior.exp }, { level: 5, exp: 10 });
   assert.equal(R.totalExpInvested(c), need + 10);
 });
