@@ -951,7 +951,7 @@ const DUNGEONS = [
     pool: ["slime", "bat", "killer_moth", "field_rat", "mud_plant", "leaf_pixie"], boss: "horned_rabbit", rares: ["gold_slime", "lucky_hare"], unlocks: ["forest"],
     desc: "見晴らしのよい草原。弱い魔物しかいない。",
     benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
-    modePower: { hard: 2.77, extra: 4.53 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 2.77, extra: 6.435 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "forest", region: "verde", name: "ささやきの森", x: 44, y: 60, level: 4, battles: 3,
@@ -959,7 +959,7 @@ const DUNGEONS = [
     desc: "木々のざわめきに紛れて魔物が潜む。",
     power: 1.715, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "n", plus: 0 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
-    modePower: { hard: 2.19, extra: 3.435 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 2.19, extra: 5.35 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "cave", region: "verde", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
@@ -967,7 +967,7 @@ const DUNGEONS = [
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
     power: 1.505, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "n", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
-    modePower: { hard: 2.07, extra: 2.72 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 2.07, extra: 4.225 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "ruins", region: "verde", name: "忘れられた遺跡", x: 60, y: 28, level: 11, battles: 4,
@@ -975,7 +975,7 @@ const DUNGEONS = [
     desc: "崩れた石柱が並ぶ遺跡。強力な魔物が棲みついている。",
     power: 1.075, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "r", plus: 2 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
-    modePower: { hard: 1.28, extra: 2.085 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 1.28, extra: 1.695 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "peak", region: "verde", name: "竜骨の山頂", x: 78, y: 12, level: 15, battles: 5,
@@ -983,7 +983,7 @@ const DUNGEONS = [
     desc: "巨大な骨が眠る山頂。ヴェルデ地方で最も危険な領域。",
     power: 0.795, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "r", plus: 3 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
-    modePower: { hard: 0.995, extra: 1.315 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.995, extra: 1.405 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   // ---- サブル地方（推奨Lv17〜30） ----
   {
@@ -992,7 +992,7 @@ const DUNGEONS = [
     desc: "陽炎に揺れる果てしない砂丘。砂の下を何かが泳いでいる。",
     power: 0.845, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "r", plus: 4 },
-    modePower: { hard: 1.11, extra: 1.33 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 1.11, extra: 1.15 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "canyon", region: "sabul", name: "サソリの谷", x: 42, y: 62, level: 20, battles: 5,
@@ -1000,7 +1000,7 @@ const DUNGEONS = [
     desc: "赤い岩壁に挟まれた谷。岩陰という岩陰にサソリが潜む。",
     power: 0.7, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 2 },
-    modePower: { hard: 0.84, extra: 1.025 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.84, extra: 1.245 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "oasis", region: "sabul", name: "枯れたオアシス", x: 72, y: 66, level: 23, battles: 5,
@@ -1008,7 +1008,7 @@ const DUNGEONS = [
     desc: "かつて旅人を潤した泉の跡。干上がった水底に呪いが澱んでいる。",
     power: 0.575, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 3 },
-    modePower: { hard: 0.765, extra: 0.89 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.765, extra: 0.83 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "tomb", region: "sabul", name: "砂に沈んだ王墓", x: 56, y: 36, level: 26, battles: 5,
@@ -1016,7 +1016,7 @@ const DUNGEONS = [
     desc: "砂に呑まれた古王の墓。眠りを妨げる者には容赦がない。",
     power: 0.645, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 4 },
-    modePower: { hard: 0.795, extra: 1 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.795, extra: 0.97 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "sun_temple", region: "sabul", name: "灼熱の大神殿", x: 30, y: 14, level: 30, battles: 5,
@@ -1024,7 +1024,7 @@ const DUNGEONS = [
     desc: "太陽を祀る巨大な神殿。謎を解けぬ者は先へ進めない。",
     power: 0.585, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 4 },
-    modePower: { hard: 0.735, extra: 0.865 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.735, extra: 0.835 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   // ---- グラシア地方（推奨Lv32〜45） ----
   {
@@ -1033,7 +1033,7 @@ const DUNGEONS = [
     desc: "木々まで白く凍りついた森。吐く息さえ凍って落ちる。",
     power: 0.645, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 4 },
-    modePower: { hard: 0.87, extra: 0.91 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.87, extra: 1.125 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "frozen_lake", region: "glacia", name: "凍てつく湖", x: 44, y: 66, level: 35, battles: 5,
@@ -1041,7 +1041,7 @@ const DUNGEONS = [
     desc: "厚い氷に覆われた湖。氷の下で巨大な影が動いている。",
     power: 0.57, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 5 },
-    modePower: { hard: 0.72, extra: 0.795 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.72, extra: 0.965 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "crystal_cave", region: "glacia", name: "氷晶の洞窟", x: 76, y: 60, level: 38, battles: 5,
@@ -1049,7 +1049,7 @@ const DUNGEONS = [
     desc: "壁も天井も氷の結晶でできた洞窟。光が乱反射して方向を見失う。",
     power: 0.525, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 5 },
-    modePower: { hard: 0.7, extra: 0.75 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.7, extra: 0.88 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "snow_fort", region: "glacia", name: "雪原の砦跡", x: 58, y: 34, level: 41, battles: 5,
@@ -1057,7 +1057,7 @@ const DUNGEONS = [
     desc: "吹雪に埋もれた古い砦。凍りついた兵たちが今も持ち場を守っている。",
     power: 0.58, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 5 },
-    modePower: { hard: 0.75, extra: 0.745 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.75, extra: 1.28 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "ice_throne", region: "glacia", name: "氷竜の玉座", x: 30, y: 14, level: 45, battles: 5,
@@ -1065,7 +1065,7 @@ const DUNGEONS = [
     desc: "氷河の頂にある氷の玉座。永い眠りから覚めた竜が待っている。",
     power: 0.545, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.69, extra: 0.72 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.69, extra: 1.17 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   // ---- イグニス地方（推奨Lv47〜60） ----
   {
@@ -1074,7 +1074,7 @@ const DUNGEONS = [
     desc: "灰が雪のように降り積もる平原。足元の地面はほんのり温かい。",
     power: 0.51, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.68, extra: 0.76 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.68, extra: 1.68 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "lava_river", region: "ignis", name: "溶岩の大河", x: 46, y: 64, level: 50, battles: 5,
@@ -1082,7 +1082,7 @@ const DUNGEONS = [
     desc: "煮えたぎる溶岩が川となって流れる谷。わずかな岩場だけが道になる。",
     power: 0.48, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.64, extra: 0.695 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.64, extra: 0.945 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "forge_ruins", region: "ignis", name: "炎の鍛冶場跡", x: 78, y: 54, level: 53, battles: 5,
@@ -1090,7 +1090,7 @@ const DUNGEONS = [
     desc: "火の巨人たちが武具を鍛えたという鍛冶場の跡。今も炉の火が消えていない。",
     power: 0.485, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.61, extra: 0.68 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.61, extra: 0.95 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "crater", region: "ignis", name: "大火口", x: 56, y: 30, level: 56, battles: 5,
@@ -1098,7 +1098,7 @@ const DUNGEONS = [
     desc: "山頂に口を開けた巨大な火口。底からは絶えず炎が噴き上がる。",
     power: 0.445, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.63, extra: 0.62 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.63, extra: 0.79 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "inferno_peak", region: "ignis", name: "業火の霊峰", x: 26, y: 12, level: 60, battles: 5,
@@ -1106,7 +1106,7 @@ const DUNGEONS = [
     desc: "業火に包まれた霊峰。火山の主たる炎竜が、挑む者を待っている。",
     power: 0.43, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.61, extra: 0.595 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.61, extra: 0.825 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   // ---- マリナ地方（推奨Lv62〜75） ----
   {
@@ -1115,7 +1115,7 @@ const DUNGEONS = [
     desc: "色とりどりの珊瑚が広がる浅瀬。美しさの陰に魔物が潜む。",
     power: 0.445, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.63, extra: 0.595 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.63, extra: 1.545 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "ghost_ship", region: "marina", name: "幽霊船", x: 44, y: 62, level: 65, battles: 5,
@@ -1123,7 +1123,7 @@ const DUNGEONS = [
     desc: "霧の海をさまよう朽ちた帆船。乗組員は誰一人として生きていない。",
     power: 0.37, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 6 },
-    modePower: { hard: 0.5, extra: 0.515 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.5, extra: 0.8 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "sea_cave", region: "marina", name: "潮騒の海洞", x: 78, y: 56, level: 68, battles: 5,
@@ -1131,7 +1131,7 @@ const DUNGEONS = [
     desc: "満ち潮で閉ざされる海の洞窟。セイレーンの歌が奥から響く。",
     power: 0.395, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.545, extra: 0.51 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.545, extra: 1.235 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "sunken_city", region: "marina", name: "沈んだ古代都市", x: 58, y: 32, level: 71, battles: 5,
@@ -1139,7 +1139,7 @@ const DUNGEONS = [
     desc: "海の底に沈んだ古代の都。かつての住人が今も街を守っている。",
     power: 0.355, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.5, extra: 0.47 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.5, extra: 0.81 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "leviathan_trench", region: "marina", name: "大海溝", x: 30, y: 12, level: 75, battles: 5,
@@ -1147,7 +1147,7 @@ const DUNGEONS = [
     desc: "光の届かない深い海溝。海の王リヴァイアサンの棲み処。",
     power: 0.365, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.53, extra: 0.47 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.53, extra: 1.015 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   // ---- セレスタ地方（推奨Lv77〜88） ----
   {
@@ -1156,7 +1156,7 @@ const DUNGEONS = [
     desc: "雲の上に続く白い道。踏み外せば地上まで真っ逆さま。",
     power: 0.32, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.49, extra: 0.415 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.49, extra: 0.635 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "floating_isle", region: "celesta", name: "浮遊島", x: 20, y: 58, level: 80, battles: 5,
@@ -1164,7 +1164,7 @@ const DUNGEONS = [
     desc: "空に浮かぶ岩の島。古い魔法の力で今も落ちずに浮かんでいる。",
     power: 0.32, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.49, extra: 0.42 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.49, extra: 0.99 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "sky_garden", region: "celesta", name: "天空庭園", x: 78, y: 48, level: 83, battles: 5,
@@ -1172,7 +1172,7 @@ const DUNGEONS = [
     desc: "天空の民が造った庭園。見たこともない花が咲き乱れている。",
     power: 0.3, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.45, extra: 0.4 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.45, extra: 0.68 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "thunder_spire", region: "celesta", name: "雷鳴の尖塔", x: 34, y: 26, level: 86, battles: 5,
@@ -1180,7 +1180,7 @@ const DUNGEONS = [
     desc: "雷雲を貫いてそびえる塔。絶えず稲妻が塔を打ちつけている。",
     power: 0.285, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.43, extra: 0.375 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.43, extra: 0.6 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "celestial_palace", region: "celesta", name: "天空宮殿", x: 66, y: 10, level: 88, battles: 5,
@@ -1188,7 +1188,7 @@ const DUNGEONS = [
     desc: "雲の頂に建つ天空の宮殿。空の帝がすべてを見下ろしている。",
     power: 0.28, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.435, extra: 0.365 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.435, extra: 0.565 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   // ---- アビス地方（推奨Lv90〜100。最後の地方） ----
   {
@@ -1197,7 +1197,7 @@ const DUNGEONS = [
     desc: "大穴の縁に建つ巨大な門。門の向こうからは光が一切漏れてこない。",
     power: 0.23, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 7 },
-    modePower: { hard: 0.335, extra: 0.305 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.335, extra: 0.475 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "shadow_labyrinth", region: "abyss", name: "影の迷宮", x: 70, y: 74, level: 93, battles: 5,
@@ -1205,7 +1205,7 @@ const DUNGEONS = [
     desc: "壁が絶えず形を変える影の迷宮。自分の影にさえ道を惑わされる。",
     power: 0.25, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 8 },
-    modePower: { hard: 0.36, extra: 0.325 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.36, extra: 0.605 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "abyss_sea", region: "abyss", name: "虚無の海", x: 40, y: 54, level: 95, battles: 5,
@@ -1213,7 +1213,7 @@ const DUNGEONS = [
     desc: "底の見えない黒い水が広がる地底の海。水面に映るのは自分ではない何か。",
     power: 0.23, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 8 },
-    modePower: { hard: 0.35, extra: 0.31 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.35, extra: 0.485 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "fallen_citadel", region: "abyss", name: "堕ちた城塞", x: 76, y: 32, level: 98, battles: 5,
@@ -1221,7 +1221,7 @@ const DUNGEONS = [
     desc: "天から堕ちた城の残骸。かつての主は深淵に呑まれ、姿を変えた。",
     power: 0.245, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 8 },
-    modePower: { hard: 0.365, extra: 0.33 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.365, extra: 0.72 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
   {
     id: "abyss_heart", region: "abyss", name: "深淵の心臓", x: 30, y: 12, level: 100, battles: 5,
@@ -1229,7 +1229,7 @@ const DUNGEONS = [
     desc: "深淵の最奥で脈打つ巨大な心臓。すべての災いの源がここに眠る。",
     power: 0.235, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
     benchmarkGear: { rarity: "sr", plus: 8 },
-    modePower: { hard: 0.335, extra: 0.3 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
+    modePower: { hard: 0.335, extra: 0.67 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },
 ];
 
