@@ -138,7 +138,10 @@ function makeMember(spec, level, i, opts) {
 
 function makeEnv(rng) {
   const race = (c) => data.RACES[c.race].passive;
-  const statsOf = (c) => {
+  // シミュレーションのキャラは戦闘中に能力値・技・パッシブが変わらないので、1人ごとに1回だけ計算して使い回す
+  // （戦闘中の強化・弱体は battle.js が別に掛ける）
+  const memo = (fn) => { const cache = new WeakMap(); return (c) => { if (!cache.has(c)) cache.set(c, fn(c)); return cache.get(c); }; };
+  const statsOf = memo((c) => {
     const s = baseStats(data.JOBS[c.job], data.RACES[c.race], c.level);
     const key = (k) => (k === "hp" ? "maxHp" : k === "mp" ? "maxMp" : k);
     for (const it of Object.values(c.equip || {})) {
@@ -153,23 +156,23 @@ function makeEnv(rng) {
     if (t) for (const [k, v] of Object.entries(t.pct)) if (v) pcts[k] = (pcts[k] || 0) + v;
     for (const [k, pct] of Object.entries(pcts)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
     return s;
-  };
+  });
   const tree = (c, key, def) => (c.tree ? c.tree[key] : def);
   const gearP = (c, key, def) => (c.set ? c.set.passives[key] : def); // 装備のセット効果
   return {
     rng,
     atbRate: ATB_RATE,
     stats: statsOf,
-    abilities: (c) => data.JOBS[c.job].abilities.filter((a) => c.level >= a.reqLevel).concat(c.treeAbilities || []),
+    abilities: memo((c) => data.JOBS[c.job].abilities.filter((a) => c.level >= a.reqLevel).concat(c.treeAbilities || [])),
     mpCost: (c, a) => Math.max(0, Math.round(a.mpCost * (race(c).mpCostMult || 1) * tree(c, "mpCostMult", 1) * gearP(c, "mpCostMult", 1))),
     tier: () => 2,
-    passives: (c) => ({
+    passives: memo((c) => ({
       lifesteal: (race(c).lifesteal || 0) + tree(c, "lifesteal", 0) + gearP(c, "lifesteal", 0),
       healBonus: (race(c).healBonus || 0) + tree(c, "healBonus", 0) + gearP(c, "healBonus", 0),
       critBonus: (race(c).critBonus || 0) + tree(c, "critBonus", 0) + gearP(c, "critBonus", 0),
       dmgTakenMult: (race(c).dmgTakenMult || 1) * tree(c, "dmgTakenMult", 1) * gearP(c, "dmgTakenMult", 1),
       pierce: tree(c, "pierce", 0),
-    }),
+    })),
   };
 }
 

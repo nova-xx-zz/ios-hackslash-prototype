@@ -79,10 +79,11 @@ function check() {
 }
 
 // 推奨Lvで、適正装備だけの踏破率が calibrateGearOnlyTarget になる「敵の強さの倍率」（DUNGEONS[].power）を探す
-function calibrate(d) {
+// range: [下限, 上限, 回数]（省略時は0.05〜4.0を14回で探す。今の値の近くを探す時は狭めると速い）
+function calibrate(d, range) {
   const saved = d.power;
-  let lo = 0.05, hi = 4.0; // 奥の地方ほど小さな倍率になるため、下限は0.05まで探す
-  for (let i = 0; i < 14; i++) {
+  let [lo, hi, steps] = range || [0.05, 4.0, 14]; // 奥の地方ほど小さな倍率になるため、下限は0.05まで探す
+  for (let i = 0; i < steps; i++) {
     const mid = (lo + hi) / 2;
     d.power = mid;
     if (rateAt(d, d.level, gearOnly(d)) > STANDARD.calibrateGearOnlyTarget) lo = mid; else hi = mid;
@@ -126,11 +127,11 @@ function modeRate(d, mode) {
   return best;
 }
 // そのモードの推奨Lvで想定プレイヤーの踏破率が目標になる「敵の強さの倍率」（DUNGEONS[].modePower[mode]）を探す
-function calibrateMode(d, mode) {
+function calibrateMode(d, mode, range) {
   const saved = d.modePower;
   const target = modeTarget(data.getModeDungeon(d.id, mode).level);
-  let lo = 0.05, hi = 6;
-  for (let i = 0; i < 15; i++) {
+  let [lo, hi, steps] = range || [0.05, 6, 15];
+  for (let i = 0; i < steps; i++) {
     const mid = (lo + hi) / 2;
     d.modePower = Object.assign({}, saved, { [mode]: mid });
     // エクストラは、どれか1つの構成が目標を超えれば「踏破できる」（全部は測らない）
