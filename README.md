@@ -90,6 +90,7 @@ python3 -m http.server 8000
 URLの最後に `?debug` を付けて開いても（例: `https://nova-xx-zz.github.io/ios-hackslash-prototype/?debug`）合言葉を聞かれ、合っていれば確認用モードになる（この時はコンプリートにはしない）。
 
 - 合言葉はコードに書かず、SHA-256のハッシュだけを `js/debug-gate.js` に持つ（合言葉は開発者だけが知っている）。一度入れた端末は覚えるので、2回目からは聞かれない。大文字・小文字、全角・半角、「ー」と「-」の違いは区別しない。間違えたら3回まで入れ直せる。違う合言葉では入れない。テストプレイヤーがうっかり入るのを防ぐための簡単な守りで、強い守りではない
+- **別アイコン（任意）**: Safariで `https://nova-xx-zz.github.io/ios-hackslash-prototype/admin.html` を開き、共有 →「ホーム画面に追加」で、ふつうのアイコンとは別の「開発用」アイコンも作れる。アイコンから起動すると `index.html?debug` を開く（`admin.html`・`admin.webmanifest`）。ホーム画面のアイコンはSafariや他のアイコンと保存場所が別なので、初回は合言葉をもう一度聞かれ、データも別になる。ふつうのアイコンのまま設定画面の「開発者用」から入ってもよい
 - 合言葉を変える時は `node -e 'console.log(require("crypto").createHash("sha256").update("新しい合言葉").digest("hex"))'` の結果を `PASS_HASH` に入れる
 
 - 保存場所は本番と別（キーの頭に `qpdebug:`）で、クラウドセーブも使わない。ここで遊んだ内容は、ふだんのセーブやクラウドのバックアップには残らない
