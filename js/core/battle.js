@@ -28,7 +28,7 @@
 //   heal       { actor, ability, target, amount }
 //   crit       { actor }（直後のdamageが会心）
 //   damage     { actor, ability, target, dmg, drained, immune, weak, resist }（drained: 吸収したHP。immune: 効かない。weak: 弱点。resist: 効きにくい）
-//   status     { actor, ability, target, kind: "buff"|"debuff"|"imbue", stat, mult, element }（強化・弱体・属性付与を掛けた）
+//   status     { actor, ability, target, kind: "buff"|"debuff"|"imbue", stat, mult, element, first }（強化・弱体・属性付与を掛けた。first: 味方全体に掛けた時の1人目）
 //   enemyDown  { enemy }
 //   acted      { actor }（味方が行動した。画面の点滅用）
 //   enemyAttack{ enemy, target, dmg }
@@ -336,13 +336,13 @@
     else if (ability.target === "self") targets = [c];
 
     if (ability.kind === "buff") {
-      for (const t of targets) {
+      for (const [i, t] of targets.entries()) {
         if (ability.imbue) {
           setFx(battle, t, "imbue", { element: ability.imbue.element, until: now(battle) + ability.imbue.duration });
-          events.push({ type: "status", actor: c, ability, target: t, kind: "imbue", element: ability.imbue.element });
+          events.push({ type: "status", actor: c, ability, target: t, kind: "imbue", element: ability.imbue.element, first: i === 0 });
         } else if (ability.buff) {
           applyStatFx(battle, t, ability.buff.stat, ability.buff.mult, ability.buff.duration);
-          events.push({ type: "status", actor: c, ability, target: t, kind: "buff", stat: ability.buff.stat, mult: ability.buff.mult });
+          events.push({ type: "status", actor: c, ability, target: t, kind: "buff", stat: ability.buff.stat, mult: ability.buff.mult, first: i === 0 });
         }
       }
       events.push({ type: "acted", actor: c });

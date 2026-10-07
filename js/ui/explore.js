@@ -69,8 +69,12 @@ function logBattleEvent(run, battle, ev) {
       break;
     case "status": {
       const names = { atk: "攻撃力", mag: "魔力", def: "防御力", spd: "素早さ" };
-      if (ev.kind === "imbue") logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}の攻撃が${ELEMENTS[ev.element]}属性になった！`, "heal");
-      else if (ev.kind === "buff") logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${ev.target.name}の${names[ev.stat]}が上がった！`, "heal");
+      // 味方全体に掛けた時は1行にまとめる
+      const all = ev.ability.target === "all-ally";
+      if (ev.kind !== "debuff" && all && !ev.first) break;
+      const who = all ? "味方全員" : ev.target.name;
+      if (ev.kind === "imbue") logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${who}の攻撃が${ELEMENTS[ev.element]}属性になった！`, "heal");
+      else if (ev.kind === "buff") logLine(t, `${ev.actor.name} の${ev.ability.name}！ ${who}の${names[ev.stat]}が上がった！`, "heal");
       else logLine(t, `${ev.target.name}の${names[ev.stat]}が下がった！`, "system");
       break;
     }
