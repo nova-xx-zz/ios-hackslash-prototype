@@ -6,7 +6,7 @@
 (function (root) {
   "use strict";
   const UNLOCK_KEY = "qp_debug_unlocked";
-  const PASS_HASH = "dbf31640c0ee04b6a4924526d07be96a6ee19dd60fd7233a83bb0556f753a7fc";
+  const PASS_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
 
   // SHA-256（UTF-8の文字列 → 16進数）。起動の前に同期で確かめたいので、crypto.subtle（非同期）は使わない
   function sha256(text) {
