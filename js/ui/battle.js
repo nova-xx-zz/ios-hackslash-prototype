@@ -32,6 +32,9 @@ function startBattle(run) {
   logEvent(run.team, "encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster(battle));
   const rare = battle.enemies.find((e) => e.isRare);
   if (rare) logLine(run.team, `レアモンスター ${rare.name} が現れた！（倒すと良い装備を落とす）`, "system");
+  // 敵の特性（アンデッド・霊体など）を知らせる
+  const traits = [...new Set(battle.enemies.flatMap((e) => e.traits || []))];
+  if (traits.length) logLine(run.team, `特性: ${traits.map((k) => ENEMY_TRAITS[k].name).join("・")}（図鑑で詳しく見られる）`, "system");
   if (run.team === S.activeTeam) renderDock();
 }
 

@@ -113,14 +113,15 @@ const Roster = QPModel.roster.createRoster({
   data: {
     JOBS, MONSTER_JOBS, MONSTER_MAX_LEVEL, CHAR_MAX_LEVEL, RACES, GENERAL_SLOTS, expForLevel, isFeatureEnabled, jobTag,
     getExclusiveTreeByTag, getGeneralTree, getGeneralSlotDef, getAbilityById, itemStats,
-    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
+    JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect, TREE_RESET_COST_PER_SP,
   },
   state: S,
   runBuffs: (team) => Runner.runBuffs(team), // 石碑の加護（js/model/run.js）
   isTeamLocked: (team) => isTeamLocked(team),
+  onMaterialChange: (material) => store.set(KEYS.material, material), // ツリーの振り直しの費用（旧キーは互換ミラー）
 });
 const {
-  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
+  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
   equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
 } = Roster;
 

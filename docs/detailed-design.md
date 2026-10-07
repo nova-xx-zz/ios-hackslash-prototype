@@ -364,7 +364,8 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | 項目 | 内容 |
 |---|---|
 | 解放条件 | ハード: そのダンジョンのノーマル踏破。エクストラ: そのダンジョンのハード踏破（`isDungeonModeOpen`） |
-| 敵の強さ | `DUNGEONS[].modePower[mode]`（`node tools/simulate.js --calibrate-modes` で推奨Lv＋levelUpの想定パーティが踏破率88%、Lv100超は1Lvごとに−2%になるよう決めた値）。無ければ `powerForLevel(level)` |
+| 敵の強さ | `DUNGEONS[].modePower[mode]`（`node tools/simulate.js --calibrate-modes` で推奨Lv＋levelUpの想定パーティ（適正装備＋スキル。エクストラは4つの構成のうち一番合ったもの）が踏破率88%、Lv100超は1Lvごとに−2%になるよう決めた値）。無ければ `powerForLevel(level)` |
+| 敵の特性 | `makeEnemy(t, mult, isBoss, power, isRare, mode)` が `enemyResistances(t, mode)` で `traits`・`res`（物理・魔法・聖属性以外・属性ごとのダメージ倍率）と堅牢の防御の倍率を入れる（`TRAIT_STRENGTH`: ノーマル0.6／ハード0.3／エクストラ0、防御1.5／2.5／4倍） |
 | EXP | 敵のEXP × `expMult` |
 | 装備 | 装備のレベルはモード込みの `level`、シリーズ・名のある装備の地方は元の推奨Lv（`regionLevel`）で決める。ハードは1〜2個、エクストラは2〜3個のオプション効果を付ける（`addItemOptions`） |
 | 踏破状態 | `S.clearedDungeons` / `S.clearedHard` / `S.clearedExtra`（Setをセーブでは配列化）。次のダンジョンの解放はノーマル踏破だけで判定する |
@@ -504,6 +505,8 @@ jobLevels[jobId] = {
 - **未実装のまま**: `sourceRarity`（ブック由来ツリーの区別）、`mastery`フィールド、ブックを消費する交換への置き換え
 
 ### 6.2 ツリー・ブック・極みマスター（固有＋汎用ツリー定義は実装済み。ブック／極みマスターは未実装）
+> **2026-10-07 拡張（実装済み）**: マスに `reqLevel`（段が開くジョブのLv）と `row`（図の段）を追加し、効果に `statPct`（能力値の割合。`computeStats` でセット効果の割合と同じ段で掛ける）と `passiveAdd` の `pierce`（防御無視）を追加。全部取るとSP98（固有56＋汎用14×3）。振り直しは `treeResetCost`／`canResetTree`／`resetTree`（使ったSP×`TREE_RESET_COST_PER_SP`の強化石）。技に `element`・`debuff`・`buff`・`imbue`・`pierce` を持てるようにし、戦闘中の強化・弱体は `battle.fx`（戦闘ごと）に持つ。敵は `makeEnemy` がモードに応じた `traits`・`res`・防御の倍率を持つ。内容は [スキルツリー設計書](skill-tree-design.md)。以下の「固有＋汎用の定義」の記述は拡張前のもの。
+
 実装済みの実際のツリー定義（`js/data.js`）。固有ツリーはジョブ系統タグ単位で1本固定、汎用ツリーは全ジョブ共通プールから3つの固定枠で2択交換する（いずれも`allowedTags`/`allowedJobIds`/`rarity`は持たない簡略形）:
 ```js
 // 実装済み: js/data.js の EXCLUSIVE_TREES[tag]（交換不可、系統タグに1本固定）

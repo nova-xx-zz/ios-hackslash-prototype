@@ -9,9 +9,9 @@ const { data, clearRate } = require("./lib/sim.js");
 
 if (process.argv.includes("--check")) {
   const { STANDARD, check, pct } = require("./lib/difficulty.js");
-  const [lo, hi] = STANDARD.recommendedRange;
-  console.log("難易度の基準（想定プレイヤー = 適正装備 + 素直なスキル振り）:");
-  console.log(`  推奨Lvで${pct(lo)}〜${pct(hi)}／推奨Lv−${STANDARD.underLevel}で${pct(STANDARD.underLevelMin)}以上／装備なしだと推奨Lvで${pct(STANDARD.noGearMax)}未満／レベルを上げても下がらない`);
+  const [glo, ghi] = STANDARD.gearOnlyRange;
+  console.log("難易度の基準（ノーマル。想定プレイヤー = 適正装備 + 素直なスキル振り）:");
+  console.log(`  推奨Lvで${pct(STANDARD.recommendedMin)}以上／適正装備だけ（スキルなし）で${pct(glo)}〜${pct(ghi)}／推奨Lv−${STANDARD.underLevel}で${pct(STANDARD.underLevelMin)}以上／装備なしだと推奨Lvで${pct(STANDARD.noGearMax)}未満／レベルを上げても下がらない`);
   console.log("  （最初のダンジョンはLv1・装備なしで踏破できること。やり込み枠は「下がらない」だけ確認）");
   console.log("");
   let ng = 0;
