@@ -170,6 +170,8 @@
   function deserialize(data, opts) {
     opts = opts || {};
     if (!data || !Array.isArray(data.roster)) return null;
+    // 未来のスキーマを旧コードで再保存すると未知フィールドが消える。復元も拒否する。
+    if (Number.isFinite(data.schemaVersion) && data.schemaVersion > SCHEMA_VERSION) return null;
     const limits = { maxPlus: opts.maxPlus || 99, ivRange: opts.ivRange || 0.1 };
     const roster = data.roster.filter((c) => c && typeof c === "object").map((c) => normalizeChar(c, limits));
     if (roster.length === 0) return null;
