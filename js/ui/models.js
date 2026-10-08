@@ -156,6 +156,7 @@ const {
 const Shop = QPModel.shop.createShop({
   data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon, isFeatureEnabled },
   state: S,
+  allowTestPurchases: !(globalThis.QPRuntime && globalThis.QPRuntime.channel === "production"),
 });
 
 const Runner = QPModel.run.createRunner({

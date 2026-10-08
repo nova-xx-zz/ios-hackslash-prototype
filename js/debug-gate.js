@@ -8,6 +8,7 @@
 // プロトタイプ用の簡単な守りで、テストプレイヤーがうっかり入るのを防ぐためのもの（強い守りではない）
 (function (root) {
   "use strict";
+  const ALLOW_DEBUG = !(root.QPRuntime && root.QPRuntime.channel === "production");
   const UNLOCK_KEY = "qp_debug_unlocked";
   const ACTIVE_KEY = "qp_debug_active";
   // 設定画面から入った直後の1回だけ、コンプリート（すべてを終えた状態）にする印（js/ui/debug.js）
@@ -57,9 +58,10 @@
   function normalize(text) {
     return String(text).normalize("NFKC").toLowerCase().replace(/[\u2010-\u2015\u2212\u30fc\uff70]/g, "-").replace(/\s+/g, "");
   }
-  function check(text) { return sha256(normalize(text)) === PASS_HASH; }
+  function check(text) { return ALLOW_DEBUG && sha256(normalize(text)) === PASS_HASH; }
 
   function requested() {
+    if (!ALLOW_DEBUG) return false;
     try { return /[?&]debug(?:[=&]|$)/.test((root.location && root.location.search) || ""); } catch (e) { return false; }
   }
   function flag(key) {
@@ -67,10 +69,10 @@
   }
   function unlocked() { return flag(UNLOCK_KEY); }
   // 確認用モードで開くか: 合言葉を入れ済みで、URLに ?debug があるか、設定画面から入ったままの時
-  function active() { return unlocked() && (requested() || flag(ACTIVE_KEY)); }
+  function active() { return ALLOW_DEBUG && unlocked() && (requested() || flag(ACTIVE_KEY)); }
   // 設定画面の「開発者用」: 合言葉が合っていれば、確認用モードに入る印を付ける（呼んだ側で開き直す）
   function enter(text) {
-    if (!check(text)) return false;
+    if (!ALLOW_DEBUG || !check(text)) return false;
     try {
       root.localStorage.setItem(UNLOCK_KEY, "1");
       root.localStorage.setItem(ACTIVE_KEY, "1");

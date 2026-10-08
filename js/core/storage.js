@@ -95,6 +95,8 @@
   // 確認用モード: 設定画面の「開発者用」から入った時か、URLに ?debug を付けて開いた時。後半のダンジョンの確認などのために、本番のセーブとは
   // 別の保存場所（キーの頭に DEBUG_PREFIX）を使い、クラウドセーブも使わない（js/cloud.js・js/ui/debug.js）
   const DEBUG_PREFIX = "qpdebug:";
+  // Previewと正式版の保存キーを分ける。別ドメイン＋別Firebaseも必須（これは追加の事故防止策）。
+  const PRODUCTION_PREFIX = "scprod:";
   // 確認用モード: この端末で合言葉を入れ済みで、設定画面から入ったままか ?debug がある時だけ（js/debug-gate.js）
   function isDebugMode() {
     const gate = root.QPDebugGate;
@@ -113,11 +115,14 @@
   function defaultBackend() {
     try {
       const ls = root.localStorage || null;
+      if (root.QPRuntime && root.QPRuntime.channel === "production") {
+        return ls ? prefixedBackend(ls, PRODUCTION_PREFIX) : null;
+      }
       return ls && isDebugMode() ? prefixedBackend(ls, DEBUG_PREFIX) : ls;
     } catch (e) { return null; }
   }
 
-  const exported = { KEYS, DEBUG_PREFIX, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
+  const exported = { KEYS, DEBUG_PREFIX, PRODUCTION_PREFIX, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
   root.QPCore = root.QPCore || {};
   root.QPCore.storage = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
