@@ -22,21 +22,24 @@ function createFirestoreRepository(db,serverTimestamp){
     },
     async commitBackup(accountId,input){
       const parent=db.doc("progressBackups/"+accountId);
-      const op=db.doc("progressBackups/"+accountId+"/operations/"+input.operationId);
       return db.runTransaction(async tx=>{
-        // Firestoreトランザクションは全てのreadがwriteより先に必要。
-        const [seen,saved]=await Promise.all([tx.get(op),tx.get(parent)]);
-        if(seen.exists){
-          const old=seen.data();
-          if(old.hash!==input.hash)return {status:"mismatch",revision:old.revision};
-          return {status:"replay",revision:old.revision};
+        // セーブの直近操作だけをバックアップ本体に記録する。
+        // 消耗品課金の永続台帳と違い、進行バックアップの操作ログを無期限増加させない。
+        const saved=await tx.get(parent);
+        const previous=saved.exists?saved.data():null;
+        const last=previous?.lastOperation;
+        if(last?.operationId===input.operationId){
+          if(last.hash!==input.hash)return {status:"mismatch",revision:last.revision};
+          return {status:"replay",revision:last.revision};
         }
-        const current=saved.exists?saved.data().revision:0;
+        const current=previous?previous.revision:0;
         if(!Number.isSafeInteger(current)||current<0)throw Error("Corrupt revision");
         if(input.expectedRevision!==current)return {status:"conflict",revision:current};
         const revision=current+1;
-        tx.set(parent,{revision,json:input.json,savedAt:input.savedAt,updatedAt:serverTimestamp()});
-        tx.create(op,{hash:input.hash,revision,createdAt:serverTimestamp()});
+        tx.set(parent,{
+          revision,json:input.json,savedAt:input.savedAt,updatedAt:serverTimestamp(),
+          lastOperation:{operationId:input.operationId,hash:input.hash,revision}
+        });
         return {status:"accept",revision};
       });
     }
