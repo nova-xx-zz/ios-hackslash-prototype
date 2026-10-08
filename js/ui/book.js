@@ -427,7 +427,12 @@ function jobIndexPage() {
       body.appendChild(bookHeading("基本職"));
       body.appendChild(bookList(BASIC_JOB_IDS.map(row)));
       body.appendChild(bookHeading(`上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`));
-      body.appendChild(bookList(Object.keys(JOBS).filter((id) => JOBS[id].tier !== "basic").map(row)));
+      body.appendChild(bookList(Object.keys(JOBS).filter((id) => JOBS[id].tier === "advanced").map(row)));
+      const specialIds = SPECIAL_JOB_IDS.filter(jobUsable);
+      if (specialIds.length) {
+        body.appendChild(bookHeading("特殊職（テスト中）"));
+        body.appendChild(bookList(specialIds.map(row)));
+      }
     },
   };
 }
@@ -444,6 +449,8 @@ function jobPage(id) {
         <div class="book-detail-icon book-insignia-lg">${jobInsignia(id)}</div>
         <p class="book-paragraph book-desc"></p>
         ${job.requires ? `<p class="book-paragraph book-note">転職の条件: ${JOBS[job.requires.job].name} Lv.${job.requires.level}</p>` : ""}
+        ${job.tier === "special" ? `<p class="book-paragraph book-note">転職の条件: ${specialJobUnlockText(job)}</p>` : ""}
+        ${job.soloBonus ? `<p class="book-paragraph book-note">ひとり旅の加護: チームがこのジョブ1人だけのとき ATK+${Math.round(job.soloBonus.atkPct * 100)}%・受けるダメージ−${Math.round((1 - job.soloBonus.dmgTakenMult) * 100)}%</p>` : ""}
         <div class="book-heading">能力値の傾向</div>
         <div class="pm-stats">${Object.keys(STAT_LABELS).map((k) => starRow(STAT_LABELS[k], stars[k], MAX)).join("")}</div>
         <div class="book-heading">アビリティ</div>

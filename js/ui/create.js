@@ -95,7 +95,9 @@ function statStars(value, allValues, maxStars) {
 
 function jobStatStars(job, maxStars) {
   const stars = {};
-  const peers = Object.values(JOBS).filter((j) => j.tier === job.tier);
+  // 特殊職は上級職と比べる（特殊職だけでは比べる相手がいないため）
+  const group = (t) => (t === "special" ? "advanced" : t);
+  const peers = Object.values(JOBS).filter((j) => group(j.tier) === group(job.tier));
   for (const k of Object.keys(STAT_LABELS)) {
     stars[k] = statStars(job.base[k], peers.map((j) => j.base[k]), maxStars);
   }
