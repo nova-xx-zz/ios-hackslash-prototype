@@ -11,6 +11,20 @@ let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（�
 let saveSuspended = false;
 function saveGame() {
   if (saveSuspended) return false;
+  if (window.QPRuntime && QPRuntime.channel === "production") {
+    const current = store.getString(KEYS.save);
+    if (QPCore.localSaveGuard.hasExternalWrite(lastSavedAt, current)) {
+      // 古いタブの状態を黙って保存するとレベルや装備が巻き戻る。保存と操作を停止する。
+      saveSuspended = true;
+      const notice = document.createElement("div");
+      notice.id = "saveTabConflict";
+      notice.setAttribute("role", "alert");
+      notice.style.cssText = "position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(8,12,20,.97);color:#fff;text-align:center;font-size:16px;line-height:1.7;";
+      notice.textContent = "別のタブでセーブが更新されました。このタブからの保存を停止しました。データを保護するため、このタブを閉じて新しくゲームを開いてください。";
+      document.body.appendChild(notice);
+      return false;
+    }
+  }
   let json;
   const now = Date.now();
   // 期間限定の特殊職: 期間中に条件のダンジョンを踏破していれば、保存の前に解放を記録する（docs/special-job-design.md §6）
