@@ -6,7 +6,7 @@
 
 - Preview: 現行`/saves/{firebaseUid}`への匿名ログイン・端末直送信（`js/cloud.js`）。現行`main`は引き続きPreviewとして扱い、テスト購入は本番台帳へ昇格させない。
 - Production: 専用Firebaseプロジェクト、別配信オリジン、Authの許可ドメイン、Firestore Rules、App Check、最低権限のAPIサービスアカウント、費用アラート、運営用ログ。
-- 公開識別子をCIビルドに注入するだけでは、クラウドが安全に動く保証にはならない。特に現在の`js/cloud.js`はFirestore SDKの直接読み書きなので、**Productionのdeny-allルールでは保存が拒否される**。#67の認証/バックアップAPI・revision対応完了まで正式Web公開しない。
+- 公開識別子をCIビルドに注入するだけでは、クラウドが安全に動く保証にはならない。Preview側の`js/cloud.js`はFirestoreへ直接読み書きする。**Productionでは`js/cloud-production.js`のAPIだけを利用し、Firestoreのdeny-allルールは維持する**。現段階はコード整備のみで、Auth/App Check/Functionsの実環境検証が完了するまで正式公開しない。
 - `js/core/storage.js`の`scprod:`プレフィックスはPreviewの無料商品・セーブの混入防止策であり、認可の代わりではない。同じサイトへ本番/検証を共存させない。
 
 ## ルール案
@@ -27,3 +27,8 @@
 ## 現在の到達点
 
 このPRはRulesのリポジトリ上での準備と静的テストのみ。Emulatorの許可/拒否実行試験、コンソール反映、API経由クラウドセーブ、本番ルーティングは未完了。正式公開可能と判定しない。
+
+
+## 実装差分（2026-10-09）
+
+PR #77に本番認証/WebバックアップAPIとGoogle連携コード、revisionの原子的保存処理を追加。ルールの5フィールド整合も修正。ただし実Firebase/Emulatorへのデプロイ・認証・通信の実地検証は未実施。`docs/production-backup-api.md`参照。

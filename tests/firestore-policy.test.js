@@ -15,8 +15,9 @@ test("preview policy restricts owner, save schema, and all other documents",()=>
   assert.match(r,/request\.auth\.uid\s*==\s*uid/);
   assert.match(r,/request\.resource\.data/);
   assert.match(r,/\.keys\(\)\.hasOnly/);
-  assert.match(r,/data\.data\.size\(\) <= 500000/);
+  assert.match(r,/data\.data\.size\(\) <= 850000/);
   assert.match(r,/data\.updatedAt == request\.time/);
+  assert.match(r,/schemaVersion', 'chars', 'updatedAt'/);
   assert.match(r,/allow list, delete: if false;/);
   assert.match(r,/allow read, write: if false;/);
 });

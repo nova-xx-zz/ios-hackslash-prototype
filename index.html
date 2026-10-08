@@ -79,12 +79,17 @@
             <span class="settings-label">最終バックアップ</span>
             <span class="settings-value" id="cloudLastUpload">—</span>
           </div>
-          <p class="sub settings-note">進行は自動でクラウドにバックアップされます（1分おき・アプリを離れる時）。端末のデータが消えた時は「クラウドから復元」で戻せます。別の端末への引き継ぎは、今後アカウント連携で対応します。</p>
+          <p class="sub settings-note" id="cloudHelpText">進行は自動でクラウドにバックアップされます（1分おき・アプリを離れる時）。端末のデータが消えた時は「クラウドから復元」で戻せます。別の端末への引き継ぎは、今後アカウント連携で対応します。</p>
           <div class="settings-buttons">
             <button class="btn small ghost" id="btnCloudBackup">今すぐバックアップ</button>
             <button class="btn small ghost" id="btnCloudRestore">クラウドから復元</button>
           </div>
           <p class="sub settings-message hidden" id="cloudMessage"></p>
+          <div class="settings-buttons hidden" id="cloudAccountActions">
+            <button class="btn small primary hidden" id="btnCloudConnect">Googleで連携</button>
+            <button class="btn small ghost hidden" id="btnCloudPreferLocal">この端末の進行を採用する</button>
+            <button class="btn small ghost hidden" id="btnCloudLogout">連携を解除（ログアウト）</button>
+          </div>
           <div class="settings-row">
             <span class="settings-label">ユーザーID</span>
             <span class="settings-value settings-uid" id="cloudUid">—</span>
@@ -447,6 +452,12 @@
 <script src="js/model/inventory.js?v=10"></script>
 <script src="js/model/run.js?v=10"></script>
 <script src="js/firebase-config.js?v=1"></script>
+<script src="js/api-config.js?v=1"></script>
+<script src="js/core/sync-contract.js?v=1"></script>
+<script src="js/core/local-save-guard.js?v=1"></script>
+<script src="js/core/tab-session.js?v=1"></script>
+<script src="js/cloud-binding.js?v=1"></script>
+<script src="js/cloud-production.js?v=1"></script>
 <script src="js/cloud.js?v=2"></script>
 <script src="js/data.js?v=31"></script>
 <script src="js/uniques.js?v=3"></script>

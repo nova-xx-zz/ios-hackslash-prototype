@@ -23,6 +23,8 @@ jobs:
         run: npm test
       - name: Verify release candidate with nonfunctional CI-only Firebase identifiers
         env:
+          SWORD_CREST_API_BASE_URL: https://api-ci.invalid/swordcrestApi
+          SWORD_CREST_RECAPTCHA_SITE_KEY: CI_APP_CHECK_SITE_KEY
           SWORD_CREST_FIREBASE_CONFIG_JSON: '{"apiKey":"CI-NOT-A-REAL-FIREBASE-KEY","authDomain":"sword-crest-ci-build.firebaseapp.com","projectId":"sword-crest-ci-build","appId":"1:11111111111:web:ci-build-only"}'
         run: npm run build:release:web
       # No deployment or artifact publishing: the CI Firebase IDs do not work.

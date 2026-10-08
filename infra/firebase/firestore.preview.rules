@@ -7,10 +7,15 @@ service cloud.firestore {
     }
     function validPreviewBackup() {
       let data = request.resource.data;
-      return data.keys().hasAll(['data', 'savedAt', 'updatedAt'])
-        && data.keys().hasOnly(['data', 'savedAt', 'updatedAt'])
+      return data.keys().hasAll(['data', 'savedAt', 'schemaVersion', 'chars', 'updatedAt'])
+        && data.keys().hasOnly(['data', 'savedAt', 'schemaVersion', 'chars', 'updatedAt'])
         && data.data is string
-        && data.data.size() <= 500000
+        && data.data.size() <= 850000
+        && data.schemaVersion is int
+        && data.schemaVersion == 2
+        && data.chars is int
+        && data.chars >= 0
+        && data.chars <= 921600
         && data.savedAt is int
         && data.savedAt >= 0
         && data.updatedAt == request.time;

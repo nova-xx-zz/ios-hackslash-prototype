@@ -9,8 +9,63 @@
 let lastSavedAt = null; // 端末に保存できた最新セーブのsavedAt（バックグラウンド復帰時の精算に使う）
 // クラウドから復元して再読み込みするまでの間は、端末に保存しない（離れる時の保存で復元した内容を上書きしないため）
 let saveSuspended = false;
+// 保存と復元を同一originの単一Webタブに限定。Lock未取得中は画面全体を読取専用で覆う。
+const productionWeb = !!(window.QPRuntime && QPRuntime.channel === "production" && QPRuntime.platform === "web");
+let saveTabSession = null;
+function showTabSessionState(status) {
+  if (!productionWeb) return;
+  let overlay = document.getElementById("tabSessionOverlay");
+  if (status === "held") {
+    // 別タブが書き込んでいないことに加え、古いスナップショットでないことを確認。
+    if (QPCore.localSaveGuard.hasExternalWrite(lastSavedAt, store.getString(KEYS.save))) {
+      saveSuspended = true;
+      status = "stale";
+    } else {
+      if (overlay) overlay.remove();
+      // ロックの獲得前に起動時オフライン精算が走った場合は、確保後に再保存する。
+      if (offlineSettleFailed) setTimeout(saveGame, 0);
+      return;
+    }
+  }
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "tabSessionOverlay";
+    overlay.setAttribute("role", "alert");
+    overlay.style.cssText = "position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(8,12,20,.97);color:#fff;text-align:center;font-size:16px;line-height:1.7;";
+    document.body.appendChild(overlay);
+  }
+  overlay.textContent = status === "pending" ? "セーブ領域の排他制御を準備しています…" :
+    status === "blocked" ? "ソードクレストが別のタブで開かれています。セーブデータ保護のため、このタブではプレイを停止しています。先に開いたタブを閉じて、このページを再読み込みしてください。" :
+    status === "unsupported" ? "このブラウザでは複数タブの安全なセーブ制御を利用できません。データ保護のため、対応するHTTPSブラウザで開いてください。" :
+    "他のタブによる更新または保存制御の失敗を検知しました。データ保護のため、このタブを閉じて開き直してください。";
+}
+if (productionWeb) {
+  const manager = window.navigator && window.navigator.locks;
+  saveTabSession = QPCore.tabSession.createSessionLock(manager, showTabSessionState);
+  saveTabSession.start();
+  // ページ離脱時の最終保存をロック保持中に行い、その後で次のタブへ開放する。
+  window.addEventListener("pagehide", () => {
+    if (saveTabSession.owns() && !saveSuspended) saveGame();
+    saveTabSession.stop();
+  });
+  window.addEventListener("pageshow", event => { if (event.persisted) saveTabSession.start(); });
+}
 function saveGame() {
-  if (saveSuspended) return false;
+  if (saveSuspended || (productionWeb && (!saveTabSession || !saveTabSession.owns()))) return false;
+  if (window.QPRuntime && QPRuntime.channel === "production") {
+    const current = store.getString(KEYS.save);
+    if (QPCore.localSaveGuard.hasExternalWrite(lastSavedAt, current)) {
+      // 古いタブの状態を黙って保存するとレベルや装備が巻き戻る。保存と操作を停止する。
+      saveSuspended = true;
+      const notice = document.createElement("div");
+      notice.id = "saveTabConflict";
+      notice.setAttribute("role", "alert");
+      notice.style.cssText = "position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(8,12,20,.97);color:#fff;text-align:center;font-size:16px;line-height:1.7;";
+      notice.textContent = "別のタブでセーブが更新されました。このタブからの保存を停止しました。データを保護するため、このタブを閉じて新しくゲームを開いてください。";
+      document.body.appendChild(notice);
+      return false;
+    }
+  }
   let json;
   const now = Date.now();
   // 期間限定の特殊職: 期間中に条件のダンジョンを踏破していれば、保存の前に解放を記録する（docs/special-job-design.md §6）
@@ -36,9 +91,11 @@ function saveGame() {
 
 // クラウドのセーブ（JSON文字列）で端末のセーブを置き換えて、読み込み直す。使えないデータなら false
 function restoreSaveFromCloud(json) {
+  if (productionWeb && (!saveTabSession || !saveTabSession.owns())) return false;
   const prepared = QPModel.save.prepareRestore(json);
   if (!prepared) return false;
   if (!store.set(KEYS.save, prepared.json)) return false;
+  if (window.QPCloud && typeof QPCloud.markRestored === "function") QPCloud.markRestored();
   saveSuspended = true;
   location.reload();
   return true;

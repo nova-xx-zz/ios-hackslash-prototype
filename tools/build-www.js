@@ -20,6 +20,17 @@ function firebaseForRelease(){
 }
 // 設定異常の場合、既存のビルド出力を削除せずに失敗する。
 const firebase=release?firebaseForRelease():null;
+function apiForRelease(){
+  const raw=process.env.SWORD_CREST_API_BASE_URL;
+  const siteKey=process.env.SWORD_CREST_RECAPTCHA_SITE_KEY;
+  if(!raw || !siteKey)throw Error("Production HTTPS API and App Check site key required");
+  let uri;
+  try{uri=new URL(raw);}catch{throw Error("Invalid production API URL");}
+  if(uri.protocol!=="https:" || uri.username || uri.password || uri.search || uri.hash)throw Error("Production API must use a clean HTTPS URL");
+  if(!/^[A-Za-z0-9_-]{4,150}$/.test(siteKey))throw Error("Invalid App Check site key");
+  return {baseUrl:uri.href.replace(/\/$/,""),recaptchaSiteKey:siteKey};
+}
+const api=release?apiForRelease():null;
 fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
 for(const name of ["index.html","manifest.webmanifest","sw.js","css","js","data","icons","fonts"]){
   fs.cpSync(path.join(ROOT,name),path.join(out,name),{recursive:true});
@@ -29,6 +40,17 @@ fs.writeFileSync(path.join(out,"js","runtime-env.js"),
   JSON.stringify({channel,platform,allowDebug:!release,allowTestPurchases:!release})+
   ");})(typeof globalThis!==\"undefined\"?globalThis:this);\n");
 if(release){
+  fs.writeFileSync(path.join(out,"js","api-config.js"),
+    "// Public API URL and App Check site key (not secrets).\n"+
+    "window.QP_API_CONFIG="+JSON.stringify(api)+";\n");
+  // Build with the Auth/App Check SDK exports only inside the release output.
+  // Existing Preview vendor bundle and Firebase connection remain unchanged.
+  require("esbuild").buildSync({
+    entryPoints:[path.join(ROOT,"tools","firebase-entry.js")],
+    bundle:true,minify:true,format:"iife",globalName:"QPFirebase",
+    target:"es2019",legalComments:"eof",
+    outfile:path.join(out,"js","vendor","firebase.js"),
+  });
   fs.writeFileSync(path.join(out,"js","firebase-config.js"),
     "// Public Firebase app identifiers only. Never inject server or PSP secrets.\n"+
     "window.QP_FIREBASE_CONFIG="+JSON.stringify(firebase)+";\n");
