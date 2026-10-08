@@ -104,7 +104,8 @@
     // 自動的な別accountIdへの統合をしない。同じ認証UIDのままリンクできる場合だけ昇格。
     if(auth.currentUser?.isAnonymous)await fb.linkWithPopup(auth.currentUser,provider,fb.browserPopupRedirectResolver);
     else await fb.signInWithPopup(auth,provider,fb.browserPopupRedirectResolver);
-    await verifySession();
+    try{await verifySession();}
+    catch(e){set({status:"error",error:e.message||"ログイン後のクラウド接続に失敗しました"});throw e;}
   }
   function schedule(){
     if(timer||state.status!=="ready")return;
