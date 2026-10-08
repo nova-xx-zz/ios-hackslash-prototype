@@ -105,7 +105,12 @@ function specialJobUnlockText(job) {
   const u = job.unlock || {};
   if (u.testOpen) return "テスト中は条件なしで転職できる";
   const d = u.cleared ? getDungeon(u.cleared) : null;
-  return `期間限定: 解放の期間中に「${d ? d.name : u.cleared}」（ノーマル）を踏破すると解放（解放後はずっと使える）`;
+  const name = d ? d.name : u.cleared;
+  const product = SHOP_PRODUCTS.find((p) => p.kind === "unlock" && p.unlock === u.purchase);
+  const onSale = product && Shop.products().includes(product);
+  return activeJobWindow(job.id, Date.now())
+    ? `無料キャンペーン中: 「${name}」（ノーマル）を踏破すると解放（解放後はずっと使える）`
+    : onSale ? `「${name}」（ノーマル）の踏破後、ショップで解放できる` : `「${name}」（ノーマル）の踏破が必要。解放の方法は今後お知らせします`;
 }
 
 // ---------- 詳細: ジョブタブ ----------

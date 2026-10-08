@@ -38,6 +38,12 @@ const SHOP_PRODUCTS = [
     desc: "確定強化石10個に、おまけ1個付き" },
   { id: "roster_box_50", kind: "rosterBox", name: "仲間のBOX +50", price: 250,
     desc: "所持できる仲間の上限を50人増やす（何回でも、上限1000人まで）" },
+  // 特殊ジョブの解放（docs/special-job-design.md §6）。最初は無料キャンペーン（期間中に業火の霊峰を踏破すると無料で解放）で、
+  // 後から有料に切り替える。salesFrom: 販売開始（ISO 8601）。null（未定）の間は並べない。運営が切り替える日を入れる。
+  // feature: その機能フラグが無効な間は並べない。grantsJob: 無料キャンペーンで解放済み（state.jobGrants）なら買えない
+  { id: "job_pilgrim_unlock", kind: "unlock", unlock: "jobPilgrim", name: "特殊ジョブ「巡礼剣士」解放", price: 980,
+    requiresCleared: "inferno_peak", grantsJob: "pilgrim", feature: "specialJobs", salesFrom: null,
+    desc: "特殊ジョブ「じゅんれいけんし」に転職できるようになる（買い切り。すべての仲間が転職できる）" },
 ];
 // 仲間のBOX（所持できる仲間の数）。最初は base 人、拡張1回につき step 人、max 人まで。
 // 上限を超えて持っている仲間は減らさず、新しく増やせなくなるだけ（仲間を呼ぶ・テイム）
@@ -214,16 +220,18 @@ const JOBS = {
   // ---------- 特殊職（docs/special-job-design.md。機能フラグ specialJobs） ----------
   // unlock: 解放の条件（アカウント単位。docs/special-job-design.md §6。js/model/roster.js の jobUnlocked・refreshJobGrants）
   //   testOpen: true の間（プロトタイプのテスト中）は条件なしで全員が転職できる。本番では false にする
-  //   期間限定: windows のどれかの期間中に、cleared のダンジョンをノーマルで踏破済みなら解放（state.jobGrants に記録し、
-  //   以後はずっと使える）。期間の外では、踏破しても解放されない。windows: [{ id, start（ISO 8601）, days }]
+  //   無料キャンペーン: freeWindows のどれかの期間中に、cleared のダンジョンをノーマルで踏破済みなら無料で解放
+  //   （state.jobGrants に記録し、以後はずっと使える）。freeWindows: [{ id, start（ISO 8601）, days }]
+  //   有料: purchase（ショップの購入で付く purchases.unlocks のキー）。販売開始はショップの商品の salesFrom
   // soloBonus: そのチームの仲間がこのジョブのキャラ1人だけのときの効果（ひとり旅の加護。js/model/roster.js の soloBonus）
   pilgrim: {
     id: "pilgrim", name: "じゅんれいけんし", commandName: "じゅんれい", icon: "🧭", tier: "special",
     unlock: {
       testOpen: true,
       cleared: "inferno_peak", // 業火の霊峰（中盤の終わり、推奨Lv60）
-      // 本番: リリースから30日間と、1周年の復刻（30日間）。日付は決まったら入れる（例: { id: "release", start: "2027-04-01T00:00:00+09:00", days: 30 }）
-      windows: [],
+      // 本番: リリース直後の無料キャンペーンと、1周年の復刻。日付は決まったら入れる（例: { id: "launch", start: "2027-04-01T00:00:00+09:00", days: 30 }）
+      freeWindows: [],
+      purchase: "jobPilgrim", // 無料キャンペーンの後は有料（SHOP_PRODUCTS の job_pilgrim_unlock）
     },
     soloBonus: { atkPct: 0.3, dmgTakenMult: 0.6 },
     desc: "各地の聖地を巡る旅の剣士。仲間がいなくても戦い抜く術を身につけており、ひとりのときに真価を発揮する。",

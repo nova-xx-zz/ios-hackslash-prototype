@@ -300,18 +300,18 @@ test("スキルツリー: 振り直しは強化石（使ったSP×20）で4本�
 });
 
 // ---------- 特殊職（巡礼剣士。docs/special-job-design.md） ----------
-test("特殊職: テスト中（testOpen）は全員が転職できる。本番の設定では、期間中に条件のダンジョンを踏破した時だけ解放を記録し、以後ずっと使える", () => {
+test("特殊職: テスト中（testOpen）は全員が転職できる。本番の設定では、無料キャンペーンの期間中に条件のダンジョンを踏破した時だけ無料で解放を記録し、以後ずっと使える。期間の外は購入で解放", () => {
   const { state, R } = setup();
   const a = R.newCharacter("A", "warrior", "human");
   assert.equal(data.JOBS.pilgrim.tier, "special");
   assert.equal(data.JOBS.pilgrim.unlock.testOpen, true);
   assert.equal(R.jobUnlocked(a, "pilgrim"), true); // テスト中
-  // 本番の設定（testOpen なし。リリースから30日間と1周年の30日間）
+  // 本番の設定（testOpen なし。無料キャンペーンはリリースから30日間と1周年の30日間。その後は購入）
   const DAY = 24 * 60 * 60 * 1000;
   const release = Date.parse("2027-04-01T00:00:00+09:00");
   const prodJobs = Object.assign({}, data.JOBS, { pilgrim: Object.assign({}, data.JOBS.pilgrim, { unlock: {
-    cleared: "inferno_peak",
-    windows: [{ id: "release", start: "2027-04-01T00:00:00+09:00", days: 30 }, { id: "anniversary1", start: "2028-04-01T00:00:00+09:00", days: 30 }],
+    cleared: "inferno_peak", purchase: "jobPilgrim",
+    freeWindows: [{ id: "release", start: "2027-04-01T00:00:00+09:00", days: 30 }, { id: "anniversary1", start: "2028-04-01T00:00:00+09:00", days: 30 }],
   } }) });
   const P = createRoster({ data: Object.assign({}, data, { JOBS: prodJobs }), state });
   assert.equal(P.jobUnlocked(a, "pilgrim"), false);
@@ -323,7 +323,12 @@ test("特殊職: テスト中（testOpen）は全員が転職できる。本番�
   state.clearedDungeons.add("inferno_peak");
   assert.deepEqual(P.refreshJobGrants(release + 30 * DAY), []);
   assert.equal(P.jobUnlocked(a, "pilgrim"), false);
-  // 1周年の復刻の期間中なら解放し、記録は残る（期間が終わってもずっと使える）
+  // 購入でも解放される（無料と有料の根拠は別々。どちらかがあればよい）
+  state.purchases.unlocks.jobPilgrim = true;
+  assert.equal(P.jobUnlocked(a, "pilgrim"), true);
+  delete state.purchases.unlocks.jobPilgrim;
+  assert.equal(P.jobUnlocked(a, "pilgrim"), false);
+  // 1周年の復刻の期間中なら無料で解放し、記録は残る（期間が終わってもずっと使える）
   const anniv = Date.parse("2028-04-01T00:00:00+09:00");
   assert.deepEqual(P.refreshJobGrants(anniv + DAY), ["pilgrim"]);
   assert.deepEqual(state.jobGrants.pilgrim, { at: anniv + DAY, window: "anniversary1" });

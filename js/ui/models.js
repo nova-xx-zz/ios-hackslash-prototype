@@ -125,7 +125,7 @@ const Roster = QPModel.roster.createRoster({
   onMaterialChange: (material) => store.set(KEYS.material, material), // ツリーの振り直しの費用（旧キーは互換ミラー）
 });
 const {
-  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
+  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
   equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
 } = Roster;
 
@@ -154,7 +154,7 @@ const {
 // ---------- Shop ----------
 // ショップ（買い切りの解放・確定強化石・仲間のBOX）と、仲間の上限の判定は js/model/shop.js
 const Shop = QPModel.shop.createShop({
-  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon },
+  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon, isFeatureEnabled },
   state: S,
 });
 

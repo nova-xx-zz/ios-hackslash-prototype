@@ -106,23 +106,25 @@
 
     // 上級職は対応する基本職を規定レベルまで極めると解放される。
     // 特殊職（docs/special-job-design.md §6）はアカウント単位で、機能フラグ specialJobs が有効で、
-    // テスト中（job.unlock.testOpen）か、期間限定の解放を受け取っている（state.jobGrants[jobId]）なら解放
+    // テスト中（job.unlock.testOpen）か、無料キャンペーンで解放した（state.jobGrants[jobId]）か、購入した
+    // （purchases.unlocks[job.unlock.purchase]）なら解放。無料と有料の根拠は別々に持ち、どちらかがあればよい
     function specialJobUnlocked(jobId) {
       const job = JOBS[jobId];
       if (!job || job.tier !== "special" || !isFeatureEnabled("specialJobs")) return false;
       const u = job.unlock || {};
-      return !!u.testOpen || !!(S.jobGrants && S.jobGrants[jobId]);
+      const bought = !!(u.purchase && S.purchases && S.purchases.unlocks && S.purchases.unlocks[u.purchase]);
+      return !!u.testOpen || !!(S.jobGrants && S.jobGrants[jobId]) || bought;
     }
-    // 特殊職の解放の期間（job.unlock.windows）のうち、nowMs が入っているもの（無ければ null）
+    // 特殊職の無料キャンペーンの期間（job.unlock.freeWindows）のうち、nowMs が入っているもの（無ければ null）
     function activeJobWindow(jobId, nowMs) {
       const u = (JOBS[jobId] && JOBS[jobId].unlock) || {};
-      return (u.windows || []).find((w) => {
+      return (u.freeWindows || []).find((w) => {
         const start = Date.parse(w.start);
         return Number.isFinite(start) && nowMs >= start && nowMs < start + w.days * 24 * 60 * 60 * 1000;
       }) || null;
     }
-    // 期間限定の解放を記録する（セーブの前に呼ぶ）: 期間中に、条件のダンジョンをノーマルで踏破済みなら
-    // state.jobGrants[jobId] = { at, window } を付ける（以後はずっと使える）。結果: 新しく解放したジョブIDの配列
+    // 無料キャンペーンの解放を記録する（セーブの前に呼ぶ）: 期間中に、条件のダンジョンをノーマルで踏破済みなら
+    // state.jobGrants[jobId] = { at, window } を付ける（以後はずっと使える。購入済みでも記録する）。結果: 新しく解放したジョブIDの配列
     function refreshJobGrants(nowMs) {
       const granted = [];
       if (!isFeatureEnabled("specialJobs")) return granted;
