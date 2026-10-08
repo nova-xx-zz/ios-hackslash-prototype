@@ -213,8 +213,9 @@ if (DEBUG_MODE) {
 }
 // 設定画面の「開発者用」: 合言葉が合えば、確認用モードで開き直してコンプリートにする（テストプレイヤーには合言葉が分からない）
 // 確認用モードの間はボタンを隠す（「ふつうのモードに戻る」で抜ける）
-document.getElementById("btnDevEnter").classList.toggle("hidden", DEBUG_MODE);
+document.getElementById("btnDevEnter").classList.toggle("hidden", DEBUG_MODE || (globalThis.QPRuntime && globalThis.QPRuntime.channel === "production"));
 document.getElementById("btnDevEnter").addEventListener("click", () => {
+  if (globalThis.QPRuntime && globalThis.QPRuntime.channel === "production") return;
   const input = window.prompt("開発者用の合言葉を入力してください");
   if (input === null) return;
   if (!QPDebugGate.enter(input)) { window.alert("合言葉が違います"); return; }

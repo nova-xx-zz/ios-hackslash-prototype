@@ -78,6 +78,7 @@
     }
     // 購入する（プロトタイプでは無料で付与）。結果: { ok, product, reason（"unknown"・"soldOut"）}
     function purchase(id) {
+      if (deps.allowTestPurchases === false) return { ok: false, reason: "disabled" };
       const product = getProduct(id);
       if (!product || !available(product)) return { ok: false, reason: "unknown" };
       const st = productStatus(product);
