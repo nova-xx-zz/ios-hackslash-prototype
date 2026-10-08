@@ -4,7 +4,7 @@
 export { initializeApp } from "firebase/app";
 export {
   initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
-  onAuthStateChanged, signInAnonymously, signInWithPopup, linkWithPopup, GoogleAuthProvider, signOut, getIdToken,
+  onAuthStateChanged, signInAnonymously, signInWithPopup, linkWithPopup, GoogleAuthProvider, signOut, getIdToken, browserPopupRedirectResolver,
 } from "firebase/auth";
 export { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore/lite";
 export { initializeAppCheck, ReCaptchaV3Provider, getToken } from "firebase/app-check";
