@@ -86,8 +86,31 @@ function buildStatsTab(c) {
     note.textContent = "個体値: テイムした時に能力値ごとに決まる個体差（0.9〜1.1倍）。同じ種族を合成すると、素材の方が高い能力値が少しずつ上がります";
     wrap.appendChild(note);
   }
+  // ひとり旅の加護（特殊職。docs/special-job-design.md §4）: 説明と、効いているかどうか
+  const soloDef = !c.isMonster && JOBS[c.job] && JOBS[c.job].soloBonus;
+  if (soloDef) {
+    const on = !!soloBonus(c);
+    const note = document.createElement("div");
+    note.className = "sub-ability-row solo-bonus" + (on ? " on" : "");
+    note.textContent = `ひとり旅の加護: チームが${jobDef(c).name}1人だけのとき ATK+${Math.round(soloDef.atkPct * 100)}%・受けるダメージ−${Math.round((1 - soloDef.dmgTakenMult) * 100)}%` +
+      (on ? "（発動中。能力値に反映済み）" : "（今は発動していません）");
+    wrap.appendChild(note);
+  }
 
   return wrap;
+}
+
+// 特殊職の解放の条件の文（docs/special-job-design.md §6）
+function specialJobUnlockText(job) {
+  const u = job.unlock || {};
+  if (u.testOpen) return "テスト中は条件なしで転職できる";
+  const d = u.cleared ? getDungeon(u.cleared) : null;
+  const name = d ? d.name : u.cleared;
+  const product = SHOP_PRODUCTS.find((p) => p.kind === "unlock" && p.unlock === u.purchase);
+  const onSale = product && Shop.products().includes(product);
+  return activeJobWindow(job.id, Date.now())
+    ? `無料キャンペーン中: 「${name}」（ノーマル）を踏破すると解放（解放後はずっと使える）`
+    : onSale ? `「${name}」（ノーマル）の踏破後、ショップで解放できる` : `「${name}」（ノーマル）の踏破が必要。解放の方法は今後お知らせします`;
 }
 
 // ---------- 詳細: ジョブタブ ----------
@@ -103,9 +126,9 @@ function buildJobCard(c, jobId, unlocked) {
   card.innerHTML = `
     <div class="job-card-icon">${jobInsignia(jobId)}</div>
     <div class="job-card-level">${trained ? `Lv.${lvl}${mastered ? '<span class="star">★</span>' : ""}` : "未経験"}</div>
-    <div class="job-card-name">${job.name}</div>
+    <div class="job-card-name${job.name.length >= 8 ? " long" : ""}">${job.name}</div>
     <div class="job-card-exp-bar"><div class="fill" style="width:${pct}%"></div></div>`;
-  if (!unlocked) card.title = `${JOBS[job.requires.job].name} Lv.${job.requires.level}で解放`;
+  if (!unlocked) card.title = job.tier === "special" ? specialJobUnlockText(job) : `${JOBS[job.requires.job].name} Lv.${job.requires.level}で解放`;
   card.addEventListener("click", () => {
     if (!unlocked) return;
     switchJob(c, jobId);
@@ -284,6 +307,26 @@ function buildJobTab(c) {
   advGrid.className = "job-card-grid";
   for (const jobId of advIds) advGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
   wrap.appendChild(advGrid);
+
+  // 特殊職（機能フラグ specialJobs が有効な間だけ。docs/special-job-design.md）
+  const specialIds = SPECIAL_JOB_IDS.filter(jobUsable);
+  if (specialIds.length) {
+    const spHead = document.createElement("div");
+    spHead.className = "detail-section-head";
+    spHead.innerHTML = `<span>特殊職（テスト中）</span><span class="count">${specialIds.filter((id) => jobUnlocked(c, id)).length}/${specialIds.length}</span>`;
+    wrap.appendChild(spHead);
+    const spGrid = document.createElement("div");
+    spGrid.className = "job-card-grid";
+    for (const jobId of specialIds) spGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
+    wrap.appendChild(spGrid);
+    for (const jobId of specialIds) {
+      const note = document.createElement("div");
+      note.className = "sub-ability-row";
+      note.textContent = `${JOBS[jobId].name}: ` + (jobUnlocked(c, jobId) ? "解放済み。" : "未解放。" + specialJobUnlockText(JOBS[jobId]) + "。") +
+        "1人だけのチームで強くなる（ひとり旅の加護）";
+      wrap.appendChild(note);
+    }
+  }
 
   return wrap;
 }

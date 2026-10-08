@@ -13,6 +13,8 @@
     const S = deps.state;
     const { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS } = deps.data;
     const now = deps.now || (() => Date.now());
+    const isFeatureEnabled = deps.data.isFeatureEnabled || (() => true);
+    const cleared = (id) => !!(S.clearedDungeons && S.clearedDungeons.has(id));
 
     function purchases() {
       if (!S.purchases) S.purchases = { unlocks: {}, rosterBoxes: 0, history: [] };
@@ -20,6 +22,15 @@
     }
     function hasUnlock(key) { return !key || !!purchases().unlocks[key]; }
     function getProduct(id) { return SHOP_PRODUCTS.find((p) => p.id === id) || null; }
+    // 並べる商品。product.feature の機能フラグが無効な商品と、product.salesFrom（販売開始。ISO 8601）がまだ来ていない・
+    // null（未定）の商品は並べず、買えない（salesFrom を持たない商品はいつでも並べる）
+    function available(product) {
+      if (product.feature && !isFeatureEnabled(product.feature)) return false;
+      if (!("salesFrom" in product)) return true;
+      const from = Date.parse(product.salesFrom);
+      return Number.isFinite(from) && now() >= from;
+    }
+    function products() { return SHOP_PRODUCTS.filter(available); }
 
     // ---------- 仲間のBOX ----------
     function maxRosterBoxes() { return Math.floor((ROSTER_CAPACITY.max - ROSTER_CAPACITY.base) / ROSTER_CAPACITY.step); }
@@ -40,12 +51,12 @@
     }
 
     // ---------- 商品 ----------
-    // 状態: { owned（買い切りで持っている）, soldOut（これ以上買えない）, count（拡張した回数）,
+    // 状態: { owned（買い切りで持っている）, soldOut（これ以上買えない）, freeUnlocked（無料キャンペーンで解放済み）, count（拡張した回数）,
     //        locked（まだ買えない）, requires（買えるようになる条件。{ dungeonId, dungeonName }）}
     function productStatus(product) {
       const st = baseStatus(product);
       const need = product.requiresCleared;
-      if (need && !st.owned && !(S.clearedDungeons && S.clearedDungeons.has(need))) {
+      if (need && !st.owned && !st.freeUnlocked && !cleared(need)) {
         const d = deps.data.getDungeon ? deps.data.getDungeon(need) : null;
         st.locked = true;
         st.requires = { dungeonId: need, dungeonName: d ? d.name : need };
@@ -55,7 +66,9 @@
     function baseStatus(product) {
       if (product.kind === "unlock") {
         const owned = hasUnlock(product.unlock);
-        return { owned, soldOut: owned };
+        // grantsJob: 特殊職の解放の商品。無料キャンペーンで解放済み（state.jobGrants）なら買えない（docs/special-job-design.md §6）
+        const freeUnlocked = !owned && !!product.grantsJob && !!(S.jobGrants && S.jobGrants[product.grantsJob]);
+        return { owned, soldOut: owned || freeUnlocked, freeUnlocked };
       }
       if (product.kind === "rosterBox") {
         const count = purchases().rosterBoxes;
@@ -66,7 +79,7 @@
     // 購入する（プロトタイプでは無料で付与）。結果: { ok, product, reason（"unknown"・"soldOut"）}
     function purchase(id) {
       const product = getProduct(id);
-      if (!product) return { ok: false, reason: "unknown" };
+      if (!product || !available(product)) return { ok: false, reason: "unknown" };
       const st = productStatus(product);
       if (st.soldOut) return { ok: false, product, reason: "soldOut" };
       if (st.locked) return { ok: false, product, reason: "locked" };
@@ -81,7 +94,7 @@
     }
 
     return {
-      hasUnlock, getProduct, rosterCapacity, canAddToRoster, maxRosterBoxes,
+      hasUnlock, getProduct, products, rosterCapacity, canAddToRoster, maxRosterBoxes,
       autoRepeatChoices, battleSpeeds, nextBattleSpeed, productStatus, purchase,
     };
   }

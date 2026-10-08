@@ -13,6 +13,8 @@ function saveGame() {
   if (saveSuspended) return false;
   let json;
   const now = Date.now();
+  // 期間限定の特殊職: 期間中に条件のダンジョンを踏破していれば、保存の前に解放を記録する（docs/special-job-design.md §6）
+  refreshJobGrants(now);
   try {
     const data = QPModel.save.serialize(S, {
       now,
@@ -83,6 +85,7 @@ function loadGame() {
     // ジョブの装備制限・装飾品の枠数に合わない装備（旧セーブから移した装備など）は所持品に戻す
     for (const c of S.roster) {
       clampLevel(c); // 上限を超えたレベル（上限を入れる前のセーブ）は上限に戻す
+      normalizeJob(c); // 機能フラグが無効な特殊職のキャラはほかのジョブへ戻す（docs/special-job-design.md §2.3）
       normalizeCharEquip(c);
       const s = computeStats(c);
       c.hp = s.maxHp; c.mp = s.maxMp;
@@ -122,7 +125,7 @@ const Roster = QPModel.roster.createRoster({
   onMaterialChange: (material) => store.set(KEYS.material, material), // ツリーの振り直しの費用（旧キーは互換ミラー）
 });
 const {
-  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
+  gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore, racePassive,
   equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
 } = Roster;
 
@@ -151,7 +154,7 @@ const {
 // ---------- Shop ----------
 // ショップ（買い切りの解放・確定強化石・仲間のBOX）と、仲間の上限の判定は js/model/shop.js
 const Shop = QPModel.shop.createShop({
-  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon },
+  data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon, isFeatureEnabled },
   state: S,
 });
 

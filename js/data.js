@@ -16,6 +16,7 @@ const FEATURE_FLAGS = {
   guaranteedStone: true, // 確定強化石（成功率100%の有償アイテム）。ショップで入手する（js/model/shop.js）
   shop: true, // ショップ（課金要素）。プロトタイプでは決済の代わりに無料で受け取れる
   enhancePity: true, // 強化の天井（失敗で使った強化石が期待消費の1.5倍に達したら次は必ず成功）
+  specialJobs: true, // 特殊ジョブ（巡礼剣士。docs/special-job-design.md）。プロトタイプでテスト中
 };
 function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 
@@ -37,6 +38,12 @@ const SHOP_PRODUCTS = [
     desc: "確定強化石10個に、おまけ1個付き" },
   { id: "roster_box_50", kind: "rosterBox", name: "仲間のBOX +50", price: 250,
     desc: "所持できる仲間の上限を50人増やす（何回でも、上限1000人まで）" },
+  // 特殊ジョブの解放（docs/special-job-design.md §6）。最初は無料キャンペーン（期間中に業火の霊峰を踏破すると無料で解放）で、
+  // 後から有料に切り替える。salesFrom: 販売開始（ISO 8601）。null（未定）の間は並べない。運営が切り替える日を入れる。
+  // feature: その機能フラグが無効な間は並べない。grantsJob: 無料キャンペーンで解放済み（state.jobGrants）なら買えない
+  { id: "job_pilgrim_unlock", kind: "unlock", unlock: "jobPilgrim", name: "特殊ジョブ「巡礼剣士」解放", price: 980,
+    requiresCleared: "inferno_peak", grantsJob: "pilgrim", feature: "specialJobs", salesFrom: null,
+    desc: "特殊ジョブ「じゅんれいけんし」に転職できるようになる（買い切り。すべての仲間が転職できる）" },
 ];
 // 仲間のBOX（所持できる仲間の数）。最初は base 人、拡張1回につき step 人、max 人まで。
 // 上限を超えて持っている仲間は減らさず、新しく増やせなくなるだけ（仲間を呼ぶ・テイム）
@@ -210,7 +217,34 @@ const JOBS = {
       { id: "grand_sickle", name: "葬魂の大鎌", reqLevel: 15, mpCost: 10, kind: "physical", target: "single", power: 3.0, hits: 1, lifesteal: 0.4, desc: "魂ごと刈り取る渾身の一撃。与ダメージの4割を吸収する" },
     ],
   },
+  // ---------- 特殊職（docs/special-job-design.md。機能フラグ specialJobs） ----------
+  // unlock: 解放の条件（アカウント単位。docs/special-job-design.md §6。js/model/roster.js の jobUnlocked・refreshJobGrants）
+  //   testOpen: true の間（プロトタイプのテスト中）は条件なしで全員が転職できる。本番では false にする
+  //   無料キャンペーン: freeWindows のどれかの期間中に、cleared のダンジョンをノーマルで踏破済みなら無料で解放
+  //   （state.jobGrants に記録し、以後はずっと使える）。freeWindows: [{ id, start（ISO 8601）, days }]
+  //   有料: purchase（ショップの購入で付く purchases.unlocks のキー）。販売開始はショップの商品の salesFrom
+  // soloBonus: そのチームの仲間がこのジョブのキャラ1人だけのときの効果（ひとり旅の加護。js/model/roster.js の soloBonus）
+  pilgrim: {
+    id: "pilgrim", name: "じゅんれいけんし", commandName: "じゅんれい", icon: "🧭", tier: "special",
+    unlock: {
+      testOpen: true,
+      cleared: "inferno_peak", // 業火の霊峰（中盤の終わり、推奨Lv60）
+      // 本番: リリース直後の無料キャンペーンと、1周年の復刻。日付は決まったら入れる（例: { id: "launch", start: "2027-04-01T00:00:00+09:00", days: 30 }）
+      freeWindows: [],
+      purchase: "jobPilgrim", // 無料キャンペーンの後は有料（SHOP_PRODUCTS の job_pilgrim_unlock）
+    },
+    soloBonus: { atkPct: 0.3, dmgTakenMult: 0.6 },
+    desc: "各地の聖地を巡る旅の剣士。仲間がいなくても戦い抜く術を身につけており、ひとりのときに真価を発揮する。",
+    base: { hp: 40, mp: 12, atk: 13, mag: 6, def: 10, spd: 7 },
+    abilities: [
+      { id: "pilgrim_cut", name: "旅路の一閃", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.2, hits: 1, desc: "旅で鍛えた剣で斬りつける" },
+      { id: "pilgrim_drain", name: "糧断ち", reqLevel: 5, mpCost: 4, kind: "physical", target: "single", power: 1.3, hits: 1, lifesteal: 0.5, desc: "敵1体を斬る。与ダメージの5割を吸収する" },
+      { id: "pilgrim_guard", name: "守りの誓い", reqLevel: 10, mpCost: 6, kind: "buff", target: "self", buff: { stat: "def", mult: 1.5, duration: 15 }, power: 0, hits: 1, desc: "15秒間、自分のDEFを50%上げる" },
+      { id: "pilgrim_sweep", name: "巡礼の薙ぎ", reqLevel: 15, mpCost: 8, kind: "physical", target: "all-enemy", power: 0.85, hits: 1, desc: "敵全体を薙ぎ払う" },
+    ],
+  },
 };
+const SPECIAL_JOB_IDS = Object.keys(JOBS).filter((id) => JOBS[id].tier === "special");
 
 const BASIC_JOB_IDS = Object.keys(JOBS).filter((id) => JOBS[id].tier === "basic");
 
@@ -264,6 +298,7 @@ const JOB_TAGS = {
   rogue: ["thief", "ninja"],
   martial: ["monk", "saintfist"],
   dark: ["darkknight", "reaper"],
+  pilgrim: ["pilgrim"], // 特殊職は1職で1系統
 };
 function jobTag(jobId) {
   for (const tag in JOB_TAGS) {
@@ -415,7 +450,30 @@ const EXCLUSIVE_TREES = {
       { id: "d11", kind: "passive", name: "深淵の頂", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "d9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.04 }], desc: "吸収+4%" },
       { id: "d12", kind: "active", name: "深淵の刃", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "d11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_d12", name: "深淵の刃", reqLevel: 1, hits: 1, mpCost: 16, kind: "physical", target: "all-enemy", power: 1.9, element: "dark", lifesteal: 0.3, desc: "敵全体に闇属性の攻撃。与ダメージの3割を吸収" }, effects: [], desc: "新しい技「深淵の刃」を習得: 敵全体に闇属性の攻撃。与ダメージの3割を吸収" },
     ],
+  },  // 特殊職・巡礼剣士の固有ツリー（docs/special-job-design.md §5。ほかの固有ツリーと同じ17マス・56SP・段）
+  pilgrim: {
+    id: "pilgrim", tag: "pilgrim", name: "巡礼の誓約",
+    nodes: [
+      { id: "p1", kind: "passive", name: "旅慣れた体", maxRank: 1, costByRank: [1], prerequisites: [], exclusiveGroup: null, x: 50, effects: [{ type: "statAdd", stat: "def", value: 3 }], desc: "DEF+3", row: 0, reqLevel: 1 },
+      { id: "p2", kind: "passive", name: "道の糧", maxRank: 1, costByRank: [1], prerequisites: [{ nodeId: "p1", minRank: 1 }], exclusiveGroup: null, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.03 }], desc: "与ダメージの3%を吸収", row: 1, reqLevel: 1 },
+      { id: "p3", kind: "active", name: "清めの太刀", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "p2", minRank: 1 }], exclusiveGroup: null, x: 50, ability: { id: "tree_p3", name: "清めの太刀", reqLevel: 1, mpCost: 3, kind: "physical", target: "single", power: 1.7, hits: 1, desc: "巡礼の誓約で会得した、迷いを断つ一太刀" }, effects: [], desc: "新しい技「清めの太刀」を習得", row: 2, reqLevel: 1 },
+      { id: "p4a", kind: "passive", name: "旅人の外套", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "p3", minRank: 1 }], exclusiveGroup: "p_style", x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.92 }], desc: "被ダメージ-8%（4bと選択）", row: 3, reqLevel: 1 },
+      { id: "p4b", kind: "passive", name: "鍛えた剣腕", maxRank: 1, costByRank: [2], prerequisites: [{ nodeId: "p3", minRank: 1 }], exclusiveGroup: "p_style", x: 66, effects: [{ type: "statAdd", stat: "atk", value: 6 }], desc: "ATK+6（4aと選択）", row: 3, reqLevel: 1 },
+      { id: "p_acc1", kind: "passive", name: "装備の心得", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "p2", minRank: 1 }], exclusiveGroup: null, x: 16, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 2, reqLevel: 1 },
+      { id: "p_acc2", kind: "passive", name: "装備の極意", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "p3", minRank: 1 }], exclusiveGroup: null, x: 90, effects: [{ type: "equipSlot", slot: "accessory", value: 1 }], desc: "装飾品の枠+1", row: 3, reqLevel: 1 },
+      { id: "p5", kind: "active", name: "破邪の構え", maxRank: 1, costByRank: [3], prerequisites: [{ nodeId: "p3", minRank: 1 }], exclusiveGroup: null, reqLevel: 20, row: 4, x: 50, ability: { id: "tree_p5", name: "破邪の構え", reqLevel: 1, hits: 1, mpCost: 4, kind: "physical", target: "single", power: 1, debuff: { stat: "def", mult: 0.7, duration: 12 }, desc: "敵1体に攻撃。当たった敵のDEFを12秒間30%下げる" }, effects: [], desc: "新しい技「破邪の構え」を習得: 敵1体に攻撃。当たった敵のDEFを12秒間30%下げる" },
+      { id: "p6", kind: "passive", name: "長旅の備え", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "p5", minRank: 1 }], exclusiveGroup: null, reqLevel: 30, row: 5, x: 50, effects: [{ type: "statPct", stat: "hp", value: 0.06 }], desc: "HP+6%" },
+      { id: "p7a", kind: "passive", name: "揺るがぬ足", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "p6", minRank: 1 }], exclusiveGroup: "p_style2", reqLevel: 40, row: 6, x: 30, effects: [{ type: "passiveMult", key: "dmgTakenMult", value: 0.94 }], desc: "被ダメージ−6%（どちらか一方）" },
+      { id: "p7b", kind: "passive", name: "糧の知恵", maxRank: 1, costByRank: [4], prerequisites: [{ nodeId: "p6", minRank: 1 }], exclusiveGroup: "p_style2", reqLevel: 40, row: 6, x: 70, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.03 }], desc: "吸収+3%（どちらか一方）" },
+      { id: "p8", kind: "active", name: "祈りの灯", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "p6", minRank: 1 }], exclusiveGroup: null, reqLevel: 50, row: 7, x: 50, ability: { id: "tree_p8", name: "祈りの灯", reqLevel: 1, hits: 1, mpCost: 10, kind: "heal", target: "self", power: 3.0, desc: "祈りで自分のHPを回復する" }, effects: [], desc: "新しい技「祈りの灯」を習得: 祈りで自分のHPを回復する" },
+      { id: "p9", kind: "passive", name: "研ぎ澄ます刃", maxRank: 1, costByRank: [5], prerequisites: [{ nodeId: "p8", minRank: 1 }], exclusiveGroup: null, reqLevel: 60, row: 8, x: 50, effects: [{ type: "statPct", stat: "atk", value: 0.05 }], desc: "ATK+5%" },
+      { id: "p10a", kind: "passive", name: "不撓の心", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "p9", minRank: 1 }], exclusiveGroup: "p_style3", reqLevel: 70, row: 9, x: 30, effects: [{ type: "statPct", stat: "hp", value: 0.1 }], desc: "HP+10%（どちらか一方）" },
+      { id: "p10b", kind: "passive", name: "巡礼の剣気", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "p9", minRank: 1 }], exclusiveGroup: "p_style3", reqLevel: 70, row: 9, x: 70, effects: [{ type: "statPct", stat: "atk", value: 0.06 }], desc: "ATK+6%（どちらか一方）" },
+      { id: "p11", kind: "passive", name: "旅の終わりの糧", maxRank: 1, costByRank: [6], prerequisites: [{ nodeId: "p9", minRank: 1 }], exclusiveGroup: null, reqLevel: 80, row: 10, x: 50, effects: [{ type: "passiveAdd", key: "lifesteal", value: 0.03 }], desc: "吸収+3%" },
+      { id: "p12", kind: "active", name: "巡礼の極光", maxRank: 1, costByRank: [9], prerequisites: [{ nodeId: "p11", minRank: 1 }], exclusiveGroup: null, reqLevel: 90, row: 11, x: 50, ability: { id: "tree_p12", name: "巡礼の極光", reqLevel: 1, hits: 1, mpCost: 14, kind: "physical", target: "single", power: 3.2, lifesteal: 0.3, desc: "旅の果てに得た光の一閃。与ダメージの3割を吸収" }, effects: [], desc: "新しい技「巡礼の極光」を習得: 旅の果てに得た光の一閃。与ダメージの3割を吸収" },
+    ],
   },
+
 };
 // ツリーの振り直しの費用: 使ったSP1につき強化石この数（js/model/roster.js の resetTree）
 const TREE_RESET_COST_PER_SP = 20;
@@ -1625,6 +1683,7 @@ const JOB_EQUIP = {
   saintfist: { weapons: ["claw", "mace"], shields: [], head: ["hood", "helm"], body: ["garb", "robe"], dualWield: true },
   darkknight: { weapons: ["sword", "greatsword", "scythe", "axe"], shields: ["buckler", "shield"], head: ["helm"], body: ["plate"], dualWield: false },
   reaper: { weapons: ["scythe", "greatsword", "sword"], shields: [], head: ["helm", "hood"], body: ["plate", "garb"], dualWield: false },
+  pilgrim: { weapons: ["sword", "spear"], shields: ["buckler", "shield"], head: ["helm", "hood"], body: ["plate", "garb"], dualWield: false },
 };
 const MONSTER_EQUIP = { weapons: ["claw"], shields: [], head: ["helm", "hat", "hood"], body: ["plate", "garb", "robe"], dualWield: false };
 // 装飾品の枠: 最初は1枠。スキルツリーの「装備の心得」「装備の極意」で1枠ずつ増える（最大3枠）。

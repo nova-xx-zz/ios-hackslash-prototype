@@ -136,6 +136,16 @@ function makeMember(spec, level, i, opts) {
   return c;
 }
 
+// ひとり旅の加護（特殊職。js/model/roster.js の soloBonus と同じ効果）: 1人だけのパーティのとき、ATKの割合ボーナスと
+// 被ダメージ倍率をスキルツリーの合計に足す（env.stats・env.passives が最初に読む前に呼ぶ）
+function applySoloBonus(c) {
+  const sb = data.JOBS[c.job] && data.JOBS[c.job].soloBonus;
+  if (!sb) return;
+  if (!c.tree) c.tree = treeTotals({ treeRanks: [] }).totals;
+  c.tree.pct.atk += sb.atkPct || 0;
+  c.tree.dmgTakenMult *= sb.dmgTakenMult || 1;
+}
+
 function makeEnv(rng) {
   const race = (c) => data.RACES[c.race].passive;
   // シミュレーションのキャラは戦闘中に能力値・技・パッシブが変わらないので、1人ごとに1回だけ計算して使い回す
@@ -183,6 +193,7 @@ function simulateDungeonRun(dungeonId, level, opts) {
   const dungeon = data.getModeDungeon(dungeonId, opts.mode); // opts.mode: ハード・エクストラ（省略時ノーマル）
   const env = makeEnv(rng);
   const party = (opts.party || STARTER_PARTY).map((spec, i) => makeMember(spec, level, i, opts));
+  if (party.length === 1) applySoloBonus(party[0]);
   for (const c of party) { const s = env.stats(c); c.hp = s.maxHp; c.mp = s.maxMp; }
   let seconds = 0;
   for (let b = 0; b < dungeon.battles; b++) {
@@ -207,4 +218,4 @@ function clearRate(dungeonId, level, trials, seed, opts) {
   return { rate: cleared / trials, avgSeconds: cleared ? secs / cleared : null };
 }
 
-module.exports = { data, STARTER_PARTY, makeMember, makeEnv, standardEquip, pickEquip, standardTreeRanks, simulateDungeonRun, clearRate };
+module.exports = { data, STARTER_PARTY, makeMember, makeEnv, applySoloBonus, standardEquip, pickEquip, standardTreeRanks, simulateDungeonRun, clearRate };

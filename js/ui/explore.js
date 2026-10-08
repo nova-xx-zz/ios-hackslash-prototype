@@ -47,7 +47,8 @@ function battleEnv() {
       lifesteal: racePassive(c, "lifesteal") + treePassive(c, "lifesteal") + gearPassive(c, "lifesteal"),
       healBonus: racePassive(c, "healBonus") + treePassive(c, "healBonus") + gearPassive(c, "healBonus"),
       critBonus: racePassive(c, "critBonus") + treePassive(c, "critBonus") + gearPassive(c, "critBonus"),
-      dmgTakenMult: (racePassive(c, "dmgTakenMult") || 1) * (treePassive(c, "dmgTakenMult") || 1) * (gearPassive(c, "dmgTakenMult") || 1),
+      dmgTakenMult: (racePassive(c, "dmgTakenMult") || 1) * (treePassive(c, "dmgTakenMult") || 1) * (gearPassive(c, "dmgTakenMult") || 1)
+        * ((soloBonus(c) || {}).dmgTakenMult || 1), // ひとり旅の加護（1人のチームの巡礼剣士）
       pierce: treePassive(c, "pierce") || 0, // スキルツリーの防御無視
     }),
   };

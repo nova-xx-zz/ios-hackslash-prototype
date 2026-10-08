@@ -43,6 +43,8 @@
       groups: [],
       // ショップで買ったもの（買い切りの解放・仲間のBOXの拡張回数・購入の記録。js/model/shop.js）
       purchases: { unlocks: {}, rosterBoxes: 0, history: [] },
+      // 期間限定で解放した特殊職（docs/special-job-design.md §6）。{ jobId: { at（解放した時刻）, window（期間のid） } }
+      jobGrants: {},
     };
   }
 
@@ -60,6 +62,16 @@
       seen.add(g.id);
       out.push({ id: g.id, name: name || "グループ" });
       if (out.length >= GROUP_MAX) break;
+    }
+    return out;
+  }
+
+  // 期間限定で解放した特殊職の記録を使える形にそろえる（壊れた項目は捨てる）
+  function normalizeJobGrants(data) {
+    const out = {};
+    if (!data || typeof data !== "object" || Array.isArray(data)) return out;
+    for (const [id, g] of Object.entries(data)) {
+      if (g && typeof g === "object" && Number.isFinite(Number(g.at))) out[id] = { at: Number(g.at), window: typeof g.window === "string" ? g.window : "" };
     }
     return out;
   }
@@ -144,6 +156,7 @@
       records: state.records,
       groups: state.groups,
       purchases: state.purchases,
+      jobGrants: state.jobGrants || {},
       enabledFeaturesAtSave: opts.enabledFeatures || [],
     };
   }
@@ -181,6 +194,7 @@
       records: recordsMod.normalizeRecords(data.records),
       groups: normalizeGroups(data.groups),
       purchases: shopMod.normalizePurchases(data.purchases),
+      jobGrants: normalizeJobGrants(data.jobGrants),
     };
     normalizeCharGroups(state.roster, state.groups);
     // 装備の枠が3つ（武器・防具・装飾品）だった頃のセーブは、新しい枠（右手・左手・頭・体・装飾品1〜3）と

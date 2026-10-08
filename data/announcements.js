@@ -4,6 +4,24 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_special_job_pilgrim",
+    revision: 1,
+    publishedAt: "2026-10-08T11:30:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "特殊ジョブ「じゅんれいけんし」をテスト中",
+    body: [
+      "新しい特殊職「じゅんれいけんし（巡礼剣士）」をテストしています。剣と盾の旅の剣士で、敵から体力を奪う技や、自分の守りを固める技を持ちます。",
+      "チームがじゅんれいけんし1人だけのときは「ひとり旅の加護」でATKが30%上がり、受けるダメージが40%減ります。推奨レベルより十分高ければ、得意なダンジョンを1人で周回できます。2人以上のチームでは加護は付きません。",
+      "テスト中は条件なしで、すべての仲間が転職できます（キャラ詳細の「ジョブ」タブの「特殊職」）。ほかのジョブと同じくLv1から始まります。",
+      "※ 正式版では、リリース直後の無料キャンペーン中に業火の霊峰を踏破すると無料で解放、その後はショップで解放できる予定です。強さも今後変わることがあります。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_safety_fixes",
     revision: 1,
     publishedAt: "2026-10-08T08:00:00+09:00",

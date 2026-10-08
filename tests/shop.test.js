@@ -98,3 +98,31 @@ test("自動周回x100: 業火の霊峰（ノーマル）を踏破するまで�
   // 他の商品は条件なし
   assert.equal(shop.productStatus(shop.getProduct("battle_speed_5")).locked, undefined);
 });
+
+test("特殊ジョブの解放: 販売開始（salesFrom）前・未定は並ばない。販売中は業火の霊峰の踏破で買え、無料キャンペーンで解放済みなら買えない。機能フラグが無効なら並ばない", () => {
+  const state = createState({ teamCount: 4 });
+  const sale = Date.parse("2027-07-01T00:00:00+09:00");
+  let clock = sale - 1;
+  const products = data.SHOP_PRODUCTS.map((p) => (p.id === "job_pilgrim_unlock" ? Object.assign({}, p, { salesFrom: "2027-07-01T00:00:00+09:00" }) : p));
+  const shop = createShop({ data: Object.assign({}, data, { SHOP_PRODUCTS: products }), state, now: () => clock });
+  const product = shop.getProduct("job_pilgrim_unlock");
+  assert.equal(shop.products().includes(product), false); // 販売開始前
+  assert.equal(shop.purchase(product.id).reason, "unknown");
+  clock = sale;
+  assert.equal(shop.products().includes(product), true);
+  assert.equal(shop.purchase(product.id).reason, "locked"); // 業火の霊峰をまだ踏破していない
+  state.clearedDungeons.add("inferno_peak");
+  // 無料キャンペーンで解放済みなら「解放済み」で買えない
+  state.jobGrants = { pilgrim: { at: 1, window: "launch" } };
+  assert.deepEqual([shop.productStatus(product).freeUnlocked, shop.productStatus(product).soldOut], [true, true]);
+  assert.equal(shop.purchase(product.id).reason, "soldOut");
+  state.jobGrants = {};
+  assert.equal(shop.purchase(product.id).ok, true);
+  assert.equal(state.purchases.unlocks.jobPilgrim, true);
+  // 今のデータ（salesFrom が null＝未定）では並ばない
+  const real = createShop({ data, state: createState({ teamCount: 4 }) });
+  assert.equal(real.products().some((p) => p.id === "job_pilgrim_unlock"), false);
+  // 機能フラグが無効なら並ばない
+  const off = createShop({ data: Object.assign({}, data, { SHOP_PRODUCTS: products, isFeatureEnabled: (k) => k !== "specialJobs" }), state, now: () => sale });
+  assert.equal(off.products().some((p) => p.id === "job_pilgrim_unlock"), false);
+});

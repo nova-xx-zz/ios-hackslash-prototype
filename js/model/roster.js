@@ -104,13 +104,83 @@
       });
     }
 
-    // 上級職は対応する基本職を規定レベルまで極めると解放される
+    // 上級職は対応する基本職を規定レベルまで極めると解放される。
+    // 特殊職（docs/special-job-design.md §6）はアカウント単位で、機能フラグ specialJobs が有効で、
+    // テスト中（job.unlock.testOpen）か、無料キャンペーンで解放した（state.jobGrants[jobId]）か、購入した
+    // （purchases.unlocks[job.unlock.purchase]）なら解放。無料と有料の根拠は別々に持ち、どちらかがあればよい
+    function specialJobUnlocked(jobId) {
+      const job = JOBS[jobId];
+      if (!job || job.tier !== "special" || !isFeatureEnabled("specialJobs")) return false;
+      const u = job.unlock || {};
+      const bought = !!(u.purchase && S.purchases && S.purchases.unlocks && S.purchases.unlocks[u.purchase]);
+      return !!u.testOpen || !!(S.jobGrants && S.jobGrants[jobId]) || bought;
+    }
+    // 特殊職の無料キャンペーンの期間（job.unlock.freeWindows）のうち、nowMs が入っているもの（無ければ null）
+    function activeJobWindow(jobId, nowMs) {
+      const u = (JOBS[jobId] && JOBS[jobId].unlock) || {};
+      return (u.freeWindows || []).find((w) => {
+        const start = Date.parse(w.start);
+        return Number.isFinite(start) && nowMs >= start && nowMs < start + w.days * 24 * 60 * 60 * 1000;
+      }) || null;
+    }
+    // 無料キャンペーンの解放を記録する（セーブの前に呼ぶ）: 期間中に、条件のダンジョンをノーマルで踏破済みなら
+    // state.jobGrants[jobId] = { at, window } を付ける（以後はずっと使える。購入済みでも記録する）。結果: 新しく解放したジョブIDの配列
+    function refreshJobGrants(nowMs) {
+      const granted = [];
+      if (!isFeatureEnabled("specialJobs")) return granted;
+      for (const jobId of Object.keys(JOBS)) {
+        const job = JOBS[jobId];
+        if (job.tier !== "special" || !job.unlock) continue;
+        if (S.jobGrants && S.jobGrants[jobId]) continue;
+        const w = activeJobWindow(jobId, nowMs);
+        if (!w || !(S.clearedDungeons && S.clearedDungeons.has(job.unlock.cleared))) continue;
+        if (!S.jobGrants) S.jobGrants = {};
+        S.jobGrants[jobId] = { at: nowMs, window: w.id };
+        granted.push(jobId);
+      }
+      return granted;
+    }
     function jobUnlocked(c, jobId) {
       const job = JOBS[jobId];
+      if (job.tier === "special") return specialJobUnlocked(jobId);
       if (job.tier !== "advanced") return true;
       const req = job.requires;
       const lvl = (c.jobLevels[req.job] && c.jobLevels[req.job].level) || 0;
       return lvl >= req.level;
+    }
+    // 機能フラグが無効な特殊職の技は、ほかのジョブのサブアビリティにも使わない（docs/special-job-design.md §2.3）
+    function jobUsable(jobId) {
+      const job = JOBS[jobId];
+      return !!job && (job.tier !== "special" || isFeatureEnabled("specialJobs"));
+    }
+    // 読み込み時: 機能フラグが無効な特殊職のキャラは、ほかのジョブで一番レベルの高い職（同じなら基本職を先）へ戻し、
+    // 使えないサブアビリティを外す。戻した（変えた）ら true
+    function normalizeJob(c) {
+      if (c.isMonster) return false;
+      let changed = false;
+      if (!jobUsable(c.job)) {
+        const order = Object.keys(JOBS).filter((id) => jobUsable(id) && jobUnlocked(c, id));
+        const tierRank = (id) => ({ basic: 0, advanced: 1 })[JOBS[id].tier] || 2;
+        order.sort((a, b) => (((c.jobLevels[b] && c.jobLevels[b].level) || 0) - ((c.jobLevels[a] && c.jobLevels[a].level) || 0)) || (tierRank(a) - tierRank(b)));
+        switchJob(c, order[0] || "warrior");
+        changed = true;
+      }
+      c.subAbilityIds = (c.subAbilityIds || []).map((id) => {
+        if (!id) return null;
+        const owner = Object.keys(JOBS).find((j) => JOBS[j].abilities.some((a) => a.id === id));
+        if (owner && !jobUsable(owner)) { changed = true; return null; }
+        return id;
+      });
+      return changed;
+    }
+
+    // ひとり旅の加護（docs/special-job-design.md §4）: そのチームの仲間がこのキャラ1人だけで、ジョブに soloBonus があるとき
+    // その効果 { atkPct, dmgTakenMult } を返す（無ければ null）。控え（チームに入っていない）では効かない
+    function soloBonus(c) {
+      if (c.isMonster || c.team === null || c.team === undefined) return null;
+      const job = JOBS[c.job];
+      if (!job || !job.soloBonus || !jobUsable(c.job)) return null;
+      return S.roster.filter((x) => x.team === c.team).length === 1 ? job.soloBonus : null;
     }
 
     // テイムしたモンスターは人間のジョブではなく種族専用ジョブを使う
@@ -310,6 +380,8 @@
       for (const [k, v] of Object.entries(bonus.flat)) s[key(k)] += v;
       const pcts = Object.assign({}, bonus.stats);
       for (const [k, v] of Object.entries(tp.pct)) if (v) pcts[k] = (pcts[k] || 0) + v;
+      const solo = soloBonus(c); // ひとり旅の加護のATKも同じ段で足す
+      if (solo && solo.atkPct) pcts.atk = (pcts.atk || 0) + solo.atkPct;
       for (const [k, pct] of Object.entries(pcts)) s[key(k)] = Math.round(s[key(k)] * (1 + pct));
       // 石碑の加護はそのチームが挑戦中のダンジョンの間だけ乗る（HP/MPは除く）
       const buffs = c.team !== null ? runBuffs(c.team) : null;
@@ -342,6 +414,7 @@
         for (const id of c.subAbilityIds) {
           if (!id) continue;
           const sub = getAbilityById(id);
+          if (sub && !Object.keys(JOBS).some((j) => jobUsable(j) && JOBS[j].abilities.includes(sub))) continue;
           if (sub && !list.find((a) => a.id === sub.id)) list.push(sub);
         }
         const tree = getExclusiveTree(c);
@@ -365,7 +438,7 @@
       const list = [];
       if (c.isMonster) return list; // モンスターは人間の技を覚えない
       for (const jobId in JOBS) {
-        if (jobId === c.job) continue;
+        if (jobId === c.job || !jobUsable(jobId)) continue;
         const trained = c.jobLevels[jobId];
         if (!trained) continue;
         for (const a of JOBS[jobId].abilities) {
@@ -380,7 +453,7 @@
     function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
     return {
-      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
+      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
       equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }

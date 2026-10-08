@@ -117,6 +117,7 @@ function debugComplete() {
   setBestStage(DUNGEONS.length);
   // ショップ: 買い切りを全部・仲間のBOXを最大。資源
   for (const p of SHOP_PRODUCTS) if (p.kind === "unlock") S.purchases.unlocks[p.unlock] = true;
+  for (const id of SPECIAL_JOB_IDS) S.jobGrants[id] = { at: Date.now(), window: "debug" }; // 特殊職も無料キャンペーンで解放済みにする
   S.purchases.rosterBoxes = Shop.maxRosterBoxes();
   S.material = 99999999;
   S.guaranteedStones.free = 999;
