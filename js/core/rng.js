@@ -40,8 +40,15 @@
   const shared = fromSource(() => sharedSource());
   function setSharedSource(source) { sharedSource = source || Math.random; }
   function setSharedSeed(seed) { setSharedSource(seed === undefined ? null : seededSource(seed)); }
+  // fn を実行する間だけ、共有の乱数を source から引く（終われば元に戻す。入れ子にできる）。
+  // チームごとの探索の乱数を分けるために使う（js/model/run.js。共有の乱数を直接使う js/data.js の抽選も含めて切り替わる）
+  function withSharedSource(source, fn) {
+    const prev = sharedSource;
+    sharedSource = source;
+    try { return fn(); } finally { sharedSource = prev; }
+  }
 
-  const exported = { createRng, fromSource, seededSource, shared, setSharedSource, setSharedSeed };
+  const exported = { createRng, fromSource, seededSource, shared, setSharedSource, setSharedSeed, withSharedSource };
   root.QPCore = root.QPCore || {};
   root.QPCore.rng = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;

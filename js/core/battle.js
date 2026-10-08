@@ -470,10 +470,23 @@
     return { events, result: null };
   }
 
+  // 戦闘を進める1刻みの幅（秒）。画面の戦闘・オフライン精算・シミュレーターのすべてでこの幅で step を呼ぶ
+  // （課金設計書§4.2。0.05秒に決定。難易度の調整もこの幅で行っている）
+  const STEP_SECONDS = 0.05;
+
+  // 画面の戦闘ループ用の時間の積み立て: 積み立てた時間 acc（秒）に、このフレームの経過時間×速度を足し、
+  // このフレームで進める刻みの数（maxSteps まで）と、次のフレームへ持ち越す時間を返す。結果: { steps, acc }
+  function frameSteps(acc, frameSeconds, speed, maxSteps) {
+    let total = acc + frameSeconds * speed;
+    let steps = 0;
+    while (steps < maxSteps && total >= STEP_SECONDS - 1e-9) { total -= STEP_SECONDS; steps++; }
+    return { steps, acc: total };
+  }
+
   // 決着がつくまで一気に進める（画面なしのシミュレーション用）。maxSeconds を超えたら "timeout"
   function simulate(battle, party, env, opts) {
     opts = opts || {};
-    const dt = opts.dt || 0.05;
+    const dt = opts.dt || STEP_SECONDS;
     const maxSeconds = opts.maxSeconds || 600;
     let time = 0;
     while (time < maxSeconds) {
@@ -487,7 +500,7 @@
   const exported = {
     BASIC_ATTACK, chooseAction, expectedValue, pickEnemyTarget, pickAllyTarget,
     performCharacterAction, performEnemyAction, battleResult, step, simulate,
-    damageMult, memberStats, fxMult, imbueOf,
+    damageMult, memberStats, fxMult, imbueOf, STEP_SECONDS, frameSteps,
   };
   root.QPCore = root.QPCore || {};
   root.QPCore.battle = exported;

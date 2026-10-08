@@ -50,3 +50,20 @@ test("共有乱数はシードを差し替えると再現でき、解除する�
   const x = shared.next();
   assert.ok(x >= 0 && x < 1);
 });
+
+test("withSharedSource: 実行中だけ共有乱数を別の並びに切り替え、終われば（例外でも）元に戻す。入れ子にできる", () => {
+  const { withSharedSource, seededSource } = require("../js/core/rng.js");
+  setSharedSeed(5);
+  const outer = seededSource(5);
+  assert.equal(shared.next(), outer());
+  const a = seededSource(1), a2 = seededSource(1), b2 = seededSource(2);
+  const inA = withSharedSource(a, () => {
+    const x = shared.next();
+    const y = withSharedSource(seededSource(2), () => shared.next());
+    return [x, y, shared.next()];
+  });
+  assert.deepEqual(inA, [a2(), b2(), a2()]); // 入れ子の後は外側の並びの続き
+  assert.throws(() => withSharedSource(seededSource(3), () => { throw new Error("x"); }));
+  assert.equal(shared.next(), outer()); // 元の並び（シード5）の続きに戻っている
+  setSharedSeed(undefined);
+});
