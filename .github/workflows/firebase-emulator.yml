@@ -1,0 +1,39 @@
+name: Firebase Emulator security tests
+on:
+  pull_request:
+    paths:
+      - 'functions/**'
+      - 'infra/firebase/**'
+      - 'firebase.production.json'
+      - '.github/workflows/firebase-emulator.yml'
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  firebase-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install isolated local-emulator test dependencies
+        working-directory: infra/firebase/emulator-tests
+        run: npm install --no-audit --no-fund
+      - name: Check security Rules and concurrent backup transactions against real emulator
+        env:
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+        run: >
+          npx --yes firebase-tools@14.22.0 emulators:exec
+          --project demo-swordcrest-security
+          --config firebase.production.json
+          --only firestore
+          "node infra/firebase/emulator-tests/firestore-integration.test.cjs"
+      # demo-* project ensures no production Firebase project is contacted.
