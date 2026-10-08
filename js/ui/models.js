@@ -43,7 +43,11 @@ if (productionWeb) {
   const manager = window.navigator && window.navigator.locks;
   saveTabSession = QPCore.tabSession.createSessionLock(manager, showTabSessionState);
   saveTabSession.start();
-  window.addEventListener("pagehide", () => saveTabSession.stop());
+  // ページ離脱時の最終保存をロック保持中に行い、その後で次のタブへ開放する。
+  window.addEventListener("pagehide", () => {
+    if (saveTabSession.owns() && !saveSuspended) saveGame();
+    saveTabSession.stop();
+  });
   window.addEventListener("pageshow", event => { if (event.persisted) saveTabSession.start(); });
 }
 function saveGame() {
