@@ -7,6 +7,8 @@ const TEST_FB={apiKey:"CI-NOT-A-REAL-FIREBASE-KEY",authDomain:"sword-crest-ci-bu
 function build(args,config=TEST_FB){
   const env={...process.env};delete env.SWORD_CREST_FIREBASE_CONFIG_JSON;
   if(config)env.SWORD_CREST_FIREBASE_CONFIG_JSON=JSON.stringify(config);
+  env.SWORD_CREST_API_BASE_URL="https://api-ci.invalid/swordcrestApi";
+  env.SWORD_CREST_RECAPTCHA_SITE_KEY="CI_APP_CHECK_SITE_KEY";
   return spawnSync(process.execPath,[TOOL,...args],{cwd:ROOT,encoding:"utf8",env});
 }
 test("production fails closed for missing and preview Firebase",()=>{
@@ -33,6 +35,8 @@ test("web production strips debug executable code and separates local saves",()=
   assert.match(file("js/ui/debug.js"),/btnSettingsShop/);
   assert.match(file("sw.js"),/swordcrest-production-v1/);
   assert.match(file("js/firebase-config.js"),/sword-crest-ci-build/);
+  assert.match(file("js/api-config.js"),/api-ci.invalid/);
+  assert.ok(file("js/vendor/firebase.js").length>10000);
   assert.equal(fs.existsSync(path.join(base,"admin.html")),false);
   ctx.module={exports:{}};vm.runInNewContext(file("js/core/storage.js"),ctx);
   const backend=ctx.QPCore.storage.defaultBackend();
@@ -46,6 +50,7 @@ test("iOS production candidate uses the same security gates",()=>{
   const file=p=>fs.readFileSync(path.join(ROOT,"www",p),"utf8");
   assert.match(file("js/runtime-env.js"),/"platform":"ios"/);
   assert.doesNotMatch(file("js/ui/debug.js"),/debugComplete/);
+  assert.match(file("js/api-config.js"),/api-ci.invalid/);
 });
 test("web preview retains developer workflow and test project",()=>{
   const r=build(["--web"]);assert.equal(r.status,0,r.stderr);
@@ -62,4 +67,13 @@ test("purchase model denies test grants in production mode",()=>{
   assert.deepEqual(shop.purchase("test"),{ok:false,reason:"disabled"});
   assert.equal(state.purchases.unlocks.speed5,undefined);
   assert.equal(state.purchases.history.length,0);
+});
+
+test("release refuses missing backup endpoint and App Check key",()=>{
+  const env={...process.env,SWORD_CREST_FIREBASE_CONFIG_JSON:JSON.stringify(TEST_FB)};
+  delete env.SWORD_CREST_API_BASE_URL;
+  delete env.SWORD_CREST_RECAPTCHA_SITE_KEY;
+  const r=spawnSync(process.execPath,[TOOL,"--release","--web"],{cwd:ROOT,encoding:"utf8",env});
+  assert.notEqual(r.status,0);
+  assert.match(r.stderr,/App Check site key required/);
 });
