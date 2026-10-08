@@ -36,6 +36,7 @@ test("backup is atomic and retries are idempotent; conflicting changes are rejec
  assert.equal((await s.getBackup(token)).revision,0);
  assert.deepEqual(await s.putBackup(token,body()),{revision:1,status:"accept"});
  assert.deepEqual(await s.putBackup(token,body()),{revision:1,status:"replay"});
+ await assert.rejects(s.putBackup(token,body({savedAt:999})),e=>e.code==="operation_reused");
  await assert.rejects(s.putBackup(token,body({json:JSON.stringify({schemaVersion:2,roster:[],material:50})})),e=>e.code==="operation_reused");
  await assert.rejects(s.putBackup(token,body({operationId:"d65b46e7-5367-4b65-97ae-b64ef18dca21"})),e=>e.code==="revision_conflict");
  const saved=await s.getBackup(token);assert.equal(saved.revision,1);assert.equal(JSON.parse(saved.json).material,12);
@@ -75,4 +76,9 @@ test("Firestore transaction adapter associates UID once and rejects stale revisi
  assert.deepEqual(await r.commitBackup("a",request),{status:"replay",revision:1});
  assert.deepEqual(await r.commitBackup("a",{...request,expectedRevision:0,operationId:"next"}),{status:"conflict",revision:1});
  assert.equal((await r.readBackup("a")).revision,1);
+ const next=validateWrite(body({expectedRevision:1,operationId:"d65b46e7-5367-4b65-97ae-b64ef18dca21",savedAt:234}));
+ assert.deepEqual(await r.commitBackup("a",next),{status:"accept",revision:2});
+ // 直近より古い操作の再送は無条件再適用せずに版競合で止める。
+ assert.deepEqual(await r.commitBackup("a",request),{status:"conflict",revision:2});
+ assert.equal([...docs.keys()].filter(k=>k.startsWith("progressBackups/")).length,1);
 });
