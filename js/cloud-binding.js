@@ -3,8 +3,10 @@
   "use strict";
   function canAutoUpload(revision,uid,binding){
     if(!Number.isSafeInteger(revision)||revision<0||typeof uid!=="string"||!uid)return false;
+    // 別アカウントでログインし直した場合、クラウドが空でも端末の進行を勝手に送らない。
+    if(binding && binding.uid!==uid)return false;
     if(revision===0)return true;
-    return !!binding && binding.uid===uid && binding.revision===revision;
+    return !!binding && binding.revision===revision;
   }
   const exported={canAutoUpload};
   root.QPCloudBinding=exported;
