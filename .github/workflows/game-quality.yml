@@ -1,15 +1,13 @@
 name: Game quality gate
-
 on:
   push:
     branches:
       - main
       - architecture/web-first-foundation
+      - docs/backend-evolution-review
   pull_request:
-
 permissions:
   contents: read
-
 jobs:
   game-tests:
     runs-on: ubuntu-latest
@@ -23,5 +21,8 @@ jobs:
         run: npm ci
       - name: Run game tests
         run: npm test
-      - name: Verify Web production candidate build
+      - name: Verify release candidate with nonfunctional CI-only Firebase identifiers
+        env:
+          SWORD_CREST_FIREBASE_CONFIG_JSON: '{"apiKey":"CI-NOT-A-REAL-FIREBASE-KEY","authDomain":"sword-crest-ci-build.firebaseapp.com","projectId":"sword-crest-ci-build","appId":"1:11111111111:web:ci-build-only"}'
         run: npm run build:release:web
+      # No deployment or artifact publishing: the CI Firebase IDs do not work.

@@ -2,7 +2,7 @@
 
 > **Web先行運営への方針変更 (2026-10-08)**: [本番化・課金方針](docs/production-plan.md) と [共通アーキテクチャ](docs/shared-architecture.md) に「Web/PWA → Web課金 → iOS」の順と、環境・データ・課金境界を整理しました。現行GitHub Pagesは引き続き**検証用**です。
 >
-> 本番候補のビルド: `npm run build:release:web` (出力 `dist/web/`) / `npm run cap:sync:release` (iOSへ同期)。これらは**公開可能を保証しません**。専用Firebase、引継ぎ可能ログイン、セーブ競合/安全性、購入権利/有償台帳は未完成です。プロトタイプの無料購入は正式版の購入権利へ移行しません。
+> 本番候補のビルド: `npm run build:release:web` (出力 `dist/web/`) / `npm run cap:sync:release` (iOSへ同期)。専用Firebaseの公開識別子を `SWORD_CREST_FIREBASE_CONFIG_JSON` に設定しないと**ビルドに失敗**します（CIでは無効なダミー設定で検証し、配信しません）。デバッグ実装を除外し保存キーも分離しますが、これらは**公開可能を保証しません**。本番Firebase/Rules・引継ぎ可能ログイン・セーブ競合対策・購入権利/有償台帳は未完成です。プロトタイプの無料購入は正式版の購入権利へ移行しません。
 
 
 ゲーム名は「ソードクレスト（Sword Crest）」（仮決定）。iPhone (Safari) で遊べる、5人パーティ・オート戦闘のハクスラダンジョンクロールのプロトタイプです。ビルド不要のバニラ HTML/CSS/JavaScript で作られています。

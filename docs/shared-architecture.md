@@ -30,7 +30,7 @@ flowchart TD
 
 | 既存モジュール | 責務 | Web/iOS | 変更方針 |
 |---|---|---|---|
-| `js/core/*` | 純粋な戦闘・乱数・報酬・装備・強化計算 | 共通 | 固定刻み・チーム別RNGを追加。DOM/Capacitorを参照させない |
+| `js/core/*` | 純粋な戦闘・乱数・報酬・装備・強化計算 | 共通 | **0.05秒固定刻み・チーム別RNGはPR #63で実装済み**。回帰・実機負荷の検証が残る |
 | `js/model/*` | ロスター・探索・所持品・セーブのモデル | 共通 | 端末セーブに有償購入の正本を持たせない |
 | `js/ui/*` | ゲーム画面、操作、モーダル | 共通 | DOM UIを再利用。決済はプラットフォーム別アダプター経由 |
 | `js/game.js` | 起動と離脱時セーブ・精算 | 共通 | iOSのライフサイクル対応を段階的に追加 |
@@ -48,12 +48,14 @@ flowchart TD
 |---|---|---|---|---|---|
 | 既存ソース/GitHub Pages | そのまま配信 | Previewのみ | 有効 | 有効 | 既存`sword-crest-jp` (検証) |
 | Web検証ビルド | `npm run build:preview:web` | `dist/web/` | 有効 | 有効 | 既存プロトタイプ設定 |
-| **Web Production候補** | `npm run build:release:web` | `dist/web/` | **無効** | **無効** | 別プロジェクトを環境変数で注入。未設定なら無効 |
+| **Web Production候補** | `npm run build:release:web` | `dist/web/` | **実装をスタブ化** | **無効** | 別Firebaseの設定必須。未設定や試験プロジェクトならビルド失敗 |
 | iOS検証 | `npm run cap:sync` | `www/`→iOS | 有効 | 有効 | 既存プロトタイプ設定 |
 | **iOS Production候補** | `npm run cap:sync:release` | `www/`→iOS | **無効** | **無効** | 同じ本番用Firebase設定 |
 
 - 本番用Firebase構成を使う場合は `SWORD_CREST_FIREBASE_CONFIG_JSON` (JSON文字列) をビルド環境変数に渡す。認証用の秘密鍵・決済シークレットは**ブラウザ配布物に入れない**。既存プロトタイプ `sword-crest-jp` の流用をビルドで拒否。
-- ProductionビルドにFirebase構成がない場合はクラウド接続を無効化し警告する。**この状態のまま本番公開しない**。
+- ProductionビルドはFirebase構成のない状態、または試験プロジェクトを指定した場合は**失敗（Fail Closed）**する。CIは実際に接続できないテスト専用識別子で成果物のみ検証し、デプロイしない。
+- Production成果物はデバッグ実装・合言葉ハッシュを無害なスタブに置き換え、無料テストショップを隠す。これは表示と誤操作の防止であり、購入の安全性は**サーバーで検証された台帳だけ**が保証する。
+- 保存キーに `scprod:` を追加し、同じoriginに残る試験用セーブ・無料付与の自動取込みを避ける。**正式配布はさらにオリジンを分離する**。サービスワーカーのキャッシュ名も別にする。
 - Productionのショップは決済実装まで閉鎖する。UIフラグが改ざんされても付与できないよう、正式決済時はCloud Functions側の検証/台帳でのみ確定する。
 - `admin.html` は公開向けの `dist/web/`・`www/` に含めない。直接ソース配信のGitHub Pagesは**あくまでPreview**。
 - Firebase Auth・Firestore・App Check・Rules、ホスティングドメイン、CIのデプロイ権限、利用規約/プライバシーポリシーをpreview/productionで分ける。公開ドメインはリリース時に確定し、ブラウザの保存オリジンが変わることを確認する。
