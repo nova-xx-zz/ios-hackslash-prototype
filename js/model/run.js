@@ -20,6 +20,7 @@
   const offline = core.offline || (typeof require === "function" ? require("../core/offline.js") : null);
   const statsCore = core.stats || (typeof require === "function" ? require("../core/stats.js") : null);
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
+  const rngMod = core.rng || (typeof require === "function" ? require("../core/rng.js") : null);
 
   // オフライン精算: これを超えた経過時間は切り捨てる
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;
@@ -36,7 +37,21 @@
     const S = deps.state;
     const R = deps.roster;
     const Inv = deps.inventory;
-    const rng = deps.rng;
+    // 乱数はチームの周回ごとに分ける（課金設計書§4.2）。出発時に基の乱数（deps.rng）から周回のシードを1つ引き、
+    // その周回の抽選（遭遇・戦闘・ドロップ・道中イベント・テイム）はすべてそのシードの並びから引く。
+    // 他のチームがいつ乱数を使ったか・どのチームを表示しているかで、別のチームの勝敗やドロップが変わらないようにするため。
+    // rng は「いま処理している周回」の並びから引く（周回の外では基の乱数）。inStream の間は共有の乱数（js/data.js の
+    // 抽選が使う RNG）も同じ並びに切り替える
+    const baseRng = deps.rng;
+    let activeSource = null;
+    const rng = rngMod.fromSource(() => (activeSource ? activeSource() : baseRng.next()));
+    function newStream() { return rngMod.seededSource(baseRng.int(4294967296)); }
+    function inStream(source, fn) {
+      const prev = activeSource;
+      activeSource = source;
+      try { return rngMod.withSharedSource(source, fn); } finally { activeSource = prev; }
+    }
+    const inRun = (run, fn) => inStream(run.rngSource, fn);
     const teamCount = deps.teamCount || 4;
     const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop } = deps.data;
     // モード（ノーマル・ハード・エクストラ）を反映したダンジョン（js/data.js の getModeDungeon。無ければノーマルのみ）
@@ -95,6 +110,7 @@
         // 出撃時点の自動分解設定をスナップショットしておく（この周回中に設定画面で変更しても
         // 途中から挙動が変わらないようにするため。おかげで自動分解の設定はロック不要になる）
         autoDisassemble: filter.enabled, autoDisassembleRarities: new Set(filter.rarities),
+        rngSource: newStream(), // この周回の乱数の並び
       };
       teamRuns[teamIndex] = run;
       for (const c of R.teamMembers(teamIndex)) {
@@ -122,7 +138,8 @@
     // 戦闘をdt秒進める（js/core/battle.js）。決着したら battle.active を false にする。結果: { events, result }
     function stepBattle(teamIndex, dt) {
       const battle = teamBattles[teamIndex];
-      const out = battleCore.step(battle, R.teamMembers(teamIndex), dt, deps.battleEnv());
+      const env = Object.assign({}, deps.battleEnv(), { rng });
+      const out = battleCore.step(battle, R.teamMembers(teamIndex), dt, env);
       if (out.result) battle.active = false;
       return out;
     }
@@ -302,7 +319,7 @@
         const s = R.computeStats(c);
         return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
       });
-      const env = deps.battleEnv();
+      const env = Object.assign({}, deps.battleEnv(), { rng });
       return offline.simulateRun({
         battles: dungeon.battles,
         rng,
@@ -373,12 +390,13 @@
       let cleared = 0, expGained = 0, itemsGained = 0, runsDone = 0;
       const tamedNames = [];
       let wipedOut = false, tameBlocked = 0;
+      const stream = newStream(); // 離れていた間の周回は、このチームだけの乱数の並びで計算する
       for (let i = 0; i < remainingTarget; i++) {
-        const outcome = computeOfflineRun(dungeon, teamIndex);
+        const outcome = inStream(stream, () => computeOfflineRun(dungeon, teamIndex));
         if (outcome.seconds > budgetSeconds) break;
         budgetSeconds -= outcome.seconds;
         runsDone += 1;
-        const result = applyOfflineRun(outcome, dungeon, teamIndex);
+        const result = inStream(stream, () => applyOfflineRun(outcome, dungeon, teamIndex));
         expGained += result.expTotal;
         if (!result.cleared) { wipedOut = true; break; }
         cleared += 1;
@@ -417,12 +435,22 @@
       return summaries.length > 0 ? summaries : null;
     }
 
+    // 周回の中で乱数を使う処理は、その周回の乱数の並びで実行する（周回のないチームは基の乱数）
+    const inTeam = (teamIndex, fn) => (teamRuns[teamIndex] ? inRun(teamRuns[teamIndex], fn) : fn());
     return {
       teamRuns, teamBattles,
       isTeamRunActive, isTeamLocked, runBuffs, restoreTeamParty,
-      startRun, startBattle, stepBattle, winBattle, attemptTame, addTamedMonster,
-      rollEvent, finishRun, advanceAutoRepeat, interruptRun,
-      estimateOfflineRunSeconds, computeOfflineRun, applyOfflineRun, runOfflineProgressForTeam, runOfflineProgress,
+      startRun,
+      startBattle: (run) => inRun(run, () => startBattle(run)),
+      stepBattle: (teamIndex, dt) => inTeam(teamIndex, () => stepBattle(teamIndex, dt)),
+      winBattle: (run, battle) => inRun(run, () => winBattle(run, battle)),
+      attemptTame: (run) => inRun(run, () => attemptTame(run)),
+      addTamedMonster,
+      rollEvent: (run) => inRun(run, () => rollEvent(run)),
+      finishRun, advanceAutoRepeat, interruptRun,
+      estimateOfflineRunSeconds,
+      computeOfflineRun: (dungeon, teamIndex) => inStream(newStream(), () => computeOfflineRun(dungeon, teamIndex)),
+      applyOfflineRun, runOfflineProgressForTeam, runOfflineProgress,
     };
   }
 

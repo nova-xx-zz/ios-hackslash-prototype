@@ -98,6 +98,84 @@ test("戦闘: 敵を図鑑に登録し、最後の戦闘はボス", () => {
   assert.equal(Runner.startBattle(run).isBoss, true);
 });
 
+// 1戦闘を、フレームの間隔・速度を変えた画面のループと同じ進め方（frameSteps）で決着まで進め、結果をまとめる
+function fightByFrames(Runner, state, team, frameSeconds, speed) {
+  const { frameSteps, STEP_SECONDS } = require("../js/core/battle.js");
+  let acc = 0;
+  for (let f = 0; f < 1_000_000; f++) {
+    const r = frameSteps(acc, frameSeconds, speed, 20);
+    acc = r.acc;
+    for (let i = 0; i < r.steps; i++) {
+      const { result } = Runner.stepBattle(team, STEP_SECONDS);
+      if (result) {
+        const battle = Runner.teamBattles[team];
+        return JSON.stringify({ result, time: battle.time.toFixed(6), hp: state.roster.filter((c) => c.team === team).map((c) => c.hp),
+          enemies: battle.enemies.map((e) => [e.key, e.hp]) });
+      }
+    }
+  }
+  throw new Error("決着しない");
+}
+
+test("固定刻み: 端末の描画速度・戦闘の速度を変えても、同じ戦闘は同じ行動・同じ結果になる", () => {
+  const outcomes = [[1 / 60, 1], [1 / 30, 1], [1 / 144, 1], [1 / 60, 2], [1 / 60, 5], [1 / 20, 5]].map(([frame, speed]) => {
+    const { state, Runner } = setup({ level: 5, seed: 77 });
+    const run = Runner.startRun(0, "plains");
+    Runner.startBattle(run);
+    return fightByFrames(Runner, state, 0, frame, speed);
+  });
+  for (const o of outcomes) assert.equal(o, outcomes[0]);
+});
+
+test("固定刻み: 1フレームの刻み数には上限があり、消化しきれない時間は次のフレームへ持ち越す", () => {
+  const { frameSteps } = require("../js/core/battle.js");
+  assert.deepEqual(frameSteps(0, 0.1, 5, 20).steps, 10);
+  const capped = frameSteps(0, 0.1, 5, 4);
+  assert.equal(capped.steps, 4);
+  assert.ok(Math.abs(capped.acc - 0.3) < 1e-9);
+  let acc = 0, total = 0; // 60fpsで1秒 → 20刻み
+  for (let f = 0; f < 60; f++) { const r = frameSteps(acc, 1 / 60, 1, 20); acc = r.acc; total += r.steps; }
+  assert.equal(total, 20);
+});
+
+test("チーム別の乱数: 他のチームが同時に戦っても、そのチームの遭遇・戦闘の結果は変わらない", () => {
+  const solo = (() => {
+    const { state, Runner } = setup({ level: 5, seed: 91 });
+    const run = Runner.startRun(0, "plains");
+    const { battle } = Runner.startBattle(run);
+    const keys = battle.enemies.map((e) => e.key).join(",");
+    return keys + "|" + fightByFrames(Runner, state, 0, 1 / 60, 1);
+  })();
+  const together = (() => {
+    const { state, roster, Runner } = setup({ level: 5, seed: 91 });
+    const run0 = Runner.startRun(0, "plains");
+    // 2チーム目を作って先に戦わせ、乱数を使わせてから1チーム目を戦わせる
+    for (const [name, job] of [["B1", "warrior"], ["B2", "mage"], ["B3", "priest"]]) state.roster.push(roster.newCharacter(name, job, "human", { team: 1, level: 5 }));
+    const run1 = Runner.startRun(1, "plains");
+    Runner.startBattle(run1);
+    for (let i = 0; i < 37; i++) Runner.stepBattle(1, 0.05);
+    Runner.rollEvent(run1);
+    const { battle } = Runner.startBattle(run0);
+    const keys = battle.enemies.map((e) => e.key).join(",");
+    const { frameSteps, STEP_SECONDS } = require("../js/core/battle.js");
+    let acc = 0;
+    for (let f = 0; f < 1_000_000; f++) {
+      const r = frameSteps(acc, 1 / 60, 1, 20);
+      acc = r.acc;
+      for (let i = 0; i < r.steps; i++) {
+        Runner.stepBattle(1, STEP_SECONDS); // 毎刻み、他のチームも並行して進める
+        const { result } = Runner.stepBattle(0, STEP_SECONDS);
+        if (result) {
+          return keys + "|" + JSON.stringify({ result, time: battle.time.toFixed(6), hp: state.roster.filter((c) => c.team === 0).map((c) => c.hp),
+            enemies: battle.enemies.map((e) => [e.key, e.hp]) });
+        }
+      }
+    }
+    throw new Error("決着しない");
+  })();
+  assert.equal(together, solo);
+});
+
 test("冒険の記録: 出会った敵をダンジョン別に、手に入れた装備（自動分解した物も）と潜った履歴を残す", () => {
   const { state, Runner } = setup();
   const run = Runner.startRun(0, "plains");

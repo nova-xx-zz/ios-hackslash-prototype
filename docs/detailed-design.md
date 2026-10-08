@@ -184,8 +184,9 @@ materialExp(target, m) = round((fusionBaseExp(m.race) + totalExpInvested(m) * 0.
 定数: `ATB_RATE = 7`
 
 ```
-loop(t):  dt = min(0.05, (t - lastT)/1000) * speedMult
-          tick(dt)
+loop(t):  // 固定刻み（STEP = QPCore.battle.STEP_SECONDS = 0.05秒）
+          { steps, acc } = frameSteps(acc, min(0.1, (t - lastT)/1000), speedMult, 20)
+          repeat steps times: tick(STEP)   // 消化しきれない時間は acc として次のフレームへ持ち越す
 tick(dt):
   for team i in 0..3:
     if teamBattles[i] && teamBattles[i].active: tickTeam(i, dt)
@@ -201,7 +202,7 @@ tickTeam(i, dt):
     if e.atb >= 100: performEnemyAction(run, battle, e); checkBattleEnd(run, battle)
   if i === activeTeam: updateBattleDOM()   // DOM更新は表示中チームのみ
 ```
-`speedMult` は `btnSpeedToggle` で 1 または 2 を切り替え、全チーム共通で速度に反映される（チームごとの個別速度設定はない）。`requestAnimationFrame` により毎フレーム呼び出され、`activeTeam`（画面に表示中のチーム）に関わらず4チーム全てのATBが等しく進行する。DOM更新（アクターカードのHP/MPバー、ログの追記）だけを表示中チームに限定することで、背後のチームの処理自体は止めずに描画コストを抑えている。
+`speedMult` は `btnSpeedToggle` で 1 または 2 を切り替え、全チーム共通で速度に反映される（チームごとの個別速度設定はない）。速度は1フレームに進める刻みの数を増やすだけで、`step()` に渡す幅は常に0.05秒（オフライン精算・シミュレーターと同じ）。端末の描画速度や速度の設定で、行動順・勝敗は変わらない（課金設計書§4.2）。`requestAnimationFrame` により毎フレーム呼び出され、`activeTeam`（画面に表示中のチーム）に関わらず4チーム全てのATBが等しく進行する。DOM更新（アクターカードのHP/MPバー、ログの追記）だけを表示中チームに限定することで、背後のチームの処理自体は止めずに描画コストを抑えている。
 
 ### 2.6 ダメージ・回復計算（`performCharacterAction`）
 
@@ -333,7 +334,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 
 | 項目 | 通常プレイ | オフライン精算 |
 |---|---|---|
-| 勝敗 | 戦闘エンジンで実際に戦う | 同じ戦闘エンジン（`QPCore.battle.simulate`）でキャラの写しを戦わせる |
+| 勝敗 | 戦闘エンジンで実際に戦う（0.05秒の固定刻み） | 同じ戦闘エンジン（`QPCore.battle.simulate`、同じ0.05秒の刻み）でキャラの写しを戦わせる |
 | 戦闘の打ち切り | なし | 300秒（`OFFLINE_BATTLE_MAX_SECONDS`）で決着しなければ負け |
 | 所要時間 | 実際の時間（x1/x2） | 戦闘ごとのシミュレーション秒数＋戦闘間2秒＋出発〜踏破2秒（x1相当）。最大8時間 |
 | 石碑の加護 | 能力値に加算 | 省略（実際よりわずかに厳しめ） |
@@ -408,11 +409,11 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | ファイル | 主な関数 | 内容 |
 |---|---|---|
 | `storage.js` | `createStorage(backend, { onWriteError })`, `KEYS` | 端末への保存の窓口（§4） |
-| `rng.js` | `shared`, `createRng(seed)`, `setSharedSeed(seed)` | 乱数（§3.1） |
+| `rng.js` | `shared`, `createRng(seed)`, `setSharedSeed(seed)`, `seededSource(seed)`, `withSharedSource(source, fn)` | 乱数（§3.1。チームごとの並びの切り替え） |
 | `enhance.js` | `successRate / cost / expectedCost / pityThreshold / guaranteedRequired`, `attempt(rules, item, { rng, pityEnabled })`, `useGuaranteed(rules, item, stones)` | 装備強化（§2.10）。`attempt` / `useGuaranteed` は判定後の+値・天井ゲージ・確定強化石の残数を返すだけで、装備や所持数は変更しない |
 | `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
 | `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは model/roster.js の `computeStats` |
-| `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `chooseAction(c, party, env, enemies)`, `expectedValue`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。`chooseAction` は優先度が最も高い技のグループに絞り、その中で期待効果（実際のダメージ式で見積もった与ダメージ／回復量。敵の残りHP・味方の減ったHPを超える分は数えない。会心は期待値）が最大の技を選ぶ（通常の優先度では通常攻撃とも比較し、同値なら消費MPが少ない方）。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
+| `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `STEP_SECONDS`（固定刻み0.05秒）, `frameSteps(acc, frameSeconds, speed, maxSteps)`（画面のループの時間の積み立て）, `chooseAction(c, party, env, enemies)`, `expectedValue`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。`chooseAction` は優先度が最も高い技のグループに絞り、その中で期待効果（実際のダメージ式で見積もった与ダメージ／回復量。敵の残りHP・味方の減ったHPを超える分は数えない。会心は期待値）が最大の技を選ぶ（通常の優先度では通常攻撃とも比較し、同値なら消費MPが少ない方）。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
 | `offline.js` | `estimateRunSeconds`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は戦闘を `ctx.fight`（game.js が戦闘エンジンで実際に戦わせる）に任せ、所要時間・遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返す。図鑑登録・EXP付与・所持品への追加は game.js の `applyOfflineRun` が行う |
 
 ## 3.0a ゲームの状態とセーブ（`js/model/`）
@@ -451,7 +452,9 @@ UI分離（`docs/production-plan.md` §4）の工程1〜4。保存対象のゲ�
 
 ## 3.1 乱数（`js/core/rng.js`）
 
-ゲーム内の抽選（ドロップ・レア度・敵の編成・会心・テイム・強化・道中イベント・オフライン精算など）は `Math.random` を直接呼ばず、`data.js` 冒頭で定義する共有乱数 `RNG`（`QPCore.rng.shared`）の `next() / float(a, b) / int(n) / chance(p) / pick(arr)` を使う。`QPCore.rng.setSharedSeed(seed)` でシード付き（mulberry32）に差し替えると抽選結果を再現でき、`setSharedSeed(undefined)` で通常の乱数に戻る。本番化で抽選をサーバーへ移す際は、同じ関数をサーバー側の乱数で動かす。
+ゲーム内の抽選（ドロップ・レア度・敵の編成・会心・テイム・強化・道中イベント・オフライン精算など）は `Math.random` を直接呼ばず、`data.js` 冒頭で定義する共有乱数 `RNG`（`QPCore.rng.shared`）の `next() / float(a, b) / int(n) / chance(p) / pick(arr)` を使う。`QPCore.rng.setSharedSeed(seed)` でシード付き（mulberry32）に差し替えると抽選結果を再現でき、`setSharedSeed(undefined)` で通常の乱数に戻る。
+
+**チームごとの乱数の並び**（`js/model/run.js`）: 出発（`startRun`）のたびに基の乱数から周回のシードを1つ引き、`run.rngSource`（mulberry32）を作る。その周回の遭遇・戦闘・ドロップ・道中イベント・テイムは、`QPCore.rng.withSharedSource(source, fn)` で共有乱数 `RNG` をその並びに切り替えた中で実行する（`Runner` が外へ出す `startBattle` / `stepBattle` / `winBattle` / `attemptTame` / `rollEvent`。戦闘エンジンの `env.rng` も同じ並び）。オフライン精算はチームごとに新しい並びを1つ作って使う。これで、他のチームがいつ乱数を使ったか・どのチームを表示しているかで、別のチームの勝敗やドロップが変わらない（課金設計書§4.2）。本番化で抽選をサーバーへ移す際は、同じ関数をサーバー側の乱数で動かす。
 
 ## 4. localStorage キー一覧
 

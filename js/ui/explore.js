@@ -96,18 +96,21 @@ function logBattleEvent(run, battle, ev) {
 }
 
 // ---------- Main ATB loop ----------
-// 4チーム全てのATBを同時に(x1速度なら等速で)進める。表示中のチームだけDOMを更新する
+// 4チーム全てのATBを同時に(x1速度なら等速で)進める。表示中のチームだけDOMを更新する。
+// 戦闘は固定刻み（QPCore.battle.STEP_SECONDS = 0.05秒）で進める: フレームの経過時間×速度を積み立て、刻みぶん貯まる
+// ごとに1刻み進める。速度は1フレームに進める刻みの数を増やすだけで、1刻みの幅は変えない。
+// こうすると端末の描画速度や速度の設定で行動順・勝敗が変わらず、オフライン精算・シミュレーターとも同じ刻みになる
+const BATTLE_STEP = QPCore.battle.STEP_SECONDS; // 進め方は js/core/battle.js の frameSteps
+const MAX_FRAME_SECONDS = 0.1; // 1フレームで進める実時間の上限（間が空いたフレームで一気に進めない）
+const MAX_STEPS_PER_FRAME = 20; // 1フレームの刻み数の上限。消化しきれなかった時間は次のフレームへ持ち越す
 let lastT = 0;
+let stepAccum = 0;
 function loop(t) {
-  const dtRaw = Math.min(0.05, (t - lastT) / 1000 || 0);
+  const dtRaw = Math.min(MAX_FRAME_SECONDS, (t - lastT) / 1000 || 0);
   lastT = t;
-  // 速いほど1フレームで進む時間が長くなるため、0.05秒ずつに分けて進める（x5でも戦闘の判定がx1と同じ細かさになる）
-  let left = dtRaw * speedMult;
-  while (left > 1e-6) {
-    const step = Math.min(0.05, left);
-    tick(step);
-    left -= step;
-  }
+  const { steps, acc } = QPCore.battle.frameSteps(stepAccum, dtRaw, speedMult, MAX_STEPS_PER_FRAME);
+  stepAccum = acc;
+  for (let n = 0; n < steps; n++) tick(BATTLE_STEP);
   requestAnimationFrame(loop);
 }
 
