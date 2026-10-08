@@ -2,7 +2,7 @@
 // クラウドセーブの状態の表示と、「今すぐバックアップ」「クラウドから復元」。通信は js/cloud.js（QPCloud）
 "use strict";
 
-const CLOUD_STATUS_LABELS = { off: "未接続", connecting: "接続中…", ready: "有効", error: "停止中" };
+const CLOUD_STATUS_LABELS = { off: "未接続", connecting: "接続中…", ready: "有効", error: "停止中", "needs-login": "アカウント未連携", conflict: "セーブの選択が必要" };
 
 function formatDateTime(ms) {
   if (!ms) return "—";
@@ -25,8 +25,15 @@ function renderCloudState(st) {
   document.getElementById("cloudLastUpload").textContent = formatDateTime(st.lastUploadAt);
   document.getElementById("cloudUid").textContent = st.uid || "—";
   const busy = st.status === "connecting";
-  document.getElementById("btnCloudBackup").disabled = busy;
-  document.getElementById("btnCloudRestore").disabled = busy;
+  const prod = window.QPRuntime && QPRuntime.channel === "production";
+  document.getElementById("btnCloudBackup").disabled = busy || (prod && st.status !== "ready");
+  document.getElementById("btnCloudRestore").disabled = busy || (prod && (st.status === "needs-login" || !st.uid));
+  if (prod) {
+    document.getElementById("btnCloudConnect").classList.toggle("hidden", st.status !== "needs-login");
+    document.getElementById("btnCloudPreferLocal").classList.toggle("hidden", st.status !== "conflict");
+    document.getElementById("btnCloudLogout").classList.toggle("hidden", !st.uid);
+    if (st.status !== "conflict") resetCloudLocalConfirm();
+  }
   if (st.error && !cloudRestoreCandidate) showCloudMessage(st.error, true);
 }
 
@@ -35,7 +42,44 @@ function resetCloudRestoreConfirm() {
   document.getElementById("btnCloudRestore").textContent = "クラウドから復元";
 }
 
+let cloudLocalConfirm = false;
+function resetCloudLocalConfirm() {
+  cloudLocalConfirm = false;
+  const btn = document.getElementById("btnCloudPreferLocal");
+  if (btn) btn.textContent = "この端末の進行を採用する";
+}
+
 if (window.QPCloud) {
+  const prod = window.QPRuntime && QPRuntime.channel === "production";
+  if (prod) {
+    document.getElementById("cloudAccountActions").classList.remove("hidden");
+    document.getElementById("cloudHelpText").textContent =
+      "正式版のバックアップはGoogleで連携したアカウントに保存します。別の端末のセーブがある場合は自動上書きしません。端末の進行は連携前でも保存されます。";
+    document.getElementById("btnCloudConnect").addEventListener("click", async () => {
+      try { showCloudMessage("アカウントを連携しています…"); await QPCloud.connectGoogle(); showCloudMessage("連携しました。クラウドの進行をご確認ください。"); }
+      catch (e) { showCloudMessage(e.message || "連携に失敗しました", true); }
+    });
+    document.getElementById("btnCloudLogout").addEventListener("click", async () => {
+      resetCloudRestoreConfirm();resetCloudLocalConfirm();
+      try { await QPCloud.disconnect(); showCloudMessage("クラウドアカウントからログアウトしました。端末の進行は残ります。"); }
+      catch (e) { showCloudMessage(e.message || "ログアウトできませんでした", true); }
+    });
+    document.getElementById("btnCloudPreferLocal").addEventListener("click", async () => {
+      resetCloudRestoreConfirm();
+      if (!cloudLocalConfirm) {
+        cloudLocalConfirm = true;armConfirm();
+        document.getElementById("btnCloudPreferLocal").textContent = "本当にクラウドの進行を上書きする";
+        showCloudMessage("クラウドの古い進行は失われます。別の端末で保存した内容を確認した上で、もう一度押してください。", true);
+        return;
+      }
+      if (!confirmReady()) return;
+      resetCloudLocalConfirm();
+      try {
+        const ok = await QPCloud.preferLocal();
+        showCloudMessage(ok ? "この端末の進行をクラウドに保存しました。" : (QPCloud.getState().error || "上書きできませんでした"), !ok);
+      } catch (e) { showCloudMessage(e.message || "同期に失敗しました", true); }
+    });
+  }
   QPCloud.subscribe(renderCloudState);
 
   document.getElementById("btnCloudBackup").addEventListener("click", async () => {
@@ -80,7 +124,7 @@ if (window.QPCloud) {
   });
 
   // 設定画面を離れたら、復元の確認は取り消す
-  document.getElementById("btnSettingsBack").addEventListener("click", () => { resetCloudRestoreConfirm(); showCloudMessage(""); });
+  document.getElementById("btnSettingsBack").addEventListener("click", () => { resetCloudRestoreConfirm(); resetCloudLocalConfirm(); showCloudMessage(""); });
 } else {
   document.querySelector("#screen-settings .settings-cloud").classList.add("hidden");
 }
