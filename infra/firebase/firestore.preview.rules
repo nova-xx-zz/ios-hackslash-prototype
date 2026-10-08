@@ -1,0 +1,28 @@
+// Preview: existing client SDK uses saves/{firebaseUid}. Do NOT use for real purchases.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function validPreviewBackup() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['data', 'savedAt', 'updatedAt'])
+        && data.keys().hasOnly(['data', 'savedAt', 'updatedAt'])
+        && data.data is string
+        && data.data.size() <= 500000
+        && data.savedAt is int
+        && data.savedAt >= 0
+        && data.updatedAt == request.time;
+    }
+    match /saves/{uid} {
+      allow get: if isOwner(uid);
+      allow list, delete: if false;
+      allow create, update: if isOwner(uid) && validPreviewBackup();
+    }
+    // A client must NEVER write paid balances, purchases, roles, or other users' saves.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
