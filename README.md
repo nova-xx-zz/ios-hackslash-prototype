@@ -195,9 +195,11 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
 - `docs/reviews/special-job-review-2026-10-08.md` — 特殊ジョブ設計のセルフレビュー（SJR-01〜09）
 - `docs/skill-tree-design.md` — スキルツリー設計書（Lv99までの段・追加のマスと技・振り直し・敵の特性と属性・強化と弱体・モードごとの難易度の考え方）
-- `docs/monetization-design.md` — 課金設計書 v0.3（本番向けの未実装案。商品・無料範囲・購入／復元・段階公開・受入条件33項目。現行プロトタイプは無料テストショップで、実決済は行わない）
+- `docs/monetization-design.md` — 課金設計書 v0.4（本番向けの未実装案。商品・無料範囲・購入／復元・段階公開・受入条件33項目。現行プロトタイプは無料テストショップで、実決済は行わない）
 - `docs/reviews/monetization-review-2026-10-08.md` — 課金設計のセルフレビュー（指摘MRV-01〜10、反映内容、未実装のP0と検証課題）
 - `docs/reviews/release-check-2026-10-07.md` — リリース前チェック（システムの破綻・セキュリティ・誤操作の指摘と修正内容）
+- `docs/backend-evolution-design.md` — 本番バックエンドの拡張・移行設計（未実装。API境界、安定ID、保存容量・競合、監視、台帳移行・復旧、BE-01〜12）
+- `docs/reviews/backend-evolution-review-2026-10-08.md` — 拡張・移行設計のセルフレビューと段階別の残課題
 - `docs/production-plan.md` — 本番化・課金方針（技術構成・データの置き場所・課金の法務・既知の課題）
 - `tools/economy.js` — 課金経済の再計算。強化石の収入（進行帯・モード別）、天井込みの強化消費、ログイン回数・全滅を入れた1日の収入、無課金／月パス／購入ごとのLR+99までの日数を出す（`node tools/economy.js`、結果は `docs/production-plan.md` §5.4）
 - `tools/simulate.js` — 戦闘シミュレーション。画面なしでダンジョンごと・レベルごとの踏破率と1周の戦闘時間を計算する（`node tools/simulate.js [試行回数]`）。`--check` で難易度の基準を満たすか確認、`--calibrate` で基準に合う敵の強さ倍率を提案、`--build` で装備とスキルの効き具合を比較する（ダンジョンを追加する手順は `docs/production-plan.md` §8.6）
