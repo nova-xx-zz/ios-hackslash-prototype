@@ -12,7 +12,7 @@ function parseSave(input){
   let data;
   try{data=JSON.parse(input);}catch{throw new ApiError(400,"invalid_json");}
   if(!data||typeof data!=="object"||Array.isArray(data)||!Array.isArray(data.roster))throw new ApiError(400,"invalid_save");
-  if(data.roster.length>500)throw new ApiError(400,"invalid_roster");
+  if(data.roster.length===0||data.roster.length>500)throw new ApiError(400,"invalid_roster");
   if(!Number.isInteger(data.schemaVersion)||data.schemaVersion<1||data.schemaVersion>MAX_SCHEMA_VERSION)throw new ApiError(409,"unsupported_schema");
   for(const key of PAID_KEYS)if(Object.prototype.hasOwnProperty.call(data,key))throw new ApiError(400,"financial_fields_forbidden");
   // 進行データの真正性までは検証しない。課金権利はサーバーの別台帳に置く。

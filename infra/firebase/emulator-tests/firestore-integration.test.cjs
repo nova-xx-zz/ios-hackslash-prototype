@@ -57,15 +57,15 @@ async function checkRevisionRecovery(){
  const alice=await service.getAccount("alice"),again=await service.getAccount("alice"),bob=await service.getAccount("bob");
  assert.equal(alice.accountId,again.accountId);
  assert.notEqual(alice.accountId,bob.accountId);
- const json=JSON.stringify({schemaVersion:2,roster:[],material:5});
+ const json=JSON.stringify({schemaVersion:2,roster:[{name:"hero"}],material:5});
  const operationId="0b4d6f53-4e89-4851-8e34-5367046bbd0d";
  const input={json,expectedRevision:0,savedAt:100,operationId};
  const first=await service.putBackup("alice",input);
  assert.deepEqual(first,{revision:1,status:"accept"});
  // Network timeout after a committed write: retrying same request does not grant a second revision.
  assert.deepEqual(await service.putBackup("alice",input),{revision:1,status:"replay"});
- const second={json:JSON.stringify({schemaVersion:2,roster:[],material:10}),expectedRevision:1,savedAt:101,operationId:"a94518b5-37bc-4ae1-96a7-e0a3ee4d86da"};
- const third={json:JSON.stringify({schemaVersion:2,roster:[],material:20}),expectedRevision:1,savedAt:102,operationId:"96c234b1-61f6-43cb-9226-14e58a489b9c"};
+ const second={json:JSON.stringify({schemaVersion:2,roster:[{name:"hero"}],material:10}),expectedRevision:1,savedAt:101,operationId:"a94518b5-37bc-4ae1-96a7-e0a3ee4d86da"};
+ const third={json:JSON.stringify({schemaVersion:2,roster:[{name:"hero"}],material:20}),expectedRevision:1,savedAt:102,operationId:"96c234b1-61f6-43cb-9226-14e58a489b9c"};
  const both=await Promise.allSettled([service.putBackup("alice",second),service.putBackup("alice",third)]);
  assert.equal(both.filter(x=>x.status==="fulfilled").length,1,"exactly one concurrent writer must commit");
  assert.equal(both.filter(x=>x.status==="rejected"&&x.reason?.status===409).length,1,"stale writer must receive 409");

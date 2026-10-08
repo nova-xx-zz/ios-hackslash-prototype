@@ -37,14 +37,15 @@ test("backup is atomic and retries are idempotent; conflicting changes are rejec
  assert.deepEqual(await s.putBackup(token,body()),{revision:1,status:"accept"});
  assert.deepEqual(await s.putBackup(token,body()),{revision:1,status:"replay"});
  await assert.rejects(s.putBackup(token,body({savedAt:999})),e=>e.code==="operation_reused");
- await assert.rejects(s.putBackup(token,body({json:JSON.stringify({schemaVersion:2,roster:[],material:50})})),e=>e.code==="operation_reused");
+ await assert.rejects(s.putBackup(token,body({json:JSON.stringify({schemaVersion:2,roster:[{name:"hero"}],material:50})})),e=>e.code==="operation_reused");
  await assert.rejects(s.putBackup(token,body({operationId:"d65b46e7-5367-4b65-97ae-b64ef18dca21"})),e=>e.code==="revision_conflict");
  const saved=await s.getBackup(token);assert.equal(saved.revision,1);assert.equal(JSON.parse(saved.json).material,12);
 });
 test("paid claims, future schema, oversized saves and malformed operations are rejected",()=>{
- assert.throws(()=>parseSave(JSON.stringify({schemaVersion:2,roster:[],purchases:{unlocks:{all:true}}})),e=>e.code==="financial_fields_forbidden");
- assert.throws(()=>parseSave(JSON.stringify({schemaVersion:2,roster:[],guaranteedStones:{paid:100}})),e=>e.code==="financial_fields_forbidden");
- assert.throws(()=>parseSave(JSON.stringify({schemaVersion:3,roster:[]})),e=>e.code==="unsupported_schema");
+ assert.throws(()=>parseSave(JSON.stringify({schemaVersion:2,roster:[]})),e=>e.code==="invalid_roster");
+ assert.throws(()=>parseSave(JSON.stringify({schemaVersion:2,roster:[{name:"hero"}],purchases:{unlocks:{all:true}}})),e=>e.code==="financial_fields_forbidden");
+ assert.throws(()=>parseSave(JSON.stringify({schemaVersion:2,roster:[{name:"hero"}],guaranteedStones:{paid:100}})),e=>e.code==="financial_fields_forbidden");
+ assert.throws(()=>parseSave(JSON.stringify({schemaVersion:3,roster:[{name:"hero"}]})),e=>e.code==="unsupported_schema");
  assert.throws(()=>parseSave("x".repeat(LIMIT_BYTES+1)),e=>e.status===413);
  assert.throws(()=>validateWrite(body({operationId:"x"})),e=>e.status===400);
  assert.throws(()=>validateWrite(body({expectedRevision:-1})),e=>e.status===400);
