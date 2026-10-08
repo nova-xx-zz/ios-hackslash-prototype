@@ -98,25 +98,3 @@ test("自動周回x100: 業火の霊峰（ノーマル）を踏破するまで�
   // 他の商品は条件なし
   assert.equal(shop.productStatus(shop.getProduct("battle_speed_5")).locked, undefined);
 });
-
-test("特殊ジョブの早期解放: 業火の霊峰の踏破で買える。深淵の心臓を踏破すると無料で解放済みになり受け取れない。機能フラグが無効なら並ばない", () => {
-  const { state, shop } = setup();
-  const product = shop.getProduct("job_pilgrim_unlock");
-  assert.equal(shop.productStatus(product).locked, true);
-  assert.equal(shop.purchase(product.id).reason, "locked");
-  state.clearedDungeons.add("inferno_peak");
-  assert.equal(shop.productStatus(product).locked, undefined);
-  assert.ok(shop.products().includes(product));
-  // 無料の条件を満たすと「解放済み」で受け取れない
-  state.clearedDungeons.add("abyss_heart");
-  assert.deepEqual([shop.productStatus(product).freeUnlocked, shop.productStatus(product).soldOut], [true, true]);
-  assert.equal(shop.purchase(product.id).reason, "soldOut");
-  state.clearedDungeons.delete("abyss_heart");
-  assert.equal(shop.purchase(product.id).ok, true);
-  assert.equal(state.purchases.unlocks.jobPilgrim, true);
-  assert.equal(shop.productStatus(product).owned, true);
-  // 機能フラグが無効
-  const off = createShop({ data: Object.assign({}, data, { isFeatureEnabled: (k) => k !== "specialJobs" }), state: createState({ teamCount: 4 }) });
-  assert.equal(off.products().some((p) => p.id === "job_pilgrim_unlock"), false);
-  assert.equal(off.purchase("job_pilgrim_unlock").reason, "unknown");
-});

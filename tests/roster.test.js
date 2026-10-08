@@ -300,19 +300,42 @@ test("スキルツリー: 振り直しは強化石（使ったSP×20）で4本�
 });
 
 // ---------- 特殊職（巡礼剣士。docs/special-job-design.md） ----------
-test("特殊職: 深淵の心臓の踏破か、ショップの購入のどちらかで解放（アカウント単位）。機能フラグが無効なら解放しない", () => {
+test("特殊職: テスト中（testOpen）は全員が転職できる。本番の設定では、期間中に条件のダンジョンを踏破した時だけ解放を記録し、以後ずっと使える", () => {
   const { state, R } = setup();
   const a = R.newCharacter("A", "warrior", "human");
-  const b = R.newCharacter("B", "mage", "sylvan");
   assert.equal(data.JOBS.pilgrim.tier, "special");
-  assert.equal(R.jobUnlocked(a, "pilgrim"), false);
-  state.clearedDungeons.add("abyss_heart");
-  assert.equal(R.jobUnlocked(a, "pilgrim"), true);
-  assert.equal(R.jobUnlocked(b, "pilgrim"), true); // ほかのキャラも
-  state.clearedDungeons.delete("abyss_heart");
-  state.purchases.unlocks.jobPilgrim = true;
-  assert.equal(R.jobUnlocked(a, "pilgrim"), true);
-  // 機能フラグが無効
+  assert.equal(data.JOBS.pilgrim.unlock.testOpen, true);
+  assert.equal(R.jobUnlocked(a, "pilgrim"), true); // テスト中
+  // 本番の設定（testOpen なし。リリースから30日間と1周年の30日間）
+  const DAY = 24 * 60 * 60 * 1000;
+  const release = Date.parse("2027-04-01T00:00:00+09:00");
+  const prodJobs = Object.assign({}, data.JOBS, { pilgrim: Object.assign({}, data.JOBS.pilgrim, { unlock: {
+    cleared: "inferno_peak",
+    windows: [{ id: "release", start: "2027-04-01T00:00:00+09:00", days: 30 }, { id: "anniversary1", start: "2028-04-01T00:00:00+09:00", days: 30 }],
+  } }) });
+  const P = createRoster({ data: Object.assign({}, data, { JOBS: prodJobs }), state });
+  assert.equal(P.jobUnlocked(a, "pilgrim"), false);
+  assert.equal(P.activeJobWindow("pilgrim", release - 1), null);
+  assert.equal(P.activeJobWindow("pilgrim", release).id, "release");
+  // 期間中でも、まだ踏破していなければ解放しない
+  assert.deepEqual(P.refreshJobGrants(release + DAY), []);
+  // 期間が終わってから踏破しても解放しない
+  state.clearedDungeons.add("inferno_peak");
+  assert.deepEqual(P.refreshJobGrants(release + 30 * DAY), []);
+  assert.equal(P.jobUnlocked(a, "pilgrim"), false);
+  // 1周年の復刻の期間中なら解放し、記録は残る（期間が終わってもずっと使える）
+  const anniv = Date.parse("2028-04-01T00:00:00+09:00");
+  assert.deepEqual(P.refreshJobGrants(anniv + DAY), ["pilgrim"]);
+  assert.deepEqual(state.jobGrants.pilgrim, { at: anniv + DAY, window: "anniversary1" });
+  assert.deepEqual(P.refreshJobGrants(anniv + 2 * DAY), []); // 2回は記録しない
+  assert.equal(P.jobUnlocked(a, "pilgrim"), true);
+  // セーブに残る
+  const save = require("../js/model/save.js");
+  state.roster = [a];
+  const loaded = save.deserialize(JSON.parse(JSON.stringify(save.serialize(state, { now: 1 }))), {});
+  assert.deepEqual(loaded.state.jobGrants, { pilgrim: { at: anniv + DAY, window: "anniversary1" } });
+  assert.deepEqual(save.deserialize({ roster: [{ id: "x" }], jobGrants: { a: "bad", b: { at: "x" } } }, {}).state.jobGrants, {});
+  // 機能フラグが無効なら、テスト中・記録ありでも解放しない
   const off = createRoster({ data: Object.assign({}, data, { isFeatureEnabled: (k) => k !== "specialJobs" && data.isFeatureEnabled(k) }), state });
   assert.equal(off.jobUnlocked(a, "pilgrim"), false);
 });
@@ -341,7 +364,6 @@ test("特殊職: 機能フラグを無効にすると、巡礼剣士のキャラ
   const offData = Object.assign({}, data, { isFeatureEnabled: (k) => k !== "specialJobs" && data.isFeatureEnabled(k) });
   const on = createRoster({ data, state });
   const off = createRoster({ data: offData, state });
-  state.purchases.unlocks.jobPilgrim = true;
   const p = on.newCharacter("P", "warrior", "human", { level: 12 }); // せんしLv12
   on.switchJob(p, "mage"); // まほうつかい Lv1
   on.switchJob(p, "pilgrim");

@@ -103,11 +103,9 @@ function buildStatsTab(c) {
 // 特殊職の解放の条件の文（docs/special-job-design.md §6）
 function specialJobUnlockText(job) {
   const u = job.unlock || {};
+  if (u.testOpen) return "テスト中は条件なしで転職できる";
   const d = u.cleared ? getDungeon(u.cleared) : null;
-  const product = SHOP_PRODUCTS.find((p) => p.kind === "unlock" && p.unlock === u.purchase);
-  const shopNeed = product && product.requiresCleared ? getDungeon(product.requiresCleared) : null;
-  return `「${d ? d.name : u.cleared}」（ノーマル）を踏破すると解放` +
-    (product ? `。ショップでも早期解放できる${shopNeed ? `（「${shopNeed.name}」の踏破後）` : ""}` : "");
+  return `期間限定: 解放の期間中に「${d ? d.name : u.cleared}」（ノーマル）を踏破すると解放（解放後はずっと使える）`;
 }
 
 // ---------- 詳細: ジョブタブ ----------

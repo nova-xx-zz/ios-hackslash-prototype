@@ -23,13 +23,10 @@ function openShop(returnScreen, highlightId) {
   }
 }
 
-// 特殊ジョブの解放（feature が specialJobs の商品）は「便利な機能」と分けて並べる
-const isJobProduct = (p) => p.feature === "specialJobs";
 const SHOP_SECTIONS = [
-  { title: "便利な機能（買い切り）", match: (p) => p.kind === "unlock" && !isJobProduct(p) },
-  { title: "特殊ジョブ（テスト中）", match: isJobProduct },
-  { title: "確定強化石", match: (p) => p.kind === "guaranteedStone" },
-  { title: "仲間のBOX", match: (p) => p.kind === "rosterBox" },
+  { title: "便利な機能（買い切り）", kinds: ["unlock"] },
+  { title: "確定強化石", kinds: ["guaranteedStone"] },
+  { title: "仲間のBOX", kinds: ["rosterBox"] },
 ];
 
 function renderShop() {
@@ -56,13 +53,11 @@ function renderShop() {
   }
 
   for (const section of SHOP_SECTIONS) {
-    const items = Shop.products().filter(section.match);
-    if (items.length === 0) continue;
     const title = document.createElement("div");
     title.className = "shop-section-title";
     title.textContent = section.title;
     body.appendChild(title);
-    for (const product of items) body.appendChild(buildShopItem(product));
+    for (const product of SHOP_PRODUCTS.filter((p) => section.kinds.includes(p.kind))) body.appendChild(buildShopItem(product));
   }
 
 }
@@ -91,7 +86,7 @@ function buildShopItem(product) {
   const btn = document.createElement("button");
   const confirming = shopConfirmId === product.id;
   btn.className = "btn small " + (st.soldOut || st.locked ? "ghost" : "primary");
-  btn.textContent = st.owned ? "購入済み" : st.freeUnlocked ? "解放済み" : st.soldOut ? "上限です" : st.locked ? "未解放" : confirming ? "本当に受け取る" : "購入する";
+  btn.textContent = st.owned ? "購入済み" : st.soldOut ? "上限です" : st.locked ? "未解放" : confirming ? "本当に受け取る" : "購入する";
   btn.disabled = st.soldOut || st.locked;
   btn.addEventListener("click", () => {
     if (shopConfirmId !== product.id) { shopConfirmId = product.id; shopMessage = ""; armConfirm(); renderShop(); return; }

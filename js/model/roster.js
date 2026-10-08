@@ -106,14 +106,37 @@
 
     // 上級職は対応する基本職を規定レベルまで極めると解放される。
     // 特殊職（docs/special-job-design.md §6）はアカウント単位で、機能フラグ specialJobs が有効で、
-    // 無料の条件（job.unlock.cleared をノーマルで踏破）か購入（purchases.unlocks[job.unlock.purchase]）のどちらかがあれば解放
+    // テスト中（job.unlock.testOpen）か、期間限定の解放を受け取っている（state.jobGrants[jobId]）なら解放
     function specialJobUnlocked(jobId) {
       const job = JOBS[jobId];
       if (!job || job.tier !== "special" || !isFeatureEnabled("specialJobs")) return false;
       const u = job.unlock || {};
-      const cleared = !!(u.cleared && S.clearedDungeons && S.clearedDungeons.has(u.cleared));
-      const bought = !!(u.purchase && S.purchases && S.purchases.unlocks && S.purchases.unlocks[u.purchase]);
-      return cleared || bought;
+      return !!u.testOpen || !!(S.jobGrants && S.jobGrants[jobId]);
+    }
+    // 特殊職の解放の期間（job.unlock.windows）のうち、nowMs が入っているもの（無ければ null）
+    function activeJobWindow(jobId, nowMs) {
+      const u = (JOBS[jobId] && JOBS[jobId].unlock) || {};
+      return (u.windows || []).find((w) => {
+        const start = Date.parse(w.start);
+        return Number.isFinite(start) && nowMs >= start && nowMs < start + w.days * 24 * 60 * 60 * 1000;
+      }) || null;
+    }
+    // 期間限定の解放を記録する（セーブの前に呼ぶ）: 期間中に、条件のダンジョンをノーマルで踏破済みなら
+    // state.jobGrants[jobId] = { at, window } を付ける（以後はずっと使える）。結果: 新しく解放したジョブIDの配列
+    function refreshJobGrants(nowMs) {
+      const granted = [];
+      if (!isFeatureEnabled("specialJobs")) return granted;
+      for (const jobId of Object.keys(JOBS)) {
+        const job = JOBS[jobId];
+        if (job.tier !== "special" || !job.unlock) continue;
+        if (S.jobGrants && S.jobGrants[jobId]) continue;
+        const w = activeJobWindow(jobId, nowMs);
+        if (!w || !(S.clearedDungeons && S.clearedDungeons.has(job.unlock.cleared))) continue;
+        if (!S.jobGrants) S.jobGrants = {};
+        S.jobGrants[jobId] = { at: nowMs, window: w.id };
+        granted.push(jobId);
+      }
+      return granted;
     }
     function jobUnlocked(c, jobId) {
       const job = JOBS[jobId];
@@ -428,7 +451,7 @@
     function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
     return {
-      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
+      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
       equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }

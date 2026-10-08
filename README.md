@@ -192,7 +192,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/detailed-design.md` — 詳細設計書（データ構造・計算式・関数マッピング）
 - `docs/monster-design.md` — モンスター設計書（地方・ダンジョンごとの敵、敵の強さ、ボス・レア敵、テイム・型・合成）
 - `docs/equipment-design.md` — 装備設計書（種類・ジョブの装備制限・シリーズとセット効果・レア度・強化・ドロップ・名のある装備・オプション効果）
-- `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・解放・バランスの基準と計測。テスト中）
+- `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
 - `docs/reviews/special-job-review-2026-10-08.md` — 特殊ジョブ設計のセルフレビュー（SJR-01〜09）
 - `docs/skill-tree-design.md` — スキルツリー設計書（Lv99までの段・追加のマスと技・振り直し・敵の特性と属性・強化と弱体・モードごとの難易度の考え方）
 - `docs/monetization-design.md` — 課金設計書 v0.3（本番向けの未実装案。商品・無料範囲・購入／復元・段階公開・受入条件33項目。現行プロトタイプは無料テストショップで、実決済は行わない）

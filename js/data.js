@@ -38,11 +38,6 @@ const SHOP_PRODUCTS = [
     desc: "確定強化石10個に、おまけ1個付き" },
   { id: "roster_box_50", kind: "rosterBox", name: "仲間のBOX +50", price: 250,
     desc: "所持できる仲間の上限を50人増やす（何回でも、上限1000人まで）" },
-  // 特殊ジョブの早期解放（docs/special-job-design.md §6）。feature: その機能フラグが false の間は並べない。
-  // freeIfCleared: このダンジョンを（ノーマルで）踏破すると無料で解放されるので、それ以降は受け取れない（「解放済み」）
-  { id: "job_pilgrim_unlock", kind: "unlock", unlock: "jobPilgrim", name: "特殊ジョブ「巡礼剣士」早期解放", price: 980,
-    requiresCleared: "inferno_peak", freeIfCleared: "abyss_heart", feature: "specialJobs",
-    desc: "特殊ジョブ「じゅんれいけんし」に転職できるようになる（買い切り。深淵の心臓を踏破すると無料で解放される）" },
 ];
 // 仲間のBOX（所持できる仲間の数）。最初は base 人、拡張1回につき step 人、max 人まで。
 // 上限を超えて持っている仲間は減らさず、新しく増やせなくなるだけ（仲間を呼ぶ・テイム）
@@ -217,12 +212,19 @@ const JOBS = {
     ],
   },
   // ---------- 特殊職（docs/special-job-design.md。機能フラグ specialJobs） ----------
-  // unlock: 解放の根拠（アカウント単位。どちらか一方でよい）。cleared: このダンジョンをノーマルで踏破（無料）、
-  //         purchase: ショップの購入で付く purchases.unlocks のキー（js/model/roster.js の jobUnlocked）
+  // unlock: 解放の条件（アカウント単位。docs/special-job-design.md §6。js/model/roster.js の jobUnlocked・refreshJobGrants）
+  //   testOpen: true の間（プロトタイプのテスト中）は条件なしで全員が転職できる。本番では false にする
+  //   期間限定: windows のどれかの期間中に、cleared のダンジョンをノーマルで踏破済みなら解放（state.jobGrants に記録し、
+  //   以後はずっと使える）。期間の外では、踏破しても解放されない。windows: [{ id, start（ISO 8601）, days }]
   // soloBonus: そのチームの仲間がこのジョブのキャラ1人だけのときの効果（ひとり旅の加護。js/model/roster.js の soloBonus）
   pilgrim: {
     id: "pilgrim", name: "じゅんれいけんし", commandName: "じゅんれい", icon: "🧭", tier: "special",
-    unlock: { cleared: "abyss_heart", purchase: "jobPilgrim" },
+    unlock: {
+      testOpen: true,
+      cleared: "inferno_peak", // 業火の霊峰（中盤の終わり、推奨Lv60）
+      // 本番: リリースから30日間と、1周年の復刻（30日間）。日付は決まったら入れる（例: { id: "release", start: "2027-04-01T00:00:00+09:00", days: 30 }）
+      windows: [],
+    },
     soloBonus: { atkPct: 0.3, dmgTakenMult: 0.6 },
     desc: "各地の聖地を巡る旅の剣士。仲間がいなくても戦い抜く術を身につけており、ひとりのときに真価を発揮する。",
     base: { hp: 40, mp: 12, atk: 13, mag: 6, def: 10, spd: 7 },
