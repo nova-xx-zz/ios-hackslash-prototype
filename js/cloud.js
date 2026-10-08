@@ -10,6 +10,7 @@
   "use strict";
   // 確認用モード（?debug）では、確認用のデータを本番のバックアップに上書きしないよう、クラウドセーブを使わない
   // （QPCloud を用意しないので、設定画面のクラウドセーブの欄も出ない）
+  if (root.QPRuntime && root.QPRuntime.channel === "production") return; // 正式版はAPI経由のcloud-production.jsのみ
   if (root.QPCore && root.QPCore.storage && root.QPCore.storage.isDebugMode()) return;
   const UPLOAD_INTERVAL_MS = 60 * 1000;
   const START_DELAY_MS = 1500;

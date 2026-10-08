@@ -39,6 +39,7 @@ function restoreSaveFromCloud(json) {
   const prepared = QPModel.save.prepareRestore(json);
   if (!prepared) return false;
   if (!store.set(KEYS.save, prepared.json)) return false;
+  if (window.QPCloud && typeof QPCloud.markRestored === "function") QPCloud.markRestored();
   saveSuspended = true;
   location.reload();
   return true;
