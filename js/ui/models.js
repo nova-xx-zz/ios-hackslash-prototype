@@ -71,7 +71,19 @@ function loadGame() {
   try {
     const raw = store.getString(KEYS.save);
     if (!raw) return false;
-    const loaded = QPModel.save.deserialize(JSON.parse(raw), {
+    const parsed = JSON.parse(raw);
+    if (Number.isFinite(parsed.schemaVersion) && parsed.schemaVersion > QPModel.save.SCHEMA_VERSION) {
+      // 古いWeb/iOSクライアントによる未来スキーマの上書きを防ぐ。セーブを残してゲーム操作を塞ぐ。
+      saveSuspended = true;
+      const overlay = document.createElement("div");
+      overlay.id = "unsupportedSaveOverlay";
+      overlay.setAttribute("role", "alert");
+      overlay.style.cssText = "position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(8,12,20,.97);color:#fff;text-align:center;font-size:16px;line-height:1.7;";
+      overlay.textContent = "このセーブは新しいバージョンのソードクレストで作成されています。進行データを保護するため、この画面では保存と操作を停止しました。ゲームを最新版に更新して開き直してください。";
+      document.body.appendChild(overlay);
+      return false;
+    }
+    const loaded = QPModel.save.deserialize(parsed, {
       legacyMaterial: store.getInt(KEYS.material, 0),
       syncExpToNext,
       itemBases: ITEM_BASES,
