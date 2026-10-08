@@ -1,5 +1,7 @@
 # 詳細設計書
 
+> 2026-10-08追記：§9に本番課金の未実装のデータ・処理要件を追加。現行のセーブスキーマや戦闘コードへ変更を適用したとは扱わない。
+
 > 更新日: 2026-10-07。現行実装の参照基点: `34fee54`（設計書レビュー [2026-10-06](reviews/design-review-2026-10-06.md) の指摘RV-01〜05を反映）。
 > 本書では「現行実装」「採用済み・未実装」「将来構想」を区別する。
 > **§6.4〜6.6（ギルドのお知らせ・予定表・起動順序）と§7（保存・機能ゲート）、および§6.1・6.2の固有ツリー＋汎用3枠交換＋分岐図UIの範囲は実装済みとなった。** §6.1・6.2のブック由来フィールド（sourceRarity、ブック消費での交換）・§6.3（ブック個体・鑑定・使用）・極み関連は内容決定待ちのため未実装のまま。スキルツリー実装は`js/data.js`の`JOB_TAGS`/`EXCLUSIVE_TREES`/`GENERAL_TREES`/`GENERAL_SLOTS`、`js/model/roster.js`のツリー関連関数群（`getExclusiveTree`/`getTreeState`/`generalSlotTreeDef`/`totalSp`/`spentSpFor`/`totalSpentSp`/`availableSp`/`canAcquireNode`/`acquireNode`/`swapGeneralSlot`/`treePassiveTotals`/`treePassive`）と`computeStats`/`availableAbilities`/`mpCostFor`/`performCharacterAction`/`performEnemyAction`への統合、`buildTreeTab`/`buildTreeSection`/`buildTreeGraph`/`buildTreeNodeDetail`の分岐図UIを参照。
@@ -287,7 +289,7 @@ enhancePityThreshold(item)  = ceil(enhanceExpectedCost(item) * 1.5)   // ENHANCE
 ```
 失敗するたびに消費した強化石を `item.pity` に加算し、`item.pity >= enhancePityThreshold(item)` なら次の強化は乱数を引かずに成功させる。成功（確定強化石を含む）で `item.pity = 0` に戻す。`item.pity` は装備オブジェクトに保存される（未設定は0扱い）。
 
-**確定強化石**（`FEATURE_FLAGS.guaranteedStone`、既定OFF）:
+**確定強化石**（`FEATURE_FLAGS.guaranteedStone` は2026-10-07からON。プロトタイプのショップで無料付与。実決済は未実装）:
 ```
 guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))   // GUARANTEED_STONE_VALUE
 ```
@@ -679,3 +681,25 @@ jobLevels[jobId] = {
 | 既存挙動 | 4チーム並行探索、装備強化、自動分解、転職、テイム、自動周回への回帰なし |
 
 個別ツリー・極みの数値、SP制度、交換時の進行の扱い、適性一覧、鑑定費用、出現率、公開日程は要件定義書§6の確定待ち項目と同期して決める。
+
+## 9. 本番課金のデータ・処理要件（未実装、2026-10-08）
+
+正本となる追加設計は [課金設計書](monetization-design.md) §4・7・8。以下は本番用であり、現行のlocalStorageフィールドをそのまま信用して利用しない。
+
+| データ／操作 | 必須条件 |
+| --- | --- |
+| billingId | サーバー発行UUIDv4、認証uidとの1対1対応。復元設定・appAccountTokenとの整合を確認 |
+| 購入・受信台帳 | store＋environment＋transactionIdで付与一意化、eventIdで受信重複防止、取消の順不同を処理 |
+| 契約スナップショット | 取引に商品ID・付与量・マスター版を保持。現在の販売フラグや改訂量で支払済み契約を失効・改変しない |
+| ゲーム操作ID | uid＋操作種別＋操作IDに要求ハッシュを拘束。同じ内容には前回結果、異なる内容は拒否 |
+| 確定石強化 | free優先消費とロット消費履歴（操作ID・装備ID・強化前の＋値）をサーバーで原子的に確定。端末は成功結果を受けて＋1・pityリセットを反映（操作IDで重複反映しない）。11個商品はpaid＋11 |
+| BOX拡張 | 拡張台帳から容量を算出。決済競合の未適用権を保持し、返金後も既存仲間を削除しない |
+| ジョブ解放 | questCompletedとactivePurchaseIdsをOR判定。取消後の新規出撃・引継ぎ技にも適用 |
+| キャラ付与 | 購入付与IDと同一characterIdを保持。退避中はBOX不使用、復帰時に初期装備を再発行しない |
+| 進行 | 端末のセーブが正（ランキング・対人・トレードを設けないため、2026-10-08決定）。runスナップショット・実行lease・区間cursorによるサーバー確定は行わない |
+| 固定刻み戦闘 | 0.05秒（2026-10-08決定）。時間蓄積器で速度を反映。未消化時間保持、同刻みの順序固定、チーム別乱数 |
+| 30日パス | 購入ID＋dayIndexで日次一意化、t0で1個目、29日後30個目、30日後に再購入可という案 |
+
+クライアントの購入成功通知だけで有償の資産・権利を増やさない。戦闘の報酬は端末で確定する（進行は端末が正）。現在のメインセーブや表示用の購入履歴最大200件は本番取引台帳の代わりにしない。
+
+固定刻み・各台帳は新規実装が必要。課金設計書§10の33項目と [課金RV](reviews/monetization-review-2026-10-08.md) のP0を満たすまで、本番販売・検証完了とは扱わない。
