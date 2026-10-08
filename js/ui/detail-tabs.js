@@ -10,7 +10,7 @@ function buildStatsTab(c) {
   const stats = computeStats(c);
 
   const rank = QPCore.stats.ivRank(c.ivs);
-  wrap.innerHTML = `<div class="cname">${c.favorite ? "★" : ""}${c.name}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}` +
+  wrap.innerHTML = `<div class="cname">${c.favorite ? "★" : ""}${escapeHtml(c.name)}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}` +
     (rank ? ` <span class="iv-rank iv-${rank}" title="個体値の評価">個体${rank}</span>` : "") + `</div>
     <div class="sub-ability-row">${race.desc}</div>`;
 
@@ -232,7 +232,8 @@ function buildFusionTab(c) {
   btn.disabled = blocked || selectedMonsters.length === 0;
   btn.addEventListener("click", () => {
     if (blocked || selectedMonsters.length === 0) return;
-    if (!fusionConfirm) { fusionConfirm = true; renderCharDetail(); return; }
+    if (!fusionConfirm) { fusionConfirm = true; armConfirm(); renderCharDetail(); return; }
+    if (!confirmReady()) return;
     fusionConfirm = false;
     // 素材が装備していたアイテムは消滅させず所持品へ戻し、素材を取り除いてEXPを還元する（js/model/inventory.js）
     const result = Inventory.fuse(c, selectedMonsters);

@@ -50,6 +50,7 @@ if (window.QPCloud) {
   // 1回目: クラウドのセーブの内容を見せる → 2回目: 端末のセーブを置き換えて読み込み直す（取り消せない）
   document.getElementById("btnCloudRestore").addEventListener("click", async () => {
     if (cloudRestoreCandidate) {
+      if (!confirmReady()) return;
       const json = cloudRestoreCandidate.json;
       resetCloudRestoreConfirm();
       if (!restoreSaveFromCloud(json)) showCloudMessage("復元できませんでした（クラウドのセーブが壊れているか、端末に保存できません）", true);
@@ -74,6 +75,7 @@ if (window.QPCloud) {
       false
     );
     cloudRestoreCandidate = { json: prepared.json };
+    armConfirm();
     document.getElementById("btnCloudRestore").textContent = "本当に復元する（取り消せません）";
   });
 

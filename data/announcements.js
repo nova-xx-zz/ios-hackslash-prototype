@@ -4,6 +4,25 @@
 // publishedAt/expiresAtはISO 8601（タイムゾーン付き）。UIの日付表示はAsia/Tokyo。
 const ANNOUNCEMENTS = [
   {
+    id: "update_safety_fixes",
+    revision: 1,
+    publishedAt: "2026-10-08T08:00:00+09:00",
+    expiresAt: null,
+    category: "update",
+    title: "装備のロック・誤操作の防止など",
+    body: [
+      "装備をロック（🔒）できるようになりました。所持品の一覧か強化画面で切り替えられ、ロックした装備は手動でも自動でも分解されません。",
+      "自動分解で、名のある装備はレア度が対象でも分解せず所持品に残るようになりました。UR・LRを自動分解の対象に入れる時は、確認が出ます。",
+      "取り消せない操作（分解・合成・別れる・振り直し・購入など）の2回押しが、ダブルタップ1回で確定してしまわないようにしました。",
+      "確定強化石で強化する時も、2回押しで確定するようになりました（有償の石を使う時は個数を表示します）。",
+      "戦闘が300秒たっても決着しない時は、撤退するようになりました（攻撃が効かない敵が相手の時など）。撤退は全滅と同じ扱いです。",
+    ],
+    showOnStartup: true,
+    priority: "normal",
+    forceDisplay: false,
+    visible: true,
+  },
+  {
     id: "update_skill_tree_expansion",
     revision: 1,
     publishedAt: "2026-10-07T19:30:00+09:00",

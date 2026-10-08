@@ -91,6 +91,30 @@ test("型の合わない項目は既定値にする", () => {
   assert.deepEqual(loaded.state.guaranteedStones, { free: 0, paid: 3 });
 });
 
+test("範囲の外の値は使える範囲にそろえる（書き換えたセーブ・壊れたセーブ）", () => {
+  const item = (plus) => ({ id: "i" + plus, base: "bronze_sword", slot: "weapon", rarity: "n", plus, stats: { atk: 1 } });
+  const loaded = save.deserialize({
+    schemaVersion: 2,
+    roster: [
+      null,
+      { id: "c1", name: "<img src=x onerror=alert(1)>", level: -3, exp: NaN, equip: { rightHand: item(500), head: null } },
+      { id: "c2", name: 42, level: 7.6, isMonster: true, ivs: { hp: 5, atk: -1, spd: "x", mag: 1.05 } },
+    ],
+    inventory: [item(-2), "x", item(3.7)], activeTeam: 9, nextCharSeq: -5,
+    material: -100, guaranteedStones: { free: NaN, paid: 2.9 },
+  }, { teamCount: 4, maxPlus: 99, ivRange: 0.1 });
+  const [a, b] = loaded.state.roster;
+  assert.equal(loaded.state.roster.length, 2);
+  assert.equal(a.name, "<img src"); // 8文字まで（表示する時は escapeHtml を通す）
+  assert.deepEqual([a.level, a.exp, a.equip.rightHand.plus, a.equip.head], [1, 0, 99, null]);
+  assert.deepEqual([b.name, b.level], ["42", 7]);
+  assert.deepEqual(b.ivs, { hp: 1.1, atk: 0.9, spd: 1, mag: 1.05 });
+  assert.deepEqual(loaded.state.inventory.map((it) => it.plus), [0, 3]);
+  assert.deepEqual([loaded.state.activeTeam, loaded.state.nextCharSeq, loaded.state.material], [3, 1, 0]);
+  assert.deepEqual(loaded.state.guaranteedStones, { free: 0, paid: 2 });
+  assert.equal(save.deserialize({ roster: [null, 1] }, {}), null);
+});
+
 test("クラウドからの復元: 自動周回は止め、内容の要約を返す。壊れたデータはnull", () => {
   const s = sampleState();
   const json = JSON.stringify(save.serialize(s, { now: 1700000000000, runDungeonIds: [null, "forest"] }));

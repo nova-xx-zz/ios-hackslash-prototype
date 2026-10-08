@@ -176,6 +176,20 @@ test("チーム別の乱数: 他のチームが同時に戦っても、そのチ
   assert.equal(together, solo);
 });
 
+test("戦闘の打ち切り: 決着がつかないまま300秒を超えたら timeout（撤退）で終わる", () => {
+  const { Runner } = setup();
+  const run = Runner.startRun(0, "plains");
+  const { battle } = Runner.startBattle(run);
+  for (const e of battle.enemies) { e.hp = e.maxHp = 1e12; e.spd = 0; } // 倒しきれず、敵も行動しない
+  let result = null, steps = 0;
+  while (!result && steps < 100000) { result = Runner.stepBattle(0, 0.05).result; steps++; }
+  assert.equal(result, "timeout");
+  assert.equal(battle.active, false);
+  assert.ok(battle.time >= 300 && battle.time < 300.1);
+  Runner.finishRun(run, false);
+  assert.equal(run.wiped, true); // 全滅と同じ扱い（ドロップは持ち帰れず、自動周回は止まる）
+});
+
 test("冒険の記録: 出会った敵をダンジョン別に、手に入れた装備（自動分解した物も）と潜った履歴を残す", () => {
   const { state, Runner } = setup();
   const run = Runner.startRun(0, "plains");

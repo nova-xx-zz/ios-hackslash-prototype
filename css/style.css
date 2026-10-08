@@ -1105,6 +1105,10 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .disassemble-chip.active { color: #0b0b12; border-color: transparent; }
 .disassemble-chip:disabled { opacity: 0.4; cursor: default; }
 .disassemble-filter-note { margin-left: auto; font-size: 10px; color: var(--sub-text); }
+.disassemble-filter-note.warn { margin-left: 0; flex-basis: 100%; color: var(--hp); }
+.disassemble-chip.confirming { border-color: var(--hp); color: var(--hp); }
+.skill-row.locked { opacity: 0.55; }
+.lock-chip { min-width: 34px; margin-right: 6px; }
 .btn.toggle-on { background: rgba(201, 164, 99, 0.35); border-color: var(--accent); color: var(--text); }
 
 .log-feed {

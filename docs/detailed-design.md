@@ -335,7 +335,7 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | 項目 | 通常プレイ | オフライン精算 |
 |---|---|---|
 | 勝敗 | 戦闘エンジンで実際に戦う（0.05秒の固定刻み） | 同じ戦闘エンジン（`QPCore.battle.simulate`、同じ0.05秒の刻み）でキャラの写しを戦わせる |
-| 戦闘の打ち切り | なし | 300秒（`OFFLINE_BATTLE_MAX_SECONDS`）で決着しなければ負け |
+| 戦闘の打ち切り | 300秒（`battle.time`）で決着しなければ撤退（`stepBattle` が `"timeout"` を返す。全滅と同じ扱い） | 300秒（`OFFLINE_BATTLE_MAX_SECONDS`）で決着しなければ負け |
 | 所要時間 | 実際の時間（x1/x2） | 戦闘ごとのシミュレーション秒数＋戦闘間2秒＋出発〜踏破2秒（x1相当）。最大8時間 |
 | 石碑の加護 | 能力値に加算 | 省略（実際よりわずかに厳しめ） |
 | 泉・罠 | あり | あり（同じ `applySpring` / `applyTrap`） |

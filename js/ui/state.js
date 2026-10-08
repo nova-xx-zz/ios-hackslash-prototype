@@ -7,6 +7,19 @@
 const AUTO_REPEAT_OPTIONS = AUTO_REPEAT_CHOICES.map((c) => c.n);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const MAX_ACTIVE = 5;
+
+// 取り消せない操作の2回押し: 1回目で確認の状態に入り（armConfirm）、2回目で確定する。
+// 確認のボタンは1回目と同じ位置に出るので、ダブルタップ1回（2回のクリックになる）で素通りしないよう、
+// 確認に入ってから CONFIRM_GUARD_MS 以内の2回目は無視する（confirmReady が false）
+const CONFIRM_GUARD_MS = 500;
+let confirmArmedAt = -Infinity;
+function armConfirm() { confirmArmedAt = Date.now(); }
+function confirmReady() { return Date.now() - confirmArmedAt >= CONFIRM_GUARD_MS; }
+
+// プレイヤーが入力した文字（仲間の名前など）を innerHTML に入れる時は、必ずこれを通す
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+}
 const TEAM_COUNT = 4;
 
 // 端末への保存はすべてjs/core/storage.jsを通す（本番化でbackendを差し替えられるようにするため）。

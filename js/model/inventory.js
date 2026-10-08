@@ -146,6 +146,12 @@
       return { plus: result.plus, required: result.required };
     }
 
+    // ロック（保護）: ロックした装備は手動の分解の候補に出さず、分解もしない。セーブには item.locked（真偽値）だけを足す
+    function setLocked(item, locked) {
+      if (!item) return;
+      if (locked) item.locked = true; else delete item.locked;
+    }
+
     // ---------- ドロップの受け取り ----------
     // 持ち帰ったドロップを、自動分解の設定（filter: { enabled, rarities }）に従って所持品と強化石に振り分ける。
     // 結果: js/core/rewards.js の settleDrops と同じ { kept, disassembled, materialGained }
@@ -160,7 +166,7 @@
 
     // ---------- 手動の分解 ----------
     // 所持品（未装備）から選んだアイテムを強化石に変える。得られる量は自動分解と同じ（アイテムの materialValue。
-    // 古いセーブで値が無ければレア度の既定値）。強化値（+）や天井ゲージは引き継がない。所持品に無いものは無視する。
+    // 古いセーブで値が無ければレア度の既定値）。強化値（+）や天井ゲージは引き継がない。所持品に無いもの・ロックした装備は無視する。
     // 結果: { count, materialGained }
     function disassembleValue(item) {
       if (typeof item.materialValue === "number") return item.materialValue;
@@ -171,7 +177,7 @@
       let count = 0, materialGained = 0;
       for (const item of items) {
         const idx = S.inventory.indexOf(item);
-        if (idx < 0) continue;
+        if (idx < 0 || item.locked) continue;
         S.inventory.splice(idx, 1);
         count += 1;
         materialGained += disassembleValue(item);
@@ -247,7 +253,7 @@
       clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
-      receiveDrops, disassembleValue, disassembleItems,
+      setLocked, receiveDrops, disassembleValue, disassembleItems,
       fusionCandidates, materialExp, fusionExpGain, fuse,
     };
   }

@@ -233,10 +233,12 @@ function deleteGroupModal() {
   const count = S.roster.filter((c) => c.group === g.id).length;
   if (!groupDeleteConfirm) {
     groupDeleteConfirm = true;
+    armConfirm();
     document.getElementById("btnGroupDelete").textContent = "もう一度押すと削除します";
     document.getElementById("groupModalMsg").textContent = count > 0 ? `中の仲間${count}人は「未編成」に戻ります` : "";
     return;
   }
+  if (!confirmReady()) return;
   for (const c of S.roster) if (c.group === g.id) c.group = null;
   S.groups = S.groups.filter((x) => x !== g);
   expandedGroups.delete(g.id);
@@ -259,7 +261,7 @@ function buildMemberCard(c) {
   btn.innerHTML = `
     <div class="micon">${jobInsignia(c.isMonster ? null : c.job)}</div>
     <div class="mtitle">${RACES[c.race].name}${c.ivs ? " " + QPCore.stats.ivRank(c.ivs) : ""}</div>
-    <div class="mname">${c.favorite ? "★" : ""}${c.name}</div>
+    <div class="mname">${c.favorite ? "★" : ""}${escapeHtml(c.name)}</div>
     <div class="mstats"><span>Lv.${c.level}</span></div>`;
   attachMemberDrag(btn, c);
   return btn;
