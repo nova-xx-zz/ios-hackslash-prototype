@@ -1,0 +1,12 @@
+// Production: default deny to all client SDK paths.
+// A future authenticated HTTPS/Cloud Functions API must verify account ownership,
+// schema, revision, request sizes, and purchase evidence server-side.
+// Firebase Admin SDK bypasses these Rules: secure the API and IAM separately.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
