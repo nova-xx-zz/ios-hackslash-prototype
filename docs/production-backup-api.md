@@ -23,3 +23,19 @@
 既存クライアントjs/cloud.jsが書き込む5フィールド（data, savedAt, schemaVersion, chars, updatedAt）に合わせ、以前のPreview Rules案（3フィールドのみ許可）を修正。適用前のEmulator検証は未実施。
 
 Cloud Functionsの実運用・App Checkや課金とは独立して監査し、正式公開条件は別途満たす必要がある。
+## Webクライアントとの接続（今回追加した範囲）
+
+- Release配布物だけでGoogle Authのポップアップ認証とFirebase Web App Checkを使用する。SDKは本番出力へビルド時にバンドル、Preview用の同梱SDKは変更しない。
+- `js/cloud-production.js`はAPIを呼び、`js/cloud.js`はProductionで動作しない。Previewの匿名ログイン/直接Firestore保存は従来どおり。
+- APIがバックアップを保持している別端末では、ローカル所有者/バックアップrevisionの記録が一致しない限り、自動で上書きしない。設定画面から復元するか、二重確認した上で端末の進行を採用する。
+- Cloudのバックアップ成功時にはUID/revisionを端末のProduction保存領域へ記録。旧プロトタイプの購入権利は送信しない。
+- Web版のGoogle OAuthプロバイダーはFirebase Console側で有効化が必要。Safari/PWAのポップアップ挙動は実機で確認する。iOS/Capacitorのネイティブ認証とアカウント復元は未実装。
+- Releaseビルドには追加で SWORD_CREST_API_BASE_URL（HTTPSのswordcrestApi関数までのURL）と SWORD_CREST_RECAPTCHA_SITE_KEY（Web App Check公開サイトキー）が必須。CIは `.invalid` の無効なテスト識別子でのみ検証し配布しない。
+
+## 未完了の重大な受入条件
+
+- 本番Firebaseプロジェクトそのものの作成、AuthとApp Checkの管理画面設定、Firebase Emulator試験、実ブラウザGoogle認証、Cloud Functions本番デプロイと運用監視。
+- モバイルSafari/PWAとiOSのクロスデバイス保存・復元、アカウント削除/回復、匿名リンク/既存アカウント統合の境界、複数タブのローカル排他とセーブ容量・復旧試験。
+- Functions依存パッケージのlockfile、最小権限IAMとレート制限、実購入権利・消耗品のサーバー台帳（#70/#71）。
+
+**本PRはDraftを継続し、本番公開も新しい課金も開始しない。**
