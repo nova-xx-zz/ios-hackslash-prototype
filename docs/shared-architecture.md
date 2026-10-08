@@ -61,6 +61,8 @@ flowchart TD
 - Firebase Auth・Firestore・App Check・Rules、ホスティングドメイン、CIのデプロイ権限、利用規約/プライバシーポリシーをpreview/productionで分ける。公開ドメインはリリース時に確定し、ブラウザの保存オリジンが変わることを確認する。
 - ソース中のクライアントフラグ、パスワードハッシュ、Firebase Web apiKeyはアクセス制御ではない。権限はサーバー・Firestore Rules側で強制する。
 
+詳細なID・API・エラー・Web決済/ネイティブ決済と監査の契約は[バックエンド拡張・移行設計](backend-evolution-design.md)を参照。ゲームの不変accountId/billingIdをサーバー発行し、Firebase UIDは認証側にのみ保持する。
+
 ## 4. セーブ・アカウント統合（優先度3）
 
 - データ正本: Lv・装備・通常強化石・踏破状況は端末、Firebaseはバックアップ。購入権利・有償石・購入履歴・BOX/キャラ付与台帳はサーバー正本。

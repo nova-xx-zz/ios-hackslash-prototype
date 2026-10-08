@@ -4,9 +4,11 @@
 
 参照基点：main `c8c9f14782ba2bad54c3b5818aca5082eed8f123`。対象は `js/cloud.js`、`js/model/save.js`、基本・詳細・本番化・課金設計書。今回の変更は設計のみ。実装済み、負荷検証済み、無停止移行可能とは判定しない。
 
+**リリース順序（2026-10-09統合）**：Web/PWA無料公開 → Webで買い切り・消耗品の安全な台帳を構築して有料販売 → iOS展開。R1/R2は内部実装・受入順であり、初回Web有料販売前には両台帳と返金/復元が必要。将来Web購入権利をiOSで扱う際はApp Store規則を販売前に確認する。
+
 ## 1. 結論と範囲
 
-- 最初はFirebase Authentication・Firestore・Cloud FunctionsとRevenueCatを継続採用する。登録者1,000人を移行条件にしない。DAU、同時API処理、バックアップ量、課金件数と実測の費用・遅延で判断する。
+- 最初はFirebase Authentication・Firestore・Cloud Functionsを継続採用し、WebのPSP（Stripe等）とiOSのStoreKit/RevenueCatは決済アダプターを分離する。登録者1,000人を移行条件にしない。DAU、同時API処理、バックアップ量、課金件数と実測の費用・遅延で判断する。
 - 戦闘・進行・オフライン精算は端末が正。サーバーで戦闘を再計算しない。ランキング・対人・トレードを追加しない。
 - サーバーは購入・権利・確定強化石のfree/paid残高・消費履歴・BOX拡張・キャラ付与を正本として持つ。クラウドセーブは進行のバックアップに限定する。
 - 本番R1前に、アプリとFirebaseの接続境界、安定したアカウントID、API契約、競合制御、監視と復旧を用意する。R2前に消耗品の残高・台帳・端末反映の回復を追加する。
@@ -47,7 +49,7 @@
 - 新規ログインでは検証済み認証subjectだけを入力にし、並行初期化でアカウントを二重作成しない。RevenueCat App User IDはbillingIdに固定し、Apple appAccountTokenとの対応を照合する。
 - 購入前に引継ぎ可能な認証へ連携する。既存匿名ユーザーは本人の認証トークンを検証して対応付ける。クライアントが申告した旧uidだけで所有者を移さない。
 - 連携先が別accountIdへ登録済みなら自動統合しない。元アカウントへの復帰と個別照合を案内する。ストア取引を別accountIdへ再付与しない。
-- プロトタイプ`saves/{uid}`は初回移行時に本人確認した進行だけを取り込む。無料テスト購入・paid残高は除外し、本番取引台帳を作らない。進行引継ぎを実施するかは既存の未決事項を維持する。
+- **プロトタイプ`saves/{uid}`の進行・無料テスト購入・paid残高・購入履歴は正式版へ移行しない**。正式Web版は専用Firebaseと別オリジンで新規開始し、正式Web版の進行だけを将来iOS版の同一accountIdで復元する。
 - 認証サービス全面交換は独立した工程。既存Firebaseトークンを検証できる認証ブリッジを移行期間だけ保持し、新認証の本人確認と対応付けを行う。既存セッション、Sign in with Apple等の資格情報・プロバイダー設定は別途移行検証が必要。DBをコピーするだけでは認証を移せない。
 
 ## 5. API契約と互換
@@ -62,7 +64,10 @@
 | `PUT /v1/progress/backup` | backupOperationId、expectedBackupRevision、saveSchemaVersion、payloadHash、進行DTO |
 | `GET /v1/progress/backup` | 検証済みの進行DTO、サーバー時刻・版・hash。復元はユーザー確認後 |
 | `POST /v1/progress/backup-uploads` | 大きいセーブの段階アップロードを開始。完了APIで検証後に参照先を更新する |
-| `POST /v1/webhooks/revenuecat` | サーバー間のみ。認証後の通知を永続受信台帳へ保存する |
+| `POST /v1/webhooks/revenuecat` | iOS決済通知。提供者認証と正規の取引検証の後、耐久inboxへ保存 |
+| `POST /v1/web/checkout-sessions` | ログイン済みaccountIdからサーバーの許可済商品マスターでWeb決済を開始する。クライアント申告価格を採用しない |
+| `POST /v1/webhooks/payment` | Web PSPの生body署名・環境・eventId・注文accountIdを検証した後、耐久inboxに保存 |
+| `GET /v1/billing/orders/{orderId}` | サーバー確定済みの注文状態を参照。成功URLへの遷移だけでは権利を付与しない |
 
 UTCのISO日時、整数の個数、文字列のIDをDTOに使う。API版・セーブschemaVersion・課金マスター版・台帳schemaVersionは別管理。`savedAt`は参考表示に使い、競合の勝敗やキャンペーン期限を決めない。
 
@@ -94,8 +99,8 @@ UTCのISO日時、整数の個数、文字列のIDをDTOに使う。API版・セ
 
 ## 7. 課金・非同期処理
 
-- 取引一意キーはstore＋environment＋transactionId。Webhook一意キーはprovider＋environment＋eventId。operationId、billingIdと合わせて移行後も保持する。sandboxとproductionは別プロジェクト・秘密情報・台帳を使う。
-- Webhookは認証後、受信内容・hash・状態を耐久性のあるinboxへ保存できた場合だけHTTP 200を返す。既存同一通知も200。保存できなければ5xx。受信後はworkerが処理し、失敗は再試行・隔離キュー・運営照合へ送る。クライアント成功通知だけでは付与しない。
+- 取引一意キーはstore＋environment＋transactionId。WebのPSP checkout/payment IDとApp Store/RevenueCat取引IDを分離し、注文のaccountIdはサーバー側で確定する。Webhook一意キーはprovider＋environment＋eventId。operationId、billingIdと合わせて移行後も保持する。sandboxとproductionは別プロジェクト・秘密情報・台帳を使う。
+- WebhookはWebの生body署名検証またはiOS通知の提供者認証・取引検証の後、受信内容・hash・状態を耐久性のあるinboxへ保存できた場合だけHTTP 200を返す。既存同一通知も200。保存できなければ5xx。受信後はworkerが処理し、失敗は再試行・隔離キュー・運営照合へ送る。クライアント成功通知だけでは付与しない。
 - 重複配送・取消と購入の順不同を想定し、providerへの現在状態照合で権利を再計算する。workerはイベント1回だけの配送を前提にしない。取引台帳と付与・残高・処理状態の更新は原子的に確定する。
 - ロット・消費履歴は追記型とし、修正は補償レコードで行う。履歴から残高を照合できるようにする。全ユーザーで共有する単一の残高・カウンタへ書き込まない。競合はaccountId単位で処理し、同一アカウントへの連打は制限する。
 - 確定石消費は送信前に端末の永続ジャーナルへoperationId・対象・強化前値を記録する。成功後の装備反映と反映済みIDを同じローカル保存で確定する。保存失敗・再起動は同じIDの結果を再取得して回復する。復元する古いセーブへの既存操作の再適用は行わず、復元前に石が戻らない旨を表示する。

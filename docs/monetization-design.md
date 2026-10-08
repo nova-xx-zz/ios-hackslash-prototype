@@ -477,3 +477,12 @@ R2の商品は同時公開を必須にしない。条件を満たした商品か
 5. [RevenueCat：Restore Behavior](https://www.revenuecat.com/docs/projects/restore-behavior) — アカウント間の購入転送設定と利用前提、サーバー通知との識別子整合。
 
 既存本番化方針には法務・税務の一般説明があるが、本書でそれを再確定しない。販売前に商品分類・表示・残高管理の適用条件を現行の一次資料で確認する。
+
+
+## Web先行・プラットフォーム共通IDの補記（2026-10-09）
+
+- 正式公開はWeb/PWA無料公開 → Web有料販売 → iOS。R1（買い切り）→R2（消耗品）は実装の検証順であり、最初のWeb有料販売前に双方の台帳・復元・返金を完成させる。個々の商品の公開時期は別判断。
+- WebのPSP（Stripe等）とiOSのStoreKit/RevenueCatは別アダプター。サーバー発行注文・署名付きWebhook・取引一意ID・所有者照合を必須とし、同じbillingIdの台帳へ冪等な付与・取消を行う。
+- accountIdとbillingIdはサーバー発行不変ID。Firebase UIDは認証subjectに限定し、別のaccountIdへの権利移動を行わない。
+- プロトタイプ進行・無料テスト購入は移行対象外。正式Web版のセーブと正規購入権利を将来iOSへ連携する。
+- 実装前の設計であり、Web PSP/Apple SandboxおよびFirebaseコンソール・実機の検証は別工程。API契約は[バックエンド拡張設計](backend-evolution-design.md)を正本とする。
