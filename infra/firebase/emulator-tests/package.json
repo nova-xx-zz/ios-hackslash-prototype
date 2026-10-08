@@ -6,7 +6,7 @@
     "test": "node firestore-integration.test.cjs"
   },
   "dependencies": {
-    "@firebase/rules-unit-testing": "4.0.1",
+    "@firebase/rules-unit-testing": "5.0.2",
     "firebase": "12.19.0",
     "firebase-admin": "13.0.0"
   }
