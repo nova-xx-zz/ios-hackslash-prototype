@@ -24,7 +24,7 @@ function validateWrite(body){
   if(typeof body.operationId!=="string"||!/^[a-f0-9-]{36}$/i.test(body.operationId))throw new ApiError(400,"invalid_operation");
   if(!Number.isSafeInteger(body.savedAt)||body.savedAt<0)throw new ApiError(400,"invalid_timestamp");
   const json=parseSave(body.json);
-  const hash=crypto.createHash("sha256").update(json).digest("hex");
+  const hash=crypto.createHash("sha256").update(JSON.stringify({expectedRevision:body.expectedRevision,savedAt:body.savedAt,json})).digest("hex");
   return {expectedRevision:body.expectedRevision,operationId:body.operationId,savedAt:body.savedAt,json,hash};
 }
 function createBackupService({verifyToken,repository,newId=()=>crypto.randomUUID()}){
