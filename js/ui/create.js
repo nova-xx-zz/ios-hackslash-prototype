@@ -192,7 +192,7 @@ function updateCreatePreview() {
   const passives = Object.keys(race.passive).map((k) => PASSIVE_LABELS[k](race.passive[k]));
   if (race.expMult !== 1) passives.push(`獲得経験値 ${Math.round((race.expMult - 1) * 100)}%`);
   box.innerHTML = `
-    <div class="pv-name">${draft.name || "ななし"} — ${race.name}・${JOBS[draft.job].name} Lv.${preview.level}</div>
+    <div class="pv-name">${escapeHtml(draft.name || "ななし")} — ${race.name}・${JOBS[draft.job].name} Lv.${preview.level}</div>
     <div class="pv-stats">HP ${s.maxHp}　MP ${s.maxMp}　ATK ${s.atk}　MAG ${s.mag}　DEF ${s.def}　SPD ${Math.round(s.spd * 10) / 10}</div>
     <div class="pv-note">${passives.length ? "種族特性: " + passives.join(" / ") : "種族特性: なし"}</div>
     <div class="pv-note">習得済み: ${availableAbilities(preview).map((a) => a.name).join("、") || "なし"}</div>`;

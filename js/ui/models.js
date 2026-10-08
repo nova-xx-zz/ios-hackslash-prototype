@@ -74,6 +74,7 @@ function loadGame() {
       syncExpToNext,
       itemBases: ITEM_BASES,
       legacyItemBases: LEGACY_ITEM_BASES,
+      teamCount: TEAM_COUNT, maxPlus: ENHANCE_MAX_PLUS, ivRange: MONSTER_IV_RANGE,
     });
     if (!loaded) return false;
     Object.assign(S, loaded.state);

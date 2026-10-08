@@ -89,7 +89,8 @@ function buildShopItem(product) {
   btn.textContent = st.owned ? "購入済み" : st.soldOut ? "上限です" : st.locked ? "未解放" : confirming ? "本当に受け取る" : "購入する";
   btn.disabled = st.soldOut || st.locked;
   btn.addEventListener("click", () => {
-    if (shopConfirmId !== product.id) { shopConfirmId = product.id; shopMessage = ""; renderShop(); return; }
+    if (shopConfirmId !== product.id) { shopConfirmId = product.id; shopMessage = ""; armConfirm(); renderShop(); return; }
+    if (!confirmReady()) return;
     shopConfirmId = null;
     const r = Shop.purchase(product.id);
     shopMessage = r.ok ? `「${product.name}」を受け取りました` : "購入できませんでした";

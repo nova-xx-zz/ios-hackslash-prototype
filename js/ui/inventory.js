@@ -60,7 +60,7 @@ function renderDisassembleControls() {
     bulk.appendChild(label);
     const shown = shownInventoryItems();
     for (const rarity of RARITIES) {
-      const items = shown.filter((i) => i.rarity === rarity.key);
+      const items = shown.filter((i) => i.rarity === rarity.key && !i.locked); // ロックした装備は選ばない
       const all = items.length > 0 && items.every((i) => disassembleSelection.has(i));
       const chip = document.createElement("button");
       chip.className = "disassemble-chip" + (all ? " active" : "");
@@ -173,7 +173,7 @@ function buildInventoryItemRow(item) {
 
   const name = document.createElement("div");
   name.className = "skill-row-name";
-  name.textContent = itemLabel(item); // レア度は名前の色で表す（ノーマル白〜レジェンドレア金）
+  name.textContent = (item.locked ? "🔒" : "") + itemLabel(item); // レア度は名前の色で表す（ノーマル白〜レジェンドレア金）
   name.style.color = rarityColor(item.rarity);
   if (item.unique) {
     const eff = document.createElement("span");
@@ -189,6 +189,15 @@ function buildInventoryItemRow(item) {
   }
   row.appendChild(name);
 
+  if (disassembleMode && item.locked) {
+    // ロックした装備は選べない（ロックは選択モードを抜けてから外す）
+    row.classList.add("locked");
+    const note = document.createElement("div");
+    note.className = "disassemble-gain";
+    note.textContent = "ロック中";
+    row.appendChild(note);
+    return row;
+  }
   if (disassembleMode) {
     // 選択モードでは行全体をタップで選ぶ（右に選択の印と、分解で得られる強化石の量）
     const selected = disassembleSelection.has(item);
@@ -208,6 +217,13 @@ function buildInventoryItemRow(item) {
     });
     return row;
   }
+
+  const lock = document.createElement("button");
+  lock.className = "priority-chip lock-chip" + (item.locked ? " tier-3" : "");
+  lock.textContent = item.locked ? "🔒" : "🔓";
+  lock.title = item.locked ? "ロック中（分解されません）。押すとロックを外す" : "ロックする（手動・自動の分解から守る）";
+  lock.addEventListener("click", () => { Inventory.setLocked(item, !item.locked); scheduleSave(); renderInventoryScreen(); });
+  row.appendChild(lock);
 
   const enhance = document.createElement("button");
   enhance.className = "priority-chip";
@@ -261,7 +277,8 @@ document.getElementById("btnDisassembleCancel").addEventListener("click", () => 
 });
 document.getElementById("btnDisassembleConfirm").addEventListener("click", () => {
   if (disassembleSelection.size === 0) return;
-  if (!disassembleConfirming) { disassembleConfirming = true; renderInventoryScreen(); return; }
+  if (!disassembleConfirming) { disassembleConfirming = true; armConfirm(); renderInventoryScreen(); return; }
+  if (!confirmReady()) return;
   const result = Inventory.disassembleItems([...disassembleSelection]);
   exitDisassembleMode();
   saveGame();
@@ -401,11 +418,13 @@ const SLOT_ICONS = Object.fromEntries(SLOTS.map((sl) => [sl.key, sl.icon]));
 let enhanceItem = null;
 let enhanceMessage = "";
 let enhanceOnClose = null; // 呼び出し元の画面を再描画するコールバック（未指定ならキャラ詳細を再描画）
+let enhanceGuaranteedConfirm = false; // 確定強化石のボタンを1回押して確認待ちか（有償の石も使うため2回押しで確定）
 
 function openEnhanceModal(item, onClose) {
   enhanceItem = item;
   enhanceMessage = "";
   enhanceOnClose = onClose || null;
+  enhanceGuaranteedConfirm = false;
   renderEnhanceModal();
   document.getElementById("enhanceModal").classList.remove("hidden");
 }
@@ -427,7 +446,8 @@ function renderEnhanceModal() {
   const nextText = itemStatsText({ ...item, plus: item.plus + 1 });
 
   document.getElementById("enIcon").textContent = SLOT_ICONS[item.slot] || "❓";
-  document.getElementById("enName").textContent = `${itemMark(item)}${item.name}${item.plus > 0 ? "+" + item.plus : ""}`;
+  document.getElementById("enName").textContent = `${item.locked ? "🔒" : ""}${itemMark(item)}${item.name}${item.plus > 0 ? "+" + item.plus : ""}`;
+  document.getElementById("btnEnhanceLock").textContent = item.locked ? "🔒 ロック中（押すと外す）" : "🔓 ロックする（分解から守る）";
   document.getElementById("enName").style.color = rarityColor(item.rarity);
   document.getElementById("enDesc").textContent =
     `${rarity.name} / ${itemStatsText(item)}` +
@@ -461,8 +481,14 @@ function renderEnhanceModal() {
   const enough = guaranteedStoneTotal() >= required;
   // 足りない時は押すとショップを開く（確定強化石はショップで手に入る）
   gBtn.disabled = maxed;
+  // 消費は無償分が先。有償分まで使う時は、確認の文言にその個数を出す
+  const paidUse = Math.max(0, required - S.guaranteedStones.free);
+  const confirming = enhanceGuaranteedConfirm && enough && !maxed;
+  gBtn.classList.toggle("danger", confirming);
   gBtn.textContent = maxed ? "強化値が上限です"
-    : (enough ? `確定強化石${required}個で強化する（成功率100%）` : `確定強化石が足りません（あと${required - guaranteedStoneTotal()}個）→ショップへ`);
+    : !enough ? `確定強化石が足りません（あと${required - guaranteedStoneTotal()}個）→ショップへ`
+    : confirming ? `本当に確定強化石${required}個を使う${paidUse > 0 ? `（うち有償${paidUse}個）` : ""}`
+    : `確定強化石${required}個で強化する（成功率100%）`;
 }
 
 function buildPityRow(item) {
@@ -482,6 +508,7 @@ document.getElementById("btnEnhanceGo").addEventListener("click", () => {
   // 判定と強化石・+値・天井ゲージへの反映は js/model/inventory.js
   const result = Inventory.enhanceItem(enhanceItem);
   if (!result) return;
+  enhanceGuaranteedConfirm = false;
   enhanceMessage = result.success
     ? `成功！ +${result.plus} になった` + (result.pityHit ? "（天井）" : "")
     : `失敗…（+${result.plus} のまま）`;
@@ -497,10 +524,19 @@ document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => 
     openShop(screen ? screen.id : "screen-battle", "guaranteed_stone_11");
     return;
   }
+  if (!enhanceGuaranteedConfirm) { enhanceGuaranteedConfirm = true; armConfirm(); enhanceMessage = ""; renderEnhanceModal(); return; }
+  if (!confirmReady()) return;
+  enhanceGuaranteedConfirm = false;
   const result = Inventory.enhanceWithGuaranteed(enhanceItem); // 消費は無償分から
   if (!result) return;
   enhanceMessage = `成功！ +${result.plus} になった（確定強化石${result.required}個を使用）`;
   saveGame();
+  renderEnhanceModal();
+});
+document.getElementById("btnEnhanceLock").addEventListener("click", () => {
+  if (!enhanceItem) return;
+  Inventory.setLocked(enhanceItem, !enhanceItem.locked);
+  scheduleSave();
   renderEnhanceModal();
 });
 document.getElementById("btnEnhanceClose").addEventListener("click", closeEnhanceModal);

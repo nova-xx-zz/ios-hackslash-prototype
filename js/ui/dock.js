@@ -13,7 +13,7 @@ function buildPartyDock() {
     card.className = "actor-card";
     card.innerHTML = `
       <div class="actor-insignia">${jobInsignia(c.isMonster ? null : jobDef(c).id)}</div>
-      <div class="actor-name">${c.name}</div>
+      <div class="actor-name">${escapeHtml(c.name)}</div>
       <div class="actor-job">${jobDef(c).name} Lv.${c.level}</div>
       <div class="stat-bar hp"><div class="fill" style="width:100%"></div></div>
       <div class="stat-num hpnum"></div>
@@ -200,6 +200,9 @@ document.getElementById("btnAutoDisassembleToggle").addEventListener("click", ()
   store.set(KEYS.autoDisassemble, autoDisassemble ? "1" : "0");
   updateAutoDisassembleButton();
 });
+// UR・LR を自動分解の対象に入れる時は2回押し（1回目で注意を出す）
+const HIGH_RARITIES = ["ur", "lr"];
+let disassembleHighConfirm = null; // 確認待ちのレア度キー
 function renderDisassembleFilter() {
   const row = document.getElementById("disassembleFilterRow");
   const locked = isAutoDisassembleLocked();
@@ -212,14 +215,30 @@ function renderDisassembleFilter() {
     chip.title = rarity.name;
     chip.disabled = locked;
     if (on) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
+    if (disassembleHighConfirm === rarity.key) chip.classList.add("confirming");
     chip.addEventListener("click", () => {
       if (isAutoDisassembleLocked()) return;
+      const turningOnHigh = !autoDisassembleRarities.has(rarity.key) && HIGH_RARITIES.includes(rarity.key);
+      if (turningOnHigh && disassembleHighConfirm !== rarity.key) {
+        disassembleHighConfirm = rarity.key;
+        armConfirm();
+        renderDisassembleFilter();
+        return;
+      }
+      if (turningOnHigh && !confirmReady()) return;
+      disassembleHighConfirm = null;
       if (autoDisassembleRarities.has(rarity.key)) autoDisassembleRarities.delete(rarity.key);
       else autoDisassembleRarities.add(rarity.key);
       saveAutoDisassembleFilter();
       renderDisassembleFilter();
     });
     row.appendChild(chip);
+  }
+  if (disassembleHighConfirm) {
+    const warn = document.createElement("span");
+    warn.className = "disassemble-filter-note warn";
+    warn.textContent = `${disassembleHighConfirm.toUpperCase()}も自動で分解されます。よければもう一度押してください（名のある装備は分解しません）`;
+    row.appendChild(warn);
   }
   if (locked) {
     const note = document.createElement("span");

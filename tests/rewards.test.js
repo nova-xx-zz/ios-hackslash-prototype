@@ -71,6 +71,16 @@ test("自動分解は対象レア度だけを強化石にし、残りは所持�
   assert.equal(off.materialGained, 0);
 });
 
+test("自動分解: 名のある装備とロックした装備は、レア度が合っても所持品に残す", () => {
+  const items = [
+    { rarity: "ur", materialValue: 350 }, { rarity: "ur", materialValue: 350, unique: true },
+    { rarity: "ur", materialValue: 350, locked: true }, { rarity: "ur", materialValue: 350, options: [{ key: "atk", value: 3 }] },
+  ];
+  const r = rewards.settleDrops(items, { enabled: true, rarities: new Set(["ur"]) });
+  assert.equal(r.disassembled, 2); // オプション付きはレア度どおりに分解する（ハード・エクストラの装備はすべてオプション付きのため）
+  assert.deepEqual(r.kept, [items[1], items[2]]);
+});
+
 test("テイムは候補が無ければ判定しない。候補があれば成功率どおり", () => {
   const rng = createRng(6);
   assert.equal(rewards.rollTame([], () => 1, rng), null);

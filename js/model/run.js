@@ -119,10 +119,13 @@
       return { battle, isBoss };
     }
 
-    // 戦闘をdt秒進める（js/core/battle.js）。決着したら battle.active を false にする。結果: { events, result }
+    // 戦闘をdt秒進める（js/core/battle.js）。決着したら battle.active を false にする。
+    // 結果: { events, result: null | "victory" | "defeat" | "timeout"（決着がつかず撤退） }
     function stepBattle(teamIndex, dt) {
       const battle = teamBattles[teamIndex];
       const out = battleCore.step(battle, R.teamMembers(teamIndex), dt, deps.battleEnv());
+      // オフライン精算と同じく、決着がつかないまま OFFLINE_BATTLE_MAX_SECONDS を超えたら打ち切る（撤退。全滅と同じ扱い）
+      if (!out.result && battle.time >= OFFLINE_BATTLE_MAX_SECONDS) out.result = "timeout";
       if (out.result) battle.active = false;
       return out;
     }
