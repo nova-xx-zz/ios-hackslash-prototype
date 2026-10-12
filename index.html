@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=41">
+<link rel="stylesheet" href="css/style.css?v=42">
 </head>
 <body>
 <div id="app">
@@ -209,6 +209,17 @@
           <button class="btn small primary" id="btnDisassembleConfirm">分解する</button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- 試作工房：本体セーブ・課金に接続しないOP抽出・継承の体験画面 -->
+  <section id="screen-forge-trial" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">鍛冶屋・試作工房</div>
+        <button class="btn small ghost" id="btnForgeTrialBack">もどる</button>
+      </div>
+      <div id="forgeTrialBody" class="roster-body forge-trial-body"></div>
     </div>
   </section>
 
@@ -434,6 +445,7 @@
 <script src="js/core/storage.js?v=6"></script>
 <script src="js/core/rng.js?v=2"></script>
 <script src="js/core/enhance.js?v=1"></script>
+<script src="js/core/option-inheritance-trial.js?v=1"></script>
 <script src="js/core/rewards.js?v=6"></script>
 <script src="js/core/offline.js?v=3"></script>
 <script src="js/core/stats.js?v=2"></script>
@@ -474,6 +486,7 @@
 <script src="js/ui/notify.js?v=1"></script>
 <script src="js/ui/shop.js?v=5"></script>
 <script src="js/ui/menu.js?v=2"></script>
+<script src="js/ui/forge-trial.js?v=1"></script>
 <script src="js/game.js?v=32"></script>
 <script src="js/pwa.js?v=1"></script>
 </body>
