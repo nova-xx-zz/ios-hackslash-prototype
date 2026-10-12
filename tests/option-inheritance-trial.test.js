@@ -137,3 +137,43 @@ test("特殊OPは1武器につき1つで、無効な二重継承を拒否", () =
   assert.match(r.message, /特殊OP/);
   assert.ok(s.essences.includes(next));
 });
+
+
+test("試作の保存データは正しい形なら再利用できる", () => {
+  const s = F.createDemo();
+  ready(s, "sr");
+  const e = extract(s, "atk");
+  assert.equal(F.inherit(s, "sr", e.id, false).success, true);
+  assert.equal(F.isValidDemoState(s), true);
+  assert.equal(F.isValidDemoState(JSON.parse(JSON.stringify(s))), true);
+});
+
+test("不正な保存データを拒否して、表示クラッシュを防ぐ", () => {
+  const clean = F.createDemo();
+  const mutate = (callback) => {
+    const bad = JSON.parse(JSON.stringify(clean));
+    callback(bad);
+    assert.equal(F.isValidDemoState(bad), false);
+  };
+  mutate(s => { s.targets = []; });
+  mutate(s => { s.targets[1].options = null; });
+  mutate(s => { s.targets[1].opened = 999; });
+  mutate(s => { s.targets[1].options = [{ key: "unknown", inherited: true, sourceRarity: "n" }]; s.targets[1].opened = 1; s.targets[1].plus = 50; });
+  mutate(s => { s.trialLiquid = -5; });
+  mutate(s => { s.sources[0].id = s.sources[1].id; });
+  mutate(s => { s.essences = [{id:"ess_999",key:"atk",optionRarity:"r",count:2,sourceRarity:"n"}]; });
+  mutate(s => { s.sources[0].natural = true; s.sources[0].optionKey = null; });
+  assert.equal(F.isValidDemoState(null), false);
+  assert.equal(F.isValidDemoState(clean), true);
+});
+
+test("天然OP武器の試作用補充は上限を超えず、失敗時は状態を変えない", () => {
+  const s = F.createDemo();
+  for (let i = 0; i < 10; i++) assert.equal(F.addSamples(s).ok, true);
+  const before = JSON.stringify(s);
+  assert.equal(s.sources.length, 55);
+  const error = F.addSamples(s);
+  assert.equal(error.ok, false);
+  assert.equal(JSON.stringify(s), before);
+  assert.equal(F.isValidDemoState(s), true);
+});
