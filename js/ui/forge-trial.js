@@ -12,14 +12,19 @@ function forgeTrialLoad() {
   if (forgeTrialState) return;
   try {
     const raw = localStorage.getItem(FORGE_TRIAL_KEY);
-    if (raw && raw.length < 20000) {
+    if (raw && raw.length < 100000) {
       const saved = JSON.parse(raw);
-      if (saved.version === 1 && Array.isArray(saved.sources) && Array.isArray(saved.targets) &&
-          Array.isArray(saved.essences) && Number.isInteger(saved.trialLiquid) && saved.trialLiquid >= 0) {
+      if (ForgeTrial.isValidDemoState(saved)) {
         forgeTrialState = saved;
+      } else {
+        forgeTrialMessage = "以前の試作保存データが不正なため、試作工房だけ初期化しました。ゲーム本体のデータは変更していません。";
+        forgeTrialWarning = true;
       }
     }
-  } catch (_) { /* 試作画面は保存不可でも操作できる */ }
+  } catch (_) {
+    forgeTrialMessage = "試作データを復元できなかったため、試作工房だけ初期化しました。";
+    forgeTrialWarning = true;
+  }
   if (!forgeTrialState) forgeTrialState = ForgeTrial.createDemo();
 }
 function forgeTrialSave() {
@@ -61,6 +66,7 @@ function openForgeTrial() {
 function forgeTrialRender() {
   forgeTrialLoad();
   const body = document.getElementById("forgeTrialBody");
+  const previousScroll = body.scrollTop;
   body.replaceChildren();
   const state = forgeTrialState;
   let target = state.targets.find(function (t) { return t.id === forgeTrialTarget; });
@@ -86,7 +92,7 @@ function forgeTrialRender() {
   });
   choose.appendChild(tabs);
   choose.appendChild(forgeEl("div", "forge-trial-weapon", target.name + " +" + target.plus));
-  choose.appendChild(forgeEl("p", "forge-trial-note", "開放したOP枠 " + target.opened + " / " + ForgeTrial.SLOT_LEVELS[target.rarity].length +
+  choose.appendChild(forgeEl("p", "forge-trial-note", "解放したOP枠 " + target.opened + " / " + ForgeTrial.SLOT_LEVELS[target.rarity].length +
     "　使用中 " + target.options.length + "枠"));
   const slotRow = forgeEl("div", "forge-trial-slots");
   ForgeTrial.SLOT_LEVELS[target.rarity].forEach(function (threshold, idx) {
@@ -113,7 +119,10 @@ function forgeTrialRender() {
     nextThreshold === undefined || target.plus < nextThreshold, "btn primary forge-trial-wide"));
 
   const extracts = forgeSection(body, "③ 天然OPを抽出", "武器本体は残り、天然OPだけが消えます。継承済みOPは再抽出できません。");
-  state.sources.forEach(function (weapon) {
+  const availableSources = state.sources.filter(function (w) { return w.natural && !!ForgeTrial.OP_DEFS[w.optionKey]; });
+  const extractedCount = state.sources.length - availableSources.length;
+  extracts.appendChild(forgeEl("p", "forge-trial-note", "天然OPあり " + availableSources.length + "本 ／ 抽出済み武器 " + extractedCount + "本（武器本体は試作所持品に残っています）"));
+  availableSources.forEach(function (weapon) {
     const div = forgeEl("div", "forge-trial-line");
     const opt = ForgeTrial.OP_DEFS[weapon.optionKey];
     const summary = opt ? weapon.name + "　／　" + opt.label + "（OP " + opt.rarity.toUpperCase() + "）"
@@ -126,12 +135,13 @@ function forgeTrialRender() {
   });
   extracts.appendChild(forgeButton("試遊用の天然OP武器を再補充", function () {
     forgeApply(function () { return ForgeTrial.addSamples(state); });
-  }, state.sources.length >= 55, "btn ghost forge-trial-wide"));
+  }, state.sources.length + 5 > 55, "btn ghost forge-trial-wide"));
 
   const liquids = forgeSection(body, "④ 抽出液を選んで継承", "OPのランクで抽出液の個数が変わります。1回の継承で束ごと消費し、分割・複製はできません。");
   if (!state.essences.length) liquids.appendChild(forgeEl("p", "forge-trial-note", "抽出液がありません。先に天然OPを抽出してください。"));
   if (!state.essences.some(function (e) { return e.id === forgeTrialEssenceId; })) {
-    forgeTrialEssenceId = state.essences.length ? state.essences[0].id : null;
+    const usable = state.essences.find(function (e) { return ForgeTrial.validate(state, target.id, e.id, false).ok; });
+    forgeTrialEssenceId = usable ? usable.id : (state.essences[0] ? state.essences[0].id : null);
   }
   state.essences.forEach(function (e) {
     const op = ForgeTrial.OP_DEFS[e.key];
@@ -162,6 +172,7 @@ function forgeTrialRender() {
   }, !canTry.ok || state.trialLiquid < 1 || (target.rarity !== "ur" && target.rarity !== "lr") || isPity, "btn ghost"));
   liquids.appendChild(row);
   liquids.appendChild(forgeEl("p", "forge-trial-note", "テスト用確定継承液 " + state.trialLiquid + "個（実際の購入なし）"));
+  liquids.appendChild(forgeEl("p", "forge-trial-message" + (forgeTrialWarning ? " warn" : ""), forgeTrialMessage));
   liquids.appendChild(forgeButton("確定継承液をテスト配布 +1", function () {
     forgeApply(function () {
       if (state.trialLiquid >= 20) return { ok: false, message: "テスト配布は20個までです" };
@@ -181,5 +192,7 @@ function forgeTrialRender() {
     forgeTrialSave();
     forgeTrialRender();
   }, false, "btn ghost forge-trial-wide"));
+  // 画面再描画でiPhoneのスクロール位置が先頭へ飛ばないようにする。
+  body.scrollTop = previousScroll;
 }
 document.getElementById("btnForgeTrialBack").addEventListener("click", openPartyMenu);
