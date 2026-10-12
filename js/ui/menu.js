@@ -23,7 +23,7 @@ const MENU_SECTIONS = [
   ] },
   { title: "鍛冶屋", rows: [
     { key: "enhance", label: "装備強化", open: () => openEnhanceList() },
-    { key: "forgeTrial", label: "オプション抽出・継承【試作】", open: () => openForgeTrial() },
+    { key: "forgeTrial", label: "オプション抽出・継承【試作】", previewOnly: true, open: () => openForgeTrial() },
     { key: "disassemble", label: "装備分解", open: () => openInventoryScreen({ disassemble: true, returnScreen: "screen-menu" }) },
     { key: "items", label: "所持品確認", open: () => openInventoryScreen({ returnScreen: "screen-menu" }) },
   ] },
@@ -59,6 +59,7 @@ function renderPartyMenu() {
     const list = document.createElement("div");
     list.className = "menu-list";
     for (const row of section.rows) {
+      if (row.previewOnly && (!window.QPRuntime || QPRuntime.channel !== "preview")) continue;
       const btn = document.createElement("button");
       btn.className = "menu-row";
       btn.innerHTML = `<svg class="menu-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MENU_ICONS[row.key]}</svg>` +
