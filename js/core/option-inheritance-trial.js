@@ -32,6 +32,7 @@
     return s;
   }
   function addSamples(state) {
+    if (state.sources.length + SAMPLES.length > 55) return { ok: false, message: "試作武器の保有上限です。試作データをリセットして再挑戦してください" };
     SAMPLES.forEach(function (s) {
       state.sources.push({ id: "src_" + (++state.seq), name: s.name, rarity: s.rarity,
         optionKey: s.optionKey, natural: true });
@@ -107,7 +108,60 @@
         ? OP_DEFS[e.key].label + "の継承に成功しました" + (pityHit && !useLiquid ? "（天井）" : "")
         : "継承失敗。抽出液は消費され、継承先武器と解放済み枠は残りました" };
   }
-  const api = { ORDER, SLOT_LEVELS, EXTRACT_COUNT, RATES, PITY_LIMIT, OP_DEFS,
+
+  // 試作進捗専用の復元バリデーション。不正・旧形式データで画面をクラッシュさせない。
+  // 本番の不正対策ではない（商用の継承・消費は必ずサーバーで検証する）。
+  function isValidDemoState(s) {
+    if (!s || typeof s !== "object" || Array.isArray(s) || s.version !== 1 ||
+        !Number.isSafeInteger(s.seq) || s.seq < 0 || s.seq > 100000 ||
+        !Number.isInteger(s.trialLiquid) || s.trialLiquid < 0 || s.trialLiquid > 20 ||
+        !Array.isArray(s.sources) || !Array.isArray(s.essences) || !Array.isArray(s.targets) ||
+        s.sources.length > 55 || s.essences.length > 55 || s.targets.length !== 4) return false;
+    const ids = new Set();
+    let maxSeq = 0;
+    function validId(id, prefix) {
+      if (typeof id !== "string" || !new RegExp("^" + prefix + "_[1-9][0-9]*$").test(id) || ids.has(id)) return false;
+      const n = Number(id.slice(prefix.length + 1));
+      if (!Number.isSafeInteger(n) || n > s.seq) return false;
+      ids.add(id);
+      maxSeq = Math.max(maxSeq, n);
+      return true;
+    }
+    for (const w of s.sources) {
+      if (!w || !validId(w.id, "src") || typeof w.name !== "string" || w.name.length > 80 ||
+          w.name.length < 1 || !ORDER.includes(w.rarity) ||
+          !(w.optionKey === null || Object.hasOwn(OP_DEFS, w.optionKey)) ||
+          w.natural !== (w.optionKey !== null)) return false;
+    }
+    for (const e of s.essences) {
+      if (!e || !validId(e.id, "ess") || !Object.hasOwn(OP_DEFS, e.key) ||
+          !ORDER.includes(e.sourceRarity) || e.optionRarity !== OP_DEFS[e.key].rarity ||
+          e.count !== EXTRACT_COUNT[e.optionRarity]) return false;
+    }
+    const seenTargets = new Set();
+    for (const t of s.targets) {
+      if (!t || !Object.hasOwn(SLOT_LEVELS, t.id) || t.id === "n" || seenTargets.has(t.id) ||
+          t.rarity !== t.id || typeof t.name !== "string" || !t.name ||
+          !Number.isInteger(t.plus) || t.plus < 0 || t.plus > 99 ||
+          !Number.isInteger(t.opened) || t.opened < 0 || t.opened > SLOT_LEVELS[t.id].length ||
+          !Array.isArray(t.options) || t.options.length > t.opened ||
+          !Number.isInteger(t.failures) || t.failures < 0 || t.failures > (PITY_LIMIT[t.id] || 0)) return false;
+      seenTargets.add(t.id);
+      if (t.opened > 0 && t.plus < SLOT_LEVELS[t.id][t.opened - 1]) return false;
+      const seenOptions = new Set();
+      let specialCount = 0;
+      for (const o of t.options) {
+        if (!o || !Object.hasOwn(OP_DEFS, o.key) || seenOptions.has(o.key) ||
+            o.inherited !== true || !ORDER.includes(o.sourceRarity) ||
+            ORDER.indexOf(o.sourceRarity) >= ORDER.indexOf(t.rarity)) return false;
+        seenOptions.add(o.key);
+        if (OP_DEFS[o.key].special) specialCount++;
+      }
+      if (specialCount > 1) return false;
+    }
+    return seenTargets.size === 4 && maxSeq <= s.seq;
+  }
+  const api = { ORDER, SLOT_LEVELS, EXTRACT_COUNT, RATES, PITY_LIMIT, OP_DEFS, isValidDemoState,
     createDemo, addSamples, increasePlus, openSocket, extract, validate, inherit };
   root.QPCore = root.QPCore || {};
   root.QPCore.optionInheritanceTrial = api;
