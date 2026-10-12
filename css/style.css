@@ -1510,3 +1510,69 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .fusion-bulk-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 8px 0 6px; }
 .favorite-toggle { margin-top: 6px; }
 .favorite-toggle.on { color: #f2c14e; border-color: #f2c14e; }
+
+
+/* 鍛冶屋・試作工房：試遊専用。既存の装備画面とはCSSを分離する */
+.forge-trial-body { padding-bottom: 30px; }
+.forge-trial-section {
+  background: rgba(9, 20, 26, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 14px;
+  margin: 12px 0;
+}
+.forge-trial-section h3 {
+  margin: 0 0 7px;
+  color: var(--accent);
+  font-size: 16px;
+  font-family: var(--title-serif-ja);
+}
+.forge-trial-note { font-size: 12px; line-height: 1.65; color: var(--sub-text); margin: 7px 0; }
+.forge-trial-message {
+  font-size: 13px; line-height: 1.6;
+  color: #bfeccf; background: rgba(30, 86, 55, 0.28);
+  border: 1px solid rgba(125, 205, 156, 0.30);
+  padding: 10px; border-radius: 10px;
+}
+.forge-trial-message.warn, .forge-trial-error { color: #ffc6bb; }
+.forge-trial-message.warn { background: rgba(105, 36, 30, 0.35); }
+.forge-trial-tabs, .forge-trial-actions {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.forge-trial-actions > .btn { flex: 1 1 135px; margin: 3px 0; }
+.forge-trial-chip, .forge-trial-essence {
+  padding: 10px; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.06); color: var(--text);
+  border-radius: 9px; cursor: pointer; font-weight: 650;
+}
+.forge-trial-chip { flex: 1; }
+.forge-trial-chip.selected, .forge-trial-essence.selected {
+  border-color: var(--accent); background: rgba(201,164,99,0.19);
+  color: #ffdda2;
+}
+.forge-trial-weapon {
+  font-family: var(--title-serif-ja);
+  font-size: 18px; font-weight: 700; padding: 12px 0 4px;
+}
+.forge-trial-slots { display: grid; gap: 6px; margin-top: 8px; }
+.forge-trial-slot {
+  font-size: 13px; border: 1px dashed var(--border);
+  padding: 9px 10px; border-radius: 8px;
+}
+.forge-trial-slot.filled {
+  color: #a6e0af; border-style: solid; background: rgba(25, 80, 49, 0.23);
+}
+.forge-trial-line {
+  display: flex; gap: 8px; align-items: center;
+  justify-content: space-between; padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.forge-trial-source-label { min-width: 0; flex: 1; font-size: 12px; line-height: 1.5; }
+.forge-trial-line .btn { margin: 0; white-space: nowrap; }
+.forge-trial-essence { width: 100%; text-align: left; margin: 4px 0; font-size: 12px; }
+.forge-trial-rate { font-size: 14px; font-weight: 700; color: var(--accent); margin: 15px 0 10px; }
+.forge-trial-wide { width: 100%; margin-top: 10px; }
+@media (max-width: 390px) {
+  .forge-trial-section { padding: 11px; }
+  .forge-trial-actions > .btn { flex-basis: 100%; }
+}
