@@ -130,17 +130,17 @@
     for (const w of s.sources) {
       if (!w || !validId(w.id, "src") || typeof w.name !== "string" || w.name.length > 80 ||
           w.name.length < 1 || !ORDER.includes(w.rarity) ||
-          !(w.optionKey === null || Object.hasOwn(OP_DEFS, w.optionKey)) ||
+          !(w.optionKey === null || Object.prototype.hasOwnProperty.call(OP_DEFS, w.optionKey)) ||
           w.natural !== (w.optionKey !== null)) return false;
     }
     for (const e of s.essences) {
-      if (!e || !validId(e.id, "ess") || !Object.hasOwn(OP_DEFS, e.key) ||
+      if (!e || !validId(e.id, "ess") || !Object.prototype.hasOwnProperty.call(OP_DEFS, e.key) ||
           !ORDER.includes(e.sourceRarity) || e.optionRarity !== OP_DEFS[e.key].rarity ||
           e.count !== EXTRACT_COUNT[e.optionRarity]) return false;
     }
     const seenTargets = new Set();
     for (const t of s.targets) {
-      if (!t || !Object.hasOwn(SLOT_LEVELS, t.id) || t.id === "n" || seenTargets.has(t.id) ||
+      if (!t || !Object.prototype.hasOwnProperty.call(SLOT_LEVELS, t.id) || t.id === "n" || seenTargets.has(t.id) ||
           t.rarity !== t.id || typeof t.name !== "string" || !t.name ||
           !Number.isInteger(t.plus) || t.plus < 0 || t.plus > 99 ||
           !Number.isInteger(t.opened) || t.opened < 0 || t.opened > SLOT_LEVELS[t.id].length ||
@@ -151,7 +151,7 @@
       const seenOptions = new Set();
       let specialCount = 0;
       for (const o of t.options) {
-        if (!o || !Object.hasOwn(OP_DEFS, o.key) || seenOptions.has(o.key) ||
+        if (!o || !Object.prototype.hasOwnProperty.call(OP_DEFS, o.key) || seenOptions.has(o.key) ||
             o.inherited !== true || !ORDER.includes(o.sourceRarity) ||
             ORDER.indexOf(o.sourceRarity) >= ORDER.indexOf(t.rarity)) return false;
         seenOptions.add(o.key);
