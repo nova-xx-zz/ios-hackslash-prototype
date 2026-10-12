@@ -1,5 +1,8 @@
 # ios-hackslash-prototype
 
+> **鍛冶屋・オプション抽出／継承 試作工房**：編成 → 鍛冶屋 → 「オプション抽出・継承【試作】」。試作の武器で+強化・穴あけ・天然OP抽出・UR/LR継承天井・確定継承液のテストを体験できます。実装内容と安全なテスト手順は [試作設計書](docs/forge-inheritance-trial.md)。ゲーム本体の装備・保存や実課金には**一切接続しません**。正式配信ビルドではメニューを非表示にします。
+
+
 > **Web先行運営への方針変更 (2026-10-08)**: [本番化・課金方針](docs/production-plan.md) と [共通アーキテクチャ](docs/shared-architecture.md) に「Web/PWA → Web課金 → iOS」の順と、環境・データ・課金境界を整理しました。現行GitHub Pagesは引き続き**検証用**です。
 >
 > 本番候補のビルド: `npm run build:release:web` (出力 `dist/web/`) / `npm run cap:sync:release` (iOSへ同期)。専用Firebaseの公開識別子を `SWORD_CREST_FIREBASE_CONFIG_JSON` に設定しないと**ビルドに失敗**します（CIでは無効なダミー設定で検証し、配信しません）。デバッグ実装を除外し保存キーも分離しますが、これらは**公開可能を保証しません**。本番Firebase/Rules・引継ぎ可能ログイン・セーブ競合対策・購入権利/有償台帳は未完成です。プロトタイプの無料購入は正式版の購入権利へ移行しません。

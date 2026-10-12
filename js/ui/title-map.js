@@ -15,6 +15,7 @@ function showScreen(id) {
 const NAV_TAB_OF_SCREEN = {
   "screen-menu": "jobs", "screen-jobs": "jobs", "screen-create": "jobs", "screen-chardetail": "jobs",
   "screen-farewell": "jobs", "screen-enhance": "jobs", "screen-inventory": "jobs", "screen-shop": "jobs",
+  "screen-forge-trial": "jobs",
   "screen-map": "explore",
   "screen-book": "book",
   "screen-settings": "settings", "screen-announcements": "settings",

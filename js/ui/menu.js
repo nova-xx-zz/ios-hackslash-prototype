@@ -13,6 +13,7 @@ const MENU_ICONS = {
   disassemble: '<circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4M5 5l3 3m8 8 3 3M5 19l3-3m8-8 3-3"/>',
   items: '<rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2M4 12h16M11 12v2h2v-2"/>',
   shop: '<path d="M4 9h16l-1 11H5zM8 9V7a4 4 0 0 1 8 0v2"/><path d="M10 14h4"/>',
+  forgeTrial: '<path d="M5 20h14M7 20V9l5-5 5 5v11M9 14h6M12 12v6"/>',
 };
 const MENU_SECTIONS = [
   { title: "ギルド", rows: [
@@ -22,6 +23,7 @@ const MENU_SECTIONS = [
   ] },
   { title: "鍛冶屋", rows: [
     { key: "enhance", label: "装備強化", open: () => openEnhanceList() },
+    { key: "forgeTrial", label: "オプション抽出・継承【試作】", previewOnly: true, open: () => openForgeTrial() },
     { key: "disassemble", label: "装備分解", open: () => openInventoryScreen({ disassemble: true, returnScreen: "screen-menu" }) },
     { key: "items", label: "所持品確認", open: () => openInventoryScreen({ returnScreen: "screen-menu" }) },
   ] },
@@ -57,6 +59,7 @@ function renderPartyMenu() {
     const list = document.createElement("div");
     list.className = "menu-list";
     for (const row of section.rows) {
+      if (row.previewOnly && (!window.QPRuntime || QPRuntime.channel !== "preview")) continue;
       const btn = document.createElement("button");
       btn.className = "menu-row";
       btn.innerHTML = `<svg class="menu-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MENU_ICONS[row.key]}</svg>` +
@@ -75,6 +78,7 @@ function menuRowSub(key) {
   if (key === "recruit" || key === "farewell") return `${S.roster.length}/${Shop.rosterCapacity()}人`;
   if (key === "items" || key === "disassemble") return `${S.inventory.length}個`;
   if (key === "enhance") return `強化石 ${S.material}`;
+  if (key === "forgeTrial") return "体験版";
   return "";
 }
 

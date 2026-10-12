@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=41">
+<link rel="stylesheet" href="css/style.css?v=42">
 </head>
 <body>
 <div id="app">
@@ -212,6 +212,19 @@
     </div>
   </section>
 
+  <!-- FORGE-TRIAL-SCREEN-START -->
+  <!-- 試作工房：本体セーブ・課金に接続しないOP抽出・継承の体験画面 -->
+  <section id="screen-forge-trial" class="screen hidden">
+    <div class="roster-wrap">
+      <div class="roster-header">
+        <div class="map-title">鍛冶屋・試作工房</div>
+        <button class="btn small ghost" id="btnForgeTrialBack">もどる</button>
+      </div>
+      <div id="forgeTrialBody" class="roster-body forge-trial-body"></div>
+    </div>
+  </section>
+
+  <!-- FORGE-TRIAL-SCREEN-END -->
   <!-- キャラ作成画面 -->
   <section id="screen-create" class="screen hidden">
     <div class="roster-wrap">
@@ -434,6 +447,9 @@
 <script src="js/core/storage.js?v=6"></script>
 <script src="js/core/rng.js?v=2"></script>
 <script src="js/core/enhance.js?v=1"></script>
+<!-- FORGE-TRIAL-CORE-START -->
+<script src="js/core/option-inheritance-trial.js?v=1"></script>
+<!-- FORGE-TRIAL-CORE-END -->
 <script src="js/core/rewards.js?v=6"></script>
 <script src="js/core/offline.js?v=3"></script>
 <script src="js/core/stats.js?v=2"></script>
@@ -457,7 +473,7 @@
 <script src="js/ui/announcements.js?v=1"></script>
 <script src="js/ui/models.js?v=16"></script>
 <script src="js/ui/offline.js?v=4"></script>
-<script src="js/ui/title-map.js?v=12"></script>
+<script src="js/ui/title-map.js?v=13"></script>
 <script src="js/ui/settings.js?v=2"></script>
 <script src="js/ui/debug.js?v=8"></script>
 <script src="js/ui/party.js?v=10"></script>
@@ -473,7 +489,10 @@
 <script src="js/ui/book.js?v=8"></script>
 <script src="js/ui/notify.js?v=1"></script>
 <script src="js/ui/shop.js?v=5"></script>
-<script src="js/ui/menu.js?v=2"></script>
+<script src="js/ui/menu.js?v=3"></script>
+<!-- FORGE-TRIAL-UI-START -->
+<script src="js/ui/forge-trial.js?v=1"></script>
+<!-- FORGE-TRIAL-UI-END -->
 <script src="js/game.js?v=32"></script>
 <script src="js/pwa.js?v=1"></script>
 </body>

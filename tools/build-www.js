@@ -29,6 +29,20 @@ fs.writeFileSync(path.join(out,"js","runtime-env.js"),
   JSON.stringify({channel,platform,allowDebug:!release,allowTestPurchases:!release})+
   ");})(typeof globalThis!==\"undefined\"?globalThis:this);\n");
 if(release){
+  // 試作工房は配布候補に同梱しない。メニュー・画面・判定コードをまとめて除外。
+  // HTMLのマーカーが壊れたらリリースビルドを失敗させ、意図しない混入を防ぐ。
+  const htmlPath=path.join(out,"index.html");
+  let releaseHtml=fs.readFileSync(htmlPath,"utf8");
+  for(const key of ["SCREEN","CORE","UI"]){
+    const start="<!-- FORGE-TRIAL-"+key+"-START -->";
+    const end="<!-- FORGE-TRIAL-"+key+"-END -->";
+    const a=releaseHtml.indexOf(start),b=releaseHtml.indexOf(end);
+    if(a<0||b<=a||releaseHtml.indexOf(start,a+start.length)!==-1)throw Error("Invalid forge trial release markers: "+key);
+    releaseHtml=releaseHtml.slice(0,a)+releaseHtml.slice(b+end.length);
+  }
+  fs.writeFileSync(htmlPath,releaseHtml);
+  fs.rmSync(path.join(out,"js","core","option-inheritance-trial.js"));
+  fs.rmSync(path.join(out,"js","ui","forge-trial.js"));
   fs.writeFileSync(path.join(out,"js","firebase-config.js"),
     "// Public Firebase app identifiers only. Never inject server or PSP secrets.\n"+
     "window.QP_FIREBASE_CONFIG="+JSON.stringify(firebase)+";\n");
