@@ -1,9 +1,12 @@
 // 鍛冶屋 > 試作工房。試遊用データのみ使用し、実プレイの装備・セーブ・課金を変更しない。
 "use strict";
 const ForgeTrial = QPCore.forgeGearTrial;
+const LootTrial = QPCore.lootProtectionTrial;
 const FORGE_TRIAL_KEY = "swordcrest_forge_gear_trial_v2";
 const FORGE_TRIAL_LEGACY_KEY = "swordcrest_forge_trial_v1";
 let forgeTrialEnemyElement = "earth";
+let forgeTrialRareProtection = true;
+let forgeTrialProtectRank = "sr";
 let forgeTrialState = null;
 let forgeTrialTarget = "sr";
 let forgeTrialEssenceId = null;
@@ -249,12 +252,48 @@ function forgeTrialRender() {
       result.label+"：×"+text+(result.immune?"（完全無効）":result.reversed?"（属性反転）":"")));
   });
   elementSec.appendChild(forgeEl("p","forge-trial-note","属性倍率のみの比較です。OPの攻撃力・会心などの実戦効果はまだ計算に含みません。"));
+  const lootSection = forgeSection(body, "⑥ 装備収集と自動分解の保護テスト",
+    "N/R装備でも希少な天然OPが付いていれば保護する想定です。下の8個は固定の試遊サンプルで、実際の所持品やドロップ率は変更しません。");
+  const protectionButtons = forgeEl("div", "forge-trial-actions");
+  protectionButtons.appendChild(forgeButton("希少OPの保護 " + (forgeTrialRareProtection ? "ON" : "OFF"),function(){
+    forgeTrialRareProtection = !forgeTrialRareProtection;
+    forgeTrialRender();
+  }, false, "btn ghost"));
+  protectionButtons.appendChild(forgeButton("保護基準 " + forgeTrialProtectRank.toUpperCase() + "以上",function(){
+    forgeTrialProtectRank = forgeTrialProtectRank === "sr" ? "ur" : "sr";
+    forgeTrialRender();
+  }, !forgeTrialRareProtection, "btn ghost"));
+  lootSection.appendChild(protectionButtons);
+  const preview = LootTrial.simulate(LootTrial.sampleLoot(),{
+    enabled:true, rarities:new Set(["n","r"]),
+    protectRareOptions:forgeTrialRareProtection,minRank:forgeTrialProtectRank
+  });
+  lootSection.appendChild(forgeEl("p","forge-trial-rate",
+    "保持 "+preview.kept.length+"個 / 分解 "+preview.disassembled.length+"個 / 強化石 "+preview.materials+"個 / OP保護 "+preview.savedByOptions+"個"));
+  const why = {
+    disabled:"自動分解OFF",rarity_excluded:"分解対象外のレア度",unique:"固有装備",
+    locked:"ロック済み",inherited_option:"継承済みOP",special_option:"特殊OP",
+    rare_option:"希少OP",unknown_option_rank:"不明なOPランク",unknown_option:"未解析OP",
+    disassemble:"低レア自動分解"
+  };
+  preview.rows.forEach(function(row){
+    const ops = Array.isArray(row.item.options) ? row.item.options : [];
+    const rank = ops.map(o=>o.rank?o.rank.toUpperCase():"未設定").join("・") || "OPなし";
+    const verdict = row.keep ? "保管" : "分解";
+    lootSection.appendChild(forgeEl("div","forge-trial-slot" + (row.keep?" filled":""),
+      verdict + " | " + row.item.name + " | OP " + rank + " | " + (why[row.reason]||row.reason)));
+  });
+  lootSection.appendChild(forgeEl("p","forge-trial-note",
+    "現行ドロップのOPにはrank情報がないため、自動で希少と認定できません。今後OPランクの付与・保存と、自動分解への統合が必要です。"));
+
   const footer = forgeSection(body, "試作を最初からやり直す", "試作工房だけを初期化します。既存ゲームのセーブデータには触れません。");
   footer.appendChild(forgeButton("試作データをリセット", function () {
     if (!window.confirm("試作工房の進行を初期化しますか？（ゲーム本体のデータは残ります）")) return;
     forgeTrialState = ForgeTrial.createDemo();
     forgeTrialTarget = "sr";
     forgeTrialEnemyElement = "earth";
+    forgeTrialRareProtection = true;
+    forgeTrialProtectRank = "sr";
     forgeTrialEssenceId = null;
     forgeTrialMessage = "試作工房を初期化しました";
     forgeTrialWarning = false;
