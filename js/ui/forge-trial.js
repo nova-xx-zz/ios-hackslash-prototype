@@ -3,6 +3,7 @@
 const ForgeTrial = QPCore.forgeGearTrial;
 const LootTrial = QPCore.lootProtectionTrial;
 const RarityTrial = QPCore.optionRarityTrial;
+const StackTrial = QPCore.optionStackTrial;
 const FORGE_TRIAL_KEY = "swordcrest_forge_gear_trial_v2";
 const FORGE_TRIAL_LEGACY_KEY = "swordcrest_forge_trial_v1";
 let forgeTrialEnemyElement = "earth";
@@ -12,6 +13,9 @@ let forgeTrialLootMode = "hard";
 let forgeTrialLootReport = null;
 let forgeTrialFocusKind = "crit";
 let forgeTrialFocusRank = "sr";
+let forgeTrialStackPreset = "offense";
+let forgeTrialStackGearCount = 3;
+let forgeTrialStackTalents = true;
 let forgeTrialState = null;
 let forgeTrialTarget = "sr";
 let forgeTrialEssenceId = null;
@@ -403,6 +407,43 @@ function forgeTrialRender() {
   balanceSection.appendChild(forgeEl("p","forge-trial-note",
     "効果別の数値上限は仮値です。特に会心率、吸収、被ダメ軽減が重複した場合の上限は実戦統合前に別途検証します。"));
 
+  const stackSection=forgeSection(body,"⑨ 複数装備・スキルのOP重複上限",
+    "装備と職業・種族・スキルツリーが重なった場合の比較です。表示する数値は仮設定であり、本体の戦闘ダメージ・HP回復・報酬には未反映です。");
+  const stackPresetButtons=forgeEl("div","forge-trial-tabs");
+  Object.entries(StackTrial.PRESETS).forEach(function(entry){
+    const key=entry[0],definition=entry[1];
+    stackPresetButtons.appendChild(forgeButton(definition.name,function(){
+      forgeTrialStackPreset=key;forgeTrialRender();
+    },false,"forge-trial-chip"+(forgeTrialStackPreset===key?" selected":"")));
+  });
+  stackSection.appendChild(stackPresetButtons);
+  const stackControls=forgeEl("div","forge-trial-tabs");
+  [1,3,5].forEach(function(count){
+    stackControls.appendChild(forgeButton("試作装備"+count+"件",function(){
+      forgeTrialStackGearCount=count;forgeTrialRender();
+    },false,"forge-trial-chip"+(forgeTrialStackGearCount===count?" selected":"")));
+  });
+  stackControls.appendChild(forgeButton("職業・スキル効果 "+(forgeTrialStackTalents?"ON":"OFF"),function(){
+    forgeTrialStackTalents=!forgeTrialStackTalents;forgeTrialRender();
+  },false,"forge-trial-chip"));
+  stackSection.appendChild(stackControls);
+  const stacked=StackTrial.scenario(forgeTrialStackPreset,forgeTrialStackGearCount,forgeTrialStackTalents);
+  stackSection.appendChild(forgeEl("p","forge-trial-note",
+    "効果元："+stacked.sources.map(function(src){return src.label}).join(" / ")+
+    (stacked.abilityLifesteal?" / 技固有のHP吸収":"")));
+  stackSection.appendChild(forgeEl("p","forge-trial-note",
+    "旧方式で合算した場合 → 提案した上限の適用後（％表示）。会心率には基礎10％が含まれます。"));
+  stacked.details.forEach(function(detail){
+    const pct=function(v){return (v*100).toFixed(1)+"%";};
+    stackSection.appendChild(forgeEl("div","forge-trial-slot"+(detail.limited?" filled":""),
+      detail.label+"："+pct(detail.raw)+" → "+pct(detail.effective)+
+      (detail.limited?"（上限適用）":"")));
+  });
+  stackSection.appendChild(forgeEl("p","forge-trial-note",
+    "会心率は物理攻撃に適用。防御軽減は倍率を掛け合わせてから最大60％軽減に制限。装備・パッシブのHP吸収上限は30％、技固有の吸収を足した合計は最大80％です。"));
+  stackSection.appendChild(forgeEl("p","forge-trial-note",
+    "現行の職業/スキル/装備の実数値とは独立した比較用サンプルです。固定値OPや既存装備・課金・セーブには触れません。"));
+
   const footer = forgeSection(body, "試作を最初からやり直す", "試作工房だけを初期化します。既存ゲームのセーブデータには触れません。");
   footer.appendChild(forgeButton("試作データをリセット", function () {
     if (!window.confirm("試作工房の進行を初期化しますか？（ゲーム本体のデータは残ります）")) return;
@@ -415,6 +456,9 @@ function forgeTrialRender() {
     forgeTrialLootReport = null;
     forgeTrialFocusKind = "crit";
     forgeTrialFocusRank = "sr";
+    forgeTrialStackPreset = "offense";
+    forgeTrialStackGearCount = 3;
+    forgeTrialStackTalents = true;
     forgeTrialEssenceId = null;
     forgeTrialMessage = "試作工房を初期化しました";
     forgeTrialWarning = false;
