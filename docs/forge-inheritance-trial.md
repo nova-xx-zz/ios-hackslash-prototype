@@ -1,5 +1,7 @@
 # 鍛冶屋：オプション抽出・継承 試作仕様
 
+> 次工程：[ゲーム仕様の優先順位](development-priorities.md) と [属性・装備収集の設計検討](attribute-loot-design.md)。試作のOP定義は固定値だが、本体では {key,value,rank} の実数値を保持する必要がある。
+
 > 対象：プロトタイプの feature/forge-inheritance-playtest ブランチ。本番課金とは分離した試遊用実装。
 
 ## 試作の目的
