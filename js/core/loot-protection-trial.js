@@ -28,10 +28,12 @@
   function decide(item, settings) {
     const opts = settings || {};
     if (!item || typeof item !== "object") throw new TypeError("Item is required");
-    if (!Array.isArray(opts.rarities) && !(opts.rarities instanceof Set)) {
+    // UIの独立VMテスト・別RealmのSetでも機能するようにする。
+    const isSet = Object.prototype.toString.call(opts.rarities) === "[object Set]";
+    if (!Array.isArray(opts.rarities) && !isSet) {
       throw new TypeError("Auto disassemble rarities must be Set or array");
     }
-    const selected = opts.rarities instanceof Set
+    const selected = isSet
       ? opts.rarities.has(item.rarity) : opts.rarities.includes(item.rarity);
     if (!opts.enabled) return { keep: true, reason: "disabled" };
     if (!selected) return { keep: true, reason: "rarity_excluded" };
