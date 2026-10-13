@@ -6,7 +6,7 @@ const Loot=require("../js/core/loot-protection-trial.js");
 test("N装備にSR天然OPが付いていればSR保護設定で残る",()=>{
  const items=Loot.sampleLoot();
  const result=Loot.simulate(items,{enabled:true,rarities:new Set(["n","r"]),protectRareOptions:true,minRank:"sr"});
- assert.deepEqual(result.kept.map(i=>i.id),["demo_n3","demo_n4","demo_r1","demo_sr1","demo_n5"]);
+ assert.deepEqual(result.kept.map(i=>i.id),["demo_n3","demo_n4","demo_r1","demo_sr1","demo_r3"]);
  assert.deepEqual(result.disassembled.map(i=>i.id),["demo_n1","demo_n2","demo_r2"]);
  assert.equal(result.materials,30);
  assert.equal(result.savedByOptions,4);
@@ -17,7 +17,7 @@ test("UR以上に変更するとSR天然OPは分解対象に戻る、特殊OPと
  const result=Loot.simulate(Loot.sampleLoot(),{enabled:true,rarities:["n","r"],protectRareOptions:true,minRank:"ur"});
  assert.equal(result.rows.find(x=>x.item.id==="demo_n3").keep,false);
  assert.equal(result.rows.find(x=>x.item.id==="demo_n4").reason,"special_option");
- assert.equal(result.rows.find(x=>x.item.id==="demo_n5").reason,"inherited_option");
+ assert.equal(result.rows.find(x=>x.item.id==="demo_r3").reason,"inherited_option");
  assert.equal(result.savedByOptions,3);
 });
 
@@ -26,7 +26,7 @@ test("保護OFFなら従来の分解動作と同じで、既存フィルター�
  const r=Loot.simulate(items,{enabled:true,rarities:["n","r"],protectRareOptions:false});
  assert.equal(r.kept.length,1);
  assert.equal(r.disassembled.length,7);
- assert.equal(r.materials,5+5+5+5+20+20+5);
+ assert.equal(r.materials,5+5+5+5+20+20+20);
  const protectedItems=[
   {rarity:"n",unique:true,options:[{key:"x",rank:"lr"}]},
   {rarity:"n",locked:true,options:[{key:"x",rank:"lr"}]}
