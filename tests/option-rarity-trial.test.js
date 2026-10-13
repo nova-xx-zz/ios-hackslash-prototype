@@ -33,16 +33,16 @@ test("N武器でもSR・UR・LRランクOPが現れる可能性がゼロでは�
 });
 
 test("各ランクの通常OPはrank/valueを持ち、LR/URは特殊OPも抽選可能",()=>{
- const low={pick:()=> "crit",float:(a,b)=>(a+b)/2,chance:()=>false};
+ const low={float:(a,b)=>a===0&&b===1000?0:(a+b)/2,chance:()=>false};
  for(const rank of Trial.RANKS){
   const option=Trial.optionForRank(rank,low);
-  assert.equal(option.key,"crit");
+  assert.equal(option.key,"atk_pct");
   assert.equal(option.rank,rank);
-  assert.ok(option.value>=Trial.PERCENT_RANGE[rank][0]);
-  assert.ok(option.value<=Trial.PERCENT_RANGE[rank][1]);
+  assert.ok(option.value>=Trial.KIND_CATALOG.atk_pct.ranges[rank][0]);
+  assert.ok(option.value<=Trial.KIND_CATALOG.atk_pct.ranges[rank][1]);
   assert.equal(option.origin,"natural");
  }
- const high={pick:()=> "crit",float:(a,b)=>(a+b)/2,chance:()=>true};
+ const high={float:(a,b)=>(a+b)/2,chance:()=>true};
  for(const rank of ["ur","lr"]){
   const option=Trial.optionForRank(rank,high);
   assert.equal(option.rank,rank);
