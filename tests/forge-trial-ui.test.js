@@ -160,3 +160,33 @@ test("OP種類・OPランクを切り替えると効果ごとの上限と出現�
   app.click("試作データをリセット");
   assert.match(app.visibleText(),/会心率：1.5% ～ 2.5%（SR）/);
 });
+
+test("⑨ 会心特化の試作装備数とスキル効果で上限適用が変わる",()=>{
+ const app=setup();
+ assert.match(app.visibleText(),/⑨ 複数装備・スキルのOP重複上限/);
+ assert.match(app.visibleText(),/会心率：/);
+ app.click("試作装備5件");
+ assert.match(app.visibleText(),/会心率：85.0% → 75.0%（上限適用）/);
+ app.click("職業・スキル効果 ON");
+ assert.match(app.visibleText(),/会心率：35.0% → 35.0%/);
+ app.click("職業・スキル効果 OFF");
+ assert.match(app.visibleText(),/会心率：85.0% → 75.0%（上限適用）/);
+});
+
+test("⑨ 吸収・防御・周回の試作を切替え、従来の強化・穴あけも操作可能",()=>{
+ const app=setup();
+ app.click("試作装備5件");
+ app.click("吸収特化");
+ assert.match(app.visibleText(),/通常のHP吸収：47.0% → 30.0%（上限適用）/);
+ assert.match(app.visibleText(),/技込みHP吸収：107.0% → 80.0%（上限適用）/);
+ app.click("防御特化");
+ assert.match(app.visibleText(),/被ダメージ軽減：.* → 60.0%（上限適用）/);
+ app.click("周回・回復特化");
+ assert.match(app.visibleText(),/強化石獲得：115.0% → 50.0%（上限適用）/);
+ app.click("試験強化 +50");
+ app.click("枠1を穴あけ");
+ assert.equal(app.state().targets.find(t=>t.id==="sr").opened,1);
+ app.click("試作データをリセット");
+ assert.match(app.visibleText(),/会心特化/);
+ assert.match(app.visibleText(),/会心率：/);
+});
