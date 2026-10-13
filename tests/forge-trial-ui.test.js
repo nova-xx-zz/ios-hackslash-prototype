@@ -106,3 +106,13 @@ test("旧v1試作保存から復元した武器も強化できる",()=>{
   assert.equal(app.state().targets.find(t=>t.id==="sr").plus,99);
   assert.equal(app.storage.get("swordcrest_forge_trial_v1"),oldSerialized,"旧保存は維持する");
 });
+
+test("UIから希少OPの保護ON/OFFとSR/UR基準を切り替えられる",()=>{
+  const app=setup();
+  assert.match(app.visibleText(),/保持 5個 \/ 分解 3個 \/ 強化石 30個 \/ OP保護 4個/);
+  app.click("希少OPの保護 ON");
+  assert.match(app.visibleText(),/保持 1個 \/ 分解 7個 \/ 強化石 80個 \/ OP保護 0個/);
+  app.click("希少OPの保護 OFF");
+  app.click("保護基準 SR以上");
+  assert.match(app.visibleText(),/保持 4個 \/ 分解 4個 \/ 強化石 35個 \/ OP保護 3個/);
+});
