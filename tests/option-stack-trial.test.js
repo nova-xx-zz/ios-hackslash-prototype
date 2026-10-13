@@ -95,3 +95,15 @@ test("上限まで到達した値と比較対象の詳細が一致する",()=>{
   assert.equal(row.limited,s.capped.includes(row.key));
  }
 });
+
+test("セルフRV: 被ダメ増加やMPコスト増加の負効果を上限処理で消さない",()=>{
+ const s=Stack.compute({sources:[{id:"curse",label:"呪い",effects:{
+  dmgTakenMult:1.2,mpCostMult:1.5
+ }}]});
+ approx(s.raw.damageReduction,-.2);
+ approx(s.effective.damageReduction,-.2);
+ approx(s.damageTakenMultiplier,1.2);
+ approx(s.effective.mpReduction,-.5);
+ approx(s.mpCostMultiplier,1.5);
+ assert.equal(s.details.find(x=>x.key==="passiveLifesteal").label,"通常のHP吸収");
+});
