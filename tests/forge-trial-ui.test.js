@@ -6,6 +6,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
 const Gear=require("../js/core/forge-gear-trial.js");
+const Loot=require("../js/core/loot-protection-trial.js");
 const Legacy=require("../js/core/option-inheritance-trial.js");
 
 class Element {
@@ -23,7 +24,7 @@ function setup(storageValues) {
   const nodes={forgeTrialBody:new Element("div"),btnForgeTrialBack:new Element("button")};
   const saved=new Map(storageValues||[]);
   const context=vm.createContext({
-    QPCore:{forgeGearTrial:Gear},
+    QPCore:{forgeGearTrial:Gear,lootProtectionTrial:Loot},
     document:{
       createElement:tag=>new Element(tag),
       getElementById:id=>nodes[id]
