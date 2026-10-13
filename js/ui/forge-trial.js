@@ -148,7 +148,7 @@ function forgeTrialRender() {
   const growthActions = forgeEl("div", "forge-trial-actions");
   ForgeTrial.SLOT_LEVELS[target.rarity].forEach(function (milestone) {
     growthActions.appendChild(forgeButton("試験強化 +" + milestone, function () {
-      forgeApply(function () { return ForgeTrial.increasePlus(state, target.id, milestone); });
+      forgeApply(function () { return ForgeTrial.enhance(state, target.id, milestone); });
     }, target.plus >= milestone));
   });
   growth.appendChild(growthActions);
@@ -157,6 +157,14 @@ function forgeTrialRender() {
       "枠" + (target.opened + 1) + "を穴あけ（必要 +" + nextThreshold + "）",
     function () { forgeApply(function () { return ForgeTrial.openSocket(state, target.id); }); },
     !summary.canOpenNext, "btn primary forge-trial-wide"));
+  if (nextThreshold !== undefined && !summary.canOpenNext) {
+    const reason = target.plus < nextThreshold
+      ? "まず試験強化で+" + nextThreshold + "にしてください。"
+      : summary.freeTotal === 0
+        ? "天然OPと継承OPを合わせて上限" + summary.maxTotal + "個です。天然OPを抽出すると、追加の穴あけができます。"
+        : "穴あけ条件を満たしていません。";
+    growth.appendChild(forgeEl("p", "forge-trial-note", reason));
+  }
 
   const extracts = forgeSection(body, "③ 天然OPを抽出", "武器本体は残り、天然OPだけが消えます。継承済みOPは再抽出できません。");
   const availableSources = state.sources.filter(function (w) { return w.natural && !!ForgeTrial.OP_DEFS[w.optionKey]; });
