@@ -72,7 +72,7 @@
       { id: "demo_r2", name: "R ブロンズブレイド", rarity: "r", materialValue: 20,
         options: [{ key: "atk_pct", value: .02, rank: "n", origin: "natural" }] },
       { id: "demo_sr1", name: "SR ゴールドソード", rarity: "sr", materialValue: 80, options: [] },
-      { id: "demo_n5", name: "N 継承済みダガー", rarity: "n", materialValue: 5,
+      { id: "demo_r3", name: "R 継承済みダガー", rarity: "r", materialValue: 20,
         options: [{ key: "atk_pct", value: .05, rank: "r", origin: "inherited" }] }
     ];
   }
