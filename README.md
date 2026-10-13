@@ -205,6 +205,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/development-priorities.md` — **ゲーム仕様の開発優先順位（最新）**。試作→体感→本番化の受入条件も記載
 - `docs/attribute-slot-core-trial.md` — **属性10種の独立計算・天然/継承OP枠のテスト実装**。既存ゲームの戦闘/ドロップ/セーブには未接続
 - `docs/real-option-cap-audit.md` — **実際の職業・種族・スキル・シリーズ装備に基づくOP上限監査**。`node tools/audit-option-caps.js` で再検証可能。本体への上限適用は保留
+- `docs/soft-cap-real-data-comparison.md` — **現行7ビルドでのハード上限・ソフトA/B比較**。`node tools/compare-soft-caps.js` で再計算。HP吸収技の弱体化リスクは未解決
 - `docs/attribute-loot-design.md` — **属性10種・虚無・装備収集・天然OPの整合検討**（現在の重点テーマ、H/I/J章にOPレアリティ・種類別出現率/効果上限・複数装備時の上限案）
 - `docs/forge-inheritance-trial.md` — 鍛冶屋の抽出・穴あけ・継承試作、試作と本体の境界
 - `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
