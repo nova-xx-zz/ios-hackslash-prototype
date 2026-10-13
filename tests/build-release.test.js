@@ -51,7 +51,7 @@ test("iOS production candidate uses the same security gates",()=>{
   const file=p=>fs.readFileSync(path.join(ROOT,"www",p),"utf8");
   assert.match(file("js/runtime-env.js"),/"platform":"ios"/);
   assert.doesNotMatch(file("js/ui/debug.js"),/debugComplete/);
-  assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL|forge-gear-trial|element-affinity-trial|option-slots-trial/);
+  assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL|forge-gear-trial|element-affinity-trial|option-slots-trial|loot-protection-trial/);
   for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js"])
     assert.equal(fs.existsSync(path.join(ROOT,"www/js/core",name)),false);
 });
