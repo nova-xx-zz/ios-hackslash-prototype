@@ -6,7 +6,9 @@
     (typeof require === "function" ? require("./loot-protection-trial.js") : null);
   const RNG = (root.QPCore && root.QPCore.rng) ||
     (typeof require === "function" ? require("./rng.js") : null);
-  if (!Rank || !RNG) throw Error("OP rarity trial requires loot protection and RNG");
+  const Balance = (root.QPCore && root.QPCore.optionBalanceTrial) ||
+    (typeof require === "function" ? require("./option-balance-trial.js") : null);
+  if (!Rank || !RNG || !Balance) throw Error("OP rarity trial requires loot protection, RNG and balance");
 
   const RANKS = Object.freeze(["n", "r", "sr", "ur", "lr"]);
   const WEAPON_WEIGHTS = Object.freeze({ n: 7100, r: 2200, sr: 650, ur: 35, lr: 15 });
@@ -22,13 +24,10 @@
       weights:Object.freeze({n:4500,r:3400,sr:1900,ur:180,lr:20})})
   });
   // 現行OPから機能例を選抜。属性反転・虚無は試作専用で実戦効果未実装。
-  const BASIC_KEYS = Object.freeze(["atk_pct", "crit", "guard", "lifesteal", "material"]);
+  const BASIC_KEYS = Balance.KEYS;
   const SPECIAL_KEYS = Object.freeze({ur:"element_reverse_earth",lr:"void_resonance"});
   const SPECIAL_RATE = Object.freeze({ur:0.02,lr:0.10});
-  const PERCENT_RANGE = Object.freeze({
-    n:[0.01,0.03],r:[0.03,0.05],sr:[0.05,0.08],
-    ur:[0.08,0.11],lr:[0.11,0.15]
-  });
+
   const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
 
   function pickWeighted(weights, rng) {
@@ -46,9 +45,8 @@
     if(!RANKS.includes(rank))throw RangeError("Invalid OP rank");
     if(SPECIAL_KEYS[rank] && rng.chance(SPECIAL_RATE[rank]))
       return {key:SPECIAL_KEYS[rank],rank,value:1,origin:"natural",special:true};
-    const key=rng.pick(BASIC_KEYS);
-    const range=PERCENT_RANGE[rank];
-    const value=Math.round(rng.float(range[0],range[1])*1000)/1000;
+    const key=Balance.pickKind(rng);
+    const value=Balance.valueFor(key,rank,rng);
     return {key,rank,value,origin:"natural"};
   }
   function rollOne(mode,rng) {
@@ -73,6 +71,28 @@
     return {perDrop,perRun,expectedRuns:perRun>0?1/perRun:Infinity};
   }
 
+  // 特定OPの1ドロップあたり入手確率。装備ランクが未指定なら武器レア度を問わない。
+  // 特殊OPはUR/LRの特殊抽選からのみ発生し、通常OPの抽選重みには混ぜない。
+  function probabilityForKind(mode,rank,key,weaponRarity) {
+    if(!own(MODES,mode)||!RANKS.includes(rank)||
+      (weaponRarity!==undefined&&!own(WEAPON_WEIGHTS,weaponRarity))) {
+      throw RangeError("Invalid OP probability inputs");
+    }
+    const weaponFactor=weaponRarity===undefined?1:WEAPON_WEIGHTS[weaponRarity]/10000;
+    const rankFactor=MODES[mode].weights[rank]/10000;
+    let kindFactor;
+    if(key===SPECIAL_KEYS[rank]) {
+      kindFactor=SPECIAL_RATE[rank];
+    }else if(Balance.CATALOG[key]) {
+      kindFactor=(1-(SPECIAL_RATE[rank]||0))*Balance.chanceForKind(key);
+    }else {
+      throw RangeError("Invalid option kind for rank");
+    }
+    const perDrop=weaponFactor*MODES[mode].optionChance*rankFactor*kindFactor;
+    const perRun=1-Math.pow(1-perDrop,5);
+    return {perDrop,perRun,expectedRuns:perRun?1/perRun:Infinity};
+  }
+
   function simulate(options) {
     const opts=options||{};
     const mode=opts.mode||"hard";
@@ -83,6 +103,8 @@
     if(!Number.isInteger(count)||count<1||count>10000)throw RangeError("Simulation count must be 1..10000");
     if(!Number.isSafeInteger(seed))throw RangeError("Seed must be an integer");
     const rng=RNG.createRng(seed), rankCounts={n:0,r:0,sr:0,ur:0,lr:0};
+    const kindCounts=Object.fromEntries(Balance.KEYS.map(k=>[k,0]));
+    Object.values(SPECIAL_KEYS).forEach(k=>{kindCounts[k]=0;});
     const items=[],rareExamples=[];
     let withoutOption=0,nWithRare=0,nWithUR=0,withSpecial=0;
     for(let i=0;i<count;i++){
@@ -90,6 +112,7 @@
       const op=item.options[0];
       if(op){
         rankCounts[op.rank]++;
+        kindCounts[op.key]++;
         if(op.special)withSpecial++;
         if(item.rarity==="n" && RANKS.indexOf(op.rank)>=2)nWithRare++;
         if(item.rarity==="n" && RANKS.indexOf(op.rank)>=3)nWithUR++;
@@ -106,15 +129,15 @@
     const withoutProtection=Rank.simulate(items,{enabled:true,rarities:["n","r"],
       protectRareOptions:false});
     return {
-      mode,count,seed,minRank,rankCounts,withoutOption,
+      mode,count,seed,minRank,rankCounts,kindCounts,withoutOption,
       nWithRare,nWithUR,withSpecial,rareExamples,
       kept:result.kept.length,disassembled:result.disassembled.length,
       protectedByOption:result.savedByOptions,
       materials:result.materials,materialsWithoutProtection:withoutProtection.materials
     };
   }
-  const api={RANKS,WEAPON_WEIGHTS,MATERIAL_VALUES,MODES,BASIC_KEYS,SPECIAL_KEYS,
-    PERCENT_RANGE,optionForRank,rollOne,probability,simulate};
+  const api={RANKS,WEAPON_WEIGHTS,MATERIAL_VALUES,MODES,BASIC_KEYS,SPECIAL_KEYS,SPECIAL_RATE,
+    KIND_CATALOG:Balance.CATALOG,optionForRank,rollOne,probability,probabilityForKind,simulate};
   root.QPCore=root.QPCore||{};root.QPCore.optionRarityTrial=api;
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
