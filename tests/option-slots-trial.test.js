@@ -120,6 +120,8 @@ test("無効な入力は消費・破壊せず、エラーとして扱う", () =>
   assert.equal(S.extractNatural(w,0).reason,"missing_option");
   assert.equal(S.validateInheritance(w,material("atk","unknown")).reason,"invalid_material");
   assert.equal(S.validateInheritance(w,material("atk","n",{value:Infinity})).reason,"invalid_material");
+  assert.equal(S.validateInheritance(w,material("atk","n",{rank:"unknown"})).reason,"invalid_material");
+  assert.throws(() => S.inspect(item("sr",99,[op("crit",0.1,"inherited")],0)),/Inherited options/);
   assert.throws(() => S.inspect({...w,rarity:"x"}),/rarity/);
   assert.throws(() => S.inspect({...w,options:null}),/array/);
   assert.throws(() => S.inspect({...w,sockets:{opened:2},plus:50}),/milestones/);
