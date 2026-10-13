@@ -64,7 +64,7 @@ test("抽選したOPの数値は効果ごとの下限と上限を超えない",(
       for(const source of sources){
         const value=Balance.valueFor(key,rank,source);
         assert.ok(value>=min && value<=max,key+"/"+rank+"/"+value);
-        assert.equal(Math.round(value*1000),value*1000,"values are quantized to 0.1%");
+        near(Math.round(value*1000),value*1000,1e-8);
       }
     }
   }
