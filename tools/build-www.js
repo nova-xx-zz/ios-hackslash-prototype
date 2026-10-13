@@ -42,6 +42,9 @@ if(release){
   }
   fs.writeFileSync(htmlPath,releaseHtml);
   fs.rmSync(path.join(out,"js","core","option-inheritance-trial.js"));
+  fs.rmSync(path.join(out,"js","core","element-affinity-trial.js"));
+  fs.rmSync(path.join(out,"js","core","option-slots-trial.js"));
+  fs.rmSync(path.join(out,"js","core","forge-gear-trial.js"));
   fs.rmSync(path.join(out,"js","ui","forge-trial.js"));
   fs.writeFileSync(path.join(out,"js","firebase-config.js"),
     "// Public Firebase app identifiers only. Never inject server or PSP secrets.\n"+
