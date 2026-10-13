@@ -1,6 +1,6 @@
 # 属性10種・オプション枠の独立検証モジュール
 
-> 2026-10-13追加。**設計検証用のコードとNodeテスト**。ユーザーが遊ぶ本体の戦闘/ドロップ/継承画面/保存仕様には**まだ接続していない**。
+> 2026-10-13追加、2026-10-14更新。**設計検証用のコードとNodeテスト**。独立ロジックは **試作工房v2（js/core/forge-gear-trial.js）へ接続済み**。ただしゲーム本体の戦闘・実ドロップ・本体セーブ・課金には**未接続**。
 > 合意済み仕様と検討中の数値・制限は [属性・装備収集設計](attribute-loot-design.md) に分けて記載。
 
 ## 対象ファイル
@@ -12,7 +12,7 @@
 | tests/element-affinity-trial.test.js | 全100属性組み合わせ、基本循環、特殊ペア、虚無、免疫0、属性反転、異常入力 |
 | tests/option-slots-trial.test.js | SR+50/+99、天然＋継承の競合、元データ保持、同OP/特殊OP制限、旧セーブの複数天然OP、直接上位継承 |
 
-両モジュールはNodeのrequireで単独テストでき、ブラウザでは読み込めばQPCore.elementAffinityTrial / QPCore.optionSlotsTrialに登録される。**index.htmlに読み込ませていない**ため現行プロトタイプの挙動は変わらない。
+両モジュールはNodeのrequireで単独テストでき、ブラウザでは読み込めばQPCore.elementAffinityTrial / QPCore.optionSlotsTrialに登録される。**現在はindex.htmlの試作工房専用スクリプト領域で読み込む**。試作画面で倍率比較・OP総枠に使用し、正式配布ビルドでは関連モジュールを除外する。
 
 ## 設計値とテストした操作
 
