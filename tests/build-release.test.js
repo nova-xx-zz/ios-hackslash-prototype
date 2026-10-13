@@ -52,7 +52,7 @@ test("iOS production candidate uses the same security gates",()=>{
   assert.match(file("js/runtime-env.js"),/"platform":"ios"/);
   assert.doesNotMatch(file("js/ui/debug.js"),/debugComplete/);
   assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL|forge-gear-trial|element-affinity-trial|option-slots-trial|loot-protection-trial|option-rarity-trial|option-balance-trial|option-stack-trial/);
-  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js","option-rarity-trial.js"])
+  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js","option-rarity-trial.js","option-balance-trial.js","option-stack-trial.js"])
     assert.equal(fs.existsSync(path.join(ROOT,"www/js/core",name)),false);
 });
 test("web preview retains developer workflow and test project",()=>{
