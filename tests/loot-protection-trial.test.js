@@ -56,3 +56,15 @@ test("特殊OP・継承済みOPはランクが低くても保護、判定は入�
  assert.equal(r.disassembled.length,0);
  assert.equal(JSON.stringify(items),before);
 });
+
+
+test("保護OFF時の挙動は既存の報酬・自動分解ロジックと完全一致する",()=>{
+ const rewards=require("../js/core/rewards.js");
+ const drops=Loot.sampleLoot();
+ const filter={enabled:true,rarities:new Set(["n","r"])};
+ const legacy=rewards.settleDrops(drops,filter);
+ const proposed=Loot.simulate(drops,{...filter,protectRareOptions:false});
+ assert.deepEqual(proposed.kept.map(i=>i.id),legacy.kept.map(i=>i.id));
+ assert.equal(proposed.disassembled.length,legacy.disassembled);
+ assert.equal(proposed.materials,legacy.materialGained);
+});
