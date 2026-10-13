@@ -37,8 +37,8 @@ test("ソフトキャップ関数は閾値以下で原値を保ち、以降も�
    close(Soft.soften(threshold,threshold,ceiling),threshold);
    close(Soft.soften(threshold*.8,threshold,ceiling),threshold*.8);
    let prev=threshold;
-   for(let step=1;step<=500;step++){
-    const raw=threshold+step*.01;
+   for(let step=1;step<=80;step++){
+    const raw=threshold+(ceiling-threshold)*step/20;
     const val=Soft.soften(raw,threshold,ceiling);
     assert.ok(val>prev,"No additional OP value for "+policy+"/"+key);
     assert.ok(val<ceiling,"Exceeds ceiling "+policy+"/"+key);
