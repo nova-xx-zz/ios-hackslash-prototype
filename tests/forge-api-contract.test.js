@@ -7,6 +7,7 @@ const path=require("node:path");
 const Forge=require("../js/core/forge-gear-trial.js");
 const Loot=require("../js/core/loot-protection-trial.js");
 const Rarity=require("../js/core/option-rarity-trial.js");
+const Stack=require("../js/core/option-stack-trial.js");
 const ROOT=path.join(__dirname,"..");
 const ui=fs.readFileSync(path.join(ROOT,"js/ui/forge-trial.js"),"utf8");
 const html=fs.readFileSync(path.join(ROOT,"index.html"),"utf8");
@@ -19,14 +20,17 @@ test("セルフRV: 試作工房UIから呼び出すAPIはすべて実在する�
  const forgeRefs=[...new Set(references("ForgeTrial"))];
  const lootRefs=[...new Set(references("LootTrial"))];
  const rarityRefs=[...new Set(references("RarityTrial"))];
+ const stackRefs=[...new Set(references("StackTrial"))];
  assert.ok(forgeRefs.includes("enhance"),"新しい強化APIを必ず利用する");
  assert.ok(!forgeRefs.includes("increasePlus"),"旧 increasePlus を使用しない");
  assert.ok(lootRefs.includes("simulate"));
  assert.ok(rarityRefs.includes("simulate"));
  assert.ok(rarityRefs.includes("probability"));
+ assert.ok(stackRefs.includes("scenario"));
  for(const method of forgeRefs)assert.ok(Object.hasOwn(Forge,method),"ForgeTrial."+method+" is missing");
  for(const method of lootRefs)assert.ok(Object.hasOwn(Loot,method),"LootTrial."+method+" is missing");
  for(const method of rarityRefs)assert.ok(Object.hasOwn(Rarity,method),"RarityTrial."+method+" is missing");
+ for(const method of stackRefs)assert.ok(Object.hasOwn(Stack,method),"StackTrial."+method+" is missing");
 });
 test("セルフRV: Script順と参照ファイルの整合性を確認",()=>{
  const scripts=[...html.matchAll(/<script src="([^"]+)"/g)].map(m=>m[1].split("?")[0]);
@@ -38,6 +42,7 @@ test("セルフRV: Script順と参照ファイルの整合性を確認",()=>{
   "js/core/loot-protection-trial.js",
   "js/core/option-balance-trial.js",
   "js/core/option-rarity-trial.js",
+  "js/core/option-stack-trial.js",
   "js/ui/forge-trial.js"
  ];
  let previous=-1;
