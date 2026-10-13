@@ -2,11 +2,14 @@
 "use strict";
 const ForgeTrial = QPCore.forgeGearTrial;
 const LootTrial = QPCore.lootProtectionTrial;
+const RarityTrial = QPCore.optionRarityTrial;
 const FORGE_TRIAL_KEY = "swordcrest_forge_gear_trial_v2";
 const FORGE_TRIAL_LEGACY_KEY = "swordcrest_forge_trial_v1";
 let forgeTrialEnemyElement = "earth";
 let forgeTrialRareProtection = true;
 let forgeTrialProtectRank = "sr";
+let forgeTrialLootMode = "hard";
+let forgeTrialLootReport = null;
 let forgeTrialState = null;
 let forgeTrialTarget = "sr";
 let forgeTrialEssenceId = null;
@@ -257,10 +260,12 @@ function forgeTrialRender() {
   const protectionButtons = forgeEl("div", "forge-trial-actions");
   protectionButtons.appendChild(forgeButton("希少OPの保護 " + (forgeTrialRareProtection ? "ON" : "OFF"),function(){
     forgeTrialRareProtection = !forgeTrialRareProtection;
+    forgeTrialLootReport = null;
     forgeTrialRender();
   }, false, "btn ghost"));
   protectionButtons.appendChild(forgeButton("保護基準 " + forgeTrialProtectRank.toUpperCase() + "以上",function(){
     forgeTrialProtectRank = forgeTrialProtectRank === "sr" ? "ur" : "sr";
+    forgeTrialLootReport = null;
     forgeTrialRender();
   }, !forgeTrialRareProtection, "btn ghost"));
   lootSection.appendChild(protectionButtons);
@@ -286,6 +291,68 @@ function forgeTrialRender() {
   lootSection.appendChild(forgeEl("p","forge-trial-note",
     "現行ドロップのOPにはrank情報がないため、自動で希少と認定できません。今後OPランクの付与・保存と、自動分解への統合が必要です。"));
 
+  const rollSection = forgeSection(body,"⑦ OPレアリティ・出現確率の試算",
+    "武器レア度とOPランクを独立抽選する試験です。新しい確率はすべて暫定案で、実際のダンジョンドロップには未反映です。");
+  const modeButtons = forgeEl("div","forge-trial-tabs");
+  Object.entries(RarityTrial.MODES).forEach(function(entry){
+    const key=entry[0],model=entry[1];
+    modeButtons.appendChild(forgeButton(model.label,function(){
+      forgeTrialLootMode=key;
+      forgeTrialLootReport=null;
+      forgeTrialRender();
+    },false,"forge-trial-chip"+(key===forgeTrialLootMode?" selected":"")));
+  });
+  rollSection.appendChild(modeButtons);
+  const model=RarityTrial.MODES[forgeTrialLootMode];
+  rollSection.appendChild(forgeEl("p","forge-trial-note",
+    "天然OP付与率（試案） "+(model.optionChance*100).toFixed(0)+"%。OPが付いた場合のランク比率："+
+    RarityTrial.RANKS.map(function(rank){
+      return rank.toUpperCase()+" "+(model.weights[rank]/100).toFixed(2).replace(/\.?0+$/,"")+"%";
+    }).join(" / ")));
+  const srChance=RarityTrial.probability(forgeTrialLootMode,"n","sr");
+  const urChance=RarityTrial.probability(forgeTrialLootMode,"n","ur");
+  const lrChance=RarityTrial.probability(forgeTrialLootMode,"n","lr");
+  const chanceText=function(chance){return (chance*100).toFixed(3)+"%";};
+  rollSection.appendChild(forgeEl("p","forge-trial-note",
+    "N武器＋SR以上OP："+chanceText(srChance.perDrop)+
+    " / N武器＋UR以上："+chanceText(urChance.perDrop)+
+    " / N武器＋LR："+chanceText(lrChance.perDrop)+"（1ドロップあたりの理論値）"));
+  const trialButtons=forgeEl("div","forge-trial-actions");
+  [1000,10000].forEach(function(count){
+    trialButtons.appendChild(forgeButton(count.toLocaleString("ja-JP")+"個を試抽選",function(){
+      forgeTrialLootReport=RarityTrial.simulate({mode:forgeTrialLootMode,count,
+        minRank:forgeTrialProtectRank,seed:20261014});
+      forgeTrialRender();
+    },false,"btn ghost"));
+  });
+  rollSection.appendChild(trialButtons);
+  if(forgeTrialLootReport){
+    const report=forgeTrialLootReport;
+    rollSection.appendChild(forgeEl("p","forge-trial-rate",
+      "抽選 "+report.count.toLocaleString("ja-JP")+"件：OPなし "+report.withoutOption+
+      " / N武器＋SR以上OP "+report.nWithRare+" / N武器＋UR以上OP "+report.nWithUR+
+      " / 特殊OP "+report.withSpecial));
+    rollSection.appendChild(forgeEl("p","forge-trial-note",
+      "OPランク別 "+RarityTrial.RANKS.map(function(rank){
+        return rank.toUpperCase()+":"+report.rankCounts[rank];
+      }).join(" / ")));
+    rollSection.appendChild(forgeEl("p","forge-trial-note",
+      "自動分解の参考値：SR/UR切替の現在の保護基準 "+report.minRank.toUpperCase()+
+      "以上で保持 "+report.kept+"件 / 強化石 "+report.materials+
+      "（保護なしなら "+report.materialsWithoutProtection+"）"));
+    report.rareExamples.slice(0,5).forEach(function(op){
+      const value=op.special?"特殊":(op.value*100).toFixed(1)+"%";
+      rollSection.appendChild(forgeEl("div","forge-trial-slot",
+        "武器 "+op.weaponRank.toUpperCase()+" / OP "+op.optionRank.toUpperCase()+
+        " / "+op.key+" "+value));
+    });
+  }else{
+    rollSection.appendChild(forgeEl("p","forge-trial-note",
+      "抽選ボタンで結果を確認できます。同じ条件・シードなら同じ結果になる検証用の模擬抽選です。"));
+  }
+  rollSection.appendChild(forgeEl("p","forge-trial-note",
+    "現行仕様では通常モードに天然OPは付きません。ハード/エクストラでは現在1～3個のOPが付きますが、この試算は比較を簡単にするため1装備につき最大1個として計算します。期待周回数は1周5個の仮定です。"));
+
   const footer = forgeSection(body, "試作を最初からやり直す", "試作工房だけを初期化します。既存ゲームのセーブデータには触れません。");
   footer.appendChild(forgeButton("試作データをリセット", function () {
     if (!window.confirm("試作工房の進行を初期化しますか？（ゲーム本体のデータは残ります）")) return;
@@ -294,6 +361,8 @@ function forgeTrialRender() {
     forgeTrialEnemyElement = "earth";
     forgeTrialRareProtection = true;
     forgeTrialProtectRank = "sr";
+    forgeTrialLootMode = "hard";
+    forgeTrialLootReport = null;
     forgeTrialEssenceId = null;
     forgeTrialMessage = "試作工房を初期化しました";
     forgeTrialWarning = false;

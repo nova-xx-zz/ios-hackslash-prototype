@@ -204,7 +204,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/equipment-design.md` — 装備設計書（現行実装の装備種類・シリーズ・ドロップ・強化とオプション）
 - `docs/development-priorities.md` — **ゲーム仕様の開発優先順位（最新）**。試作→体感→本番化の受入条件も記載
 - `docs/attribute-slot-core-trial.md` — **属性10種の独立計算・天然/継承OP枠のテスト実装**。既存ゲームの戦闘/ドロップ/セーブには未接続
-- `docs/attribute-loot-design.md` — **属性10種・虚無・装備収集・天然OPの整合検討**（現在の重点テーマ）
+- `docs/attribute-loot-design.md` — **属性10種・虚無・装備収集・天然OPの整合検討**（現在の重点テーマ、H章にOPレアリティ/出現率の試行案）
 - `docs/forge-inheritance-trial.md` — 鍛冶屋の抽出・穴あけ・継承試作、試作と本体の境界
 - `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
 - `docs/reviews/special-job-review-2026-10-08.md` — 特殊ジョブ設計のセルフレビュー（SJR-01〜09）
