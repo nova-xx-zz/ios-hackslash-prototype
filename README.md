@@ -1,5 +1,7 @@
 # ios-hackslash-prototype
 
+> **現在のゲーム仕様の開発優先順位（2026-10-13）**： [優先順位・受入条件](docs/development-priorities.md)。直近は **①装備収集・天然OP/継承 ②属性10種・虚無/対策** を並行して掘り下げます。[属性・装備収集の設計検討](docs/attribute-loot-design.md)。UIの作り込みはルールと体感検証が安定した後に進めます。これは[本番公開の安全ゲート](docs/production-plan.md)とは別の順序です。
+
 > **鍛冶屋・オプション抽出／継承 試作工房**：編成 → 鍛冶屋 → 「オプション抽出・継承【試作】」。試作の武器で+強化・穴あけ・天然OP抽出・UR/LR継承天井・確定継承液のテストを体験できます。実装内容と安全なテスト手順は [試作設計書](docs/forge-inheritance-trial.md)。ゲーム本体の装備・保存や実課金には**一切接続しません**。正式配信ビルドではメニューを非表示にします。
 
 
@@ -199,7 +201,10 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/basic-design.md` — 基本設計書
 - `docs/detailed-design.md` — 詳細設計書（データ構造・計算式・関数マッピング）
 - `docs/monster-design.md` — モンスター設計書（地方・ダンジョンごとの敵、敵の強さ、ボス・レア敵、テイム・型・合成）
-- `docs/equipment-design.md` — 装備設計書（種類・ジョブの装備制限・シリーズとセット効果・レア度・強化・ドロップ・名のある装備・オプション効果）
+- `docs/equipment-design.md` — 装備設計書（現行実装の装備種類・シリーズ・ドロップ・強化とオプション）
+- `docs/development-priorities.md` — **ゲーム仕様の開発優先順位（最新）**。試作→体感→本番化の受入条件も記載
+- `docs/attribute-loot-design.md` — **属性10種・虚無・装備収集・天然OPの整合検討**（現在の重点テーマ）
+- `docs/forge-inheritance-trial.md` — 鍛冶屋の抽出・穴あけ・継承試作、試作と本体の境界
 - `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
 - `docs/reviews/special-job-review-2026-10-08.md` — 特殊ジョブ設計のセルフレビュー（SJR-01〜09）
 - `docs/skill-tree-design.md` — スキルツリー設計書（Lv99までの段・追加のマスと技・振り直し・敵の特性と属性・強化と弱体・モードごとの難易度の考え方）
