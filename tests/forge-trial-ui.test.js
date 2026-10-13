@@ -117,3 +117,29 @@ test("UIから希少OPの保護ON/OFFとSR/UR基準を切り替えられる",()=
   app.click("保護基準 SR以上");
   assert.match(app.visibleText(),/保持 4個 \/ 分解 4個 \/ 強化石 35個 \/ OP保護 3個/);
 });
+
+test("画面で通常・ハード・エクストラを切替え、1,000件のOP抽選を実行できる",()=>{
+  const app=setup();
+  assert.match(app.visibleText(),/⑦ OPレアリティ・出現確率の試算/);
+  assert.match(app.visibleText(),/ハード（候補）/);
+  app.click("1,000個を試抽選");
+  assert.match(app.visibleText(),/抽選 1,000件/);
+  assert.match(app.visibleText(),/N武器＋SR以上OP/);
+  app.click("エクストラ（候補）");
+  assert.doesNotMatch(app.visibleText(),/抽選 1,000件/,"モード切替時は古い集計結果を消す");
+  app.click("1,000個を試抽選");
+  assert.match(app.visibleText(),/抽選 1,000件/);
+  app.click("通常（候補）");
+  assert.match(app.visibleText(),/天然OP付与率（試案） 10%/);
+  app.click("10,000個を試抽選");
+  assert.match(app.visibleText(),/抽選 10,000件/);
+});
+test("保護基準変更後には、古い抽選結果を残さず再試算する",()=>{
+  const app=setup();
+  app.click("1,000個を試抽選");
+  assert.match(app.visibleText(),/抽選 1,000件/);
+  app.click("保護基準 SR以上");
+  assert.doesNotMatch(app.visibleText(),/抽選 1,000件/);
+  app.click("1,000個を試抽選");
+  assert.match(app.visibleText(),/保護基準 UR以上/);
+});
