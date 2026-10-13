@@ -1576,3 +1576,15 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   .forge-trial-section { padding: 11px; }
   .forge-trial-actions > .btn { flex-basis: 100%; }
 }
+
+
+/* 試作工房 v2：属性切替と倍率比較（正式版ビルドでは画面ごと除外） */
+.forge-trial-element-rows {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px 0 12px;}
+.forge-trial-element-rows label {display:block;min-width:0;}
+.forge-trial-select {
+  display:block;width:100%;min-width:0;margin-top:5px;padding:10px 8px;
+  border:1px solid var(--border);border-radius:8px;color:var(--text);
+  background:var(--bg);font:inherit;font-size:14px;
+}
+.forge-trial-select:focus-visible {outline:2px solid var(--accent);outline-offset:2px;}
+@media(max-width:355px){.forge-trial-element-rows{grid-template-columns:1fr;}}
