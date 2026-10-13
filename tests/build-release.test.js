@@ -36,7 +36,7 @@ test("web production strips debug executable code and separates local saves",()=
   assert.equal(fs.existsSync(path.join(base,"admin.html")),false);
   assert.doesNotMatch(file("index.html"),/FORGE-TRIAL|forge-trial|screen-forge-trial/);
   assert.equal(fs.existsSync(path.join(base,"js/core/option-inheritance-trial.js")),false);
-  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js","option-rarity-trial.js","option-balance-trial.js"])
+  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js","option-rarity-trial.js","option-balance-trial.js","option-stack-trial.js"])
     assert.equal(fs.existsSync(path.join(base,"js/core",name)),false);
   assert.equal(fs.existsSync(path.join(base,"js/ui/forge-trial.js")),false);
   ctx.module={exports:{}};vm.runInNewContext(file("js/core/storage.js"),ctx);
@@ -51,8 +51,8 @@ test("iOS production candidate uses the same security gates",()=>{
   const file=p=>fs.readFileSync(path.join(ROOT,"www",p),"utf8");
   assert.match(file("js/runtime-env.js"),/"platform":"ios"/);
   assert.doesNotMatch(file("js/ui/debug.js"),/debugComplete/);
-  assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL|forge-gear-trial|element-affinity-trial|option-slots-trial|loot-protection-trial|option-rarity-trial|option-balance-trial/);
-  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js","option-rarity-trial.js"])
+  assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL|forge-gear-trial|element-affinity-trial|option-slots-trial|loot-protection-trial|option-rarity-trial|option-balance-trial|option-stack-trial/);
+  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js","loot-protection-trial.js","option-rarity-trial.js","option-balance-trial.js","option-stack-trial.js"])
     assert.equal(fs.existsSync(path.join(ROOT,"www/js/core",name)),false);
 });
 test("web preview retains developer workflow and test project",()=>{
@@ -68,6 +68,7 @@ test("web preview retains developer workflow and test project",()=>{
   assert.match(file("index.html"),/loot-protection-trial/);
   assert.match(file("index.html"),/option-rarity-trial/);
   assert.match(file("index.html"),/option-balance-trial/);
+  assert.match(file("index.html"),/option-stack-trial/);
   assert.match(file("index.html"),/element-affinity-trial/);
   assert.match(file("index.html"),/option-slots-trial/);
 });
