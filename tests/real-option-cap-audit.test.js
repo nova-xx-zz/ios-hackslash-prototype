@@ -25,7 +25,7 @@ test("実データの7ビルドはLv99・SP98以内、装飾品3枠・合法な�
   assert.ok(c.skillIds.some(s=>s.ids.some(id=>id.endsWith("_acc1"))));
   assert.ok(c.skillIds.some(s=>s.ids.some(id=>id.endsWith("_acc2"))));
   assert.equal(c.raw,Stack.compute({sources:c.sources,abilityLifesteal:c.abilityLifesteal}).raw[c.focus]);
- });
+ }
 });
 
 test("前提ノードの自動選択・相互排他・レベル制限・SP超過を検証",()=>{
