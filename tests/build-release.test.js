@@ -36,6 +36,8 @@ test("web production strips debug executable code and separates local saves",()=
   assert.equal(fs.existsSync(path.join(base,"admin.html")),false);
   assert.doesNotMatch(file("index.html"),/FORGE-TRIAL|forge-trial|screen-forge-trial/);
   assert.equal(fs.existsSync(path.join(base,"js/core/option-inheritance-trial.js")),false);
+  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js"])
+    assert.equal(fs.existsSync(path.join(base,"js/core",name)),false);
   assert.equal(fs.existsSync(path.join(base,"js/ui/forge-trial.js")),false);
   ctx.module={exports:{}};vm.runInNewContext(file("js/core/storage.js"),ctx);
   const backend=ctx.QPCore.storage.defaultBackend();
@@ -49,7 +51,9 @@ test("iOS production candidate uses the same security gates",()=>{
   const file=p=>fs.readFileSync(path.join(ROOT,"www",p),"utf8");
   assert.match(file("js/runtime-env.js"),/"platform":"ios"/);
   assert.doesNotMatch(file("js/ui/debug.js"),/debugComplete/);
-  assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL/);
+  assert.doesNotMatch(file("index.html"),/forge-trial|FORGE-TRIAL|forge-gear-trial|element-affinity-trial|option-slots-trial/);
+  for(const name of ["element-affinity-trial.js","option-slots-trial.js","forge-gear-trial.js"])
+    assert.equal(fs.existsSync(path.join(ROOT,"www/js/core",name)),false);
 });
 test("web preview retains developer workflow and test project",()=>{
   const r=build(["--web"]);assert.equal(r.status,0,r.stderr);
@@ -60,6 +64,9 @@ test("web preview retains developer workflow and test project",()=>{
   assert.match(file("js/runtime-env.js"),/"channel":"preview"/);
   assert.match(file("index.html"),/screen-forge-trial/);
   assert.match(file("index.html"),/option-inheritance-trial/);
+  assert.match(file("index.html"),/forge-gear-trial/);
+  assert.match(file("index.html"),/element-affinity-trial/);
+  assert.match(file("index.html"),/option-slots-trial/);
 });
 test("purchase model denies test grants in production mode",()=>{
   const mod=require("../js/model/shop.js");
