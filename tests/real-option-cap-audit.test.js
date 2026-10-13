@@ -20,7 +20,7 @@ test("実データの7ビルドはLv99・SP98以内、装飾品3枠・合法な�
   assert.equal(new Set(c.gearBases).size,6);
   assert.equal(c.level,99);
   assert.equal(c.maxSP,98);
-  assert.ok(c.sources.some(s=>s.id.startsWith("set:6"))||true); // 一部セットはpassiveゼロ
+  assert.ok(c.sources.some(s=>s.id==="set:6"),"six-piece set bonus is present");
   assert.ok(c.sources.some(s=>s.id.startsWith("op:")));
   assert.ok(c.skillIds.some(s=>s.ids.some(id=>id.endsWith("_acc1"))));
   assert.ok(c.skillIds.some(s=>s.ids.some(id=>id.endsWith("_acc2"))));
