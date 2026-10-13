@@ -37,6 +37,9 @@
     if (opened > 0 && item.plus < SOCKET_THRESHOLDS[item.rarity][opened - 1]) {
       throw new RangeError("Sockets cannot exceed enhancement milestones");
     }
+    if (options.filter(isInherited).length > opened) {
+      throw new RangeError("Inherited options cannot exceed opened sockets");
+    }
     return { options, opened };
   }
 
@@ -89,7 +92,7 @@
   function validateInheritance(item, candidate) {
     const info = inspect(item);
     if (!candidate || typeof candidate.key !== "string" || !candidate.key ||
-        !own(MAX_OPTIONS, candidate.sourceItemRarity) ||
+        !own(MAX_OPTIONS, candidate.sourceItemRarity) || !own(MAX_OPTIONS, candidate.rank) ||
         (candidate.value !== undefined && (typeof candidate.value !== "number" || !Number.isFinite(candidate.value)))) {
       return { ok: false, reason: "invalid_material" };
     }
