@@ -10,7 +10,7 @@ const CAPS=Object.freeze({
 });
 const KEYS=Object.freeze(["critBonus","lifesteal","dmgTakenMult","healBonus","materialBonus","expBonus","mpCostMult"]);
 const LABELS=Object.freeze({
- critChance:"会心率",lifesteal:"通常のHP吸収",totalLifesteal:"技込みHP吸収",
+ critChance:"会心率",passiveLifesteal:"通常のHP吸収",totalLifesteal:"技込みHP吸収",
  damageReduction:"被ダメージ軽減",healBonus:"回復量",materialBonus:"強化石獲得",
  expBonus:"経験値獲得",mpReduction:"消費MP軽減"
 });
@@ -62,11 +62,11 @@ function compute(options){
   critChance:clamp(raw.critChance,CAPS.critChance),
   passiveLifesteal:clamp(raw.passiveLifesteal,CAPS.passiveLifesteal),
   totalLifesteal:clamp(clamp(raw.passiveLifesteal,CAPS.passiveLifesteal)+ability,CAPS.totalLifesteal),
-  damageReduction:clamp(raw.damageReduction,CAPS.damageReduction),
+  damageReduction:Math.min(raw.damageReduction,CAPS.damageReduction),
   healBonus:clamp(raw.healBonus,CAPS.healBonus),
   materialBonus:clamp(raw.materialBonus,CAPS.materialBonus),
   expBonus:clamp(raw.expBonus,CAPS.expBonus),
-  mpReduction:clamp(raw.mpReduction,CAPS.mpReduction)
+  mpReduction:Math.min(raw.mpReduction,CAPS.mpReduction)
  };
  const details=Object.keys(effective).map(key=>({
   key,label:LABELS[key],raw:raw[key],effective:effective[key],
