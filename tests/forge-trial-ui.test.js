@@ -33,7 +33,8 @@ function setup(storageValues) {
       setItem:(key,value)=>saved.set(key,value)
     },
     window:{confirm:()=>true},
-    showScreen:()=>{}
+    showScreen:()=>{},
+    openPartyMenu:()=>{}
   });
   const script=fs.readFileSync(path.join(__dirname,"../js/ui/forge-trial.js"),"utf8");
   vm.runInContext(script,context,{filename:"forge-trial.js"});
