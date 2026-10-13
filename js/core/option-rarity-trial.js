@@ -137,7 +137,8 @@
     };
   }
   const api={RANKS,WEAPON_WEIGHTS,MATERIAL_VALUES,MODES,BASIC_KEYS,SPECIAL_KEYS,SPECIAL_RATE,
-    KIND_CATALOG:Balance.CATALOG,optionForRank,rollOne,probability,probabilityForKind,simulate};
+    KIND_CATALOG:Balance.CATALOG,KIND_CATALOG_WEIGHT:Balance.TOTAL_WEIGHT,
+    optionForRank,rollOne,probability,probabilityForKind,simulate};
   root.QPCore=root.QPCore||{};root.QPCore.optionRarityTrial=api;
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
 })(typeof globalThis!=="undefined"?globalThis:this);
