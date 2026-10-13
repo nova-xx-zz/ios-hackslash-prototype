@@ -1588,3 +1588,15 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .forge-trial-select:focus-visible {outline:2px solid var(--accent);outline-offset:2px;}
 @media(max-width:355px){.forge-trial-element-rows{grid-template-columns:1fr;}}
+
+/* 試作工房：種類別OP比較パネル。正式配布では試作画面のみ非表示。 */
+.forge-trial-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 10px 0;
+}
+.forge-trial-kind-grid .forge-trial-chip { width: 100%; text-align: left; font-size: 12px; }
+@media(max-width:355px) {
+  .forge-trial-kind-grid { grid-template-columns: 1fr; }
+}

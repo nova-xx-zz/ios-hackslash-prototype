@@ -10,6 +10,8 @@ let forgeTrialRareProtection = true;
 let forgeTrialProtectRank = "sr";
 let forgeTrialLootMode = "hard";
 let forgeTrialLootReport = null;
+let forgeTrialFocusKind = "crit";
+let forgeTrialFocusRank = "sr";
 let forgeTrialState = null;
 let forgeTrialTarget = "sr";
 let forgeTrialEssenceId = null;
@@ -353,6 +355,54 @@ function forgeTrialRender() {
   rollSection.appendChild(forgeEl("p","forge-trial-note",
     "現行仕様では通常モードに天然OPは付きません。ハード/エクストラでは現在1～3個のOPが付きますが、この試算は比較を簡単にするため1装備につき最大1個として計算します。期待周回数は1周5個の仮定です。"));
 
+  const balanceSection=forgeSection(body,"⑧ OP種類別の出現率・数値上限",
+    "同じOPランクでも効果の種類で強さと希少性を変える比較案です。実戦の装備補正はまだ変更していません。");
+  const rankButtons=forgeEl("div","forge-trial-tabs");
+  RarityTrial.RANKS.forEach(function(rank){
+    rankButtons.appendChild(forgeButton("OPランク "+rank.toUpperCase(),function(){
+      forgeTrialFocusRank=rank;forgeTrialRender();
+    },false,"forge-trial-chip"+(forgeTrialFocusRank===rank?" selected":"")));
+  });
+  balanceSection.appendChild(rankButtons);
+  const kinds=forgeEl("div","forge-trial-kind-grid");
+  Object.entries(RarityTrial.KIND_CATALOG).forEach(function(entry){
+    const key=entry[0],details=entry[1];
+    kinds.appendChild(forgeButton("OP: "+details.label,function(){
+      forgeTrialFocusKind=key;forgeTrialRender();
+    },false,"forge-trial-chip"+(forgeTrialFocusKind===key?" selected":"")));
+  });
+  balanceSection.appendChild(kinds);
+  const details=RarityTrial.KIND_CATALOG[forgeTrialFocusKind];
+  const range=details.ranges[forgeTrialFocusRank];
+  const percent=function(x){return (x*100).toFixed(1)+"%";};
+  const selectedChance=RarityTrial.probabilityForKind(forgeTrialLootMode,forgeTrialFocusRank,forgeTrialFocusKind);
+  const nWeaponChance=RarityTrial.probabilityForKind(forgeTrialLootMode,forgeTrialFocusRank,forgeTrialFocusKind,"n");
+  balanceSection.appendChild(forgeEl("p","forge-trial-rate",
+    details.label+"："+percent(range[0])+" ～ "+percent(range[1])+"（"+forgeTrialFocusRank.toUpperCase()+"）"));
+  balanceSection.appendChild(forgeEl("p","forge-trial-note",
+    details.role+" / 通常OP内の出現比率 "+(details.weight/RarityTrial.KIND_CATALOG_WEIGHT*100).toFixed(1)+"%"));
+  balanceSection.appendChild(forgeEl("p","forge-trial-note",
+    RarityTrial.MODES[forgeTrialLootMode].label+"：このOPの"+forgeTrialFocusRank.toUpperCase()+
+    "ランクが出る確率 "+(selectedChance.perDrop*100).toFixed(4)+"%/ドロップ"+
+    " / N武器＋同OP "+(nWeaponChance.perDrop*100).toFixed(4)+"%/ドロップ"));
+  if(forgeTrialLootReport){
+    balanceSection.appendChild(forgeEl("p","forge-trial-note",
+      "直近の"+forgeTrialLootReport.count.toLocaleString("ja-JP")+
+      "件の試抽選に含まれる「"+details.label+"」："+forgeTrialLootReport.kindCounts[forgeTrialFocusKind]+
+      "件（ランクを問わない合計）"));
+  }
+  const specialText=Object.entries(RarityTrial.SPECIAL_KEYS).map(function(entry){
+    const rank=entry[0],key=entry[1];
+    const p=RarityTrial.probabilityForKind(forgeTrialLootMode,rank,key);
+    return (key==="element_reverse_earth"?"属性反転":"虚無共鳴")+"("+rank.toUpperCase()+") "+
+      (p.perDrop*100).toFixed(4)+"%/ドロップ";
+  });
+  balanceSection.appendChild(forgeEl("p","forge-trial-note",
+    "特殊OPは通常OPと別抽選："+specialText.join(" / ")+
+    "。効果の適用条件、上限、ドロップ場所は今後の調整対象です。"));
+  balanceSection.appendChild(forgeEl("p","forge-trial-note",
+    "効果別の数値上限は仮値です。特に会心率、吸収、被ダメ軽減が重複した場合の上限は実戦統合前に別途検証します。"));
+
   const footer = forgeSection(body, "試作を最初からやり直す", "試作工房だけを初期化します。既存ゲームのセーブデータには触れません。");
   footer.appendChild(forgeButton("試作データをリセット", function () {
     if (!window.confirm("試作工房の進行を初期化しますか？（ゲーム本体のデータは残ります）")) return;
@@ -363,6 +413,8 @@ function forgeTrialRender() {
     forgeTrialProtectRank = "sr";
     forgeTrialLootMode = "hard";
     forgeTrialLootReport = null;
+    forgeTrialFocusKind = "crit";
+    forgeTrialFocusRank = "sr";
     forgeTrialEssenceId = null;
     forgeTrialMessage = "試作工房を初期化しました";
     forgeTrialWarning = false;

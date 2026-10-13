@@ -143,3 +143,19 @@ test("保護基準変更後には、古い抽選結果を残さず再試算す�
   app.click("1,000個を試抽選");
   assert.match(app.visibleText(),/保護基準 UR以上/);
 });
+
+test("OP種類・OPランクを切り替えると効果ごとの上限と出現率が変わる",()=>{
+  const app=setup();
+  assert.match(app.visibleText(),/⑧ OP種類別の出現率・数値上限/);
+  assert.match(app.visibleText(),/会心率：1.5% ～ 2.5%（SR）/);
+  app.click("OPランク LR");
+  assert.match(app.visibleText(),/会心率：3.5% ～ 5.0%（LR）/);
+  app.click("OP: HP吸収");
+  assert.match(app.visibleText(),/HP吸収：3.0% ～ 4.0%（LR）/);
+  app.click("OP: ATK上昇");
+  assert.match(app.visibleText(),/ATK上昇：11.0% ～ 15.0%（LR）/);
+  app.click("1,000個を試抽選");
+  assert.match(app.visibleText(),/ATK上昇.*ランクを問わない合計/);
+  app.click("試作データをリセット");
+  assert.match(app.visibleText(),/会心率：1.5% ～ 2.5%（SR）/);
+});

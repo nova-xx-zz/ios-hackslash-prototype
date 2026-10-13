@@ -36,6 +36,7 @@ test("セルフRV: Script順と参照ファイルの整合性を確認",()=>{
   "js/core/option-slots-trial.js",
   "js/core/forge-gear-trial.js",
   "js/core/loot-protection-trial.js",
+  "js/core/option-balance-trial.js",
   "js/core/option-rarity-trial.js",
   "js/ui/forge-trial.js"
  ];
