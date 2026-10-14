@@ -111,7 +111,8 @@
     );
     return options.some((opt) => {
       if (!opt || typeof opt !== "object") return false;
-      if (opt.special === true || ["sr", "ur", "lr"].includes(opt.rank || opt.optionRarity)) return true;
+      if (opt.special === true || ["sr", "ur", "lr"].includes(opt.rank) ||
+          ["sr", "ur", "lr"].includes(opt.optionRarity)) return true;
       const threshold = PROTECTED_OP_MIN[opt.key];
       return Number.isFinite(threshold) && typeof opt.value === "number" &&
         Number.isFinite(opt.value) && opt.value + 1e-9 >= threshold;
