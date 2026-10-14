@@ -448,3 +448,72 @@ test("テイム: 仲間のBOXが満員の間は抽選せず、通常プレイ・
   full = false;
   assert.equal(typeof Runner.attemptTame(run).success, "boolean");
 });
+
+test("オフラインEXP: 勝利時の生存者だけへ戦闘ごとにEXPを加算し、前の戦闘の生存者を流用しない", () => {
+  const { state, roster, Runner } = setup({ level: 8 });
+  const dungeon = data.getDungeon("plains");
+  const party = state.roster;
+  const before = party.map(c => roster.totalExpInvested(c));
+  const out = { cleared: false, encountered: [], drops: [], tame: null,
+    expByBattle: [6, 10],
+    eligibleIdsByBattle: [
+      [party[0].id, party[1].id],
+      [party[0].id, party[2].id],
+    ],
+  };
+  Runner.applyOfflineRun(out, dungeon, 0);
+  const gained = party.map((c, i) => roster.totalExpInvested(c) - before[i]);
+  assert.deepEqual(gained, [16, 6, 11, 0, 0]);
+  assert.deepEqual(out.eligibleIdsByBattle[0], [party[0].id, party[1].id]);
+});
+
+test("オフラインEXP: 勝利時に生存者IDが空なら0人、旧形式結果は安全に全員互換", () => {
+  const { state, roster, Runner } = setup({ level: 8 });
+  const d = data.getDungeon("plains");
+  const before = state.roster.map(c => roster.totalExpInvested(c));
+  Runner.applyOfflineRun({ cleared: false, encountered: [], drops: [], tame: null,
+    expByBattle: [6], eligibleIdsByBattle: [[]] }, d, 0);
+  assert.deepEqual(state.roster.map((c,i)=>roster.totalExpInvested(c)-before[i]), [0,0,0,0,0]);
+  // 過去の監査スクリプト等が作る結果（eligibleIdsByBattleなし）は引き続き処理可能。
+  Runner.applyOfflineRun({ cleared: false, encountered: [], drops: [], tame: null,
+    expByBattle: [6] }, d, 0);
+  assert.ok(state.roster.every((c,i)=>roster.totalExpInvested(c)>before[i]));
+});
+
+test("自動分解: 保存済みの出撃時設定を再起動後のオフライン周回へ引き継ぐ", () => {
+  const save = require("../js/model/save.js");
+  const { state, Runner, filter, setClock } = setup({ level: 8, seed: 51 });
+  const run = Runner.startRun(0, "plains");
+  state.autoRepeat[0] = { active: true, target: 5, done: 0 };
+  const savedAt = 1_000_000_000_000;
+  const serialized = save.serialize(state, { now: savedAt,
+    runDungeonIds: ["plains"],
+    runFilters: [{ enabled: run.autoDisassemble, rarities: run.autoDisassembleRarities }],
+  });
+  assert.deepEqual(serialized.autoRepeat[0].disassembleFilter,
+    { enabled: true, rarities: ["n"] });
+  const restored = save.deserialize(JSON.parse(JSON.stringify(serialized)), {
+    syncExpToNext: data.syncExpToNext,
+  });
+  assert.deepEqual(restored.savedAutoRepeat[0].disassembleFilter,
+    { enabled: true, rarities: ["n"] });
+  // オフライン復帰時に設定が変わっても、出撃時のN自動分解を優先。
+  filter.rarities.clear();
+  setClock(savedAt + 60 * 60 * 1000);
+  const [summary] = Runner.runOfflineProgress(restored.savedAutoRepeat, savedAt);
+  assert.ok(summary.cleared>0);
+  assert.ok(state.material>0,"N自動分解が保持されて強化石を得る");
+  assert.ok(state.inventory.every(it=>it.rarity!=="n"),"N装備が所持品へ残らない");
+});
+
+test("自動分解: 旧セーブに出撃時設定がなければ現在値にフォールバック（互換）", () => {
+  const { state, Runner, filter, setClock } = setup({ level: 8, seed: 51 });
+  filter.rarities.clear();
+  const savedAt = 1_000_000_000_000;
+  setClock(savedAt + 60 * 60 * 1000);
+  const [summary] = Runner.runOfflineProgress(
+    [{active: true, target: 5, done: 0, dungeonId: "plains"}], savedAt);
+  assert.ok(summary.cleared>0);
+  assert.equal(state.material,0,"古いセーブは現在の分解OFF設定を使用");
+  assert.ok(state.inventory.some(it=>it.rarity==="n"));
+});

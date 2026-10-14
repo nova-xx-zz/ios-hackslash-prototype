@@ -53,22 +53,22 @@ test("実在のEXP・強化石OPを5人全員で合算しても、通常/オフ�
  }
 });
 
-test("戦闘不能者へのEXP付与は通常とオフラインで異なることを実Runnerで検出",()=>{
+test("戦闘不能者へのEXPは通常・オフラインとも勝利時生存者のみ",()=>{
  const row=Audit.rewardScenario(data,{expOP:.2,materialOP:.2,koIndex:2});
  assert.equal(row.onlineMemberExp[2],0);
- assert.ok(row.offlineMemberExp[2]>0);
+ assert.equal(row.offlineMemberExp[2],0);
  for(const i of [0,1,3,4])assert.equal(row.onlineMemberExp[i],row.offlineMemberExp[i]);
- // この違いは現行仕様として文書化。生存者以外のEXPを黙って統一しない。
+ // 各戦闘の生存者スナップショットが通常の勝利時判定と一致する。
 });
 
-test("分解設定を出撃後に変えると通常は開始時設定、オフラインは現設定を参照する",()=>{
+test("分解設定を出撃後に変えても両方とも開始時設定で精算する",()=>{
  const result=Audit.changedFilterScenario(data);
  assert.deepEqual(result.originalFilter,["n"]);
  assert.deepEqual(result.currentFilter,[]);
  assert.equal(result.normalKept,0);
- assert.equal(result.offlineKept,1);
+ assert.equal(result.offlineKept,0);
  assert.ok(result.normalMaterial>0);
- assert.equal(result.offlineMaterial,0);
+ assert.equal(result.offlineMaterial,result.normalMaterial);
 });
 
 test("元のゲームデータを破壊せず、繰り返しても結果が同じ",()=>{

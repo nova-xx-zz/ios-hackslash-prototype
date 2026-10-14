@@ -174,3 +174,27 @@ test("旧セーブの装備: 3枠（武器・防具・装飾品）を右手・�
   const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize(Object.assign(sampleState(), loaded.state)))), { legacyItemBases: data.LEGACY_ITEM_BASES });
   assert.deepEqual(again.state.roster[0].equip, eq);
 });
+
+test("新規自動周回: 分解フィルタを有効なチームだけ保存し、旧セーブにも互換", () => {
+  const state = sampleState();
+  const options = { now: 1_700_000_000_000,
+    runDungeonIds: [null, "forest"],
+    runFilters: [
+      { enabled: true, rarities: new Set(["n"]) },
+      { enabled: false, rarities: new Set(["n", "r"]) },
+    ] };
+  const json = JSON.parse(JSON.stringify(save.serialize(state, options)));
+  assert.equal(json.autoRepeat[0].disassembleFilter, undefined);
+  assert.deepEqual(json.autoRepeat[1].disassembleFilter,
+    { enabled: false, rarities: ["n", "r"] });
+  const result = save.deserialize(json);
+  assert.deepEqual(result.savedAutoRepeat[1].disassembleFilter,
+    { enabled: false, rarities: ["n", "r"] });
+  const legacy = save.deserialize(JSON.parse(JSON.stringify(save.serialize(state,{
+    now: options.now, runDungeonIds:options.runDungeonIds,
+  }))));
+  assert.equal(legacy.savedAutoRepeat[1].disassembleFilter,undefined);
+  // 復元インポートでは報酬二重取り防止のため自動周回を停止する。
+  const restored = save.prepareRestore(JSON.stringify(json));
+  assert.equal(JSON.parse(restored.json).autoRepeat[1].active,false);
+});

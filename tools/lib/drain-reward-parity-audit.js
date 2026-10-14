@@ -123,10 +123,11 @@ function rewardScenario(data=loadGameData(),options={}){
  normal.runner.winBattle(run,{enemies:[{...enemy,key:enemy.key||"slime",exp}]});
  const nExp=normal.members.map((c,i)=>normal.roster.totalExpInvested(c)-beforeN[i]);
  const oBefore=offline.members.map(c=>offline.roster.totalExpInvested(c));
- offline.runner.applyOfflineRun({cleared:false,expByBattle:[exp],drops:[],encountered:[],tame:null},
+ offline.runner.applyOfflineRun({cleared:false,expByBattle:[exp],
+  eligibleIdsByBattle:[offline.members.filter(c=>c.alive).map(c=>c.id)],drops:[],encountered:[],tame:null},
    data.getDungeon("plains"),0);
  const oExp=offline.members.map((c,i)=>offline.roster.totalExpInvested(c)-oBefore[i]);
- // 同じ本物の自動分解 + partyMaterial補正。通常は出撃時、オフラインは精算時。
+ // 同じ本物の自動分解 + partyMaterial補正（両方とも出撃時の設定を用いる）。
  const base=data.ITEM_BASES.find(b=>b.key==="bronze_sword");
  const rarity=data.RARITIES.find(r=>r.key==="n");
  const makeDrop=()=>Rewards.createItem(base,rarity,"audit-loot",{level:1});
@@ -152,14 +153,16 @@ function changedFilterScenario(data=loadGameData()){
  const rarity=data.RARITIES.find(r=>r.key==="n");
  const create=id=>Rewards.createItem(base,rarity,id,{level:1});
  const run=normal.runner.startRun(0,"plains");
- // 出撃後に設定を変更（通常はrunに保存した設定、オフラインは現行設定を読む）。
+ // 出撃後に設定を変更しても、通常・オフラインとも出撃時の設定を使う。
  normal.setFilter({enabled:true,rarities:new Set()});
  offline.setFilter({enabled:true,rarities:new Set()});
  run.pendingDrops=[create("online-drop")];
  normal.runner.finishRun(run,true);
  offline.runner.applyOfflineRun({
   cleared:true,expByBattle:[],encountered:[],drops:[create("offline-drop")],tame:null
- },data.getDungeon("plains"),0);
+ },data.getDungeon("plains"),0,{
+  enabled:run.autoDisassemble,rarities:new Set(run.autoDisassembleRarities)
+ });
  return {
   normalMaterial:normal.state.material,
   offlineMaterial:offline.state.material,
