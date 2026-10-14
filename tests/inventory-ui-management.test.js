@@ -1,0 +1,117 @@
+"use strict";
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
+const vm=require("node:vm");
+const Rewards=require("../js/core/rewards.js");
+const Organize=require("../js/core/inventory-organize.js");
+class Element {
+ constructor(tag="div"){
+  this.tagName=tag;this.children=[];this.textContent="";this.className="";this.style={};
+  this.listeners={};this.scrollTop=0;this.disabled=false;this.title="";
+  this.classList={
+   contains:n=>this.className.split(" ").includes(n),
+   toggle:(name,force)=>{
+    const names=new Set(this.className.split(" ").filter(Boolean));
+    const on=force===undefined?!names.has(name):force;
+    if(on)names.add(name);else names.delete(name);
+    this.className=[...names].join(" ");
+   },
+   add:name=>{const a=new Set(this.className.split(" ").filter(Boolean));a.add(name);this.className=[...a].join(" ");}
+  };
+ }
+ set innerHTML(v){assert.equal(v,"");this.children=[];}
+ appendChild(v){this.children.push(v);return v;}
+ addEventListener(name,fn){this.listeners[name]=fn;}
+ click(){if(!this.disabled)this.listeners.click?.();}
+}
+const descend=(node,pred)=>{
+ const found=[];const visit=n=>{if(pred(n))found.push(n);for(const c of n.children)visit(c);};visit(node);return found;
+};
+function setup(){
+ const ids={},doc={getElementById:id=>ids[id]||(ids[id]=new Element()),createElement:t=>new Element(t)};
+ const items=[];
+ const mk=(id,over={})=>({id,name:id,slot:"weapon",rarity:"n",plus:0,materialValue:5,stats:{atk:1},options:[],...over});
+ for(let i=0;i<135;i++)items.push(mk("safe-"+i));
+ for(let i=0;i<20;i++)items.push(mk("high-"+i,{options:[{key:"exp",value:.2}]}));
+ for(let i=0;i<4;i++)items.push(mk("locked-"+i,{locked:true}));
+ for(let i=0;i<3;i++)items.push(mk("ur-"+i,{rarity:"ur"}));
+ for(let i=0;i<5;i++)items.push(mk("r-"+i,{rarity:"r",materialValue:20}));
+ const state={inventory:items,skillBooks:[{id:"book",rarity:"sr"}],material:0};
+ const rarities=[{key:"n",color:"white",material:5},{key:"r",color:"blue",material:20},{key:"sr",color:"green",material:80},{key:"ur",color:"purple",material:350},{key:"lr",color:"gold",material:1500}];
+ let saved=0;
+ const inventory={
+  disassembleValue:i=>i.materialValue,
+  disassembleItems:selection=>{
+   let count=0,materialGained=0;
+   for(const i of selection){
+    const idx=state.inventory.indexOf(i);
+    if(idx<0||i.locked)continue;
+    state.inventory.splice(idx,1);count++;materialGained+=i.materialValue;
+   }
+   state.material+=materialGained;return {count,materialGained};
+  },
+  setLocked:(i,locked)=>{i.locked=locked;}
+ };
+ const globals={
+  document:doc,S:state,SLOTS:[{key:"weapon",name:"武器"},{key:"body",name:"胴"}],
+  RARITIES:rarities,QPCore:{rewards:Rewards,inventoryOrganize:Organize},
+  Inventory:inventory,sectionLabel:txt=>{const e=new Element();e.textContent=txt;return e;},
+  itemEffectiveValue:i=>i.stats?.atk||0,rarityColor:r=>r,itemLabel:i=>i.name,
+  itemEffectText:()=>"",itemOptionsText:i=>i.options?.map(x=>x.key).join(",")||"",
+  SLOT_ICONS:{weapon:"剣"},store:{},scheduleSave:()=>{saved++;},saveGame:()=>{saved++;},
+  showScreen:()=>{},openPartyMenu:()=>{},renderJobsScreen:()=>{},armConfirm:()=>{},confirmReady:()=>true,
+ };
+ const c=vm.createContext(globals);
+ const src=fs.readFileSync(path.join(__dirname,"../js/ui/inventory.js"),"utf8");
+ vm.runInContext(src,c,{filename:"js/ui/inventory.js"});
+ return {c,ids,items,state,get saved(){return saved;}};
+}
+test("200件近い所持品でも80件だけ描画し、追加ボタンと価値フィルタが機能する",()=>{
+ const {c,ids,state}=setup();
+ c.renderInventoryScreen();
+ const body=ids.inventoryBody;
+ assert.equal(descend(body,x=>x.className.includes("skill-row")&&!x.className.includes("list")).length,80);
+ const more=descend(body,x=>x.textContent.startsWith("さらに表示"))[0];
+ assert.ok(more);more.click();
+ assert.equal(descend(body,x=>x.className.includes("skill-row")&&!x.className.includes("list")).length,160);
+ const valuable=ids.inventoryManageRow.children.find(x=>x.textContent==="保護・貴重");
+ valuable.click();
+ assert.equal(descend(body,x=>x.className.includes("skill-row")&&!x.className.includes("list")).length,27);
+ assert.ok(ids.inventoryCount.textContent.includes("条件一致 27個"));
+ assert.equal(state.inventory.length,167);
+});
+test("整理候補の一括分解はロック/高OP/高レアを選ばず、2段階確認して保存",()=>{
+ const x=setup(),{c,ids,state}=x;c.renderInventoryScreen();
+ ids.inventoryManageRow.children.find(e=>e.textContent==="整理候補").click();
+ ids.btnInventoryDisassemble.click();
+ const all=ids.inventoryBulkRow.children.find(e=>e.textContent==="安全候補すべて (140)");
+ assert.ok(all);all.click();
+ const chosen=vm.runInContext("[...disassembleSelection].map(i=>i.id)",c);
+ assert.equal(chosen.length,140);
+ assert.ok(chosen.every(id=>id.startsWith("safe-")||id.startsWith("r-")));
+ const count=state.inventory.length;
+ ids.btnDisassembleConfirm.click();
+ assert.equal(state.inventory.length,count,"初回操作は確認だけ");
+ assert.ok(ids.inventoryDisassembleSummary.textContent.includes("140個を選択中"));
+ ids.btnDisassembleConfirm.click();
+ assert.equal(state.inventory.length,27);
+ assert.equal(state.material,135*5+5*20);
+ assert.ok(state.inventory.some(i=>i.id==="high-0"));
+ assert.ok(state.inventory.some(i=>i.id==="ur-0"));
+ assert.ok(x.saved>0);
+});
+test("価値あり装備は一括選択不可、個別選択と明示確認では分解可能",()=>{
+ const {c,ids,state}=setup();c.renderInventoryScreen();
+ ids.inventoryManageRow.children.find(e=>e.textContent==="保護・貴重").click();
+ ids.btnInventoryDisassemble.click();
+ assert.equal(ids.inventoryBulkRow.children.find(e=>e.textContent.startsWith("安全候補すべて")).disabled,true);
+ const high=descend(ids.inventoryBody,x=>x.className==="skill-row selectable")[0];
+ assert.ok(high);high.click();
+ const chosen=vm.runInContext("[...disassembleSelection]",c);assert.equal(chosen.length,1);
+ ids.btnDisassembleConfirm.click();
+ assert.ok(ids.inventoryDisassembleSummary.textContent.includes("高品質OP 1個"));
+ ids.btnDisassembleConfirm.click();
+ assert.equal(state.inventory.includes(chosen[0]),false);
+});
