@@ -58,13 +58,20 @@ test("特殊OP・継承済みOPはランクが低くても保護、判定は入�
 });
 
 
-test("保護OFF時の挙動は既存の報酬・自動分解ロジックと完全一致する",()=>{
+test("試作の保護OFFは旧レア度のみの仕様。本体は高品質OPを常時保護する",()=>{
  const rewards=require("../js/core/rewards.js");
  const drops=Loot.sampleLoot();
  const filter={enabled:true,rarities:new Set(["n","r"])};
- const legacy=rewards.settleDrops(drops,filter);
- const proposed=Loot.simulate(drops,{...filter,protectRareOptions:false});
- assert.deepEqual(proposed.kept.map(i=>i.id),legacy.kept.map(i=>i.id));
- assert.equal(proposed.disassembled.length,legacy.disassembled);
- assert.equal(proposed.materials,legacy.materialGained);
+ const trialOff=Loot.simulate(drops,{...filter,protectRareOptions:false});
+ const live=rewards.settleDrops(drops,filter);
+ // 試作OFFは従来どおりのレア度のみの判定を再現する。現在の本体とは仕様が異なる。
+ assert.deepEqual(trialOff.kept.map(i=>i.id),["demo_sr1"]);
+ assert.equal(trialOff.disassembled.length,7);
+ assert.equal(trialOff.materials,65);
+ // 現行本体はSR以上の天然OP・特殊OPなどを自動分解から保護する。
+ const keptExpected=drops.filter(i=>!filter.rarities.has(i.rarity)||i.unique||i.locked||
+   i.cursed||rewards.hasProtectedOption(i));
+ assert.deepEqual(live.kept.map(i=>i.id),keptExpected.map(i=>i.id));
+ assert.ok(live.kept.length>trialOff.kept.length);
+ assert.ok(live.disassembled<trialOff.disassembled.length);
 });
