@@ -108,7 +108,8 @@ function rewardScenario(data=loadGameData(),options={}){
  addRealGear(normal);addRealGear(offline);
  const bonus=normal.roster.partyBonus(0,"expBonus");
  const materialBonus=normal.roster.partyBonus(0,"materialBonus");
- const enemy=data.makeEnemy?data.makeEnemy("slime",1):{key:"slime",exp:9};
+ const enemy=data.getEnemyTemplate("slime");
+ if(!enemy)throw Error("Missing real slime enemy data");
  const exp=Number.isFinite(enemy.exp)?enemy.exp:9;
  // 通常では実Runner.winBattle、オフラインでは実Runner.applyOfflineRunで
  // 同一戦闘EXPを適用（端末用報酬パイプラインの違いのみ）。
@@ -118,8 +119,6 @@ function rewardScenario(data=loadGameData(),options={}){
   normal.members[aliveIndex].alive=false;
   offline.members[aliveIndex].alive=false;
  }
- const beforeN=normal.members.map(c=>normal.roster.totalExpInvested(c));
- const beforeO=offline.members.map(c=>offline.roster.totalExpInvested(c));
  normal.runner.winBattle(run,{enemies:[{...enemy,key:enemy.key||"slime",exp}]});
  const nExp=normal.members.map((c,i)=>normal.roster.totalExpInvested(c)-beforeN[i]);
  const oBefore=offline.members.map(c=>offline.roster.totalExpInvested(c));
@@ -130,8 +129,7 @@ function rewardScenario(data=loadGameData(),options={}){
  const base=data.ITEM_BASES.find(b=>b.key==="bronze_sword");
  const rarity=data.RARITIES.find(r=>r.key==="n");
  const makeDrop=()=>Rewards.createItem(base,rarity,"audit-loot",{level:1});
- normal.runner.finishRun(run,true);
- const nBeforeMaterial=normal.state.material;
+
  const nItem=makeDrop();
  const oItem=makeDrop();
  const normalSettled=normal.inventory.receiveDrops([nItem],normal.getFilter(),1+materialBonus);
@@ -147,4 +145,27 @@ function rewardScenario(data=loadGameData(),options={}){
   offlineLootKept:offlineSettled.kept.length
  };
 }
-module.exports={game,realAbilityDrain,rewardScenario};
+function changedFilterScenario(data=loadGameData()){
+ const normal=game(data,{seed:31}),offline=game(data,{seed:31});
+ const base=data.ITEM_BASES.find(b=>b.key==="bronze_sword");
+ const rarity=data.RARITIES.find(r=>r.key==="n");
+ const create=id=>Rewards.createItem(base,rarity,id,{level:1});
+ const run=normal.runner.startRun(0,"plains");
+ // 出撃後に設定を変更（通常はrunに保存した設定、オフラインは現行設定を読む）。
+ normal.setFilter({enabled:true,rarities:new Set()});
+ offline.setFilter({enabled:true,rarities:new Set()});
+ run.pendingDrops=[create("online-drop")];
+ normal.runner.finishRun(run,true);
+ offline.runner.applyOfflineRun({
+  cleared:true,expByBattle:[],encountered:[],drops:[create("offline-drop")],tame:null
+ },data.getDungeon("plains"),0);
+ return {
+  normalMaterial:normal.state.material,
+  offlineMaterial:offline.state.material,
+  normalKept:normal.state.inventory.length,
+  offlineKept:offline.state.inventory.length,
+  originalFilter:[...run.autoDisassembleRarities],
+  currentFilter:[...normal.getFilter().rarities]
+ };
+}
+module.exports={game,realAbilityDrain,rewardScenario,changedFilterScenario};
