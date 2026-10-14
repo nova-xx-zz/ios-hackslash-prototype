@@ -195,13 +195,15 @@ test("高品質OPを自動分解から常時保護し、普通のOP・OPなし�
   {...item("ranked-native","n"),naturalOptions:[{key:"rare-skill",rank:"ur",value:.01}]},
   item("ranked-inherit","n",[{key:"heal",value:.1,optionRarity:"lr"}]),
   item("special","n",[{key:"void",value:1,special:true}]),
+  item("unknown-rank","n",[{key:"future",value:1,rank:"mythic"}]),
+  item("inherited","r",[{key:"guard",value:.01,origin:"inherited",rank:"n"}]),
   {...item("curse","n"),cursed:true},
  ];
  const originals=JSON.stringify(drops);
  const result=rewards.settleDrops(drops,filter);
  assert.deepEqual(result.kept.map(x=>x.id),[
    "exp-high","stone-high","crit-high","guard-high",
-   "ranked-natural","ranked-native","ranked-inherit","special","curse"
+   "ranked-natural","ranked-native","ranked-inherit","special","unknown-rank","inherited","curse"
  ]);
  assert.equal(result.disassembled,4);
  assert.equal(result.materialGained,20);
