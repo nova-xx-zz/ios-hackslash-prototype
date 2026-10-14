@@ -135,3 +135,39 @@ async function inspectCurrentSaveStorage(){
   }
 }
 document.getElementById("btnSaveStorageDiagnostics").addEventListener("click",inspectCurrentSaveStorage);
+
+
+// 明示的に操作した時だけ、現行セーブを別のIndexedDB領域へ複製して照合する。
+// 読み込み元・通常の保存先・クラウド同期・ゲーム起動時の復元方法は変更しない。
+async function createVerifiedSaveShadow(){
+  const button=document.getElementById("btnSaveShadowCopy");
+  const output=document.getElementById("saveShadowCopyResult");
+  button.disabled=true;
+  output.textContent="検証用コピーを書き込み、読み戻しています…";
+  try {
+    const original=store.getString(KEYS.save);
+    const mirror=QPCore.saveMirror;
+    const backend=mirror.createIndexedDBBackend(window.indexedDB);
+    const summary=await mirror.copyVerified({
+      json:original,backend,maxSchemaVersion:QPModel.save.SCHEMA_VERSION
+    });
+    const changed=store.getString(KEYS.save)!==original;
+    output.textContent=[
+      "検証用コピー: 保存・読み戻し・SHA-256照合が完了",
+      "対象: "+summary.inventoryCount.toLocaleString("ja-JP")+"件の未装備品 / "+
+        summary.rosterCount.toLocaleString("ja-JP")+"人の仲間",
+      "容量: "+QPCore.saveDiagnostics.formatBytes(summary.utf8Bytes),
+      changed?"※処理中に元のセーブが更新されました。コピーは開始時点の内容です。":
+        "元のセーブ形式・保存場所は変更していません。",
+      "※同じ端末のIndexedDBに置いた検証用コピーです。自動復元もクラウドバックアップも行いません。"
+    ].join("\n");
+  }catch(e){
+    const quota=e&&e.name==="QuotaExceededError";
+    output.textContent=quota?
+      "検証用コピーの容量が不足しています。既存のlocalStorageセーブは変更していません。":
+      "検証用コピーを完了できませんでした（IndexedDB非対応・アクセス拒否・内容不正など）。既存のセーブは変更していません。";
+  }finally{
+    button.disabled=false;
+  }
+}
+document.getElementById("btnSaveShadowCopy").addEventListener("click",createVerifiedSaveShadow);
