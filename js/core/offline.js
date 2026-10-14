@@ -23,13 +23,14 @@
   //   isTamable(key), tameChanceOf(key), rollOne() → 装備1個, rollRareOne() → レア敵が落とす装備1個（省略可）
   // 戻り値:
   //   cleared, seconds（この周にかかったゲーム内時間。x1速度）, encountered（図鑑に登録する敵キー）,
-  //   expByBattle（勝利した戦闘ごとのEXP）, drops（踏破時に持ち帰るドロップ。全滅時は空）,
+  //   expByBattle（勝利した戦闘ごとのEXP）, eligibleIdsByBattle（戦闘終了時の生存者ID）, drops（踏破時に持ち帰るドロップ。全滅時は空）,
   //   tame（{key, success} または null。全滅時はnull）
   // 通常プレイと同じく、EXPは勝利した戦闘ごとに得て全滅しても残る。ドロップとテイムは踏破した周だけ
   function simulateRun(ctx) {
     const rng = ctx.rng;
     const encountered = [];
     const expByBattle = [];
+    const eligibleIdsByBattle = [];
     const drops = [];
     const defeatedTamable = [];
     let seconds = ctx.timing.overhead;
@@ -38,8 +39,10 @@
       for (const e of enemies) encountered.push(e.key);
       const result = ctx.fight(enemies, i);
       seconds += result.seconds;
-      if (!result.won) return { cleared: false, seconds, encountered, expByBattle, drops: [], tame: null };
+      if (!result.won) return { cleared: false, seconds, encountered, expByBattle, eligibleIdsByBattle, drops: [], tame: null };
       expByBattle.push(rewards.battleExp(enemies));
+      // 実戦と同じく勝利時点の生存者だけにEXP。テスト用のfightがIDを返さない場合はnull（旧仕様互換）。
+      eligibleIdsByBattle.push(Array.isArray(result.eligibleIds) ? result.eligibleIds.slice() : null);
       for (const e of enemies) if (ctx.isTamable(e.key)) defeatedTamable.push(e.key);
       drops.push(...rewards.rollBattleDrops(ctx.rules, ctx.rollOne, rng));
       if (ctx.rollRareOne) drops.push(...rewards.rollRareDrops(enemies, ctx.rollRareOne));
@@ -56,7 +59,7 @@
       }
     }
     const tame = rewards.rollTame(defeatedTamable, ctx.tameChanceOf, rng);
-    return { cleared: true, seconds, encountered, expByBattle, drops, tame };
+    return { cleared: true, seconds, encountered, expByBattle, eligibleIdsByBattle, drops, tame };
   }
 
   const exported = { estimateRunSeconds, simulateRun };
