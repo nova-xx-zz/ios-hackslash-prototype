@@ -371,3 +371,32 @@ test("仲間と別れる: 控えでお気に入りでない仲間だけ。装備
   assert.equal(inv.releaseMembers([mon]).reason, "lastMember");
   assert.equal(state.roster.length, 1);
 });
+
+test("大量一括分解は元配列と残存順を維持、古い選択や重複・ロック品を安全に無視する",()=>{
+ const {state,inv}=setup();
+ const a=item("weapon","atk",2,"n",0,{materialValue:5});
+ const b=item("weapon","atk",3,"r",0,{materialValue:20});
+ const locked=item("weapon","atk",4,"ur",0,{locked:true,materialValue:350});
+ const c=item("weapon","atk",5,"sr",0,{materialValue:80});
+ const remaining=item("weapon","atk",6,"lr",1,{materialValue:1500});
+ const stale=item("weapon","atk",8,"n");
+ state.inventory=[a,b,locked,c,remaining];
+ const original=state.inventory;
+ const result=inv.disassembleItems([b,b,stale,c,locked,a]);
+ assert.deepEqual(result,{count:3,materialGained:105});
+ assert.equal(state.inventory,original,"array identity must stay unchanged");
+ assert.deepEqual(state.inventory,[locked,remaining],"remaining order must stay unchanged");
+ assert.equal(state.material,105);
+ assert.deepEqual(inv.disassembleItems([a,b,c,stale]),{count:0,materialGained:0});
+ assert.deepEqual(state.inventory,[locked,remaining]);
+});
+test("同一参照が重複した所持品も選択個数だけ処分する（旧挙動との一致）",()=>{
+ const {state,inv}=setup();
+ const duplicate=item("weapon","atk",2,"n",0,{materialValue:5});
+ const other=item("body","def",3,"r",0,{materialValue:20});
+ state.inventory.push(duplicate,other,duplicate);
+ assert.deepEqual(inv.disassembleItems([duplicate]),{count:1,materialGained:5});
+ assert.deepEqual(state.inventory,[other,duplicate]);
+ assert.deepEqual(inv.disassembleItems([duplicate,duplicate]),{count:1,materialGained:5});
+ assert.deepEqual(state.inventory,[other]);
+});

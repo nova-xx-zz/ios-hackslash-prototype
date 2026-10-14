@@ -174,14 +174,25 @@
       return rarity ? rarity.material : 0;
     }
     function disassembleItems(items) {
-      let count = 0, materialGained = 0;
-      for (const item of items) {
-        const idx = S.inventory.indexOf(item);
-        if (idx < 0 || item.locked) continue;
-        S.inventory.splice(idx, 1);
-        count += 1;
-        materialGained += disassembleValue(item);
+      // 大量所持品の一括整理: 1件ずつindexOf→spliceするO(選択数×所持数)を避ける。
+      // 選択と所持品が同じオブジェクトであること、配列の参照と残存順を維持する。
+      // 万一同じオブジェクト参照が複数ある場合も、選ばれた件数だけ取り除く。
+      const selected = new Map();
+      for (const item of items) selected.set(item, (selected.get(item) || 0) + 1);
+      let count = 0, materialGained = 0, write = 0;
+      const inventory = S.inventory;
+      for (let read = 0; read < inventory.length; read++) {
+        const item = inventory[read];
+        const remaining = selected.get(item) || 0;
+        if (remaining > 0 && !item.locked) {
+          selected.set(item, remaining - 1);
+          count += 1;
+          materialGained += disassembleValue(item);
+        } else {
+          inventory[write++] = item;
+        }
       }
+      inventory.length = write;
       if (materialGained > 0) addMaterial(materialGained);
       return { count, materialGained };
     }

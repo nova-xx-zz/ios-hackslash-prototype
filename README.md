@@ -211,6 +211,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/real-op-acquisition-time-audit.md` — **現行Extra最高値OPの入手難度、修正前/後の自動分解、実戦周回秒数と試作継承の比較**。`node tools/audit-op-acquisition-time.js` で検証可能
 - `docs/high-option-auto-dismantle-protection.md` — **高品質OP付き装備の自動分解保護（通常/オフラインに本体統合）**。旧セーブ互換、対象OPのしきい値、分解素材の減少と手動操作の扱い
 - `docs/inventory-safe-management.md` — **保護品・整理候補の絞り込み、安全な一括分解、80件ずつ表示**。UI動作テストと旧セーブ互換
+- `docs/inventory-large-save-audit.md` — **所持品2,500/5,000/10,000件の保存・復元と負荷監査**。`node tools/audit-inventory-load.js` で計測可能。端末容量上限・実機描画速度を保証するものではない
 - `docs/attribute-loot-design.md` — **属性10種・虚無・装備収集・天然OPの整合検討**（現在の重点テーマ、H/I/J章にOPレアリティ・種類別出現率/効果上限・複数装備時の上限案）
 - `docs/forge-inheritance-trial.md` — 鍛冶屋の抽出・穴あけ・継承試作、試作と本体の境界
 - `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
