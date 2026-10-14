@@ -271,6 +271,10 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 }
 .settings-label { color: var(--sub-text); }
 .settings-value { font-weight: 700; }
+.settings-save-diagnostic { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: rgba(140,125,90,.06); }
+.settings-save-diagnostic .settings-row { gap: 8px; }
+.settings-save-diagnostic .settings-row .btn { flex: 0 0 auto; }
+.settings-save-diagnostic .settings-message { overflow-wrap: anywhere; }
 .settings-cloud { margin-top: 12px; }
 .settings-note { margin: 8px 0; line-height: 1.6; }
 .settings-buttons { display: flex; gap: 8px; }
