@@ -26,19 +26,23 @@ test("取得計算は現行ExtraドロップのOP個数と効果値からのみ�
     Array.isArray(it.options)&&it.options.some(o=>o.key===key&&o.value>=.20));
   assert.equal(x.total,manual.length);
   assert.equal(x.keptWithDefaultAutoDismantle+x.lostToDefaultAutoDismantle,x.total);
+  assert.equal(x.savedByNewProtection,x.previouslyLostBeforeProtection);
   assert.equal(Object.values(x.slots).reduce((u,v)=>u+v,0),x.total);
   assert.ok(x.firstThirty===null||x.firstThirty<=400);
  }
 });
 
-test("18%狙いは20%ピンポイントより候補が増え、N/R自動分解はOPを見ずに壊す",()=>{
+test("18%狙いは候補が増え、新しい高品質OP保護でN/R装備が失われなくなる",()=>{
  const a=Audit.acquisition(game,{runs:900,mode:"extra",threshold:.20});
  const b=Audit.acquisition(game,{runs:900,mode:"extra",threshold:.18});
  for(const key of ["exp","material"]){
   const hi=a.byKey[key],lo=b.byKey[key];
   assert.ok(lo.total>=hi.total);
   assert.ok(lo.keptWithDefaultAutoDismantle>=hi.keptWithDefaultAutoDismantle);
-  assert.ok(hi.lostToDefaultAutoDismantle>0,"high roll should be at risk from live filter: "+key);
+  assert.equal(hi.lostToDefaultAutoDismantle,0,"high OP should survive live filter: "+key);
+  assert.ok(hi.previouslyLostBeforeProtection>0,"historical loss must be reproduced: "+key);
+  assert.equal(hi.savedByNewProtection,hi.previouslyLostBeforeProtection);
+  assert.equal(hi.keptWithDefaultAutoDismantle,hi.total);
   assert.ok(hi.perItem>0);
   assert.ok(hi.optimisticRunsForThirty>0);
   if(hi.firstSlots30Protected!==null){
