@@ -83,6 +83,12 @@
           </div>
           <p class="settings-note">操作時だけ別領域に複製して一致を検証します。元のセーブは変更しません。同じ端末内のコピーであり、クラウドバックアップや復元機能ではありません。</p>
           <p class="sub settings-message" id="saveShadowCopyResult" role="status" aria-live="polite">未実施</p>
+          <div class="settings-row">
+            <span class="settings-label">数万件向けの分割保存検証</span>
+            <button class="btn small ghost" id="btnSegmentedSaveCopy">分割コピーを検証</button>
+          </div>
+          <p class="settings-note">端末セーブを最大192KiBずつに分けてIndexedDBへ検証コピーします。元の保存方法は変わりません。クラウドの大容量保存はサーバー認証基盤の整備後に有効化します。</p>
+          <p class="sub settings-message" id="segmentedSaveCopyResult" role="status" aria-live="polite">未実施</p>
         </div>
         <div class="settings-cloud">
           <div class="settings-row">
@@ -462,6 +468,8 @@
 <script src="js/core/storage.js?v=6"></script>
 <script src="js/core/save-diagnostics.js?v=1"></script>
 <script src="js/core/save-mirror.js?v=1"></script>
+<script src="js/core/save-segments.js?v=1"></script>
+<script src="js/core/cloud-large-backup.js?v=1"></script>
 <script src="js/core/rng.js?v=2"></script>
 <script src="js/core/enhance.js?v=1"></script>
 <!-- FORGE-TRIAL-CORE-START -->
@@ -499,7 +507,7 @@
 <script src="js/ui/models.js?v=16"></script>
 <script src="js/ui/offline.js?v=4"></script>
 <script src="js/ui/title-map.js?v=13"></script>
-<script src="js/ui/settings.js?v=4"></script>
+<script src="js/ui/settings.js?v=5"></script>
 <script src="js/ui/debug.js?v=8"></script>
 <script src="js/ui/party.js?v=10"></script>
 <script src="js/ui/create.js?v=6"></script>

@@ -171,3 +171,32 @@ async function createVerifiedSaveShadow(){
   }
 }
 document.getElementById("btnSaveShadowCopy").addEventListener("click",createVerifiedSaveShadow);
+
+
+// v2保存方式のリハーサル。現行localStorage・旧IndexedDB検証コピーは変更しない。
+async function verifySegmentedSaveCopy(){
+  const button=document.getElementById("btnSegmentedSaveCopy");
+  const output=document.getElementById("segmentedSaveCopyResult");
+  button.disabled=true;
+  output.textContent="分割コピーを作成し、全件の整合性を検証しています…";
+  try{
+    const json=store.getString(KEYS.save);
+    const backend=QPCore.saveMirror.createIndexedDBBackend(window.indexedDB);
+    const result=await QPCore.saveSegments.copyToIndexedDB(backend,json,{
+      maxSchemaVersion:QPModel.save.SCHEMA_VERSION
+    });
+    output.textContent=[
+      "分割コピーの照合が完了",
+      "未装備品: "+result.manifest.inventoryCount.toLocaleString("ja-JP")+"件",
+      "分割数: "+result.manifest.parts.length.toLocaleString("ja-JP")+"個",
+      "UTF-8容量: "+QPCore.saveDiagnostics.formatBytes(result.manifest.totalBytes),
+      "※旧セーブ・従来の保存機能・クラウドは変更していません。",
+      "※自動復元は無効です。コピーは同一端末内にあり、実際のバックアップの代用にはなりません。"
+    ].join("\n");
+  }catch(e){
+    output.textContent=e&&e.name==="QuotaExceededError"?
+      "分割コピーの容量が不足しています。元のプレイデータは変更していません。":
+      "分割コピーの検証に失敗しました。元のプレイデータは変更していません。";
+  }finally{button.disabled=false;}
+}
+document.getElementById("btnSegmentedSaveCopy").addEventListener("click",verifySegmentedSaveCopy);
