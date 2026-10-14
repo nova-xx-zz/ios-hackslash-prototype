@@ -109,8 +109,8 @@ async function inspectCurrentSaveStorage(){
     });
     const fmt=QPCore.saveDiagnostics.formatBytes;
     const cloudStatus=!diagnostic.saved?"判定不可（保存データなし）":
-      diagnostic.cloudEligible?"現行の送信文字数制限内（送信成功は未確認）":
-      "現行の送信文字数制限を超過（バックアップ不可）";
+      diagnostic.cloudEligible?"現行の送信サイズ基準内（送信成功は未確認）":
+      "現行の送信サイズ基準を超過（バックアップ不可）";
     const stored=diagnostic.saved?
       `${fmt(diagnostic.utf8Bytes)} / ${diagnostic.characters.toLocaleString("ja-JP")}文字`:
       "端末に保存済みのゲームデータがありません";
