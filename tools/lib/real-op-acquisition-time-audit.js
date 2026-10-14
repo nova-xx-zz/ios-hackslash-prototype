@@ -78,14 +78,18 @@ function timing(opts={}){
  if(!Number.isSafeInteger(seed))throw RangeError("Invalid seed");
  const data=BattleSim.data,dungeon=data.getModeDungeon(dungeonId,mode);
  if(!dungeon)throw RangeError("Unknown dungeon");
- const gear=dungeon.benchmarkGear || {rarity:"r",plus:10};
+ const gear=opts.gear||dungeon.benchmarkGear||{rarity:"r",plus:10};
  const reference={rarity:gear.rarity||"r",plus:gear.plus||0,level:dungeon.level};
- const stats=BattleSim.clearRate(dungeonId,dungeon.level,trials,seed,{mode,gear:reference,tree:true});
+ const characterLevel=opts.level===undefined?dungeon.level:opts.level;
+ if(!data.RARITIES.some(x=>x.key===reference.rarity)||!Number.isInteger(reference.plus)||
+    reference.plus<0||reference.plus>data.ENHANCE_MAX_PLUS||!Number.isInteger(characterLevel)||
+    characterLevel<1||characterLevel>data.CHAR_MAX_LEVEL)throw RangeError("Invalid battle gear or level");
+ const stats=BattleSim.clearRate(dungeonId,characterLevel,trials,seed,{mode,gear:reference,tree:true});
  const estimate=Offline.estimateRunSeconds(dungeon.battles,Runner.OFFLINE_TIMING);
  const gameOverhead=Runner.OFFLINE_TIMING.overhead+Math.max(0,dungeon.battles-1)*Runner.OFFLINE_TIMING.perGap;
  const fullSuccessfulSeconds=stats.avgSeconds===null?null:stats.avgSeconds+gameOverhead;
  const possibleOfflineRuns=Math.floor(Math.min(Runner.OFFLINE_MAX_MS/1000,8*3600)/estimate);
- return {dungeonId,mode,trials,seed,level:dungeon.level,battles:dungeon.battles,
+ return {dungeonId,mode,trials,seed,dungeonLevel:dungeon.level,characterLevel,battles:dungeon.battles,
   gear:reference,clearRate:stats.rate,clears:Math.round(trials*stats.rate),
   avgBattleSecondsOnClear:stats.avgSeconds,
   avgGameSecondsOnClear:fullSuccessfulSeconds,
