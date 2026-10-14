@@ -29,11 +29,11 @@ class Element {
 const descend=(node,pred)=>{
  const found=[];const visit=n=>{if(pred(n))found.push(n);for(const c of n.children)visit(c);};visit(node);return found;
 };
-function setup(){
+function setup(safeItems=135){
  const ids={},doc={getElementById:id=>ids[id]||(ids[id]=new Element()),createElement:t=>new Element(t)};
  const items=[];
  const mk=(id,over={})=>({id,name:id,slot:"weapon",rarity:"n",plus:0,materialValue:5,stats:{atk:1},options:[],...over});
- for(let i=0;i<135;i++)items.push(mk("safe-"+i));
+ for(let i=0;i<safeItems;i++)items.push(mk("safe-"+i));
  for(let i=0;i<20;i++)items.push(mk("high-"+i,{options:[{key:"exp",value:.2}]}));
  for(let i=0;i<4;i++)items.push(mk("locked-"+i,{locked:true}));
  for(let i=0;i<3;i++)items.push(mk("ur-"+i,{rarity:"ur"}));
@@ -116,4 +116,29 @@ test("価値あり装備は一括選択不可、個別選択と明示確認で�
  assert.ok(ids.inventoryDisassembleSummary.textContent.includes("高品質OP 1個"));
  ids.btnDisassembleConfirm.click();
  assert.equal(state.inventory.includes(chosen[0]),false);
+});
+
+test("10,000件でも初回の所持品DOMは80行、絞り込みと一括選択でデータを失わない",()=>{
+ const {performance}=require("node:perf_hooks");
+ const x=setup(10000),{c,ids,state}=x;
+ const now=performance.now();
+ c.renderInventoryScreen();
+ const elapsed=performance.now()-now;
+ const body=ids.inventoryBody;
+ assert.equal(descend(body,e=>e.className.split(" ").includes("skill-row")).length,80);
+ assert.ok(ids.inventoryCount.textContent.includes("10033個"));
+ assert.equal(state.inventory.length,10032);
+ ids.inventoryManageRow.children.find(e=>e.textContent==="整理候補").click();
+ assert.equal(descend(body,e=>e.className.split(" ").includes("skill-row")).length,80);
+ ids.btnInventoryDisassemble.click();
+ const all=ids.inventoryBulkRow.children.find(e=>e.textContent==="安全候補すべて (10005)");
+ assert.ok(all);
+ all.click();
+ assert.equal(vm.runInContext("disassembleSelection.size",c),10005);
+ assert.ok(state.inventory.some(i=>i.id==="high-0"));
+ assert.ok(state.inventory.some(i=>i.id==="ur-0"));
+ assert.equal(state.inventory.length,10032);
+ console.log("INVENTORY_UI_LOAD "+JSON.stringify({
+  inventory:state.inventory.length,firstRenderMs:+elapsed.toFixed(2),renderedRows:80,bulkSelection:10005
+ }));
 });
