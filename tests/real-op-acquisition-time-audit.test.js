@@ -101,6 +101,8 @@ test("不正な入力と未存在モードを拒否し、本体定義を変化�
  assert.throws(()=>Audit.acquisition(game,{mode:"unknown"}),/Invalid loot mode/);
  assert.throws(()=>Audit.timing({trials:0}),/Invalid trial count/);
  assert.throws(()=>Audit.timing({mode:"unknown"}),/Invalid loot mode/);
+ assert.throws(()=>Audit.timing({mode:"normal",gear:{rarity:"lr",plus:100}}),/Invalid battle gear/);
+ assert.throws(()=>Audit.timing({mode:"normal",level:100}),/Invalid battle gear/);
  assert.equal(JSON.stringify(game.ITEM_OPTIONS),snapshot);
 });
 
@@ -126,7 +128,11 @@ test("監査サマリ：2,000周の最高値・高品質OP取得、分解損失�
 test("監査サマリ：本体戦闘エンジン各モード8試行の踏破率・実戦秒数とオフライン見積もりを出力",()=>{
  const results=["normal","hard","extra"].map(mode=>
   Audit.timing({mode,trials:8,seed:20261014}));
- console.log("BATTLE_TIME_SUMMARY "+JSON.stringify(results));
+ const stronger=[
+  Audit.timing({mode:"hard",trials:8,seed:20261014,level:20,gear:{rarity:"sr",plus:25}}),
+  Audit.timing({mode:"extra",trials:8,seed:20261014,level:40,gear:{rarity:"ur",plus:50}})
+ ];
+ console.log("BATTLE_TIME_SUMMARY "+JSON.stringify({baseline:results,stronger}));
  for(const row of results){
   assert.equal(row.trials,8);
   assert.ok(row.clearRate>=0 && row.clearRate<=1);
