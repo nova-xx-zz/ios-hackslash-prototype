@@ -84,11 +84,13 @@ function renderDisassembleControls() {
   const gain = selected.reduce((sum, i) => sum + Inventory.disassembleValue(i), 0);
   const enhanced = selected.filter((i) => (i.plus || 0) > 0).length;
   const high = selected.filter((i) => i.rarity === "ur" || i.rarity === "lr").length;
+  const highOp = selected.filter((i) => QPCore.rewards.hasProtectedOption(i)).length;
   let text = selected.length ? `${selected.length}個を選択中 → 強化石 +${gain}` : "分解するアイテムをタップして選んでください";
   if (disassembleConfirming) {
     const warn = [];
     if (enhanced) warn.push(`強化済み${enhanced}個`);
     if (high) warn.push(`UR・LR ${high}個`);
+    if (highOp) warn.push(`高品質OP ${highOp}個`);
     text += `\n${warn.length ? warn.join("・") + "を含みます。" : ""}分解すると戻せません。もう一度押すと分解します。`;
   }
   document.getElementById("inventoryDisassembleSummary").textContent = text;
