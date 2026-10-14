@@ -334,7 +334,8 @@
           const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
           for (const c of party) { c.atb = rng.float(0, 25); c.defending = false; }
           const r = battleCore.simulate(battle, party, env, { maxSeconds: OFFLINE_BATTLE_MAX_SECONDS });
-          return { won: r.result === "victory", seconds: r.seconds };
+          return { won: r.result === "victory", seconds: r.seconds,
+            eligibleIds: party.filter((c) => c.alive).map((c) => c.id) };
         },
         // 泉と罠は戦闘に影響するので写しに反映する（石碑の加護は省略。実際のプレイよりわずかに厳しめになる）
         onEvent: (kind) => {
@@ -354,19 +355,25 @@
     // - EXPは勝利した戦闘ごとに即時付与（全滅した周でも、それまでに勝った戦闘のEXPは残る）
     // - ドロップ（戦闘・道中の宝箱）とテイムは踏破した周だけ持ち帰れる
     // - 遭遇した敵は図鑑に登録する
-    // 戦闘中に倒れたメンバーも含め、EXPはパーティ全員に付与する（通常プレイでは生存者のみ）
-    function applyOfflineRun(outcome, dungeon, teamIndex) {
+    // 通常プレイと同じく、勝利した戦闘ごとの生存者にだけEXPを付与する。
+    // 旧形式の手動生成結果にeligibleIdsByBattleが無い場合は互換のため全員扱い。
+    function applyOfflineRun(outcome, dungeon, teamIndex, disassembleFilter) {
       const party = R.teamMembers(teamIndex);
       for (const key of outcome.encountered) { markDexSeen(key); recordsMod.recordEncounter(records(), dungeon.id, key); }
       let expTotal = 0;
       const expMult = partyMult(teamIndex, "expBonus");
-      for (const exp of outcome.expByBattle) {
+      for (const [index, exp] of outcome.expByBattle.entries()) {
         expTotal += exp;
-        for (const c of party) R.gainExp(c, Math.round(rewards.expForMember(exp, RACES[c.race].expMult) * expMult));
+        const ids = outcome.eligibleIdsByBattle && outcome.eligibleIdsByBattle[index];
+        const eligible = Array.isArray(ids) ? new Set(ids) : null;
+        for (const c of party) {
+          if (eligible && !eligible.has(c.id)) continue;
+          R.gainExp(c, Math.round(rewards.expForMember(exp, RACES[c.race].expMult) * expMult));
+        }
       }
       if (!outcome.cleared) return { cleared: false, expTotal };
 
-      const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
+      const filter = disassembleFilter || (deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() });
       recordsMod.recordItemsFound(records(), outcome.drops, ITEM_BASES);
       const settled = Inv.receiveDrops(outcome.drops, filter, partyMult(teamIndex, "materialBonus"));
       let tamedName = null, tameBlocked = false;
@@ -393,13 +400,21 @@
       let cleared = 0, expGained = 0, itemsGained = 0, runsDone = 0;
       const tamedNames = [];
       let wipedOut = false, tameBlocked = 0;
+      // 旧セーブに保存された設定が無ければ、開始時の現設定を一度だけ読み取り固定する。
+      const storedFilter = autoRepeatInfo.disassembleFilter;
+      const validRarities = new Set((deps.data.RARITIES || []).map((r) => r.key));
+      const filter = storedFilter && typeof storedFilter === "object" && typeof storedFilter.enabled === "boolean" && Array.isArray(storedFilter.rarities)
+        ? { enabled: storedFilter.enabled,
+          rarities: new Set(storedFilter.rarities.filter((key) => validRarities.has(key))) }
+        : (() => { const current = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
+          return { enabled: !!current.enabled, rarities: new Set(current.rarities) }; })();
       const stream = newStream(); // 離れていた間の周回は、このチームだけの乱数の並びで計算する
       for (let i = 0; i < remainingTarget; i++) {
         const outcome = inStream(stream, () => computeOfflineRun(dungeon, teamIndex));
         if (outcome.seconds > budgetSeconds) break;
         budgetSeconds -= outcome.seconds;
         runsDone += 1;
-        const result = inStream(stream, () => applyOfflineRun(outcome, dungeon, teamIndex));
+        const result = inStream(stream, () => applyOfflineRun(outcome, dungeon, teamIndex, filter));
         expGained += result.expTotal;
         if (!result.cleared) { wipedOut = true; break; }
         cleared += 1;
