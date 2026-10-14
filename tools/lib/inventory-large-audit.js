@@ -55,7 +55,8 @@ function scenario(count,data=loadGameData()){
  const disassembled=measure("dismantle",()=>inv.disassembleItems(selected));
  if(state.inventory!==ref)throw Error("Inventory array identity changed");
  if(disassembled.value.count!==selected.length)throw Error("Wrong dismantle count");
- if(!state.inventory.every(it=>!selected.includes(it)))throw Error("Dismantled gear remained");
+ const removed=new Set(selected);
+ if(!state.inventory.every(it=>!removed.has(it)))throw Error("Dismantled gear remained");
  const encodedBytes=Buffer.byteLength(json,"utf8");
  const storageBudget=5*1024*1024;
  const stored=Storage.createStorage(Storage.createMemoryBackend({},storageBudget));
