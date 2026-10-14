@@ -70,14 +70,16 @@ function receiveLikeGame(items,filter,mult){
   materialGained:mult!==1?Math.round(settled.materialGained*mult):settled.materialGained
  };
 }
-function calculate(data,runData){
+function calculate(data,runData,settings={}){
+ const slotsPerHolder=settings.slotsPerHolder===undefined?1:settings.slotsPerHolder;
+ if(![1,3,6].includes(slotsPerHolder))throw RangeError("Invalid OP slots per holder");
  const perMemberExp=optionMax(data,"exp"),perMemberMaterial=optionMax(data,"material");
  const rows=[];
  for(const [filterName,rawFilter] of Object.entries(FILTERS)){
   const filter=rawFilter===null?Array.from(data.DEFAULT_AUTO_DISASSEMBLE_RARITIES):rawFilter;
   for(const holders of BONUS_MEMBERS){
-   const expMult=1+holders*perMemberExp;
-   const materialMult=1+holders*perMemberMaterial;
+   const expMult=1+holders*slotsPerHolder*perMemberExp;
+   const materialMult=1+holders*slotsPerHolder*perMemberMaterial;
    let materials=0,disassembled=0,kept=0,uniqueKept=0,memberEXP=0,items=0;
    for(const sample of runData.samples){
     const result=receiveLikeGame(sample.drops,filter,materialMult);
@@ -90,8 +92,8 @@ function calculate(data,runData){
     memberEXP+=sample.expByBattle.reduce((sum,x)=>
       sum+Math.round(Rewards.expForMember(x,1)*expMult),0);
    }
-   rows.push({filter:filterName,filterRarities:filter.slice(),holders,
-    expBonus:holders*perMemberExp,materialBonus:holders*perMemberMaterial,
+   rows.push({filter:filterName,filterRarities:filter.slice(),holders,slotsPerHolder,
+    expBonus:holders*slotsPerHolder*perMemberExp,materialBonus:holders*slotsPerHolder*perMemberMaterial,
     materials,materialsPerRun:materials/runData.rounds,
     expPerMember:memberEXP,expPerMemberPerRun:memberEXP/runData.rounds,
     partyTotalEXP:memberEXP*5,disassembled,kept,uniqueKept,items});
@@ -100,7 +102,7 @@ function calculate(data,runData){
  return {
   dataset:{dungeonId:runData.dungeonId,mode:runData.mode,rounds:runData.rounds,
     seed:runData.seed,battles:runData.battles},
-  realOptionMax:{exp:perMemberExp,material:perMemberMaterial},
+  realOptionMax:{exp:perMemberExp,material:perMemberMaterial},slotsPerHolder,
   filters:rows,
   rarities:data.RARITIES.map(r=>({key:r.key,material:r.material,weight:r.weight}))
  };
@@ -125,7 +127,7 @@ function enhanceBudget(data,rarity,target){
 }
 function audit(data=loadGameData(),opts={}){
  const generated=generateRuns(data,opts);
- const report=calculate(data,generated);
+ const report=calculate(data,generated,{slotsPerHolder:opts.slotsPerHolder});
  const targets=[["sr",50],["ur",50],["ur",99],["lr",50],["lr",99]];
  report.upgradeCosts=targets.map(([rarity,target])=>enhanceBudget(data,rarity,target));
  report.upgradeCoverage=report.upgradeCosts.map(cost=>({
