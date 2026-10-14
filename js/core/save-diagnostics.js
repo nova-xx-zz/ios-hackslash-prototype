@@ -4,11 +4,13 @@
   // クラウドにある既存の1文書JSON文字数制限と同じ値。Firestoreの実際の
   // UTF-8ドキュメント容量とは別で、ここを通ってもアップロード成功の保証ではない。
   const CLOUD_MAX_SAVE_CHARS=900*1024;
+  const CLOUD_MAX_SAVE_BYTES=900*1024;
   function byteLength(s){
     const text=String(s);
     if(typeof TextEncoder!=="undefined")return new TextEncoder().encode(text).length;
     if(typeof Buffer!=="undefined")return Buffer.byteLength(text,"utf8");
-    // iOS Safari等では通常TextEncoderを利用できる。未提供時は計算を偽らずnull。
+    if(typeof Blob!=="undefined")return new Blob([text]).size;
+    // サイズが不明な環境は安全側に倒してクラウドの送信を止める。
     return null;
   }
   function formatBytes(n){
@@ -16,7 +18,10 @@
     return (n/1024/1024).toFixed(2)+" MiB";
   }
   function cloudAccepts(json){
-    return typeof json==="string"&&json.length<=CLOUD_MAX_SAVE_CHARS;
+    const bytes=typeof json==="string"?byteLength(json):null;
+    // Firestore文書の制限は文字数ではなくバイト単位。本文のUTF-8も確認する。
+    return typeof json==="string"&&json.length<=CLOUD_MAX_SAVE_CHARS&&
+      bytes!==null&&bytes<=CLOUD_MAX_SAVE_BYTES;
   }
   // 端末の未保存変更は測定に含めない。JSON以外のセーブ内容やユーザーIDは返さない。
   function analyze(json,opts){
@@ -30,7 +35,7 @@
     return {
       saved:valid,characters:chars,utf8Bytes:bytes,
       inventoryCount:Number.isInteger(opts.inventoryCount)?opts.inventoryCount:null,
-      cloudLimitChars:CLOUD_MAX_SAVE_CHARS,
+      cloudLimitChars:CLOUD_MAX_SAVE_CHARS,cloudLimitBytes:CLOUD_MAX_SAVE_BYTES,
       cloudEligible:valid?cloudAccepts(json):null,
       cloudRatio:valid?chars/CLOUD_MAX_SAVE_CHARS:null,
       originUsageBytes:usage,originQuotaBytes:quota,
@@ -56,7 +61,7 @@
         "課金権利はローカル保存から独立したサーバー正本を維持"]
     };
   }
-  const api={CLOUD_MAX_SAVE_CHARS,byteLength,formatBytes,cloudAccepts,analyze,migrationReadiness};
+  const api={CLOUD_MAX_SAVE_CHARS,CLOUD_MAX_SAVE_BYTES,byteLength,formatBytes,cloudAccepts,analyze,migrationReadiness};
   root.QPCore=root.QPCore||{};
   root.QPCore.saveDiagnostics=api;
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
