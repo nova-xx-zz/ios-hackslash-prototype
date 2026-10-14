@@ -100,3 +100,44 @@ test("HTMLロード順と任意操作のみに限定し、自動移行/既存キ
   assert.match(ui, /copyVerified/);
   assert.doesNotMatch(ui, /store\.remove\(KEYS\.save/);
 });
+
+
+test("設定画面の明示操作だけでコピーし、結果表示・既存セーブ非変更を確認", async () => {
+  const fs = require("node:fs"), path = require("node:path"), vm = require("node:vm");
+  const original = source(4), elements = new Map(), copies = [], writes = [];
+  function el(id) {
+    if (!elements.has(id)) elements.set(id, {
+      textContent: "", disabled: false, listeners: {},
+      addEventListener(event, fn) { this.listeners[event] = fn; },
+      classList: { add() {}, toggle() {} }
+    });
+    return elements.get(id);
+  }
+  const ctx = {
+    window: { indexedDB: {} },
+    document: { getElementById: el, querySelector: () => ({ classList: { add() {} } }) },
+    QPCore: {
+      saveMirror: {
+        createIndexedDBBackend: (idb) => { assert.ok(idb); return {}; },
+        copyVerified: async (opts) => {
+          copies.push(opts);
+          return { inventoryCount: 4, rosterCount: 1, utf8Bytes: 1024 };
+        }
+      },
+      saveDiagnostics: { formatBytes: () => "0.00 MiB" }
+    },
+    QPModel: { save: { SCHEMA_VERSION: 2 } },
+    KEYS: Storage.KEYS, S: { inventory: [] },
+    store: { getString: () => original, set: () => { writes.push("forbidden"); } }
+  };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui/settings.js"), "utf8"), ctx);
+  assert.equal(copies.length, 0, "開いただけではコピーしない");
+  await el("btnSaveShadowCopy").listeners.click();
+  assert.equal(copies.length, 1);
+  assert.equal(copies[0].json, original);
+  assert.equal(copies[0].maxSchemaVersion, 2);
+  assert.match(el("saveShadowCopyResult").textContent, /SHA-256照合が完了/);
+  assert.equal(el("btnSaveShadowCopy").disabled, false);
+  assert.deepEqual(writes, []);
+});

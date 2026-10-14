@@ -65,8 +65,10 @@
       return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, "readonly");
         const req = tx.objectStore(STORE_NAME).get(id);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error || new Error("IndexedDBの読み込みに失敗しました"));
+        let value = null;
+        req.onsuccess = () => { value = req.result || null; };
+        tx.oncomplete = () => resolve(value);
+        tx.onerror = () => reject(tx.error || new Error("IndexedDBの読み込みに失敗しました"));
         tx.onabort = () => reject(tx.error || new Error("IndexedDBの読み込みが中断されました"));
       });
     }
