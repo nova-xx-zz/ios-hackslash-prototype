@@ -84,3 +84,54 @@ if (window.QPCloud) {
 } else {
   document.querySelector("#screen-settings .settings-cloud").classList.add("hidden");
 }
+
+/**
+ * iPhoneでも端末の既存セーブサイズを確認できる非破壊診断。
+ * navigator.storage.estimate はオリジン全体の概算でありlocalStorageの
+ * 空き容量・実際の書込成功を保証しない。データの書換・削除は行わない。
+ */
+async function inspectCurrentSaveStorage(){
+  const button=document.getElementById("btnSaveStorageDiagnostics");
+  const output=document.getElementById("saveStorageDiagnosticsResult");
+  button.disabled=true;
+  output.textContent="保存状況を読み取っています…";
+  try {
+    const json=store.getString(KEYS.save);
+    let estimate=null,persisted=null,indexedDBAvailable=false;
+    try {
+      const s=window.navigator&&window.navigator.storage;
+      if(s&&typeof s.estimate==="function")estimate=await s.estimate();
+      if(s&&typeof s.persisted==="function")persisted=await s.persisted();
+    }catch(e){ /* 容量API拒否の場合は「取得不可」と表示し、診断を継続 */ }
+    try { indexedDBAvailable=!!window.indexedDB; }catch(e){ /* private-mode restricted */ }
+    const diagnostic=QPCore.saveDiagnostics.analyze(json,{
+      inventoryCount:S.inventory.length,estimate,persisted,indexedDBAvailable
+    });
+    const fmt=QPCore.saveDiagnostics.formatBytes;
+    const cloudStatus=!diagnostic.saved?"判定不可（保存データなし）":
+      diagnostic.cloudEligible?"現行の送信文字数制限内（送信成功は未確認）":
+      "現行の送信文字数制限を超過（バックアップ不可）";
+    const stored=diagnostic.saved?
+      `${fmt(diagnostic.utf8Bytes)} / ${diagnostic.characters.toLocaleString("ja-JP")}文字`:
+      "端末に保存済みのゲームデータがありません";
+    const capacity=diagnostic.originQuotaBytes===null?"取得不可":
+      `${fmt(diagnostic.originUsageBytes)} 使用 / ${fmt(diagnostic.originQuotaBytes)} 見積上限`;
+    const permanent=diagnostic.persisted===null?"取得不可":diagnostic.persisted?"許可あり":"許可なし・未確認";
+    output.textContent=[
+      "端末の保存済みセーブ: "+stored,
+      "現在の未装備アイテム: "+S.inventory.length.toLocaleString("ja-JP")+"件",
+      "クラウド保存: "+cloudStatus,
+      "クラウド側の送信上限: "+diagnostic.cloudLimitChars.toLocaleString("ja-JP")+"文字",
+      "ブラウザの保存領域（オリジン全体の参考値）: "+capacity,
+      "永続保存の状態: "+permanent,
+      "IndexedDB API: "+(diagnostic.indexedDBAvailable?"利用候補あり":"利用可否を確認できません"),
+      "※容量上限はlocalStorage専用ではありません。iPhoneで実際に保存できる残量の保証ではありません。",
+      "※診断は読み取り専用です。書き込み成功やクラウド同期完了は別途確認してください。"
+    ].join("\n");
+  } catch(e) {
+    output.textContent="保存状況を取得できませんでした。既存のセーブは変更していません。";
+  } finally {
+    button.disabled=false;
+  }
+}
+document.getElementById("btnSaveStorageDiagnostics").addEventListener("click",inspectCurrentSaveStorage);
