@@ -9,8 +9,10 @@ const Storage=require("../js/core/storage.js");
 const LIMIT=900*1024;
 test("端末用サイズとクラウド送信文字数の境界・日本語UTF-8を区別する",()=>{
  assert.equal(Diagnostics.CLOUD_MAX_SAVE_CHARS,LIMIT);
+ assert.equal(Diagnostics.CLOUD_MAX_SAVE_BYTES,LIMIT);
  assert.equal(Diagnostics.cloudAccepts("x".repeat(LIMIT)),true);
  assert.equal(Diagnostics.cloudAccepts("x".repeat(LIMIT+1)),false);
+ assert.equal(Diagnostics.cloudAccepts("冒".repeat(400000)),false,"UTF-8 may overflow while character count is under cap");
  assert.equal(Diagnostics.byteLength("冒険者"),9);
  assert.equal(Diagnostics.analyze("冒険者").utf8Bytes,9);
  assert.equal(Diagnostics.analyze("冒険者").characters,3);
@@ -101,8 +103,8 @@ test("クラウド送信判定と設定画面が共通の定数を使い、ス�
  assert.ok(idx>=0);
  assert.ok(idx<html.indexOf('js/cloud.js?v=3'));
  assert.ok(idx<html.indexOf('js/ui/settings.js?v=3'));
- assert.match(cloud,/root\.QPCore\.saveDiagnostics\.CLOUD_MAX_SAVE_CHARS/);
- assert.match(cloud,/json\.length > MAX_SAVE_CHARS/);
+ assert.match(cloud,/root\.QPCore\.saveDiagnostics/);
+ assert.match(cloud,/saveDiagnostics\.cloudAccepts\(json\)/);
  assert.match(html,/id="btnSaveStorageDiagnostics"/);
  assert.match(html,/id="saveStorageDiagnosticsResult"/);
 });
