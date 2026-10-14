@@ -74,7 +74,8 @@ test("200件近い所持品でも80件だけ描画し、追加ボタンと価値
  const body=ids.inventoryBody;
  assert.equal(descend(body,x=>x.className.split(" ").includes("skill-row")).length,80);
  const more=descend(body,x=>x.textContent.startsWith("さらに表示"))[0];
- assert.ok(more);more.click();
+ assert.ok(more);body.scrollTop=123;more.click();
+ assert.equal(body.scrollTop,123,"additional rows must not throw the user back to the list top");
  assert.equal(descend(body,x=>x.className.split(" ").includes("skill-row")).length,160);
  const valuable=ids.inventoryManageRow.children.find(x=>x.textContent==="保護・貴重");
  valuable.click();
