@@ -221,8 +221,10 @@ function renderInventoryScreen() {
     more.className = "btn small ghost inventory-more";
     more.textContent = `さらに表示（残り${shownCount - inventoryVisibleLimit}個）`;
     more.addEventListener("click", () => {
+      const previousScrollTop = body.scrollTop;
       inventoryVisibleLimit += 80;
       renderInventoryScreen();
+      document.getElementById("inventoryBody").scrollTop = previousScrollTop;
     });
     body.appendChild(more);
   }
