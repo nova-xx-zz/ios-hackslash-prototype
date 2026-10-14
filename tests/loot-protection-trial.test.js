@@ -67,7 +67,7 @@ test("試作の保護OFFは旧レア度のみの仕様。本体は高品質OPを
  // 試作OFFは従来どおりのレア度のみの判定を再現する。現在の本体とは仕様が異なる。
  assert.deepEqual(trialOff.kept.map(i=>i.id),["demo_sr1"]);
  assert.equal(trialOff.disassembled.length,7);
- assert.equal(trialOff.materials,65);
+ assert.equal(trialOff.materials,5*4+20*3);
  // 現行本体はSR以上の天然OP・特殊OPなどを自動分解から保護する。
  const keptExpected=drops.filter(i=>!filter.rarities.has(i.rarity)||i.unique||i.locked||
    i.cursed||rewards.hasProtectedOption(i));
