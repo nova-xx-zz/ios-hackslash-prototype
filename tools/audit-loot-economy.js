@@ -28,6 +28,15 @@ for(const m of modes){
   }
   if(n===1000){
    const audit=A.audit(data,{dungeonId:"plains",mode:m,rounds:n,seed});
+   console.log("5人全員が複数装備にOPを付けた場合（各3/6部位、通常のOP数値を累積。試作ソフト上限は未適用）");
+   for(const slots of [3,6]) {
+     const stacked=A.calculate(data,sample,{slotsPerHolder:slots});
+     const withOP=stacked.filters.find(x=>x.filter==="default"&&x.holders===5);
+     const c=A.enhanceBudget(data,"lr",99);
+     console.log("1人"+slots+"部位 ×5人 / パーティ素材倍率"+(1+withOP.materialBonus).toFixed(1)+
+       "倍 / 強化石 "+fmt(withOP.materials)+" / 個人EXP "+fmt(withOP.expPerMember)+
+       " / LR+99 素材だけの周回目安 "+fmt(Math.ceil(c.expected/withOP.materialsPerRun)));
+   }
    console.log("強化の必要強化石（天井ON、購入の確定石なしでの平均必要量）");
    for(const cost of audit.upgradeCoverage){
     console.log(cost.rarity.toUpperCase()+" +"+cost.target+
