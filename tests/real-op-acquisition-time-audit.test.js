@@ -103,3 +103,33 @@ test("不正な入力と未存在モードを拒否し、本体定義を変化�
  assert.throws(()=>Audit.timing({mode:"unknown"}),/Invalid loot mode/);
  assert.equal(JSON.stringify(game.ITEM_OPTIONS),snapshot);
 });
+
+test("監査サマリ：2,000周の最高値・高品質OP取得、分解損失、試作継承期待試行を出力",()=>{
+ const rows={};
+ for(const threshold of [.20,.18]){
+  const audit=Audit.acquisition(game,{runs:2000,seed:20261014,threshold,mode:"extra"});
+  rows[threshold.toFixed(2)]={
+   items:audit.items,
+   exp:audit.byKey.exp,
+   material:audit.byKey.material
+  };
+ }
+ const odds=Audit.inheritanceScenarios();
+ console.log("OP_ACQUISITION_SUMMARY "+JSON.stringify({
+  simulatedRuns:2000,mode:"extra",highQuality:rows,
+  trialInheritance:{ur:odds.ur,lr:odds.lr}
+ }));
+ assert.ok(rows["0.18"].exp.total>=rows["0.20"].exp.total);
+ assert.ok(rows["0.18"].material.total>=rows["0.20"].material.total);
+});
+
+test("監査サマリ：本体戦闘エンジン各モード8試行の踏破率・実戦秒数とオフライン見積もりを出力",()=>{
+ const results=["normal","hard","extra"].map(mode=>
+  Audit.timing({mode,trials:8,seed:20261014}));
+ console.log("BATTLE_TIME_SUMMARY "+JSON.stringify(results));
+ for(const row of results){
+  assert.equal(row.trials,8);
+  assert.ok(row.clearRate>=0 && row.clearRate<=1);
+  assert.ok(row.estimateRunSeconds>=row.battles*Runner.OFFLINE_TIMING.perBattle);
+ }
+});
