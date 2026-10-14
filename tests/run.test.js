@@ -517,3 +517,37 @@ test("自動分解: 旧セーブに出撃時設定がなければ現在値にフ
   assert.equal(state.material,0,"古いセーブは現在の分解OFF設定を使用");
   assert.ok(state.inventory.some(it=>it.rarity==="n"));
 });
+
+
+test("通常周回: 出撃時のN自動分解で高品質EXP/強化石OPを保管し低品質だけ素材化",()=>{
+ const {state,Runner}=setup({level:8});
+ const run=Runner.startRun(0,"plains");
+ const fresh=(id,value,key)=>({id,base:"bronze_sword",slot:"weapon",stats:{atk:3},
+  rarity:"n",materialValue:5,options:[{key,value}],plus:0});
+ const valuable=fresh("high-exp",.18,"exp");
+ const valuableStone=fresh("high-stone",.20,"material");
+ const ordinary=fresh("ordinary",.17,"exp");
+ run.pendingDrops.push(valuable,valuableStone,ordinary);
+ Runner.finishRun(run,true);
+ assert.deepEqual(state.inventory.map(i=>i.id).sort(),["high-exp","high-stone"]);
+ assert.equal(state.material,5);
+ assert.equal(run.disassembleCount,1);
+ assert.equal(run.materialGained,5);
+});
+
+test("オフライン周回: 保存したN自動分解設定でも高品質OPは所持品へ残す",()=>{
+ const {state,Runner,filter}=setup({level:8});
+ const valuable={id:"offline-high",base:"bronze_sword",slot:"weapon",stats:{atk:3},
+  rarity:"n",materialValue:5,plus:0,options:[{key:"material",value:.19}]};
+ const ordinary={id:"offline-low",base:"bronze_sword",slot:"weapon",stats:{atk:3},
+  rarity:"n",materialValue:5,plus:0,options:[{key:"material",value:.17}]};
+ const fromSaved={enabled:true,rarities:new Set(["n"])};
+ filter.rarities.clear(); // 実行中に画面のフィルタを変えても、出撃時の設定で精算する
+ const result=Runner.applyOfflineRun({
+  cleared:true,expByBattle:[],eligibleIdsByBattle:[],
+  encountered:[],drops:[valuable,ordinary],tame:null
+ },data.getDungeon("plains"),0,fromSaved);
+ assert.equal(result.itemsGained,2);
+ assert.deepEqual(state.inventory.map(x=>x.id),["offline-high"]);
+ assert.equal(state.material,5);
+});
