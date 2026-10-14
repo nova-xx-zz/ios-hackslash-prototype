@@ -132,3 +132,44 @@ test("不正入力の拒否とデータ非改変、100周は1000周サンプル�
  assert.throws(()=>A.enhanceBudget(data,"sr",100),/Invalid enhancement/);
  assert.equal(JSON.stringify(data.RARITIES),source);
 });
+
+test("現行Lv99で装備6部位のOPをそれぞれ付けられる合法構成を監査し5人分の最大寄り収支を評価",()=>{
+ const Real=require("../tools/lib/real-option-cap-audit.js");
+ for(const name of ["exp","material"]){
+  const legal=Real.snapshot(data,name,6);
+  assert.ok(legal.usedSP<=98);
+  assert.equal(legal.accessorySlots,3);
+  assert.equal(legal.gearBases.length,6);
+  assert.equal(legal.optionCount,6);
+  assert.equal(legal.opMax,.20);
+  assert.equal(legal.effective,.5,"previous trial hard cap is NOT applied to live economy");
+  assert.equal(legal.raw,1.2,"six real Extra-max OPs add to +120% per character");
+ }
+ const rolls=A.generateRuns(data,{mode:"normal",rounds:1000,seed:20261014});
+ const baseline=A.calculate(data,rolls);
+ const triple=A.calculate(data,rolls,{slotsPerHolder:3});
+ const max=A.calculate(data,rolls,{slotsPerHolder:6});
+ const at=(r,n)=>r.filters.find(x=>x.filter==="default"&&x.holders===n);
+ assert.equal(baseline.slotsPerHolder,1);
+ assert.equal(triple.slotsPerHolder,3);
+ assert.equal(max.slotsPerHolder,6);
+ assert.ok(at(triple,5).materials>at(baseline,5).materials);
+ assert.equal(at(max,5).expBonus,6);
+ assert.equal(at(max,5).materialBonus,6);
+ assert.equal(at(max,5).materials,at(max,0).materials*7);
+ assert.equal(at(max,5).expPerMember,at(max,0).expPerMember*7);
+ assert.equal(at(max,5).kept,at(max,0).kept);
+ assert.equal(at(max,5).disassembled,at(max,0).disassembled);
+ assert.equal(at(max,5).materials,254625);
+ const budget=A.enhanceBudget(data,"lr",99);
+ const rounds=Math.ceil(budget.expected/at(max,5).materialsPerRun);
+ console.log("FULL_GEAR_ECONOMY "+JSON.stringify({
+  mode:"normal",rounds:1000,legalSixSlots:true,
+  scenarios:[baseline,triple,max].map(r=>({slotsPerHolder:r.slotsPerHolder,
+   materialsPer1000:at(r,5).materials,expPerMember:at(r,5).expPerMember,
+   partyBonus:at(r,5).materialBonus})),
+  lr99ExpectedCost:Math.round(budget.expected),lr99RoundsWithSixEach:rounds
+ }));
+ assert.throws(()=>A.calculate(data,rolls,{slotsPerHolder:0}),/Invalid OP slots/);
+ assert.throws(()=>A.calculate(data,rolls,{slotsPerHolder:7}),/Invalid OP slots/);
+});
