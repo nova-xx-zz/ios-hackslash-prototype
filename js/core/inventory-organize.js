@@ -22,17 +22,27 @@
    return items.filter(item=>(slot==="all"||item.slot===slot)&&matches(item,view));
  }
  function sort(items,rarities,mode,score){
-   const rank=item=>rarities.findIndex(r=>r.key===item.rarity);
-   const value=item=>Number.isFinite(score(item))?score(item):0;
-   const amount=item=>Number.isFinite(item.materialValue)?item.materialValue:
-     (rarities.find(r=>r.key===item.rarity)||{}).material||0;
-   const opCount=item=>(Array.isArray(item.options)?item.options.length:0)+
-     (Array.isArray(item.naturalOptions)?item.naturalOptions.length:0);
    if(!["rarity","power","materials"].includes(mode))throw new RangeError("Unknown inventory sort: "+mode);
-   return items.slice().sort((a,b)=>{
-     const primary=mode==="power"?value(b)-value(a):mode==="materials"?amount(b)-amount(a):rank(b)-rank(a);
-     return primary||rank(b)-rank(a)||opCount(b)-opCount(a)||value(b)-value(a);
+   // 比較ごとに装備能力を再計算せず、各アイテムにつき一度だけ評価する。
+   // 元配列・装備オブジェクトは変更しない。従来の並び順と安定性を維持する。
+   const rarityIndex=new Map(rarities.map((r,i)=>[r.key,i]));
+   const materialByRarity=new Map(rarities.map(r=>[r.key,r.material||0]));
+   const metrics=items.map((item,index)=>{
+     const value=score(item);
+     return {
+       item,index,
+       rarity:rarityIndex.has(item.rarity)?rarityIndex.get(item.rarity):-1,
+       power:Number.isFinite(value)?value:0,
+       material:Number.isFinite(item.materialValue)?item.materialValue:(materialByRarity.get(item.rarity)||0),
+       opCount:(Array.isArray(item.options)?item.options.length:0)+
+         (Array.isArray(item.naturalOptions)?item.naturalOptions.length:0)
+     };
    });
+   metrics.sort((a,b)=>{
+     const primary=mode==="power"?b.power-a.power:mode==="materials"?b.material-a.material:b.rarity-a.rarity;
+     return primary||b.rarity-a.rarity||b.opCount-a.opCount||b.power-a.power||a.index-b.index;
+   });
+   return metrics.map(m=>m.item);
  }
  const api={BULK_RARITIES,VIEWS,isValuable,isSafeBulkCandidate,matches,filter,sort};
  root.QPCore=root.QPCore||{};
