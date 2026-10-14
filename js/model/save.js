@@ -133,6 +133,7 @@
     opts = opts || {};
     const runDungeonIds = opts.runDungeonIds || [];
     const runModes = opts.runModes || [];
+    const runFilters = opts.runFilters || [];
     return {
       schemaVersion: SCHEMA_VERSION,
       roster: state.roster,
@@ -149,6 +150,11 @@
         done: ar.done,
         dungeonId: runDungeonIds[i] || null,
         mode: runModes[i] || "normal",
+        // 自動周回中の出撃時の分解設定。保存と再起動をまたいでも同じ条件で報酬を精算する。
+        ...(ar.active && runFilters[i] ? { disassembleFilter: {
+          enabled: !!runFilters[i].enabled,
+          rarities: [...runFilters[i].rarities],
+        } } : {}),
       })),
       skillBooks: state.skillBooks,
       material: state.material,
