@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=45">
+<link rel="stylesheet" href="css/style.css?v=46">
 </head>
 <body>
 <div id="app">
@@ -69,6 +69,14 @@
           </div>
           <p class="settings-note">アプリを離れている間、自動周回が終わる頃（最長8時間後）に通知でお知らせします。</p>
           <p class="settings-message hidden" id="notifyMessage"></p>
+        </div>
+        <div class="settings-save-diagnostic">
+          <div class="settings-row">
+            <span class="settings-label">端末のセーブ容量</span>
+            <button class="btn small ghost" id="btnSaveStorageDiagnostics">保存状況を確認</button>
+          </div>
+          <p class="settings-note">端末の保存済みデータとクラウド送信サイズを調べます。書き込みテストやデータの削除は行いません。</p>
+          <p class="sub settings-message" id="saveStorageDiagnosticsResult" role="status" aria-live="polite">未確認</p>
         </div>
         <div class="settings-cloud">
           <div class="settings-row">
@@ -446,6 +454,7 @@
 <script src="data/roadmap.js?v=2"></script>
 <script src="js/debug-gate.js?v=4"></script>
 <script src="js/core/storage.js?v=6"></script>
+<script src="js/core/save-diagnostics.js?v=1"></script>
 <script src="js/core/rng.js?v=2"></script>
 <script src="js/core/enhance.js?v=1"></script>
 <!-- FORGE-TRIAL-CORE-START -->
@@ -472,7 +481,7 @@
 <script src="js/model/inventory.js?v=10"></script>
 <script src="js/model/run.js?v=10"></script>
 <script src="js/firebase-config.js?v=1"></script>
-<script src="js/cloud.js?v=2"></script>
+<script src="js/cloud.js?v=3"></script>
 <script src="js/data.js?v=31"></script>
 <script src="js/uniques.js?v=3"></script>
 <script src="js/options.js?v=2"></script>
@@ -483,7 +492,7 @@
 <script src="js/ui/models.js?v=16"></script>
 <script src="js/ui/offline.js?v=4"></script>
 <script src="js/ui/title-map.js?v=13"></script>
-<script src="js/ui/settings.js?v=2"></script>
+<script src="js/ui/settings.js?v=3"></script>
 <script src="js/ui/debug.js?v=8"></script>
 <script src="js/ui/party.js?v=10"></script>
 <script src="js/ui/create.js?v=6"></script>

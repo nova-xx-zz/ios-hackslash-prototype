@@ -13,7 +13,8 @@
   if (root.QPCore && root.QPCore.storage && root.QPCore.storage.isDebugMode()) return;
   const UPLOAD_INTERVAL_MS = 60 * 1000;
   const START_DELAY_MS = 1500;
-  const MAX_SAVE_CHARS = 900 * 1024; // Firestore の1件あたりの上限（1MiB）に余裕を持たせる
+  // 設定画面の容量診断と同じ上限を使い、表示と実際の送信判定を一致させる。
+  const saveDiagnostics = root.QPCore.saveDiagnostics;
   const SDK_URL = "js/vendor/firebase.js?v=1";
 
   const state = { status: "off", uid: null, lastUploadAt: null, lastUploadSavedAt: null, error: null };
@@ -87,9 +88,9 @@
     if (!pending) return true;
     if (state.status !== "ready") return false;
     const { json, savedAt } = pending;
-    if (json.length > MAX_SAVE_CHARS) {
+    if (!saveDiagnostics.cloudAccepts(json)) {
       pending = null;
-      set({ error: "セーブが大きすぎてクラウドに保存できません（所持品を減らしてください）" });
+      set({ error: "セーブが大きすぎてクラウドに保存できません（設定→保存状況を確認してください）" });
       return false;
     }
     pending = null;
