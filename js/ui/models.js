@@ -20,6 +20,9 @@ function saveGame() {
       now,
       runDungeonIds: teamRuns.map((r) => (r && r.dungeon) ? r.dungeon.id : null),
       runModes: teamRuns.map((r) => (r && r.dungeon && r.dungeon.mode) || "normal"),
+      runFilters: teamRuns.map((r) => r && !r.finished ? {
+        enabled: r.autoDisassemble, rarities: r.autoDisassembleRarities,
+      } : null),
       enabledFeatures: Object.keys(FEATURE_FLAGS).filter((k) => FEATURE_FLAGS[k]),
     });
     json = JSON.stringify(data);
