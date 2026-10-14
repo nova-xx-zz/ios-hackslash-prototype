@@ -86,3 +86,25 @@ test("踏破した周の平均ドロップ数は通常プレイと同じ計算�
   const expected = 3 * 1.4 + 2 * 0.6 * 0.4 * 0.65;
   assert.ok(Math.abs(total / N - expected) < 0.08, `平均 ${(total / N).toFixed(2)} / 期待 ${expected.toFixed(2)}`);
 });
+
+test("勝利時の生存者IDは各戦闘ごとに記録され、敗北した戦闘分は付与しない", () => {
+  const ctx = ctxFor("forest", createRng(44), { winUntil: 2 });
+  ctx.fight = (_, i) => ({
+    won: i < 2, seconds: 3,
+    eligibleIds: i === 0 ? ["hero", "mage"] : ["hero"],
+  });
+  const out = offline.simulateRun(ctx);
+  assert.equal(out.cleared, false);
+  assert.equal(out.expByBattle.length, 2);
+  assert.deepEqual(out.eligibleIdsByBattle, [["hero", "mage"], ["hero"]]);
+  assert.deepEqual(out.drops, []);
+});
+
+test("生存者IDが空の場合はゼロ人、旧形式のfightではnull互換を返す", () => {
+  const ctx = ctxFor("plains", createRng(51));
+  ctx.fight = () => ({ won: true, seconds: 1, eligibleIds: [] });
+  const zero = offline.simulateRun(ctx);
+  assert.deepEqual(zero.eligibleIdsByBattle, [[], [], []]);
+  const legacy = offline.simulateRun(ctxFor("plains", createRng(51)));
+  assert.deepEqual(legacy.eligibleIdsByBattle, [null, null, null]);
+});
