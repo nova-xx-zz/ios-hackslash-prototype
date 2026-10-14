@@ -547,7 +547,7 @@ test("オフライン周回: 保存したN自動分解設定でも高品質OPは
   cleared:true,expByBattle:[],eligibleIdsByBattle:[],
   encountered:[],drops:[valuable,ordinary],tame:null
  },data.getDungeon("plains"),0,fromSaved);
- assert.equal(result.itemsGained,2);
+ assert.equal(result.itemsGained,1,"only the protected gear enters inventory");
  assert.deepEqual(state.inventory.map(x=>x.id),["offline-high"]);
  assert.equal(state.material,5);
 });
