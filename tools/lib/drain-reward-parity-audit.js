@@ -119,6 +119,7 @@ function rewardScenario(data=loadGameData(),options={}){
   normal.members[aliveIndex].alive=false;
   offline.members[aliveIndex].alive=false;
  }
+ const beforeN=normal.members.map(c=>normal.roster.totalExpInvested(c));
  normal.runner.winBattle(run,{enemies:[{...enemy,key:enemy.key||"slime",exp}]});
  const nExp=normal.members.map((c,i)=>normal.roster.totalExpInvested(c)-beforeN[i]);
  const oBefore=offline.members.map(c=>offline.roster.totalExpInvested(c));
