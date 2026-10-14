@@ -4,7 +4,6 @@ const {loadGameData}=require("./load-data.js");
 const Economy=require("./real-loot-economy-audit.js");
 const BattleSim=require("./sim.js");
 const LegacyTrial=require("../../js/core/option-inheritance-trial.js");
-const GearTrial=require("../../js/core/forge-gear-trial.js");
 const Runner=require("../../js/model/run.js");
 const Offline=require("../../js/core/offline.js");
 
