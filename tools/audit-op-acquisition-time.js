@@ -13,7 +13,9 @@ for(const threshold of [.20,.18]){
  for(const key of ["exp","material"]){
   const x=out.byKey[key];
   console.log(JSON.stringify({key,qualifying:x.total,perItem:x.perItem,
-   droppedByDefaultNRAutoDisassemble:x.lostToDefaultAutoDismantle,
+   lostBeforeProtection:x.previouslyLostBeforeProtection,
+   savedByCurrentProtection:x.savedByNewProtection,
+   lostNow:x.lostToDefaultAutoDismantle,
    retained:x.keptWithDefaultAutoDismantle,slots:x.slots,
    first30:x.firstThirty,firstSlotAllocation30:x.firstSlots30,
    firstSlotAllocation30WithDefaultFilter:x.firstSlots30Protected,

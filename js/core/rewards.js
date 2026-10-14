@@ -93,14 +93,44 @@
     return { key, success: rng.chance(tameChanceOf(key)) };
   }
 
+  // 自動分解しない高品質OP。現行のExtra 2〜3OPで付く割合OPを対象にする。
+  // flat OPはアイテムLvにより評価値が変わるため、固定しきい値では保護しない。
+  // 重要: 本体のOP抽選値を変えたらしきい値もレビューし、tests/rewards.test.jsで確認する。
+  const PROTECTED_OP_MIN = Object.freeze({
+    atk_pct: .11, mag_pct: .11, def_pct: .11, spd_pct: .11, hp_pct: .11, mp_pct: .11,
+    crit: .07, lifesteal: .05, heal: .18, guard: .07, thrift: .14,
+    exp: .18, material: .18,
+  });
+  // 将来の天然OP/試作由来のSR以上のOPも、正式導入された場合に誤分解しない。
+  // 既存装備（optionsなし）は従来どおり。手動分解では通常の確認手順に従う。
+  function hasProtectedOption(item) {
+    if (!item || typeof item !== "object") return false;
+    const options = [].concat(
+      Array.isArray(item.options) ? item.options : [],
+      Array.isArray(item.naturalOptions) ? item.naturalOptions : []
+    );
+    return options.some((opt) => {
+      if (!opt || typeof opt !== "object") return false;
+      // 一度継承したOPや将来追加された未知ランクは、誤分解を避ける方向で保護する。
+      if (opt.special === true || opt.inherited === true || opt.origin === "inherited") return true;
+      const ranked = [opt.rank, opt.optionRarity].filter(x => typeof x === "string" && x.length);
+      if (ranked.some(rank => !["n", "r"].includes(rank))) return true;
+      const threshold = PROTECTED_OP_MIN[opt.key];
+      return Number.isFinite(threshold) && typeof opt.value === "number" &&
+        Number.isFinite(opt.value) && opt.value + 1e-9 >= threshold;
+    });
+  }
+
   // 踏破して持ち帰ったドロップを、自動分解の設定に従って所持品と強化石に振り分ける
-  // disassemble: { enabled, rarities: Set<レア度キー> }。名のある装備とロックした装備は、レア度が合っても分解せず所持品に残す
+  // disassemble: { enabled, rarities: Set<レア度キー> }。
+  // 名のある装備・ロック品・特殊な呪い付き装備・高品質OP付き装備は誤分解しない。
   function settleDrops(items, disassemble) {
     const kept = [];
     let materialGained = 0;
     let disassembled = 0;
     for (const item of items) {
-      if (disassemble.enabled && disassemble.rarities.has(item.rarity) && !item.unique && !item.locked) {
+      if (disassemble.enabled && disassemble.rarities.has(item.rarity) &&
+          !item.unique && !item.locked && !item.cursed && !hasProtectedOption(item)) {
         materialGained += item.materialValue;
         disassembled += 1;
       } else {
@@ -116,7 +146,7 @@
 
   const exported = {
     rollRarity, createItem, rollItem, rollBattleDrops, rollEventKind, rollTreasure, rollTame,
-    settleDrops, battleExp, expForMember, itemLevelMult, rollRareDrops,
+    settleDrops, hasProtectedOption, PROTECTED_OP_MIN, battleExp, expForMember, itemLevelMult, rollRareDrops,
   };
   root.QPCore = root.QPCore || {};
   root.QPCore.rewards = exported;

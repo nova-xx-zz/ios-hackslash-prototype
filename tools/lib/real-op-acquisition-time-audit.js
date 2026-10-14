@@ -2,6 +2,7 @@
 // Actual loot and battle benchmark (read-only). Trial inheritance scenarios kept separate.
 const {loadGameData}=require("./load-data.js");
 const Economy=require("./real-loot-economy-audit.js");
+const Rewards=require("../../js/core/rewards.js");
 const BattleSim=require("./sim.js");
 const LegacyTrial=require("../../js/core/option-inheritance-trial.js");
 const Runner=require("../../js/model/run.js");
@@ -25,6 +26,7 @@ function acquisition(data=loadGameData(),opts={}){
  const buckets={exp:[],material:[]};
  for(const key of Object.keys(buckets))result.byKey[key]={
   total:0,keptWithDefaultAutoDismantle:0,lostToDefaultAutoDismantle:0,
+  previouslyLostBeforeProtection:0,savedByNewProtection:0,
   nOrR:0,slots:{weapon:0,head:0,body:0,accessory:0,shield:0},
   firstThirty:null,firstSlots30:null,firstSlots30Protected:null
  };
@@ -40,7 +42,11 @@ function acquisition(data=loadGameData(),opts={}){
     row.total++;
     if(row.slots[item.slot]===undefined)row.slots[item.slot]=0;
     row.slots[item.slot]++;
-    const lost=filter.has(item.rarity)&&!item.unique&&!item.locked;
+    const previouslyLost=filter.has(item.rarity)&&!item.unique&&!item.locked;
+    const protectedNow=Rewards.hasProtectedOption(item)||!!item.cursed;
+    const lost=previouslyLost&&!protectedNow;
+    if(previouslyLost)row.previouslyLostBeforeProtection++;
+    if(previouslyLost&&protectedNow)row.savedByNewProtection++;
     if(lost)row.lostToDefaultAutoDismantle++;
     else row.keptWithDefaultAutoDismantle++;
     if(item.rarity==="n"||item.rarity==="r")row.nOrR++;
@@ -65,7 +71,7 @@ function acquisition(data=loadGameData(),opts={}){
   "Same type OP may appear once per dropped item; different pieces are required for each equipment slot",
   "Matching class, gear series and all accessory slot constraints are NOT checked by simple slot counts",
   "The real drop table does NOT produce N-weapon UR/LR-ranked trial essences",
-  "Existing N/R auto-dismantle does NOT protect rare option values",
+  "Existing N/R auto-dismantle NOW protects high-value percentage and SR+ ranked options; previous unprotected losses are reported separately",
   "Strict 5x6 setup requires 30 distinct compatible equips PER option kind, may be unattainable in displayed runs"
  ];
  return result;

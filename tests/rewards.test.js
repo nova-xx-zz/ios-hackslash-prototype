@@ -176,3 +176,51 @@ test("強化値込みの能力値: 主能力を基準に、ほかの能力値も
   // 旧形式（stat・value）も読める
   assert.deepEqual(data.itemStats({ stat: "atk", value: 3, rarity: "n", plus: 0 }), { atk: 3 });
 });
+
+
+test("高品質OPを自動分解から常時保護し、普通のOP・OPなしは従来どおり分解する",()=>{
+ const filter={enabled:true,rarities:new Set(["n","r","sr","ur","lr"])};
+ const item=(id,rarity,options)=>({id,rarity,materialValue:5,
+   ...(options===undefined?{}:{options})});
+ const drops=[
+  item("exp-high","n",[{key:"exp",value:.18}]),
+  item("exp-low","n",[{key:"exp",value:.17}]),
+  item("stone-high","r",[{key:"material",value:.20}]),
+  item("stone-low","r",[{key:"material",value:.17}]),
+  item("crit-high","n",[{key:"crit",value:.08}]),
+  item("guard-high","r",[{key:"guard",value:.08}]),
+  item("flat-normal","n",[{key:"atk_flat",value:10}]),
+  item("none","r"),
+  item("ranked-natural","n",[{key:"atk",value:.02,rank:"sr"}]),
+  {...item("ranked-native","n"),naturalOptions:[{key:"rare-skill",rank:"ur",value:.01}]},
+  item("ranked-inherit","n",[{key:"heal",value:.1,optionRarity:"lr"}]),
+  item("special","n",[{key:"void",value:1,special:true}]),
+  item("unknown-rank","n",[{key:"future",value:1,rank:"mythic"}]),
+  item("inherited","r",[{key:"guard",value:.01,origin:"inherited",rank:"n"}]),
+  {...item("curse","n"),cursed:true},
+ ];
+ const originals=JSON.stringify(drops);
+ const result=rewards.settleDrops(drops,filter);
+ assert.deepEqual(result.kept.map(x=>x.id),[
+   "exp-high","stone-high","crit-high","guard-high",
+   "ranked-natural","ranked-native","ranked-inherit","special","unknown-rank","inherited","curse"
+ ]);
+ assert.equal(result.disassembled,4);
+ assert.equal(result.materialGained,20);
+ assert.equal(JSON.stringify(drops),originals,"drop or save fields must not mutate");
+ assert.equal(rewards.hasProtectedOption(drops[0]),true);
+ assert.equal(rewards.hasProtectedOption(drops[1]),false);
+ assert.equal(rewards.hasProtectedOption(drops[6]),false);
+ assert.equal(rewards.hasProtectedOption({options:[{key:"exp",value:NaN}]}),false);
+ assert.equal(rewards.hasProtectedOption({options:[{key:"exp",value:"0.20"}]}),false);
+ assert.equal(rewards.settleDrops(drops,{enabled:false,rarities:filter.rarities}).kept.length,drops.length);
+});
+
+test("保護しきい値は現行Extra上位値を対象とし、Hard最高値を超える",()=>{
+ for(const [key,min] of Object.entries(rewards.PROTECTED_OP_MIN)){
+  const def=data.ITEM_OPTIONS.find(x=>x.key===key);
+  assert.ok(def&&def.range&&def.range.extra, "missing option definition "+key);
+  assert.ok(min<=def.range.extra[1], "threshold above Extra cap "+key);
+  assert.ok(min>def.range.hard[1], "Hard option should be below high-quality threshold "+key);
+ }
+});

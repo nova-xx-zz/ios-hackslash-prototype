@@ -240,6 +240,10 @@ function renderDisassembleFilter() {
     warn.textContent = `${disassembleHighConfirm.toUpperCase()}も自動で分解されます。よければもう一度押してください（名のある装備は分解しません）`;
     row.appendChild(warn);
   }
+  const optionNote = document.createElement("span");
+  optionNote.className = "disassemble-filter-note";
+  optionNote.textContent = "高品質OP・特殊OP付き装備はレア度にかかわらず自動保護（手動分解は別）";
+  row.appendChild(optionNote);
   if (locked) {
     const note = document.createElement("span");
     note.className = "disassemble-filter-note";
