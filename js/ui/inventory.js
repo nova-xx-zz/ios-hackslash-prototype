@@ -9,6 +9,10 @@
 // 装備中のアイテムはinventoryから除外されており(equipItem/unequipSlot参照)、
 // 各キャラの装備タブからいつでも確認できるため、ここでは未装備分だけを扱う。
 let inventoryFilterSlot = "all"; // "all" | SLOTS[].key | "skillBook"
+let inventoryQualityView = "all"; // all | valuable | safe | locked
+let inventorySortMode = "rarity"; // rarity | power | materials
+let inventoryVisibleLimit = 80; // 大量所持品でも一度に全DOMを生成しない
+const inventoryOrganize = QPCore.inventoryOrganize;
 
 // 手動の分解: 「分解する」で選択モードにし、アイテムをタップで選んで強化石に変える（自動分解と同じ量）。
 // 取り消せないため、実行は2回押し（1回目で内容を確認、2回目で確定）。装備中のアイテムは所持品に無いので対象外
@@ -22,6 +26,9 @@ function openInventoryScreen(opts) {
   opts = opts || {};
   inventoryReturnScreen = opts.returnScreen || "screen-jobs";
   inventoryFilterSlot = "all";
+  inventoryQualityView = "all";
+  inventorySortMode = "rarity";
+  inventoryVisibleLimit = 80;
   exitDisassembleMode();
   if (opts.disassemble) disassembleMode = true;
   showInventoryMessage("");
@@ -43,7 +50,38 @@ function showInventoryMessage(text) {
 
 // 今の絞り込みで表示されている装備（スキルブックは分解の対象外）
 function shownInventoryItems() {
-  return S.inventory.filter((i) => inventoryFilterSlot === "all" || inventoryFilterSlot === i.slot);
+  if (inventoryFilterSlot === "skillBook") return [];
+  return inventoryOrganize.filter(S.inventory, inventoryFilterSlot, inventoryQualityView);
+}
+
+function renderInventoryManageControls() {
+  const row = document.getElementById("inventoryManageRow");
+  row.innerHTML = "";
+  row.classList.toggle("hidden", inventoryFilterSlot === "skillBook");
+  if (inventoryFilterSlot === "skillBook") return;
+  const addChoice = (name, options, current, change) => {
+    const label = document.createElement("span");
+    label.className = "disassemble-filter-label";
+    label.textContent = name + ":";
+    row.appendChild(label);
+    for (const [key,text] of options) {
+      const button = document.createElement("button");
+      button.className = "priority-chip inv-filter" + (current === key ? " tier-3" : "");
+      button.textContent = text;
+      button.addEventListener("click", () => {
+        change(key);
+        inventoryVisibleLimit = 80;
+        disassembleConfirming = false;
+        document.getElementById("inventoryBody").scrollTop = 0;
+        renderInventoryScreen();
+      });
+      row.appendChild(button);
+    }
+  };
+  addChoice("表示", [["all","すべて"],["valuable","保護・貴重"],["safe","整理候補"],["locked","ロック"]],
+    inventoryQualityView, v => {inventoryQualityView=v;});
+  addChoice("順序", [["rarity","レア度"],["power","能力"],["materials","素材価値"]],
+    inventorySortMode, v => {inventorySortMode=v;});
 }
 
 function renderDisassembleControls() {
@@ -59,13 +97,26 @@ function renderDisassembleControls() {
     label.textContent = "まとめて選ぶ:";
     bulk.appendChild(label);
     const shown = shownInventoryItems();
+    // 一括操作は安全候補のみ。高品質・強化済み・ロック・名のある装備・UR/LRは個別選択でのみ分解可。
+    const safe = shown.filter(inventoryOrganize.isSafeBulkCandidate);
+    const safeAll = safe.length > 0 && safe.every(i => disassembleSelection.has(i));
+    const safeBtn = document.createElement("button");
+    safeBtn.className = "disassemble-chip" + (safeAll ? " active" : "");
+    safeBtn.textContent = `安全候補すべて (${safe.length})`;
+    safeBtn.disabled = safe.length === 0;
+    safeBtn.addEventListener("click", () => {
+      for (const item of safe) { if (safeAll) disassembleSelection.delete(item); else disassembleSelection.add(item); }
+      disassembleConfirming = false;
+      renderInventoryScreen();
+    });
+    bulk.appendChild(safeBtn);
     for (const rarity of RARITIES) {
-      const items = shown.filter((i) => i.rarity === rarity.key && !i.locked); // ロックした装備は選ばない
+      const items = safe.filter((i) => i.rarity === rarity.key);
       const all = items.length > 0 && items.every((i) => disassembleSelection.has(i));
       const chip = document.createElement("button");
       chip.className = "disassemble-chip" + (all ? " active" : "");
       chip.textContent = rarity.key.toUpperCase();
-      chip.title = rarity.name;
+      chip.title = rarity.name + "の安全な整理候補のみを一括選択";
       chip.disabled = items.length === 0;
       if (all) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
       chip.addEventListener("click", () => {
@@ -85,12 +136,14 @@ function renderDisassembleControls() {
   const enhanced = selected.filter((i) => (i.plus || 0) > 0).length;
   const high = selected.filter((i) => i.rarity === "ur" || i.rarity === "lr").length;
   const highOp = selected.filter((i) => QPCore.rewards.hasProtectedOption(i)).length;
+  const special = selected.filter((i) => i.unique || i.cursed).length;
   let text = selected.length ? `${selected.length}個を選択中 → 強化石 +${gain}` : "分解するアイテムをタップして選んでください";
   if (disassembleConfirming) {
     const warn = [];
     if (enhanced) warn.push(`強化済み${enhanced}個`);
     if (high) warn.push(`UR・LR ${high}個`);
     if (highOp) warn.push(`高品質OP ${highOp}個`);
+    if (special) warn.push(`名のある・呪いの装備 ${special}個`);
     text += `\n${warn.length ? warn.join("・") + "を含みます。" : ""}分解すると戻せません。もう一度押すと分解します。`;
   }
   document.getElementById("inventoryDisassembleSummary").textContent = text;
@@ -107,19 +160,23 @@ function renderInventoryScreen() {
     const btn = document.createElement("button");
     btn.className = "priority-chip inv-filter" + (inventoryFilterSlot === f.key ? " tier-3" : "");
     btn.textContent = f.name;
-    btn.addEventListener("click", () => { inventoryFilterSlot = f.key; disassembleConfirming = false; renderInventoryScreen(); });
+    btn.addEventListener("click", () => { inventoryFilterSlot = f.key; inventoryVisibleLimit = 80; disassembleConfirming = false; document.getElementById("inventoryBody").scrollTop=0; renderInventoryScreen(); });
     filterRow.appendChild(btn);
   }
 
+  renderInventoryManageControls();
+  const shownItems = shownInventoryItems();
   const totalCount = S.inventory.length + S.skillBooks.length;
-  const shownCount = inventoryFilterSlot === "all" ? totalCount
-    : inventoryFilterSlot === "skillBook" ? S.skillBooks.length
-    : S.inventory.filter((i) => i.slot === inventoryFilterSlot).length;
-  document.getElementById("inventoryCount").textContent = `所持品 ${totalCount}個中 ${shownCount}個を表示`;
+  const includesBooks = inventoryFilterSlot === "skillBook" || (inventoryFilterSlot === "all" && inventoryQualityView === "all");
+  const shownCount = shownItems.length + (includesBooks ? S.skillBooks.length : 0);
+  const safeCount = S.inventory.filter(inventoryOrganize.isSafeBulkCandidate).length;
+  const valuableCount = S.inventory.filter(inventoryOrganize.isValuable).length;
+  document.getElementById("inventoryCount").textContent = `所持品 ${totalCount}個（保護・貴重 ${valuableCount} / 整理候補 ${safeCount}）・条件一致 ${shownCount}個`;
   renderDisassembleControls();
 
   const body = document.getElementById("inventoryBody");
   body.innerHTML = "";
+  let remaining = inventoryVisibleLimit;
   if (shownCount === 0) {
     const none = document.createElement("div");
     none.className = "sub-ability-row";
@@ -132,34 +189,44 @@ function renderInventoryScreen() {
 
   for (const slot of SLOTS) {
     if (inventoryFilterSlot !== "all" && inventoryFilterSlot !== slot.key) continue;
-    const items = S.inventory
-      .filter((i) => i.slot === slot.key)
-      .sort((a, b) => {
-        const ra = RARITIES.findIndex((r) => r.key === a.rarity);
-        const rb = RARITIES.findIndex((r) => r.key === b.rarity);
-        return rb - ra || itemEffectiveValue(b) - itemEffectiveValue(a);
-      });
-    if (items.length === 0) continue;
-    body.appendChild(sectionLabel(`${slot.name}（${items.length}個）`));
+    const items = inventoryOrganize.sort(shownItems.filter(i => i.slot === slot.key), RARITIES, inventorySortMode, itemEffectiveValue);
+    if (items.length === 0 || remaining <= 0) continue;
+    const showing = items.slice(0, remaining);
+    remaining -= showing.length;
+    body.appendChild(sectionLabel(`${slot.name}（${items.length}個中${showing.length}個）`));
     const list = document.createElement("div");
     list.className = "skill-row-list";
-    for (const item of items) list.appendChild(buildInventoryItemRow(item));
+    for (const item of showing) list.appendChild(buildInventoryItemRow(item));
     body.appendChild(list);
   }
 
-  if (inventoryFilterSlot === "all" || inventoryFilterSlot === "skillBook") {
+  if (includesBooks && remaining > 0) {
     const books = S.skillBooks.slice().sort((a, b) => {
       const ra = RARITIES.findIndex((r) => r.key === a.rarity);
       const rb = RARITIES.findIndex((r) => r.key === b.rarity);
       return rb - ra;
     });
     if (books.length > 0) {
-      body.appendChild(sectionLabel(`スキルブック（${books.length}個）`));
+      const showing = books.slice(0, remaining);
+      remaining -= showing.length;
+      body.appendChild(sectionLabel(`スキルブック（${books.length}個中${showing.length}個）`));
       const list = document.createElement("div");
       list.className = "skill-row-list";
-      for (const book of books) list.appendChild(buildInventorySkillBookRow(book));
+      for (const book of showing) list.appendChild(buildInventorySkillBookRow(book));
       body.appendChild(list);
     }
+  }
+  if (shownCount > inventoryVisibleLimit) {
+    const more = document.createElement("button");
+    more.className = "btn small ghost inventory-more";
+    more.textContent = `さらに表示（残り${shownCount - inventoryVisibleLimit}個）`;
+    more.addEventListener("click", () => {
+      const previousScrollTop = body.scrollTop;
+      inventoryVisibleLimit += 80;
+      renderInventoryScreen();
+      document.getElementById("inventoryBody").scrollTop = previousScrollTop;
+    });
+    body.appendChild(more);
   }
 }
 
@@ -182,6 +249,12 @@ function buildInventoryItemRow(item) {
     eff.className = "inv-unique-effect" + (item.cursed ? " cursed" : "");
     eff.textContent = itemEffectText(item);
     name.appendChild(eff);
+  }
+  if (inventoryOrganize.isValuable(item)) {
+    const badge = document.createElement("span");
+    badge.className = "inv-valuable-tag";
+    badge.textContent = QPCore.rewards.hasProtectedOption(item) ? "★ 高品質OP" : "◆ 保護・貴重";
+    name.appendChild(badge);
   }
   if (item.options && item.options.length) {
     const opt = document.createElement("span");
