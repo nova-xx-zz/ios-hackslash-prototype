@@ -111,8 +111,10 @@
     );
     return options.some((opt) => {
       if (!opt || typeof opt !== "object") return false;
-      if (opt.special === true || ["sr", "ur", "lr"].includes(opt.rank) ||
-          ["sr", "ur", "lr"].includes(opt.optionRarity)) return true;
+      // 一度継承したOPや将来追加された未知ランクは、誤分解を避ける方向で保護する。
+      if (opt.special === true || opt.inherited === true || opt.origin === "inherited") return true;
+      const ranked = [opt.rank, opt.optionRarity].filter(x => typeof x === "string" && x.length);
+      if (ranked.some(rank => !["n", "r"].includes(rank))) return true;
       const threshold = PROTECTED_OP_MIN[opt.key];
       return Number.isFinite(threshold) && typeof opt.value === "number" &&
         Number.isFinite(opt.value) && opt.value + 1e-9 >= threshold;
