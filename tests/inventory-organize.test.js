@@ -44,3 +44,13 @@ test("レア度・装備能力・分解素材の並び替えを比較、元配�
  assert.deepEqual(a,original);
  assert.throws(()=>Organize.sort(a,rarities,"deprecated",score),/Unknown inventory sort/);
 });
+
+test("多数アイテムの並び替えは能力値を1件につき1度しか評価せず、元の安定順序を維持",()=>{
+ const all=Array.from({length:1000},(_,i)=>item("item-"+i,{rarity:"r",power:12,materialValue:20}));
+ let calls=0;
+ const sorted=Organize.sort(all,rarities,"power",x=>{calls++;return x.power;});
+ assert.equal(calls,all.length);
+ assert.deepEqual(sorted,all);
+ assert.notEqual(sorted,all);
+ assert.equal(all[0].id,"item-0");
+});
