@@ -72,13 +72,13 @@ test("200件近い所持品でも80件だけ描画し、追加ボタンと価値
  const {c,ids,state}=setup();
  c.renderInventoryScreen();
  const body=ids.inventoryBody;
- assert.equal(descend(body,x=>x.className.includes("skill-row")&&!x.className.includes("list")).length,80);
+ assert.equal(descend(body,x=>x.className.split(" ").includes("skill-row")).length,80);
  const more=descend(body,x=>x.textContent.startsWith("さらに表示"))[0];
  assert.ok(more);more.click();
- assert.equal(descend(body,x=>x.className.includes("skill-row")&&!x.className.includes("list")).length,160);
+ assert.equal(descend(body,x=>x.className.split(" ").includes("skill-row")).length,160);
  const valuable=ids.inventoryManageRow.children.find(x=>x.textContent==="保護・貴重");
  valuable.click();
- assert.equal(descend(body,x=>x.className.includes("skill-row")&&!x.className.includes("list")).length,27);
+ assert.equal(descend(body,x=>x.className.split(" ").includes("skill-row")).length,27);
  assert.ok(ids.inventoryCount.textContent.includes("条件一致 27個"));
  assert.equal(state.inventory.length,167);
 });
@@ -107,7 +107,8 @@ test("価値あり装備は一括選択不可、個別選択と明示確認で�
  ids.inventoryManageRow.children.find(e=>e.textContent==="保護・貴重").click();
  ids.btnInventoryDisassemble.click();
  assert.equal(ids.inventoryBulkRow.children.find(e=>e.textContent.startsWith("安全候補すべて")).disabled,true);
- const high=descend(ids.inventoryBody,x=>x.className==="skill-row selectable")[0];
+ const high=descend(ids.inventoryBody,x=>x.className==="skill-row selectable"&&
+   x.children.some(ch=>ch.className==="skill-row-name"&&ch.textContent.startsWith("high-")))[0];
  assert.ok(high);high.click();
  const chosen=vm.runInContext("[...disassembleSelection]",c);assert.equal(chosen.length,1);
  ids.btnDisassembleConfirm.click();
