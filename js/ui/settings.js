@@ -121,7 +121,7 @@ async function inspectCurrentSaveStorage(){
       "端末の保存済みセーブ: "+stored,
       "現在の未装備アイテム: "+S.inventory.length.toLocaleString("ja-JP")+"件",
       "クラウド保存: "+cloudStatus,
-      "クラウド側の送信上限: "+diagnostic.cloudLimitChars.toLocaleString("ja-JP")+"文字",
+      "クラウド側の安全目安: "+fmt(diagnostic.cloudLimitBytes)+"（文字数とUTF-8で判定）",
       "ブラウザの保存領域（オリジン全体の参考値）: "+capacity,
       "永続保存の状態: "+permanent,
       "IndexedDB API: "+(diagnostic.indexedDBAvailable?"利用候補あり":"利用可否を確認できません"),
