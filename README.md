@@ -207,6 +207,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `docs/real-option-cap-audit.md` — **実際の職業・種族・スキル・シリーズ装備に基づくOP上限監査**。`node tools/audit-option-caps.js` で再検証可能。本体への上限適用は保留
 - `docs/soft-cap-real-data-comparison.md` — **現行7ビルドでのハード上限・ソフトA/B比較**。`node tools/compare-soft-caps.js` で再計算。HP吸収技の弱体化リスクは未解決
 - `docs/drain-reward-parity-audit.md` — **実際のHP吸収スキル・通常/オフラインEXPと強化石の挙動監査**。`node tools/audit-drain-rewards.js` で再検証可能
+- `docs/real-loot-economy-audit.md` — **現行の装備ドロップ・5人EXP/強化石OP倍率・強化石費用の100/1,000周試算**。`node tools/audit-loot-economy.js` で再検証可能。本体バランスは未変更
 - `docs/attribute-loot-design.md` — **属性10種・虚無・装備収集・天然OPの整合検討**（現在の重点テーマ、H/I/J章にOPレアリティ・種類別出現率/効果上限・複数装備時の上限案）
 - `docs/forge-inheritance-trial.md` — 鍛冶屋の抽出・穴あけ・継承試作、試作と本体の境界
 - `docs/special-job-design.md` — 特殊ジョブ設計書（巡礼剣士。技・ひとり旅の加護・固有ツリー・期間限定の解放・バランスの基準と計測。テスト中）
