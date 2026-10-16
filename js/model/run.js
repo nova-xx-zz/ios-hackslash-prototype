@@ -191,6 +191,11 @@
     // 最後の戦闘なら踏破を記録し、テイムを判定する。それ以外は次の戦闘へ進める。
     // 結果: { expGain, isLast, firstClear, unlocked（初踏破で解放されたダンジョン）, tameResult }
     function winBattle(run, battle) {
+      if (run.pilotSchedule) {
+        if (teamBattles[run.team] !== battle || battle._pilotResolved) throw new Error("Pilot battle already resolved or mismatched");
+        if (battle.enemies.some((e) => e.alive)) throw new Error("Pilot battle still has living enemies");
+        battle._pilotResolved = true;
+      }
       const expGain = rewards.battleExp(battle.enemies);
       run.expTotal += expGain;
       for (const e of battle.enemies) {
@@ -213,6 +218,7 @@
         run.battleIndex += 1;
         return { expGain, isLast: false, firstClear: false, unlocked: [], tameResult: null };
       }
+      if (run.pilotSchedule) run.pilotCleared = true;
       const cleared = clearedSet(run.dungeon.mode);
       const firstClear = !cleared.has(run.dungeon.id);
       cleared.add(run.dungeon.id);
@@ -322,6 +328,8 @@
     // 全滅・クリアで回復するのは「このチームのメンバー」だけ（他チームの戦闘状態を壊さない）
     // extra: { tamed（テイムしたモンスターの名前。冒険の記録に残す） }
     function finishRun(run, cleared, extra) {
+      if (run.finished) return; // 同一runの二重報酬付与を防止
+      if (run.pilotSchedule && cleared && !run.pilotCleared) throw new Error("Final boss has not been defeated");
       run.finished = true;
       run.wiped = !cleared;
       if (cleared) {
