@@ -110,11 +110,15 @@ function loadGame() {
     }
     const savedAutoRepeat = loaded.savedAutoRepeat;
     pilotRestoredTeams = Runner.restorePilotRuns(loaded.savedPilotRuns);
-    // 同一runを再開したチームは保存済みrunを維持するため、起動時の再周回精算から除外する。
-    // 試験モードの自動周回は安全のため復帰時に停止して、続きの1周だけ再開する。
-    for (const team of pilotRestoredTeams) {
-      S.autoRepeat[team].active = false;
-      if (savedAutoRepeat[team]) savedAutoRepeat[team] = Object.assign({}, savedAutoRepeat[team], { active: false });
+    // 階層pilotでは旧オフライン再周回による戦闘回数の再抽選を禁止。
+    // 有効な同一runが復元できればその続きを実行。破損runでも再周回を作って報酬を得ることはしない。
+    if (QPCore.storage.isDungeonPilotMode()) {
+      for (let i = 0; i < savedAutoRepeat.length; i++) {
+        const ar = savedAutoRepeat[i];
+        if (!ar || !["plains", "forest", "cave"].includes(ar.dungeonId)) continue;
+        savedAutoRepeat[i] = Object.assign({}, ar, { active: false });
+        if (S.autoRepeat[i]) S.autoRepeat[i].active = false;
+      }
     }
     const savedAt = loaded.savedAt;
     lastSavedAt = typeof savedAt === "number" ? savedAt : null;
