@@ -72,22 +72,9 @@ function equipScenario(c, roster, d, profile) {
 // An entirely simulation-only early enhancement proposal. We do not replace the
 // live itemStats function. Preserve all rarity/+99 behavior except a capped
 // +1/+2/+3 main-stat milestone at +4/+8/+12 (max 3 late-game).
+const equipmentCore = require("../js/core/equipment.js");
 function itemStatsEarlyMilestones(item) {
-  const original = data.itemStats(item);
-  const plus = Number(item && item.plus) || 0;
-  const stages = Math.floor(Math.min(Math.max(0, plus), 12) / 4);
-  if (!stages) return original;
-  const raw = item.stats || (item.stat ? { [item.stat]: item.value || 0 } : {});
-  const keys = Object.keys(raw);
-  if (!keys.length || !raw[keys[0]]) return original;
-  const main = raw[keys[0]];
-  const out = { ...original };
-  for (const key of keys) {
-    // Main stat gets exactly one extra point per 4 enhancements.
-    const gain = Math.round(stages * raw[key] / main);
-    out[key] += gain;
-  }
-  return out;
+  return equipmentCore.itemStatsEarlyMilestones(item, data.rarityMult(item.rarity));
 }
 
 function buildScenario(dungeonId, profile, seed, options = {}) {
