@@ -42,6 +42,21 @@
     return out;
   }
 
+  // 期間限定の装備成長試作。通常itemStatsには一切影響させない。
+  // +4/+8/+12の節目だけ、基礎主能力に追加1/2/3（+99でも最大3）。
+  // data.jsがgearTrialフラグを検証した場合のみ呼び出す。
+  function itemStatsEarlyMilestones(item, rarityMult) {
+    const out = itemStats(item, rarityMult);
+    const base = baseStatsOf(item);
+    const keys = Object.keys(base);
+    if (!keys.length || !(base[keys[0]] > 0)) return out;
+    const plus = Number(item && item.plus) || 0;
+    const milestone = Math.floor(Math.min(12, Math.max(0, plus)) / 4);
+    if (!milestone) return out;
+    for (const key of keys) out[key] += Math.round(milestone * base[key] / base[keys[0]]);
+    return out;
+  }
+
   function primaryStat(item) {
     return Object.keys(baseStatsOf(item))[0] || null;
   }
@@ -193,7 +208,7 @@
   }
 
   const exported = {
-    POSITIONS, ACC_POSITIONS, MAX_ACCESSORY_SLOTS, emptyEquip, baseStatsOf, itemStats, primaryStat,
+    POSITIONS, ACC_POSITIONS, MAX_ACCESSORY_SLOTS, emptyEquip, baseStatsOf, itemStats, itemStatsEarlyMilestones, primaryStat,
     canUseItem, canPlace, positionsFor, normalizeEquip, seriesCounts, setBonusTotals, migrateEquip, migrateItem,
   };
   root.QPCore = root.QPCore || {};

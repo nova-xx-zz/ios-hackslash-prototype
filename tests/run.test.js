@@ -43,6 +43,7 @@ function setup(opts) {
   Runner = createRunner({
     data, state, roster, inventory, rng, teamCount: 4, battleEnv,
     enableFloorPilot: !!opts.enableFloorPilot,
+    enableGearTrial: !!opts.enableGearTrial,
     autoDisassemble: () => filter,
     markDexSeen: (k) => dex.add(k),
     setBestStage: (n) => best.push(n),
@@ -814,4 +815,25 @@ test("解錠術: オフライン周回でもクローンパーティの習得状
   assert.ok(result.expByBattle.length>0);
   assert.ok(clonedCalls>0,"offline chest events must consult the simulated party, not live roster");
   assert.equal(state.inventory.length,0,"offline calculation must not grant items before settlement");
+});
+
+test("装備×編成専用モードだけは洞窟通常敵を元の倍率へ戻す（ボス・通常版へ影響なし）", () => {
+  const normal=setup({enableFloorPilot:true,level:7});
+  const original=normal.Runner.startRun(0,"cave");
+  assert.equal(original.dungeon.pilotLateNormalFactor,.8);
+  const trial=setup({enableFloorPilot:true,enableGearTrial:true,level:7});
+  const run=trial.Runner.startRun(0,"cave");
+  assert.equal(run.dungeon.pilotLateNormalFactor,1);
+  assert.equal(data.getDungeon("cave").pilotLateNormalFactor,.8,"static data unchanged");
+  assert.equal(run.pilotFloorPlans.length,5);
+  trial.Runner.startBattle(run);
+  const checkpoint=trial.Runner.capturePilotRuns();
+  const afterReload=setup({enableFloorPilot:true,enableGearTrial:true,level:7});
+  assert.deepEqual(afterReload.Runner.restorePilotRuns(checkpoint),[0]);
+  assert.equal(afterReload.Runner.teamRuns[0].dungeon.pilotLateNormalFactor,1,
+    "page reload must not re-enable the old 20% cave nerf");
+  const vanilla=setup({enableGearTrial:true,level:7});
+  const withoutPilot=vanilla.Runner.startRun(0,"cave");
+  assert.equal(withoutPilot.pilotSchedule,undefined);
+  assert.equal(withoutPilot.dungeon.pilotLateNormalFactor,.8);
 });

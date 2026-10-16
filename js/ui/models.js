@@ -190,6 +190,7 @@ const Shop = QPModel.shop.createShop({
 const Runner = QPModel.run.createRunner({
   data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, makeEnemy, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES, MONSTER_IV_RANGE },
   enableFloorPilot: QPCore.storage.isDungeonPilotMode(),
+  enableGearTrial: QPCore.storage.isGearTrialMode(),
   state: S,
   roster: Roster,
   inventory: Inventory,
