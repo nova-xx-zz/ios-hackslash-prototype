@@ -422,7 +422,7 @@
           if (kind === "spring") applySpring(alive);
           else if (kind === "trap") applyTrap(alive);
         },
-        isTamable: (key) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable); },
+        isTamable: (key, enemy) => { const tpl = getEnemyTemplate(key); return !!(tpl && tpl.tamable && !(enemy && enemy.isBoss)); },
         tameChanceOf: (key) => getEnemyTemplate(key).tameChance,
         rollOne: dropFor(dungeon),
         rollRareOne: rareDropFor(dungeon),
