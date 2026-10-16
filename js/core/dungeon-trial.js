@@ -154,6 +154,23 @@
     return { phase, effects };
   }
 
+  // 戦闘間イベントは手動操作不要。解錠は「習得した」技能がある場合だけ可能。
+  // 泉の水を自動で飲ませず、霧の加護/呪いが自動的に付与される。
+  function rollPilotEvent(rng, hasLockpick, rollOne) {
+    validateRng(rng);
+    if (typeof rollOne !== "function") throw new TypeError("rollOne required");
+    if (rng.int(100) >= 40) return null;
+    const roll = rng.int(100);
+    if (roll < 50) {
+      return { kind: "treasure", item: rng.int(100) < 65 ? rollOne() : null };
+    }
+    if (roll < 78) {
+      const success = !!hasLockpick && rng.int(100) < 45;
+      return { kind: "lockedTreasure", success, item: success ? rollOne() : null };
+    }
+    return { kind: "springAura", defensePercent: rng.int(2) === 0 ? 0.10 : -0.08 };
+  }
+
   // 中ボスの途中精算は提供しない。全敗北理由はpendingDropsを0にする。
   function resolveTrialDrops(cleared, pendingDrops) {
     if (typeof cleared !== "boolean" || !Array.isArray(pendingDrops)) throw new TypeError("Invalid settlement");
@@ -166,7 +183,7 @@
   const exported = {
     FLOOR_COUNTS, ENCOUNTER_WEIGHTS, PILOT_BOSSES, floorRange,
     bossAtFloor, createFloorPlan, weightedEnemyCount, createEncounterPlan,
-    advancePilotBossPhase, resolveTrialDrops,
+    advancePilotBossPhase, rollPilotEvent, resolveTrialDrops,
   };
   root.QPCore = root.QPCore || {};
   root.QPCore.dungeonTrial = exported;
