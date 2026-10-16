@@ -58,6 +58,7 @@
     const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, makeEnemy, rollItemDrop, rollSpecialDrop } = deps.data;
     // ?dungeonPilot=1 を付けたプレビューで、序盤3ダンジョンだけ実戦に接続する。
     const pilotEnabled = !!deps.enableFloorPilot && !!dungeonTrial && typeof makeEnemy === "function";
+    const gearTrialEnabled = pilotEnabled && !!deps.enableGearTrial;
     const pilotIds = new Set(["plains", "forest", "cave"]);
     const isPilotDungeon = (d) => pilotEnabled && !!d && pilotIds.has(d.id);
     function createPilotSchedule(d) {
@@ -145,7 +146,7 @@
       const originalDungeon = getModeDungeon(dungeonId, mode);
       // 装備×編成試験では洞窟の20%弱化を打ち消し、元の敵強さを使う。
       // ダンジョン本体の静的データは変更しない。
-      const d = core.storage && core.storage.isGearTrialMode && core.storage.isGearTrialMode() &&
+      const d = gearTrialEnabled &&
         originalDungeon.id === "cave"
           ? Object.assign({}, originalDungeon, { pilotLateNormalFactor: 1 })
           : originalDungeon;
@@ -415,7 +416,7 @@
     // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
     // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
     function computeOfflineRun(dungeon, teamIndex, observers) {
-      if (core.storage && core.storage.isGearTrialMode && core.storage.isGearTrialMode() &&
+      if (gearTrialEnabled &&
           dungeon && dungeon.id === "cave") {
         dungeon = Object.assign({}, dungeon, { pilotLateNormalFactor: 1 });
       }
