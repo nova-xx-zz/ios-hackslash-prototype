@@ -103,6 +103,10 @@
     const totalFloors = requireDungeon(dungeon);
     if (!Number.isInteger(floor) || floor < 1 || floor > totalFloors) throw new RangeError("floor out of bounds");
     const chosenBoss = boss || null;
+    const expectedBoss = bossAtFloor(dungeon, floor, totalFloors);
+    if (chosenBoss && (!expectedBoss || chosenBoss.kind !== expectedBoss.kind || chosenBoss.key !== expectedBoss.key)) {
+      throw new TypeError("boss does not match official floor plan");
+    }
     if (chosenBoss && (chosenBoss.kind !== "mid" && chosenBoss.kind !== "final")) {
       throw new TypeError("invalid boss kind");
     }
@@ -120,7 +124,11 @@
       if (!key) throw new RangeError("invalid monster choice");
       enemies.push(key);
     }
-    return { floor, kind: chosenBoss ? chosenBoss.kind : "normal", bossKey: chosenBoss?.key || null, enemies };
+    return {
+      floor, kind: chosenBoss ? chosenBoss.kind : "normal", bossKey: chosenBoss?.key || null, enemies,
+      // 中ボスにtamableな通常敵を昇格させても、本体接続時に誤テイムさせないための区別。
+      enemyRoles: enemies.map((key, i) => ({ key, isBoss: !!chosenBoss && i === 0, tameEligible: !(chosenBoss && i === 0) })),
+    };
   }
 
   // フェーズは一方向のみ。フェーズ更新の実戦接続と保存は未実装。
