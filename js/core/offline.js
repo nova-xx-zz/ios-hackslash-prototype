@@ -43,14 +43,18 @@
       expByBattle.push(rewards.battleExp(enemies));
       // 実戦と同じく勝利時点の生存者だけにEXP。テスト用のfightがIDを返さない場合はnull（旧仕様互換）。
       eligibleIdsByBattle.push(Array.isArray(result.eligibleIds) ? result.eligibleIds.slice() : null);
-      for (const e of enemies) if (ctx.isTamable(e.key)) defeatedTamable.push(e.key);
+      for (const e of enemies) if (!e.isBoss && ctx.isTamable(e.key, e)) defeatedTamable.push(e.key);
       drops.push(...rewards.rollBattleDrops(ctx.rules, ctx.rollOne, rng));
       if (ctx.rollRareOne) drops.push(...rewards.rollRareDrops(enemies, ctx.rollRareOne));
       const isLast = i === ctx.battles - 1;
       if (!isLast) {
         seconds += ctx.timing.perGap;
-        const kind = rewards.rollEventKind(ctx.rules, rng);
-        if (kind === "treasure") {
+        const special = ctx.rollEvent ? ctx.rollEvent() : undefined;
+        const kind = ctx.rollEvent ? (special && special.kind) : rewards.rollEventKind(ctx.rules, rng);
+        if (ctx.rollEvent) {
+          if (special && special.item) drops.push(special.item);
+          if (kind === "springAura" && ctx.onEvent) ctx.onEvent(kind, special);
+        } else if (kind === "treasure") {
           const item = rewards.rollTreasure(ctx.rules, ctx.rollOne, rng);
           if (item) drops.push(item);
         } else if (kind && ctx.onEvent) {
