@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>ソードクレスト｜ダンジョン探索プレビュー</title>
+<style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;font-size:16px;background:#0c101b;color:#ede8dc}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;}body{background:radial-gradient(ellipse at 50% 0%,#26344b 0%,#111827 45%,#0b0e17 95%);}
+.wrap{max-width:560px;margin:auto;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 28px)}
+header{text-align:center;padding:22px 10px 16px}header .eyebrow{letter-spacing:.25em;font-size:11px;color:#c4ac7b}h1{font-family:Georgia,"Times New Roman",serif;font-size:32px;letter-spacing:.15em;margin:7px 0 2px;color:#f3dfad}header p{font-size:12px;line-height:1.6;color:#aaafbc;margin:4px 0}
+.panel{background:rgba(22,29,43,.94);border:1px solid #48516a;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 9px 24px #0003}
+h2{font-size:15px;letter-spacing:.05em;margin:0 0 13px;color:#ead6a6}
+.label{display:block;font-size:12px;color:#b7bdcc;margin-bottom:5px}select{width:100%;padding:12px;background:#111a2a;border:1px solid #636d84;border-radius:8px;color:#f4eacb;font-size:16px;min-height:44px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{min-width:0}
+.toggle{display:flex;gap:10px;align-items:flex-start;margin-top:14px;color:#d0d7e2;font-size:13px;line-height:1.55}.toggle input{margin-top:3px;width:18px;height:18px;accent-color:#c3a565}
+button{border:none;border-radius:9px;min-height:46px;font-weight:700;font-size:15px;padding:11px 16px;cursor:pointer}
+#start{width:100%;background:linear-gradient(115deg,#b88d47,#ead29b,#b88d47);color:#261d13;margin-top:16px}
+#start:disabled{opacity:.48;cursor:default}.smallnote{font-size:11px;color:#a9afbf;line-height:1.7;margin-top:12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:#101724;border:1px solid #313f54;border-radius:8px;padding:10px 6px;text-align:center}.stat .k{font-size:11px;color:#aeb9c8}.stat .v{display:block;font-weight:bold;font-size:20px;color:#f3e5c2;margin-top:3px}
+.hpbar{height:10px;background:#343941;border-radius:10px;overflow:hidden;margin:12px 0 6px}.hpfill{height:100%;width:100%;background:linear-gradient(90deg,#66bc96,#b8dba9);transition:width .2s}.hptext{font-size:12px;color:#c0c9d4;text-align:right}
+.floorgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:14px 0}.floor{border-radius:7px;padding:8px 3px;text-align:center;border:1px solid #3a4558;background:#131e2e;color:#9faabd;font-size:11px}.floor.active{border-color:#daba7b;color:#f6e2b0;background:#373025}.floor.done{border-color:#426658;color:#88d4a2}.floor .count{display:block;font-size:10px;opacity:.8;margin-top:2px}
+.status{border-left:3px solid #bda573;background:#172235;border-radius:5px;padding:10px 12px;font-size:13px;color:#e4dbc4;line-height:1.5}
+.log{background:#0b1220;border:1px solid #334155;border-radius:10px;padding:10px 12px;max-height:360px;min-height:130px;overflow:auto;overscroll-behavior:contain}
+.line{font-size:12px;line-height:1.7;padding:5px 0;border-bottom:1px solid #232c3b;color:#c9d2df;overflow-wrap:anywhere}.line:last-child{border-bottom:0}
+.line.encounter{color:#f3d2a0}.line.rare{color:#d5bcff}.line.loot{color:#8ee1ae}.line.warn{color:#f3b37c}.line.danger{color:#f4a0a0}.line.event{color:#9bc9ef}.line.boss{color:#e9c58f;font-weight:700}
+.result{font-weight:700;text-align:center;border-radius:9px;padding:13px;font-size:15px}.result.win{border:1px solid #44846b;background:#193b31;color:#9ee8b6}.result.lose{border:1px solid #a45d5d;background:#382229;color:#ffd0d0}
+.hidden{display:none}.legend{display:flex;gap:11px;flex-wrap:wrap;font-size:11px;color:#a5b3c5}.legend span{display:flex;gap:5px;align-items:center}
+.foot{font-size:11px;line-height:1.7;color:#9da7bb;margin-top:16px}
+code{font-size:11px;color:#d9c29b}.divider{height:1px;background:#374255;margin:13px 0}
+@media(max-width:350px){.wrap{padding-left:10px;padding-right:10px}.panel{padding:12px}h1{font-size:27px}}
+@media(prefers-reduced-motion:reduce){.hpfill{transition:none}}
+</style>
+</head>
+<body><main class="wrap">
+<header><div class="eyebrow">SWORD CREST</div><h1>Dungeon Trial</h1><p>ダンジョン探索・ボス戦の実機確認用プレビュー</p></header>
+<section class="panel" id="prep">
+<h2>出発準備</h2>
+<div class="formgrid">
+ <div class="field"><label class="label" for="dungeon">ダンジョン</label><select id="dungeon">
+  <option value="plains">はじまりの草原（3F）</option>
+  <option value="forest">ささやきの森（3F）</option>
+  <option value="cave">こだまの洞窟（5F）</option>
+ </select></div>
+ <div class="field"><label class="label" for="equipment">装備の準備</label><select id="equipment">
+  <option value="basic">通常装備</option><option value="strong">強化・OP厳選済み</option>
+ </select></div>
+</div>
+<label class="toggle"><input type="checkbox" id="thief" checked><span>盗賊の解錠スキルを習得済みとして試す（解錠判定は確率。鍵アイテム不要）</span></label>
+<label class="toggle"><input type="checkbox" id="rare"><span>希少装備のロストを確認するため、試験用URを最初の戦闘で1個仮取得する（実際のドロップ率には影響しない検証演出）</span></label>
+<button id="start" type="button">探索開始</button>
+<p class="smallnote">出発後の操作は不要。宝箱・泉・鍵付き宝箱も自動処理。通常のゲームセーブ、所持品、課金、クラウドには接続していません。</p>
+</section>
+<section class="panel">
+<h2>探索状況</h2>
+<div class="stats"><div class="stat"><span class="k">現在階層</span><span class="v" id="currentFloor">—</span></div><div class="stat"><span class="k">通常戦闘</span><span class="v" id="battles">—</span></div><div class="stat"><span class="k">未確定装備</span><span class="v" id="drops">0</span></div></div>
+<div class="hpbar"><div class="hpfill" id="hpfill"></div></div><div class="hptext" id="hptext">HP —</div>
+<div class="floorgrid" id="floorgrid"></div>
+<div class="status" id="status" role="status" aria-live="polite">出発準備中。ダンジョンを選んで「探索開始」を押してください。</div>
+</section>
+<section class="panel"><h2>探索ログ</h2><div class="log" id="log" role="log" aria-live="polite"><div class="line">ここに戦闘・宝箱・泉・ボスの動きを表示します。</div></div></section>
+<section class="panel hidden" id="outcome" aria-live="polite"><div class="result" id="result"></div><div class="smallnote" id="summary"></div></section>
+<div class="foot"><strong>このページの範囲：</strong> 階層・戦闘回数・敵数・ボス配置・フェーズ判定・全ロスト判断は隔離試作コードを利用します。HPダメージ、報酬抽選、戦闘時間、ボス攻撃は簡易デモです。<strong>ゲーム本体の勝率・ドロップ率・既存セーブの検証ではありません。</strong> iPhoneのSafari/Chromeでレイアウトと自動進行を体感する目的に限ります。</div>
+</main>
+<script>
+// ---------- 乱数（rng） ----------
+// ゲーム内の抽選はMath.randomを直接呼ばず、すべてここを通す。
+// - テストではシード付きの乱数に差し替えて、結果を再現できるようにする
+// - 本番化（docs/production-plan.md §3.2）でドロップ・強化などの抽選をサーバーへ移す際、
+//   同じ関数をサーバー側の乱数で動かせるようにする
+// ブラウザでは<script>で読み込んで globalThis.QPCore.rng として、Node.js（テスト）では require で使う。
+(function (root) {
+  "use strict";
+
+  // 0以上1未満を返す関数（source）から、ゲームで使う抽選関数一式を作る
+  function fromSource(source) {
+    const api = {
+      next: () => source(),
+      float: (a, b) => a + source() * (b - a), // a以上b未満
+      int: (n) => Math.floor(source() * n), // 0以上n未満の整数
+      chance: (p) => source() < p, // 確率pでtrue
+      pick: (arr) => arr[Math.floor(source() * arr.length)],
+    };
+    return api;
+  }
+
+  // シード付きの乱数（mulberry32）。同じシードなら同じ並びになる
+  function seededSource(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function createRng(seed) {
+    return fromSource(seed === undefined ? Math.random : seededSource(seed));
+  }
+
+  // ゲーム全体で共有する乱数。sourceは差し替え可能（テスト・検証用）
+  let sharedSource = Math.random;
+  const shared = fromSource(() => sharedSource());
+  function setSharedSource(source) { sharedSource = source || Math.random; }
+  function setSharedSeed(seed) { setSharedSource(seed === undefined ? null : seededSource(seed)); }
+  // fn を実行する間だけ、共有の乱数を source から引く（終われば元に戻す。入れ子にできる）。
+  // チームごとの探索の乱数を分けるために使う（js/model/run.js。共有の乱数を直接使う js/data.js の抽選も含めて切り替わる）
+  function withSharedSource(source, fn) {
+    const prev = sharedSource;
+    sharedSource = source;
+    try { return fn(); } finally { sharedSource = prev; }
+  }
+
+  const exported = { createRng, fromSource, seededSource, shared, setSharedSource, setSharedSeed, withSharedSource };
+  root.QPCore = root.QPCore || {};
+  root.QPCore.rng = exported;
+  if (typeof module !== "undefined" && module.exports) module.exports = exported;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+// ダンジョン階層・ボスの隔離試作（本体runには未接続）。
+// 既存の35ダンジョンを3/5/10/15階層に仮割当し、戦闘計画・敵編成・
+// 序盤ボスのフェーズ・全滅時ロストをデータのみで検証する。
+// RNGは js/core/rng.js のシード付きインターフェイスを注入する。
+(function (root) {
+  "use strict";
+
+  // これらは設計上の仮配置。35ダンジョンへの本採用前にプレイ時間・難易度を再測定。
+  const FLOOR_COUNTS = Object.freeze({
+    plains: 3, forest: 3, cave: 5, ruins: 5, peak: 5,
+    dunes: 5, canyon: 5, oasis: 5, tomb: 10, sun_temple: 10,
+    frost_forest: 10, frozen_lake: 10, crystal_cave: 10, snow_fort: 10, ice_throne: 10,
+    ash_plains: 10, lava_river: 10, forge_ruins: 10, crater: 10, inferno_peak: 10,
+    coral_reef: 10, ghost_ship: 10, sea_cave: 10, sunken_city: 15, leviathan_trench: 15,
+    cloud_road: 15, floating_isle: 15, sky_garden: 15, thunder_spire: 15, celestial_palace: 15,
+    abyss_gate: 15, shadow_labyrinth: 15, abyss_sea: 15, fallen_citadel: 15, abyss_heart: 15,
+  });
+
+  // 重みの合計は常に100。出現数は1～5体。深い階層ほど4～5体に偏る。
+  const ENCOUNTER_WEIGHTS = Object.freeze([
+    Object.freeze([55, 30, 15, 0, 0]),
+    Object.freeze([35, 35, 20, 8, 2]),
+    Object.freeze([20, 25, 25, 20, 10]),
+    Object.freeze([10, 15, 25, 25, 25]),
+  ]);
+
+  // 特殊技はまだ実戦のbattle.jsには接続しない。ログ・ステータス倍率の試作データ。
+  const PILOT_BOSSES = Object.freeze({
+    horned_rabbit: Object.freeze({ name: "ツノウサギ", thresholds: [], effects: [] }),
+    elder_treant: Object.freeze({ name: "エルダートレント", thresholds: [], effects: [] }),
+    rock_golem: Object.freeze({
+      name: "ロックゴーレム",
+      thresholds: [60],
+      effects: [Object.freeze({ id: "stone_guard", type: "defense", mult: 1.25,
+        hint: "岩の鎧が閉じていく。硬い殻に亀裂が見える……。" })],
+    }),
+  });
+
+  function validateRng(rng) {
+    if (!rng || typeof rng.int !== "function") throw new TypeError("rng.int is required");
+  }
+
+  function requireDungeon(dungeon) {
+    if (!dungeon || !Object.prototype.hasOwnProperty.call(FLOOR_COUNTS, dungeon.id)) {
+      throw new RangeError("Unknown dungeon in floor trial");
+    }
+    if (!Array.isArray(dungeon.pool) || !dungeon.pool.length || !dungeon.boss) {
+      throw new TypeError("Dungeon must contain pool and boss");
+    }
+    return FLOOR_COUNTS[dungeon.id];
+  }
+
+  function floorRange(floor) {
+    if (!Number.isInteger(floor) || floor < 1 || floor > 15) throw new RangeError("floor must be 1..15");
+    return floor <= 2 ? [1, 3] : floor <= 5 ? [2, 4] : floor <= 10 ? [3, 5] : [3, 6];
+  }
+
+  function tierIndex(floor) {
+    floorRange(floor);
+    return floor <= 2 ? 0 : floor <= 5 ? 1 : floor <= 10 ? 2 : 3;
+  }
+
+  function bossAtFloor(dungeon, floor, totalFloors) {
+    if (floor === totalFloors) return { kind: "final", key: dungeon.boss };
+    if (floor !== 5 && floor !== 10) return null;
+    // 中ボスの正式割当は別途。試作では既存poolから決定的に候補を選ぶ。
+    // 名前/戦闘バランスを確定したものではない。
+    const idx = floor === 5 ? dungeon.pool.length - 1 : dungeon.pool.length - 2;
+    return { kind: "mid", key: dungeon.pool[Math.max(0, idx)] };
+  }
+
+  function createFloorPlan(dungeon, rng) {
+    validateRng(rng);
+    const totalFloors = requireDungeon(dungeon);
+    const floorPlans = [];
+    for (let floor = 1; floor <= totalFloors; floor += 1) {
+      const [min, max] = floorRange(floor);
+      const count = min + rng.int(max - min + 1);
+      if (!Number.isInteger(count) || count < min || count > max) throw new RangeError("invalid RNG result");
+      floorPlans.push({
+        floor, regularBattles: count, completedBattles: 0,
+        boss: bossAtFloor(dungeon, floor, totalFloors),
+      });
+    }
+    return floorPlans;
+  }
+
+  function weightedEnemyCount(floor, rng) {
+    validateRng(rng);
+    const weights = ENCOUNTER_WEIGHTS[tierIndex(floor)];
+    const value = rng.int(100);
+    if (!Number.isInteger(value) || value < 0 || value >= 100) throw new RangeError("invalid RNG result");
+    let cumulative = 0;
+    for (let i = 0; i < weights.length; i += 1) {
+      cumulative += weights[i];
+      if (value < cumulative) return i + 1;
+    }
+    throw new Error("Encounter probabilities must total 100");
+  }
+
+  function createEncounterPlan(dungeon, floor, rng, boss) {
+    validateRng(rng);
+    const totalFloors = requireDungeon(dungeon);
+    if (!Number.isInteger(floor) || floor < 1 || floor > totalFloors) throw new RangeError("floor out of bounds");
+    const chosenBoss = boss || null;
+    const expectedBoss = bossAtFloor(dungeon, floor, totalFloors);
+    if (chosenBoss && (!expectedBoss || chosenBoss.kind !== expectedBoss.kind || chosenBoss.key !== expectedBoss.key)) {
+      throw new TypeError("boss does not match official floor plan");
+    }
+    if (chosenBoss && (chosenBoss.kind !== "mid" && chosenBoss.kind !== "final")) {
+      throw new TypeError("invalid boss kind");
+    }
+    if (chosenBoss && ![dungeon.boss, ...dungeon.pool].includes(chosenBoss.key)) {
+      throw new TypeError("boss key must exist in this dungeon");
+    }
+    // 序盤の3Fはボス単独、5Fはボス+最大1体。深層は取り巻き込みで最大5体。
+    const size = chosenBoss
+      ? (floor <= 3 ? 1 : floor <= 5 ? 1 + rng.int(2) : 1 + rng.int(5))
+      : weightedEnemyCount(floor, rng);
+    if (!Number.isInteger(size) || size < 1 || size > 5) throw new RangeError("enemy count outside 1..5");
+    const enemies = chosenBoss ? [chosenBoss.key] : [];
+    while (enemies.length < size) {
+      const key = dungeon.pool[rng.int(dungeon.pool.length)];
+      if (!key) throw new RangeError("invalid monster choice");
+      enemies.push(key);
+    }
+    return {
+      floor, kind: chosenBoss ? chosenBoss.kind : "normal", bossKey: chosenBoss?.key || null, enemies,
+      // 中ボスにtamableな通常敵を昇格させても、本体接続時に誤テイムさせないための区別。
+      enemyRoles: enemies.map((key, i) => ({ key, isBoss: !!chosenBoss && i === 0, tameEligible: !(chosenBoss && i === 0) })),
+    };
+  }
+
+  // フェーズは一方向のみ。フェーズ更新の実戦接続と保存は未実装。
+  function advancePilotBossPhase(bossKey, currentPhase, hpPercent) {
+    const definition = PILOT_BOSSES[bossKey];
+    if (!definition) throw new RangeError("No pilot boss pattern");
+    if (!Number.isInteger(currentPhase) || currentPhase < 1 || currentPhase > definition.thresholds.length + 1) {
+      throw new RangeError("invalid phase");
+    }
+    if (!Number.isFinite(hpPercent) || hpPercent < 0 || hpPercent > 100) {
+      throw new RangeError("invalid HP percent");
+    }
+    // HP0は既に撃破済み。死亡後の特殊行動を発生させない。
+    if (hpPercent === 0) return { phase: currentPhase, effects: [] };
+    let phase = currentPhase;
+    const effects = [];
+    for (let i = currentPhase - 1; i < definition.thresholds.length; i += 1) {
+      if (hpPercent <= definition.thresholds[i]) {
+        phase = i + 2;
+        effects.push(definition.effects[i]);
+      } else break;
+    }
+    return { phase, effects };
+  }
+
+  // 中ボスの途中精算は提供しない。全敗北理由はpendingDropsを0にする。
+  function resolveTrialDrops(cleared, pendingDrops) {
+    if (typeof cleared !== "boolean" || !Array.isArray(pendingDrops)) throw new TypeError("Invalid settlement");
+    return {
+      kept: cleared ? pendingDrops.slice() : [],
+      lostCount: cleared ? 0 : pendingDrops.length,
+    };
+  }
+
+  const exported = {
+    FLOOR_COUNTS, ENCOUNTER_WEIGHTS, PILOT_BOSSES, floorRange,
+    bossAtFloor, createFloorPlan, weightedEnemyCount, createEncounterPlan,
+    advancePilotBossPhase, resolveTrialDrops,
+  };
+  root.QPCore = root.QPCore || {};
+  root.QPCore.dungeonTrial = exported;
+  if (typeof module !== "undefined" && module.exports) module.exports = exported;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script><script>
+(function(){
+"use strict";
+var byId=function(id){return document.getElementById(id)};
+var core=window.QPCore,trial=core.dungeonTrial,rngLib=core.rng;
+var db={
+ plains:{id:"plains",name:"はじまりの草原",boss:"horned_rabbit",bossName:"ツノウサギ",pool:["slime","bat","field_rat","mud_plant","leaf_pixie"],names:{slime:"スライム",bat:"コウモリ",field_rat:"野ネズミ",mud_plant:"マッドプラント",leaf_pixie:"リーフピクシー",horned_rabbit:"ツノウサギ"}},
+ forest:{id:"forest",name:"ささやきの森",boss:"elder_treant",bossName:"エルダートレント",pool:["slime","goblin","bat","forest_spider","mandrake","kobold"],names:{slime:"スライム",goblin:"ゴブリン",bat:"コウモリ",forest_spider:"フォレストスパイダー",mandrake:"マンドレイク",kobold:"コボルト",elder_treant:"エルダートレント"}},
+ cave:{id:"cave",name:"こだまの洞窟",boss:"rock_golem",bossName:"ロックゴーレム",pool:["goblin","bat","wolf","cave_bat","stone_lizard","shadow_wolf","mud_crab"],names:{goblin:"ゴブリン",bat:"コウモリ",wolf:"ウルフ",cave_bat:"ケイブバット",stone_lizard:"ストーンリザード",shadow_wolf:"シャドウウルフ",mud_crab:"マッドクラブ",rock_golem:"ロックゴーレム"}}
+};
+var state=null,token=0;
+function sleep(ms){return new Promise(function(resolve){setTimeout(resolve,ms)})}
+function log(text,type){
+ var box=byId("log");var line=document.createElement("div");line.className="line "+(type||"");line.textContent=text;box.appendChild(line);
+ while(box.children.length>140)box.removeChild(box.firstChild);
+ box.scrollTop=box.scrollHeight;
+}
+function status(text){byId("status").textContent=text}
+function hp(){var value=Math.max(0,state.hp);byId("hpfill").style.width=(100*value/state.maxHp)+"%";byId("hptext").textContent="パーティHP "+value+" / "+state.maxHp}
+function loot(name,rarity){state.pending.push({name:name,rarity:rarity});byId("drops").textContent=String(state.pending.length);log("未確定 "+(rarity||"N")+"装備： "+name,"loot")}
+function rollRarity(rng){var v=rng.int(10000);return v<7100?"N":v<9300?"R":v<9950?"SR":v<9985?"UR":"LR"}
+function lootAfterBattle(rng){var n=rng.int(100)<78?1:0;if(rng.int(100)<30)n++;for(var i=0;i<n;i++){var rarity=rollRarity(rng);loot(rarity+"・装備品",rarity)}}
+function drawFloors(){var el=byId("floorgrid");el.replaceChildren();state.plans.forEach(function(p){
+ var box=document.createElement("div");box.className="floor"+(p.floor<state.floor?" done":p.floor===state.floor?" active":"");
+ var top=document.createElement("div");top.textContent=p.floor+"F";box.appendChild(top);
+ var sub=document.createElement("span");sub.className="count";sub.textContent=p.regularBattles+"戦"+(p.boss?"＋ボス":"");box.appendChild(sub);el.appendChild(box);
+})}
+function damage(amount){state.hp=Math.max(0,state.hp-amount);hp();if(state.hp===0){log("冒険者たちは力尽きた……","danger");return false}return true}
+function spring(rng){
+ var buff=rng.int(100)<55;
+ log("不思議な泉を発見。周囲に漂う魔力が一行を包み込んだ……","event");
+ if(buff){state.buff=2;state.hp=Math.min(state.maxHp,state.hp+11);hp();log("泉の加護：HPが11回復。次の2戦闘は被ダメージが減少。","loot")}
+ else{state.debuff=2;log("泉の呪い：次の2戦闘は被ダメージが増加。","warn")}
+}
+async function maybeEvent(rng,t){
+ if(rng.int(100)>=36)return;
+ var pick=rng.int(100);
+ await sleep(260);if(t!==token)return;
+ if(pick<48){log("宝箱を発見！　操作なしで開封した。","event");if(rng.int(100)<83){lootAfterBattle(rng)}else log("宝箱の中は空だった。")}
+ else if(pick<76){
+  log("鍵付き宝箱を発見。","event");
+  if(!state.thief){log("盗賊の解錠スキルがないため開けられなかった。","warn");return}
+  if(rng.int(100)<45){log("盗賊の解錠に成功！","loot");lootAfterBattle(rng)}
+  else log("盗賊は解錠を試みたが失敗した。","warn");
+ } else spring(rng);
+}
+async function bossFight(d,p,rng,t){
+ byId("battles").textContent=p.regularBattles+" / "+p.regularBattles;
+ var b=trial.createEncounterPlan(d,p.floor,rng,p.boss);
+ var bn=d.bossName;
+ log("━━ "+p.floor+"F 最終ボス： "+bn+" が立ちはだかる！ ━━","boss");
+ if(b.enemies.length>1)log("取り巻き "+(b.enemies.length-1)+"体を確認。合計"+b.enemies.length+"体。","encounter");
+ var bossHP=100,phase=1;
+ for(var turn=0;turn<4;turn++){
+  await sleep(560);if(t!==token)return false;
+  bossHP=Math.max(0,bossHP-(turn===3?30:(26+rng.int(13))));
+  var effects=trial.advancePilotBossPhase(d.boss,phase,bossHP);phase=effects.phase;
+  log(bn+"へ攻撃！ 残りHP約"+bossHP+"%。","encounter");
+  effects.effects.forEach(function(e){if(e){log("【予兆】"+e.hint,"boss");log("防御が上がった。装備・OP・スキルで対抗する必要がある。","warn")}});
+  if(bossHP<=0)break;
+  var base=(d.id==="cave"?17:12)+(p.floor===5?4:0)+rng.int(12);
+  if(phase>1)base+=6;
+  if(state.strong)base=Math.floor(base*.53);
+  if(state.buff>0){base=Math.ceil(base*.75);state.buff--}
+  if(state.debuff>0){base=Math.ceil(base*1.3);state.debuff--}
+  log(bn+"の攻撃！ パーティに"+base+"ダメージ。","warn");
+  if(!damage(base))return false;
+ }
+ log(bn+"を撃破した！","loot");loot("ボス討伐報酬","SR");return true;
+}
+async function run(){
+ var t=++token;
+ var selected=byId("dungeon").value,d=db[selected],strong=byId("equipment").value==="strong";
+ var rng=rngLib.createRng((Date.now()>>>0)^((Math.random()*0xffffffff)>>>0));
+ var plans=trial.createFloorPlan(d,rng);
+ state={floor:1,plans:plans,thief:byId("thief").checked,strong:strong,
+ pending:[],maxHp:strong?210:114,hp:strong?210:114,buff:0,debuff:0,won:false};
+ byId("start").disabled=true;byId("outcome").classList.add("hidden");byId("log").replaceChildren();byId("drops").textContent="0";hp();drawFloors();
+ log(d.name+"に突入。全"+plans.length+"階層の戦闘回数を確定した。","event");
+ for(var p of plans){
+  state.floor=p.floor;drawFloors();byId("currentFloor").textContent=p.floor+"F";
+  status(p.floor+"階層：通常戦闘 "+p.regularBattles+"回（入場時に決定済み）");
+  log("━━ "+p.floor+"階層へ到達 ━━","encounter");
+  for(var j=1;j<=p.regularBattles;j++){
+   await sleep(370);if(t!==token)return;
+   var enc=trial.createEncounterPlan(d,p.floor,rng,null);
+   byId("battles").textContent=j+" / "+p.regularBattles;
+   log("戦闘 "+j+" / "+p.regularBattles+"： "+enc.enemies.length+"体の敵と遭遇。","encounter");
+   var base=3+rng.int(7)+Math.floor(p.floor/2)+Math.max(0,enc.enemies.length-2)*2;
+   if(strong)base=Math.max(1,Math.floor(base*.45));
+   if(state.buff>0){base=Math.ceil(base*.75);state.buff--}
+   if(state.debuff>0){base=Math.ceil(base*1.3);state.debuff--}
+   log("敵を撃破。パーティに"+base+"ダメージ。","line");
+   if(!damage(base)){finish(false);return}
+   if(byId("rare").checked&&p.floor===1&&j===1){
+      loot("検証用UR装備（ダミー）","UR");
+   }
+   lootAfterBattle(rng);
+   if(j<p.regularBattles){await maybeEvent(rng,t);if(t!==token)return;}
+  }
+  if(p.boss){var won=await bossFight(d,p,rng,t);if(t!==token)return;if(!won){finish(false);return;}}
+  log(p.floor+"階層の探索を完了した。","event");
+  await sleep(250);
+ }
+ finish(true);
+}
+function finish(won){
+ var settled=trial.resolveTrialDrops(won,state.pending);
+ state.won=won;byId("start").disabled=false;byId("start").textContent="もう一度探索する";
+ var panel=byId("outcome"),r=byId("result"),s=byId("summary");
+ panel.classList.remove("hidden");r.className="result "+(won?"win":"lose");
+ if(won){r.textContent="ダンジョン完全踏破！";s.textContent="最終ボス撃破。未確定装備"+settled.kept.length+"件を獲得確定（デモ上のみ）。";status("攻略成功：完全踏破したためアイテム確定");log("完全踏破！ 未確定アイテムをすべて確定した。","loot")}
+ else{r.textContent="攻略失敗・全アイテムロスト";s.textContent="未確定装備 "+settled.lostCount+"件が全消失。UR/LR・中ボス・宝箱の報酬も例外なし。出発前の装備は失われません。";status("攻略失敗：未確定アイテムはすべてロスト");log("攻略失敗。未確定装備"+settled.lostCount+"件をロスト。","danger")}
+ panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+byId("start").addEventListener("click",function(){run().catch(function(e){byId("start").disabled=false;status("プレビューでエラーが発生しました");log(e.message||String(e),"danger")})});
+})();
+</script></body></html>
