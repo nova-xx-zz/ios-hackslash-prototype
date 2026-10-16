@@ -1,0 +1,19 @@
+name: Gear + job synergy diagnostic
+on:
+  push:
+    branches:
+      - 'feature/gear-job-synergy-*'
+  workflow_dispatch:
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Compare job composition and early enhancement milestone candidates
+        run: node tools/gear-job-synergy.js --trials=120
