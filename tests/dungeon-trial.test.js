@@ -61,6 +61,9 @@ test("ボス戦はボス・取り巻き込みで最大5体、3Fは単体、5Fは
       const fight = createEncounterPlan(d, plan.floor, r, plan.boss);
       assert.equal(fight.bossKey, plan.boss.key);
       assert.equal(fight.enemies[0], plan.boss.key);
+      assert.equal(fight.enemyRoles[0].isBoss, true);
+      assert.equal(fight.enemyRoles[0].tameEligible, false);
+      assert.ok(fight.enemyRoles.slice(1).every((e) => e.tameEligible));
       assert.ok(fight.enemies.length >= 1 && fight.enemies.length <= 5, d.id + " " + plan.floor);
       if (plan.floor === 3) assert.equal(fight.enemies.length, 1);
       if (plan.floor === 5) assert.ok(fight.enemies.length <= 2);
@@ -101,5 +104,7 @@ test("未知ダンジョン・不正階層・破損RNG入力を拒否する", ()
   assert.throws(() => createFloorPlan(d, { int: () => 100 }), RangeError);
   assert.throws(() => createEncounterPlan(d, 4, createRng(1)), RangeError);
   assert.throws(() => createEncounterPlan(d, 3, createRng(1), { kind: "mid", key: "__unknown" }), TypeError);
+  assert.throws(() => createEncounterPlan(d, 1, createRng(1), { kind: "final", key: d.boss }), TypeError);
+  assert.throws(() => createEncounterPlan(d, 3, createRng(1), { kind: "mid", key: d.boss }), TypeError);
   assert.throws(() => advancePilotBossPhase("rock_golem", 4, 20), RangeError);
 });
