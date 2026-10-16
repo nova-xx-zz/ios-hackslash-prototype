@@ -133,6 +133,8 @@
     if (!Number.isFinite(hpPercent) || hpPercent < 0 || hpPercent > 100) {
       throw new RangeError("invalid HP percent");
     }
+    // HP0は既に撃破済み。死亡後の特殊行動を発生させない。
+    if (hpPercent === 0) return { phase: currentPhase, effects: [] };
     let phase = currentPhase;
     const effects = [];
     for (let i = currentPhase - 1; i < definition.thresholds.length; i += 1) {
