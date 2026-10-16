@@ -511,7 +511,9 @@
     const maxSeconds = opts.maxSeconds || 600;
     let time = 0;
     while (time < maxSeconds) {
+      const beforeMp = opts.onStep ? party.map(c => c.mp) : null;
       const r = step(battle, party, dt, env);
+      if (opts.onStep && r.events.length) opts.onStep({ events: r.events, party, beforeMp, battle });
       time += dt;
       if (r.result) return { result: r.result, seconds: time };
     }
