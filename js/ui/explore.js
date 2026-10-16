@@ -212,7 +212,8 @@ function rollDungeonEvent(run) {
     else logEvent(t, "treasure", "宝箱を見つけた！", `${itemLabel(ev.item)} を手に入れた`);
   } else if (ev.kind === "lockedTreasure") {
     const message = ev.success ? `盗賊の解錠に成功！ ${itemLabel(ev.item)} は踏破まで未確定`
-      : "解錠スキルが未習得、または解錠に失敗した";
+      : ev.attempted ? "解錠術を試みたが失敗した。宝箱は獲得できなかった"
+        : "生存中の解錠術習得者がいないため開封できなかった";
     logEvent(t, "treasure", "鍵付き宝箱を発見した！", message);
   } else if (ev.kind === "springAura") {
     logEvent(t, "blessing", "不思議な泉から魔力の霧が漂う……",
