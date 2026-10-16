@@ -826,6 +826,12 @@ test("装備×編成専用モードだけは洞窟通常敵を元の倍率へ戻
   assert.equal(run.dungeon.pilotLateNormalFactor,1);
   assert.equal(data.getDungeon("cave").pilotLateNormalFactor,.8,"static data unchanged");
   assert.equal(run.pilotFloorPlans.length,5);
+  trial.Runner.startBattle(run);
+  const checkpoint=trial.Runner.capturePilotRuns();
+  const afterReload=setup({enableFloorPilot:true,enableGearTrial:true,level:7});
+  assert.deepEqual(afterReload.Runner.restorePilotRuns(checkpoint),[0]);
+  assert.equal(afterReload.Runner.teamRuns[0].dungeon.pilotLateNormalFactor,1,
+    "page reload must not re-enable the old 20% cave nerf");
   const vanilla=setup({enableGearTrial:true,level:7});
   const withoutPilot=vanilla.Runner.startRun(0,"cave");
   assert.equal(withoutPilot.pilotSchedule,undefined);
