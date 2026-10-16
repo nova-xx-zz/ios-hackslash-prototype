@@ -44,6 +44,8 @@ test("3F/5F実戦闘の1周ごとで敗北後に1品も持ち帰らない", () =
     assert.equal(r.trials, 2);
     assert.equal(r.failure + r.clear, 2);
     assert.equal(r.failedItemsCarried, 0);
+    assert.ok(r.confirmedDrops >= r.carriedItems);
+    assert.equal(r.confirmedDrops, r.carriedItems + r.dismantledItems, "N auto-dismantle accounting must reconcile");
     assert.ok(r.carriedItems >= 0);
     assert.ok(Number.isFinite(r.avgSec));
     assert.ok(r.avgClearSec === null || r.avgClearSec >= 0);
