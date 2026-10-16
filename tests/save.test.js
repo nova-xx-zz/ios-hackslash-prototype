@@ -198,3 +198,15 @@ test("新規自動周回: 分解フィルタを有効なチームだけ保存し
   const restored = save.prepareRestore(JSON.stringify(json));
   assert.equal(JSON.parse(restored.json).autoRepeat[1].active,false);
 });
+
+test("pilotチェックポイントは任意のJSON拡張、通常のセーブスキーマは変更しない", () => {
+  const original = sampleState();
+  const without = save.serialize(original, { now: 42 });
+  assert.equal(Object.prototype.hasOwnProperty.call(without, "pilotRuns"), false);
+  const samplePilot = [{ version: 1, dungeonId: "plains", phase: "battle", rngState: 345 }, null, null, null];
+  const withPilot = save.serialize(original, { now: 42, pilotRuns: samplePilot });
+  assert.equal(withPilot.schemaVersion, without.schemaVersion);
+  const loaded = save.deserialize(JSON.parse(JSON.stringify(withPilot)), { syncExpToNext: data.syncExpToNext });
+  assert.deepEqual(loaded.savedPilotRuns, samplePilot);
+  assert.equal(roundTrip(original,{now:42}).savedPilotRuns, null);
+});
