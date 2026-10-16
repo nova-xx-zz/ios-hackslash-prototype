@@ -49,8 +49,12 @@
       const isLast = i === ctx.battles - 1;
       if (!isLast) {
         seconds += ctx.timing.perGap;
-        const kind = rewards.rollEventKind(ctx.rules, rng);
-        if (kind === "treasure") {
+        const special = ctx.rollEvent ? ctx.rollEvent() : undefined;
+        const kind = ctx.rollEvent ? (special && special.kind) : rewards.rollEventKind(ctx.rules, rng);
+        if (ctx.rollEvent) {
+          if (special && special.item) drops.push(special.item);
+          if (kind === "springAura" && ctx.onEvent) ctx.onEvent(kind, special);
+        } else if (kind === "treasure") {
           const item = rewards.rollTreasure(ctx.rules, ctx.rollOne, rng);
           if (item) drops.push(item);
         } else if (kind && ctx.onEvent) {
