@@ -81,7 +81,15 @@
         const tpl = getEnemyTemplate(role.key);
         if (!tpl) throw new RangeError("Unknown enemy: " + role.key);
         // 旧battleIndex×6%を全戦闘数へ掛けない。階層による緩やかな伸びだけ適用。
-        const mult = (1 + (d.level - 1) * 0.12) * (1 + (entry.floor - 1) * 0.045) * (role.isBoss ? 1.55 : 1);
+        // 深層の通常敵だけの強さを後から校正可能にする。
+        // 中ボス・最終ボスには適用しない。通常設定が無ければ旧値1.0。
+        const lateNormalFactor = d.id === "cave" && entry.floor >= 4 && !role.isBoss
+          ? (d.pilotLateNormalFactor === undefined ? 1 : d.pilotLateNormalFactor) : 1;
+        if (!Number.isFinite(lateNormalFactor) || lateNormalFactor <= 0 || lateNormalFactor > 1) {
+          throw new RangeError("invalid pilot late-floor normal multiplier");
+        }
+        const mult = (1 + (d.level - 1) * 0.12) * (1 + (entry.floor - 1) * 0.045)
+          * (role.isBoss ? 1.55 : 1) * lateNormalFactor;
         const enemy = makeEnemy(tpl, mult, role.isBoss, d.power, role.isRare, d.mode);
         enemy.pilotBoss = role.isBoss && d.id === "cave";
         enemy.pilotPhase = 1;
