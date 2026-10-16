@@ -281,7 +281,24 @@
     // 結果: null（何も起きない・対象がいない）または
     //   { kind: "treasure", item（空ならnull） } / { kind: "trap", wide, hits } / { kind: "spring", heals } /
     //   { kind: "shrine", stat, total（このダンジョン中の合計の上昇率） }
+    // 本体に解錠スキルの定義が追加されるまでは「習得済み」を偽装しない。
+    function hasLearnedLockpick(teamIndex) {
+      return R.teamMembers(teamIndex).some((c) => {
+        if (typeof R.availableAbilities !== "function" || typeof R.isSkillActive !== "function") return false;
+        return R.availableAbilities(c).some((a) => a.id === "thief_lockpick" && R.isSkillActive(c, a.id));
+      });
+    }
     function rollEvent(run) {
+      if (run.pilotSchedule) {
+        const ev = dungeonTrial.rollPilotEvent(rng, hasLearnedLockpick(run.team), dropFor(run.dungeon));
+        if (!ev) return null;
+        if (ev.item) run.pendingDrops.push(ev.item);
+        if (ev.kind === "springAura") {
+          run.buffs.def = clamp((run.buffs.def || 0) + ev.defensePercent, -0.24, 0.24);
+          ev.total = run.buffs.def;
+        }
+        return ev;
+      }
       const kind = rewards.rollEventKind(REWARD_RULES, rng);
       if (!kind) return null;
       if (kind === "treasure") {
@@ -370,6 +387,14 @@
       });
       const env = Object.assign({}, deps.battleEnv(), { rng });
       const pilot = isPilotDungeon(dungeon) ? createPilotSchedule(dungeon) : null;
+      let offlineAuraDef = 0;
+      if (pilot) {
+        const originalStats = env.stats;
+        env.stats = (member) => {
+          const base = originalStats(member);
+          return Object.assign({}, base, { def: Math.max(0, Math.round(base.def * (1 + offlineAuraDef))) });
+        };
+      }
       return offline.simulateRun({
         battles: pilot ? pilot.schedule.length : dungeon.battles,
         rng,
@@ -384,8 +409,14 @@
           return { won: r.result === "victory", seconds: r.seconds,
             eligibleIds: party.filter((c) => c.alive).map((c) => c.id) };
         },
-        // 泉と罠は戦闘に影響するので写しに反映する（石碑の加護は省略。実際のプレイよりわずかに厳しめになる）
-        onEvent: (kind) => {
+        // 階層版は通常プレイと同じイベント抽選。旧ルールは従来処理を維持。
+        rollEvent: pilot ? () => dungeonTrial.rollPilotEvent(rng, hasLearnedLockpick(teamIndex), dropFor(dungeon)) : undefined,
+        // 泉と罠は戦闘に影響するので写しに反映する（旧石碑は省略）。
+        onEvent: (kind, ev) => {
+          if (pilot && kind === "springAura") {
+            offlineAuraDef = clamp(offlineAuraDef + ev.defensePercent, -0.24, 0.24);
+            return;
+          }
           const alive = party.filter((c) => c.alive);
           if (alive.length === 0) return;
           if (kind === "spring") applySpring(alive);
