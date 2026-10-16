@@ -141,6 +141,39 @@ function tickTeam(i, dt) {
 
 requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
 
+// 試験モード限定：ページ再読込後に同じ周回・同じ戦闘から再開する。
+// スナップショット上のフェーズがbattleなら、敵・HP・乱数を復元済みなので引き直さない。
+function resumePilotExplorations() {
+  buildPartyDock();
+  renderDock();
+  showScreen("screen-battle");
+  for (const team of pilotRestoredTeams) {
+    const run = teamRuns[team];
+    if (!run || run.finished) continue;
+    logLine(team, `${run.dungeon.name} の ${run.battleIndex + 1}戦目から同一周回を再開しました`, "system");
+    const phase = run.pilotCheckpointPhase;
+    if (phase === "battle") {
+      // tickTeamが復元済みbattleをそのまま進める。startBattleは絶対呼ばない。
+    } else if (phase === "between") {
+      scheduleNext(team, () => {
+        rollDungeonEvent(run);
+        scheduleNext(team, () => startBattle(run), 300);
+      }, 300);
+    } else if (phase === "ready") {
+      scheduleNext(team, () => startBattle(run), 300);
+    } else if (phase === "clearPending") {
+      const saved = run.pilotClearOutcome || {};
+      scheduleNext(team, () => finishRun(run, {
+        cleared: true, tameResult: saved.tameResult || null,
+        unlocked: (saved.unlockedIds || []).map((id) => getDungeon(id)).filter(Boolean),
+      }), 300);
+    } else if (phase === "failPending") {
+      scheduleNext(team, () => finishRun(run, { cleared: false }), 300);
+    }
+  }
+  scheduleSave();
+}
+
 // ---------- Victory / rewards ----------
 // EXP・ドロップ（踏破まで保留）・踏破の記録・テイムの判定は js/model/run.js（winBattle）
 function onVictory(run, battle) {
