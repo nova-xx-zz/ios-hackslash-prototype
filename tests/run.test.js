@@ -735,6 +735,9 @@ test("解錠術: 盗賊Lv5と忍者Lv1で習得。低レベル・他職・モン
   const monster = make("thief",40);
   monster.isMonster = true;
   assert.equal(roster.explorationSkillChance(low,"thief_lockpick"),0);
+  const newlyLearned=roster.gainExp(low,low.expToNext);
+  assert.equal(roster.explorationSkillChance(low,"thief_lockpick"),.45);
+  assert.ok(newlyLearned.abilityUnlocks.some((message)=>message.includes("解錠術")));
   assert.equal(roster.explorationSkillChance(thief,"thief_lockpick"),.45);
   assert.equal(roster.explorationSkillChance(ninja,"thief_lockpick"),.45);
   assert.equal(roster.explorationSkillChance(fighter,"thief_lockpick"),0);
