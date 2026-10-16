@@ -100,7 +100,7 @@
   function isGearTrialMode() {
     // productionでも通常のdungeonPilotでも使えない二重の明示フラグ。
     return isDungeonPilotMode() &&
-      /(?:\\?|&)gearTrial=1(?:&|$)/.test((root.location && root.location.search) || "");
+      /(?:\?|&)gearTrial=1(?:&|$)/.test((root.location && root.location.search) || "");
   }
   function isDungeonPilotMode() {
     return !(root.QPRuntime && root.QPRuntime.channel === "production") &&
@@ -129,7 +129,8 @@
       if (root.QPRuntime && root.QPRuntime.channel === "production") {
         return ls ? prefixedBackend(ls, PRODUCTION_PREFIX) : null;
       }
-      if (ls && isGearTrialMode()) return prefixedBackend(ls, GEAR_TRIAL_PREFIX);\n      if (ls && isDungeonPilotMode()) return prefixedBackend(ls, DUNGEON_PILOT_PREFIX);
+      if (ls && isGearTrialMode()) return prefixedBackend(ls, GEAR_TRIAL_PREFIX);
+      if (ls && isDungeonPilotMode()) return prefixedBackend(ls, DUNGEON_PILOT_PREFIX);
       return ls && isDebugMode() ? prefixedBackend(ls, DEBUG_PREFIX) : ls;
     } catch (e) { return null; }
   }
