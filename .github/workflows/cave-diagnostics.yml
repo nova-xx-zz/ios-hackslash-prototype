@@ -17,3 +17,5 @@ jobs:
       - run: npm ci
       - name: Measure 5F floor failures and boss survival
         run: node tools/cave-diagnostics.js --trials=240
+      - name: Compare late-floor normal enemies without changing boss
+        run: node tools/cave-diagnostics.js --late --trials=240
