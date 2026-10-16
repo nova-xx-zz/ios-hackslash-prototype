@@ -17,4 +17,4 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Run deterministic dungeon balance study
-        run: node tools/dungeon-balance.js --trials=32
+        run: node tools/dungeon-balance.js --trials=96
