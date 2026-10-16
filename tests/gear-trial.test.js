@@ -58,6 +58,17 @@ test("trial +4/+8/+12 main milestone and +99 bounded effect at all rarity levels
   }
 });
 
+test("actual browser data.itemStats uses the same trial formula only when explicitly enabled", () => {
+  const trialData=loadGameData({storage:{isGearTrialMode:()=>true}});
+  const legacyData=loadGameData({storage:{isGearTrialMode:()=>false}});
+  const item={rarity:"n",stats:{atk:10,spd:2},plus:5};
+  const normal=legacyData.itemStats(item);
+  const trial=trialData.itemStats(item);
+  assert.equal(normal.atk,11);
+  assert.equal(trial.atk,12);
+  assert.deepEqual(legacyData.itemStats(item),data.itemStats(item));
+});
+
 test("script order allows gearTrial opt-in before equipment and data load", () => {
   const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
   const i=x=>index.indexOf('src="'+x+'"');
