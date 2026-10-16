@@ -273,7 +273,7 @@ function finishRun(run, info) {
     logLine(run.team, `${info.retreated ? "撤退" : "全滅"}したため、道中で見つけた${run.pendingDrops.length}個のドロップは持ち帰れなかった`, "down");
   }
 
-  saveGame();
+  if (!run.pilotSchedule) saveGame();
 
   if (isViewed) {
     buildPartyDock();
@@ -295,6 +295,8 @@ function finishRun(run, info) {
     const nextMode = run.dungeon.mode;
     scheduleNext(run.team, () => startDungeon(run.team, nextId, { mode: nextMode }), 1400);
   }
+  // pilotは自動周回のdone/activeを更新した後、報酬と一緒に保存する。
+  if (run.pilotSchedule) saveGame();
 }
 
 function buildDropRow(item) {
