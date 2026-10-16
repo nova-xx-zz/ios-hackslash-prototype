@@ -24,8 +24,10 @@ const PROFILES = Object.freeze([
   { id: "no-gear", label: "無装備（ツリーなし）", tree: false, gear: "none" },
   { id: "basic", label: "N+0装備（ツリーなし）", tree: false, gear: "basic" },
   { id: "recommended", label: "適正装備＋ツリー", tree: true, gear: "recommended" },
+  { id: "reinforced", label: "強化+4＋ツリー（OPなし）", tree: true, gear: "reinforced" },
   { id: "refined", label: "適正装備強化＋厳選OP＋ツリー", tree: true, gear: "refined" },
   { id: "thief", label: "適正装備＋ツリー（盗賊入り）", tree: true, gear: "recommended", thief: true },
+  { id: "thief-unskilled", label: "同じ盗賊編成（解錠なし）", tree: true, gear: "recommended", thief: true, disableSkill: true },
 ]);
 const SEEDS = { plains: 10531, forest: 20813, cave: 30721 };
 const FIXED_OPS = Object.freeze({
@@ -47,7 +49,7 @@ function equipScenario(c, roster, d, profile) {
   if (profile.gear === "none") return;
   const gearLevel = benchmarkGearLevel(d);
   const benchmark = d.benchmarkGear || { rarity: "n", plus: 0 };
-  const plus = profile.gear === "refined" ? benchmark.plus + 4
+  const plus = ["refined", "reinforced"].includes(profile.gear) ? benchmark.plus + 4
     : profile.gear === "basic" ? 0 : benchmark.plus;
   const gear = { rarity: profile.gear === "basic" ? "n" : benchmark.rarity, plus, level: gearLevel };
   c.equip = standardEquip(c.job, gear, roster.accessorySlots(c));
@@ -87,6 +89,10 @@ function buildScenario(dungeonId, profile, seed) {
     c.hp = s.maxHp; c.mp = s.maxMp;
     return c;
   });
+  if (profile.disableSkill) {
+    const original = roster.explorationSkillChance;
+    roster.explorationSkillChance = (c, id) => id === "thief_lockpick" ? 0 : original(c, id);
+  }
   const env = () => ({
     rng, atbRate: 7,
     stats: roster.computeStats,
@@ -167,6 +173,7 @@ function runBalance(trials = 32) {
   const results = [];
   for (const id of IDS) for (const profile of PROFILES) {
     if (id === "plains" && profile.thief) continue; // Lv1 cannot learn lockpick
+    if (profile.disableSkill && id !== "cave") continue; // only cave is Lv5+ within this pilot
     results.push(measureScenario(id, profile.id, trials, SEEDS[id]));
   }
   return { schema: 1, trials, seedByDungeon: SEEDS, results };
