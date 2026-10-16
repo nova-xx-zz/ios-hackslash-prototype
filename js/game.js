@@ -28,6 +28,8 @@ function settleAfterBackground(savedAt) {
   for (let i = 0; i < TEAM_COUNT; i++) {
     const run = teamRuns[i];
     if (!S.autoRepeat[i].active || !run || !run.dungeon) continue;
+    // pilotでは可視復帰時も同じrunの続きを戦う。再周回への置換はしない。
+    if (run.pilotSchedule) continue;
     if (elapsedMs / 1000 < Runner.estimateOfflineRunSeconds(run.dungeon)) continue;
     targets.push(i);
   }
