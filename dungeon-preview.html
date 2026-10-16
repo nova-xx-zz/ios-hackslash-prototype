@@ -333,11 +333,11 @@ async function maybeEvent(rng,t){
  if(rng.int(100)>=36)return;
  var pick=rng.int(100);
  await sleep(260);if(t!==token)return;
- if(pick<48){log("宝箱を発見！　操作なしで開封した。","event");if(rng.int(100)<83){lootAfterBattle(rng)}else log("宝箱の中は空だった。")}
+ if(pick<48){log("宝箱を発見！　操作なしで開封した。","event");if(rng.int(100)<83){loot("宝箱の装備品",rollRarity(rng))}else log("宝箱の中は空だった。")}
  else if(pick<76){
   log("鍵付き宝箱を発見。","event");
   if(!state.thief){log("盗賊の解錠スキルがないため開けられなかった。","warn");return}
-  if(rng.int(100)<45){log("盗賊の解錠に成功！","loot");lootAfterBattle(rng)}
+  if(rng.int(100)<45){log("盗賊の解錠に成功！","loot");loot("鍵付き宝箱の装備品",rollRarity(rng))}
   else log("盗賊は解錠を試みたが失敗した。","warn");
  } else spring(rng);
 }
@@ -371,7 +371,7 @@ async function run(){
  var rng=rngLib.createRng((Date.now()>>>0)^((Math.random()*0xffffffff)>>>0));
  var plans=trial.createFloorPlan(d,rng);
  state={floor:1,plans:plans,thief:byId("thief").checked,strong:strong,
- pending:[],maxHp:strong?210:114,hp:strong?210:114,buff:0,debuff:0,won:false};
+ pending:[],maxHp:strong?260:170,hp:strong?260:170,buff:0,debuff:0,won:false};
  byId("start").disabled=true;byId("outcome").classList.add("hidden");byId("log").replaceChildren();byId("drops").textContent="0";hp();drawFloors();
  log(d.name+"に突入。全"+plans.length+"階層の戦闘回数を確定した。","event");
  for(var p of plans){
