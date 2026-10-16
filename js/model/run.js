@@ -59,7 +59,7 @@
     // ?dungeonPilot=1 を付けたプレビューで、序盤3ダンジョンだけ実戦に接続する。
     const pilotEnabled = !!deps.enableFloorPilot && !!dungeonTrial && typeof makeEnemy === "function";
     const pilotIds = new Set(["plains", "forest", "cave"]);
-    const isPilotDungeon = (d) => pilotEnabled && pilotIds.has(d.id);
+    const isPilotDungeon = (d) => pilotEnabled && !!d && pilotIds.has(d.id);
     function createPilotSchedule(d) {
       const floorPlans = dungeonTrial.createFloorPlan(d, rng);
       const schedule = [];
@@ -563,8 +563,9 @@
       if (!pilotEnabled || !dungeonCheckpoint || !Array.isArray(raw)) return restored;
       for (let team = 0; team < teamCount; team++) {
         const saved = raw[team];
-        if (!saved || teamRuns[team]) continue;
-        const d = getModeDungeon(saved.dungeonId, saved.mode);
+        if (!saved || teamRuns[team] || typeof saved.dungeonId !== "string") continue;
+        let d;
+        try { d = getModeDungeon(saved.dungeonId, saved.mode); } catch (_) { continue; }
         if (!isPilotDungeon(d)) continue;
         const floors = dungeonTrial.FLOOR_COUNTS[d.id];
         if (!dungeonCheckpoint.validate(saved, d, team, floors)) continue;
