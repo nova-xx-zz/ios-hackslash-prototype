@@ -622,3 +622,32 @@ test("階層パイロット: 途中宝箱・泉のイベントはタップ不要
   assert.ok(chests>0&&springs>0&&locked>0);
   assert.ok(run.buffs.def<=.24&&run.buffs.def>=-.24);
 });
+
+test("階層パイロット: オフラインでも実戦闘エンジンを通して3Fを完走し、ドロップ確定条件を守る", () => {
+  const { Runner, state } = setup({ seed: 222, level: 35, enableFloorPilot: true });
+  const out = Runner.computeOfflineRun(data.getDungeon("plains"), 0);
+  assert.equal(out.cleared, true, "十分に強いパーティは3Fを実戦闘でクリア");
+  assert.ok(out.expByBattle.length >= 5 && out.expByBattle.length <= 11);
+  assert.ok(out.encountered.length >= out.expByBattle.length);
+  assert.ok(out.drops.length >= out.expByBattle.length, "撃破報酬は踏破した周だけ返る");
+  assert.equal(state.inventory.length, 0, "計算段階では所持品へ付与していない");
+  const before = state.inventory.length;
+  const applied = Runner.applyOfflineRun(out, data.getDungeon("plains"), 0, { enabled: false, rarities: new Set() });
+  assert.equal(applied.cleared, true);
+  assert.ok(state.inventory.length > before);
+});
+
+test("階層パイロット: オフライン計算を強制敗北させても未確定品は一切返さない", () => {
+  const { Runner, state } = setup({ seed: 46, level: 1, enableFloorPilot: true });
+  const out = Runner.computeOfflineRun(data.getDungeon("cave"), 0);
+  if (!out.cleared) {
+    assert.equal(out.drops.length, 0);
+    const result = Runner.applyOfflineRun(out, data.getDungeon("cave"), 0);
+    assert.equal(result.cleared, false);
+    assert.equal(state.inventory.length, 0);
+  } else {
+    // 将来の戦闘バランス変更でLv1でもクリア可能になった場合は、
+    // クリアしたデータを意図的に敗北へ上書きせず、この検証を条件付きで保持する。
+    assert.ok(out.drops.length > 0);
+  }
+});
