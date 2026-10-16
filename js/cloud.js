@@ -10,7 +10,7 @@
   "use strict";
   // 確認用モード（?debug）では、確認用のデータを本番のバックアップに上書きしないよう、クラウドセーブを使わない
   // （QPCloud を用意しないので、設定画面のクラウドセーブの欄も出ない）
-  if (root.QPCore && root.QPCore.storage && root.QPCore.storage.isDebugMode()) return;
+  if (root.QPCore && root.QPCore.storage && (root.QPCore.storage.isDebugMode() || root.QPCore.storage.isDungeonPilotMode())) return;
   const UPLOAD_INTERVAL_MS = 60 * 1000;
   const START_DELAY_MS = 1500;
   // 設定画面の容量診断と同じ上限を使い、表示と実際の送信判定を一致させる。
