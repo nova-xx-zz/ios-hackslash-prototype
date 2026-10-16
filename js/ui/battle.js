@@ -27,6 +27,7 @@ function startDungeon(teamIndex, id, opts) {
   }
   if (opts.navigate) showScreen("screen-battle");
   startBattle(run);
+  if (run.pilotSchedule) scheduleSave();
 }
 
 function startBattle(run) {
@@ -40,6 +41,7 @@ function startBattle(run) {
   const traits = [...new Set(battle.enemies.flatMap((e) => e.traits || []))];
   if (traits.length) logLine(run.team, `特性: ${traits.map((k) => ENEMY_TRAITS[k].name).join("・")}（図鑑で詳しく見られる）`, "system");
   if (run.team === S.activeTeam) renderDock();
+  if (run.pilotSchedule) scheduleSave();
 }
 
 // 敵の残り状況をテキストで表示（敵パネルの代わり）
