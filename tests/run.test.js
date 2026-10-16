@@ -794,3 +794,21 @@ test("解錠術: 忍者・盗賊が複数いても宝箱1個につき抽選は1�
   assert.ok(total>100);
   assert.ok(success/total>.37&&success/total<.53,success+"/"+total);
 });
+
+test("解錠術: オフライン周回でもクローンパーティの習得状態で判定する", () => {
+  const {Runner,roster,state}=setup({enableFloorPilot:true,seed:772,level:35});
+  state.roster[0]=roster.newCharacter("解錠担当","thief","human",{team:0,level:35});
+  let clonedCalls=0;
+  const native=roster.explorationSkillChance;
+  roster.explorationSkillChance=(c,id)=>{
+    if(c.job==="thief"){
+      const original=state.roster.find(x=>x.id===c.id);
+      if(original&&original!==c) clonedCalls++;
+    }
+    return native(c,id);
+  };
+  const result=Runner.computeOfflineRun(data.getDungeon("plains"),0);
+  assert.ok(result.expByBattle.length>0);
+  assert.ok(clonedCalls>0,"offline chest events must consult the simulated party, not live roster");
+  assert.equal(state.inventory.length,0,"offline calculation must not grant items before settlement");
+});
