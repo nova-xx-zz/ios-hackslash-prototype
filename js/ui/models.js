@@ -24,6 +24,7 @@ function saveGame() {
         enabled: r.autoDisassemble, rarities: r.autoDisassembleRarities,
       } : null),
       enabledFeatures: Object.keys(FEATURE_FLAGS).filter((k) => FEATURE_FLAGS[k]),
+      pilotRuns: QPCore.storage.isDungeonPilotMode() ? Runner.capturePilotRuns() : undefined,
     });
     json = JSON.stringify(data);
   } catch (e) { return false; }
@@ -58,6 +59,7 @@ function scheduleSave() {
 // （チームごとに独立して計算するため、複数チームが同時にオフライン進行することもある）
 let pendingOfflineSummaries = null;
 let offlineSettleFailed = false;
+let pilotRestoredTeams = [];
 // オフライン精算の保存保証（docs/reviews/design-review-2026-10-06.md RV-01）:
 // 精算は「報酬の反映」と「自動周回の停止（S.autoRepeat[].active = false）」を同じメモリ上の状態に行い、
 // それを1つのメインセーブとして1回で書き込んだ時点で確定する。精算済みかどうかは別キーの印ではなく、
@@ -107,6 +109,13 @@ function loadGame() {
       c.alive = true; c.atb = 0; c.defending = false; c.actedFlash = 0;
     }
     const savedAutoRepeat = loaded.savedAutoRepeat;
+    pilotRestoredTeams = Runner.restorePilotRuns(loaded.savedPilotRuns);
+    // 同一runを再開したチームは保存済みrunを維持するため、起動時の再周回精算から除外する。
+    // 試験モードの自動周回は安全のため復帰時に停止して、続きの1周だけ再開する。
+    for (const team of pilotRestoredTeams) {
+      S.autoRepeat[team].active = false;
+      if (savedAutoRepeat[team]) savedAutoRepeat[team] = Object.assign({}, savedAutoRepeat[team], { active: false });
+    }
     const savedAt = loaded.savedAt;
     lastSavedAt = typeof savedAt === "number" ? savedAt : null;
     // 旧版の「精算済み」の印（精算前に書いていた別キー）は使わない。印だけ残って報酬が保存されていなかった
