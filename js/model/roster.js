@@ -49,7 +49,7 @@
         const s = computeStats(c);
         c.hp = s.maxHp; c.mp = s.maxMp;
         levelUps.push(c.name + " Lv." + c.level);
-        for (const a of jobDef(c).abilities) {
+        for (const a of [...jobDef(c).abilities, ...(jobDef(c).explorationSkills || [])]) {
           if (a.reqLevel === c.level) abilityUnlocks.push(`${c.name}が「${a.name}」を習得！`);
         }
       }
