@@ -457,7 +457,7 @@ function jobPage(id) {
         <div class="book-abilities"></div>`;
       box.querySelector(".book-desc").textContent = job.desc;
       const list = box.querySelector(".book-abilities");
-      for (const a of job.abilities) {
+      for (const a of [...job.abilities, ...(job.explorationSkills || [])]) {
         const row = document.createElement("div");
         row.className = "pm-ability-row";
         row.innerHTML = `<div class="pm-ability-name"></div><div class="pm-ability-desc"></div>`;
