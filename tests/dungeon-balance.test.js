@@ -5,7 +5,7 @@ const { buildScenario, measureScenario, runBalance, IDS, PROFILES } = require(".
 
 test("新階層バランスの測定対象が3F/5Fの実データに限定される", () => {
   assert.deepEqual(IDS, ["plains", "forest", "cave"]);
-  assert.deepEqual(PROFILES.map(p => p.id), ["no-gear", "basic", "recommended", "refined", "thief"]);
+  assert.deepEqual(PROFILES.map(p => p.id), ["no-gear", "basic", "recommended", "reinforced", "refined", "thief", "thief-unskilled"]);
   const a = buildScenario("cave", PROFILES.find(p => p.id === "no-gear"), 12);
   const b = buildScenario("cave", PROFILES.find(p => p.id === "refined"), 12);
   const weak = a.roster.computeStats(a.state.roster[0]);
@@ -21,6 +21,9 @@ test("盗賊入りの強さと解錠は実際のパーティ・Lvから取得さ
   const prepared = buildScenario("cave", profile, 3001);
   assert.equal(prepared.state.roster[1].job, "thief");
   assert.equal(prepared.roster.explorationSkillChance(prepared.state.roster[1], "thief_lockpick"), 0.45);
+  const disabled = buildScenario("cave", PROFILES.find(p => p.id === "thief-unskilled"), 3001);
+  assert.equal(disabled.state.roster[1].job, "thief");
+  assert.equal(disabled.roster.explorationSkillChance(disabled.state.roster[1], "thief_lockpick"), 0);
   const grass = buildScenario("plains", profile, 3001);
   assert.equal(grass.roster.explorationSkillChance(grass.state.roster[1], "thief_lockpick"), 0);
 });
@@ -36,7 +39,7 @@ test("測定の再現性: 同じseed・同じ装備の実戦闘で全メトリ�
 
 test("3F/5F実戦闘の1周ごとで敗北後に1品も持ち帰らない", () => {
   const run = runBalance(2);
-  assert.equal(run.results.length, 14);
+  assert.equal(run.results.length, 18);
   for (const r of run.results) {
     assert.equal(r.trials, 2);
     assert.equal(r.failure + r.clear, 2);
