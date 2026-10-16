@@ -121,8 +121,8 @@ function measureScenario(dungeonId, profileId, trials, seed) {
   if (!profile || !Number.isInteger(trials) || trials < 1 || trials > 2000) throw new RangeError("bad trials/profile");
   const setup = buildScenario(dungeonId, profile, seed === undefined ? SEEDS[dungeonId] : seed);
   const stats = { dungeonId, profileId, level: setup.d.level, trials, clear: 0, failure: 0,
-    allSeconds: 0, clearedSeconds: 0, combatWins: 0, carriedItems: 0,
-    carriesUrLr: 0, dismantleStones: 0, lockedFound: 0, lockAttempts: 0,
+    allSeconds: 0, clearedSeconds: 0, combatWins: 0, confirmedDrops: 0, carriedItems: 0,
+    dismantledItems: 0, carriesUrLr: 0, dismantleStones: 0, lockedFound: 0, lockAttempts: 0,
     lockSuccess: 0, normalTreasure: 0, springAura: 0, maxEnemies: 0,
     maxFloors: dungeonTrial.FLOOR_COUNTS[dungeonId], failedItemsCarried: 0 };
   const origEvent = dungeonTrial.rollPilotEvent;
@@ -145,9 +145,12 @@ function measureScenario(dungeonId, profileId, trials, seed) {
       if (outcome.cleared) {
         stats.clear++;
         stats.clearedSeconds += outcome.seconds;
-        stats.carriedItems += outcome.drops.length;
-        stats.carriesUrLr += outcome.drops.filter(x => x.rarity === "ur" || x.rarity === "lr").length;
-        stats.dismantleStones += settleDrops(outcome.drops, DISASSEMBLE).materialGained;
+        const settled = settleDrops(outcome.drops, DISASSEMBLE);
+        stats.confirmedDrops += outcome.drops.length;
+        stats.carriedItems += settled.kept.length;
+        stats.dismantledItems += settled.disassembled;
+        stats.carriesUrLr += settled.kept.filter(x => x.rarity === "ur" || x.rarity === "lr").length;
+        stats.dismantleStones += settled.materialGained;
       } else {
         stats.failure++;
         // Offline engine returns zero drops on failed runs: full-loss rule.
@@ -161,6 +164,7 @@ function measureScenario(dungeonId, profileId, trials, seed) {
     clearPct: round(100 * stats.clear / trials),
     avgSec: round(stats.allSeconds / trials),
     avgClearSec: stats.clear ? round(stats.clearedSeconds / stats.clear) : null,
+    avgConfirmedDropsPerAttempt: round(stats.confirmedDrops / trials),
     avgItemsPerAttempt: round(stats.carriedItems / trials),
     avgItemsPerClear: stats.clear ? round(stats.carriedItems / stats.clear) : null,
     stonesPerAttempt: round(stats.dismantleStones / trials),
@@ -180,11 +184,11 @@ function runBalance(trials = 32) {
 }
 function printReport(result) {
   console.log("DUNGEON_BALANCE_V1 trials=" + result.trials + " (normal; x1 game seconds)");
-  console.log("dungeon profile clear% avgSec avgClearSec itemsPerTry stonesPerTry urLrPerTry lockOpened/found");
+  console.log("dungeon profile clear% avgSec avgClearSec confirmedDrops/try keptItems/try stonesPerTry urLrPerTry lockOpened/found");
   for (const r of result.results) {
     console.log([r.dungeonId, r.profileId, r.clearPct.toFixed(1), r.avgSec,
       r.avgClearSec === null ? "n/a" : r.avgClearSec,
-      r.avgItemsPerAttempt, r.stonesPerAttempt, r.avgUrLrPerAttempt,
+      r.avgConfirmedDropsPerAttempt, r.avgItemsPerAttempt, r.stonesPerAttempt, r.avgUrLrPerAttempt,
       r.lockSuccess + "/" + r.lockedFound].join(" "));
   }
   console.log("BALANCE_JSON=" + JSON.stringify(result));
