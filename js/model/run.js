@@ -21,6 +21,7 @@
   const statsCore = core.stats || (typeof require === "function" ? require("../core/stats.js") : null);
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
   const rngMod = core.rng || (typeof require === "function" ? require("../core/rng.js") : null);
+  const dungeonTrial = core.dungeonTrial || (typeof require === "function" ? require("../core/dungeon-trial.js") : null);
 
   // オフライン精算: これを超えた経過時間は切り捨てる
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;
@@ -53,7 +54,39 @@
     }
     const inRun = (run, fn) => inStream(run.rngSource, fn);
     const teamCount = deps.teamCount || 4;
-    const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop } = deps.data;
+    const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, makeEnemy, rollItemDrop, rollSpecialDrop } = deps.data;
+    // ?dungeonPilot=1 を付けたプレビューで、序盤3ダンジョンだけ実戦に接続する。
+    const pilotEnabled = !!deps.enableFloorPilot && !!dungeonTrial && typeof makeEnemy === "function";
+    const pilotIds = new Set(["plains", "forest", "cave"]);
+    const isPilotDungeon = (d) => pilotEnabled && pilotIds.has(d.id);
+    function createPilotSchedule(d) {
+      const floorPlans = dungeonTrial.createFloorPlan(d, rng);
+      const schedule = [];
+      for (const plan of floorPlans) {
+        for (let i = 0; i < plan.regularBattles; i++) schedule.push({ floor: plan.floor, boss: null, regularIndex: i + 1 });
+        if (plan.boss) schedule.push({ floor: plan.floor, boss: plan.boss, regularIndex: null });
+      }
+      return { floorPlans, schedule };
+    }
+    function buildPilotEncounter(d, entry) {
+      const planned = dungeonTrial.createEncounterPlan(d, entry.floor, rng, entry.boss);
+      const roles = planned.enemyRoles.map((x) => Object.assign({}, x, { isRare: false }));
+      if (!entry.boss && Array.isArray(d.rares) && d.rares.length && rng.chance(0.04)) {
+        const chosen = rng.int(roles.length);
+        roles[chosen].key = rng.pick(d.rares);
+        roles[chosen].isRare = true;
+      }
+      return roles.map((role) => {
+        const tpl = getEnemyTemplate(role.key);
+        if (!tpl) throw new RangeError("Unknown enemy: " + role.key);
+        // 旧battleIndex×6%を全戦闘数へ掛けない。階層による緩やかな伸びだけ適用。
+        const mult = (1 + (d.level - 1) * 0.12) * (1 + (entry.floor - 1) * 0.045) * (role.isBoss ? 1.55 : 1);
+        const enemy = makeEnemy(tpl, mult, role.isBoss, d.power, role.isRare, d.mode);
+        enemy.pilotBoss = role.isBoss && d.id === "cave";
+        enemy.pilotPhase = 1;
+        return enemy;
+      });
+    }
     // モード（ノーマル・ハード・エクストラ）を反映したダンジョン（js/data.js の getModeDungeon。無ければノーマルのみ）
     const getModeDungeon = deps.data.getModeDungeon || ((id) => getDungeon(id));
     // 装備はそのダンジョンの推奨Lvを装備のレベルにして抽選する。ハード・エクストラは上がったレベルで抽選し、
@@ -112,6 +145,12 @@
         autoDisassemble: filter.enabled, autoDisassembleRarities: new Set(filter.rarities),
         rngSource: newStream(), // この周回の乱数の並び
       };
+      if (isPilotDungeon(d)) {
+        const plan = inRun(run, () => createPilotSchedule(d));
+        run.pilotFloorPlans = plan.floorPlans;
+        run.pilotSchedule = plan.schedule;
+        run.dungeon = Object.assign({}, d, { battles: plan.schedule.length, dungeonFloorPilot: true });
+      }
       teamRuns[teamIndex] = run;
       for (const c of R.teamMembers(teamIndex)) {
         const s = R.computeStats(c);
@@ -123,8 +162,9 @@
     // run.battleIndex 戦目を始める。結果: { battle, isBoss }
     function startBattle(run) {
       const d = run.dungeon;
-      const isBoss = run.battleIndex === d.battles - 1;
-      const enemies = buildEncounter(d, run.battleIndex);
+      const entry = run.pilotSchedule && run.pilotSchedule[run.battleIndex];
+      const isBoss = entry ? !!entry.boss : run.battleIndex === d.battles - 1;
+      const enemies = entry ? buildPilotEncounter(d, entry) : buildEncounter(d, run.battleIndex);
       const battle = {
         enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })),
         active: true,
@@ -155,7 +195,7 @@
       run.expTotal += expGain;
       for (const e of battle.enemies) {
         const tpl = getEnemyTemplate(e.key);
-        if (tpl && tpl.tamable) run.defeatedTamable.push(e.key);
+        if (tpl && tpl.tamable && !e.isBoss) run.defeatedTamable.push(e.key);
       }
       const expMult = partyMult(run.team, "expBonus");
       for (const c of R.teamMembers(run.team)) {
@@ -311,6 +351,12 @@
 
     // ---------- オフライン精算 ----------
     function estimateOfflineRunSeconds(dungeon) {
+      if (isPilotDungeon(dungeon)) {
+        // 最低通常戦闘数+ボス。実際の秒数精算では必ず1周をsimulateして確認する。
+        const count = dungeonTrial.FLOOR_COUNTS[dungeon.id];
+        const mins = Array.from({ length: count }, (_, i) => dungeonTrial.floorRange(i + 1)[0]);
+        return offline.estimateRunSeconds(mins.reduce((a, b) => a + b, 1), OFFLINE_TIMING);
+      }
       return offline.estimateRunSeconds(dungeon.battles, OFFLINE_TIMING);
     }
 
@@ -323,12 +369,13 @@
         return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
       });
       const env = Object.assign({}, deps.battleEnv(), { rng });
+      const pilot = isPilotDungeon(dungeon) ? createPilotSchedule(dungeon) : null;
       return offline.simulateRun({
-        battles: dungeon.battles,
+        battles: pilot ? pilot.schedule.length : dungeon.battles,
         rng,
         rules: REWARD_RULES,
         timing: OFFLINE_TIMING,
-        buildEncounter: (i) => buildEncounter(dungeon, i),
+        buildEncounter: (i) => pilot ? buildPilotEncounter(dungeon, pilot.schedule[i]) : buildEncounter(dungeon, i),
         fight: (enemies) => {
           if (party.length === 0) return { won: false, seconds: 0 };
           const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
