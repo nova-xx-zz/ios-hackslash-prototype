@@ -22,6 +22,7 @@
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
   const rngMod = core.rng || (typeof require === "function" ? require("../core/rng.js") : null);
   const dungeonTrial = core.dungeonTrial || (typeof require === "function" ? require("../core/dungeon-trial.js") : null);
+  const dungeonCheckpoint = core.dungeonCheckpoint || (typeof require === "function" ? require("../core/dungeon-checkpoint.js") : null);
 
   // オフライン精算: これを超えた経過時間は切り捨てる
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;
@@ -58,7 +59,7 @@
     // ?dungeonPilot=1 を付けたプレビューで、序盤3ダンジョンだけ実戦に接続する。
     const pilotEnabled = !!deps.enableFloorPilot && !!dungeonTrial && typeof makeEnemy === "function";
     const pilotIds = new Set(["plains", "forest", "cave"]);
-    const isPilotDungeon = (d) => pilotEnabled && pilotIds.has(d.id);
+    const isPilotDungeon = (d) => pilotEnabled && !!d && pilotIds.has(d.id);
     function createPilotSchedule(d) {
       const floorPlans = dungeonTrial.createFloorPlan(d, rng);
       const schedule = [];
@@ -150,6 +151,7 @@
         run.pilotFloorPlans = plan.floorPlans;
         run.pilotSchedule = plan.schedule;
         run.dungeon = Object.assign({}, d, { battles: plan.schedule.length, dungeonFloorPilot: true });
+        run.pilotCheckpointPhase = "ready";
       }
       teamRuns[teamIndex] = run;
       for (const c of R.teamMembers(teamIndex)) {
@@ -170,6 +172,7 @@
         active: true,
       };
       teamBattles[run.team] = battle;
+      if (entry) run.pilotCheckpointPhase = "battle";
       for (const e of battle.enemies) { markDexSeen(e.key); recordsMod.recordEncounter(records(), d.id, e.key); }
       for (const c of R.teamMembers(run.team)) { c.atb = rng.float(0, 25); c.defending = false; c.actedFlash = 0; }
       return { battle, isBoss };
@@ -184,6 +187,9 @@
       // オフライン精算と同じく、決着がつかないまま OFFLINE_BATTLE_MAX_SECONDS を超えたら打ち切る（撤退。全滅と同じ扱い）
       if (!out.result && battle.time >= OFFLINE_BATTLE_MAX_SECONDS) out.result = "timeout";
       if (out.result) battle.active = false;
+      if (out.result && out.result !== "victory" && teamRuns[teamIndex].pilotSchedule) {
+        teamRuns[teamIndex].pilotCheckpointPhase = "failPending";
+      }
       return out;
     }
 
@@ -216,16 +222,19 @@
       const isLast = run.battleIndex + 1 >= run.dungeon.battles;
       if (!isLast) {
         run.battleIndex += 1;
+        if (run.pilotSchedule) run.pilotCheckpointPhase = "between";
         return { expGain, isLast: false, firstClear: false, unlocked: [], tameResult: null };
       }
-      if (run.pilotSchedule) run.pilotCleared = true;
+      if (run.pilotSchedule) { run.pilotCleared = true; run.pilotCheckpointPhase = "clearPending"; }
       const cleared = clearedSet(run.dungeon.mode);
       const firstClear = !cleared.has(run.dungeon.id);
       cleared.add(run.dungeon.id);
       setBestStage(S.clearedDungeons.size);
       // 次のダンジョンが開くのはノーマルの初踏破だけ（ハード・エクストラの初踏破は、次のモードが開く）
       const unlocked = firstClear && !run.dungeon.mode ? run.dungeon.unlocks.map((id) => getDungeon(id)).filter(Boolean) : [];
-      return { expGain, isLast: true, firstClear, unlocked, tameResult: attemptTame(run) };
+      const tameResult = attemptTame(run);
+      if (run.pilotSchedule) run.pilotClearOutcome = { tameResult, unlockedIds: unlocked.map((d) => d.id) };
+      return { expGain, isLast: true, firstClear, unlocked, tameResult };
     }
 
     // ---------- テイム（ダンジョンクリア時に判定） ----------
@@ -297,12 +306,13 @@
     function rollEvent(run) {
       if (run.pilotSchedule) {
         const ev = dungeonTrial.rollPilotEvent(rng, hasLearnedLockpick(run.team), dropFor(run.dungeon));
-        if (!ev) return null;
+        if (!ev) { run.pilotCheckpointPhase = "ready"; return null; }
         if (ev.item) run.pendingDrops.push(ev.item);
         if (ev.kind === "springAura") {
           run.buffs.def = clamp((run.buffs.def || 0) + ev.defensePercent, -0.24, 0.24);
           ev.total = run.buffs.def;
         }
+        run.pilotCheckpointPhase = "ready";
         return ev;
       }
       const kind = rewards.rollEventKind(REWARD_RULES, rng);
@@ -331,6 +341,7 @@
       if (run.finished) return; // 同一runの二重報酬付与を防止
       if (run.pilotSchedule && cleared && !run.pilotCleared) throw new Error("Final boss has not been defeated");
       run.finished = true;
+      if (run.pilotSchedule) run.pilotCheckpointPhase = "finished";
       run.wiped = !cleared;
       if (cleared) {
         recordsMod.recordItemsFound(records(), run.pendingDrops, ITEM_BASES); // 自動分解する物も「手に入れた」に数える
@@ -539,10 +550,65 @@
       return summaries.length > 0 ? summaries : null;
     }
 
+    // 試験モードに限り、進行中の周回と戦闘状態をセーブ内の任意フィールドとして保持する。
+    function capturePilotRuns() {
+      if (!pilotEnabled || !dungeonCheckpoint) return null;
+      return teamRuns.map((run, team) => run && run.pilotSchedule && !run.finished
+        ? dungeonCheckpoint.capture(run, teamBattles[team], R.teamMembers(team)) : null);
+    }
+
+    // 壊れたチェックポイントは個別に無視し、残りのセーブ内容は復元する。
+    function restorePilotRuns(raw) {
+      const restored = [];
+      if (!pilotEnabled || !dungeonCheckpoint || !Array.isArray(raw)) return restored;
+      for (let team = 0; team < teamCount; team++) {
+        const saved = raw[team];
+        if (!saved || teamRuns[team] || typeof saved.dungeonId !== "string") continue;
+        let d;
+        try { d = getModeDungeon(saved.dungeonId, saved.mode); } catch (_) { continue; }
+        if (!isPilotDungeon(d)) continue;
+        const floors = dungeonTrial.FLOOR_COUNTS[d.id];
+        if (!dungeonCheckpoint.validate(saved, d, team, floors)) continue;
+        const members = R.teamMembers(team);
+        if (saved.members.length !== members.length || saved.members.some((p) => !members.some((m) => m.id === p.id))) continue;
+        const schedule = [];
+        for (const plan of saved.floorPlans) {
+          for (let i = 0; i < plan.regularBattles; i++) schedule.push({ floor: plan.floor, boss: null, regularIndex: i + 1 });
+          if (plan.boss) schedule.push({ floor: plan.floor, boss: plan.boss, regularIndex: null });
+        }
+        const source = rngMod.seededSource(0);
+        source.setState(saved.rngState);
+        const run = {
+          team, dungeon: Object.assign({}, d, { battles: schedule.length, dungeonFloorPilot: true }),
+          battleIndex: saved.battleIndex, finished: false, rngSource: source,
+          buffs: saved.buffs, expTotal: saved.expTotal,
+          pendingDrops: saved.pendingDrops, drops: [],
+          levelUps: saved.levelUps, abilityUnlocks: saved.abilityUnlocks,
+          defeatedTamable: saved.defeatedTamable, disassembleCount: saved.disassembleCount,
+          materialGained: saved.materialGained, autoDisassemble: !!saved.autoDisassemble,
+          autoDisassembleRarities: new Set(saved.autoDisassembleRarities),
+          pilotFloorPlans: saved.floorPlans, pilotSchedule: schedule,
+          pilotCleared: !!saved.pilotCleared,
+          pilotCheckpointPhase: saved.phase, pilotClearOutcome: saved.pilotClearOutcome || null,
+        };
+        for (const p of saved.members) {
+          const c = members.find((m) => m.id === p.id);
+          const max = R.computeStats(c);
+          c.hp = clamp(p.hp, 0, max.maxHp); c.mp = clamp(p.mp, 0, max.maxMp);
+          c.alive = !!p.alive && c.hp > 0; c.atb = clamp(p.atb, 0, 100);
+          c.defending = !!p.defending; c.actedFlash = p.actedFlash || 0;
+        }
+        teamRuns[team] = run;
+        if (saved.phase === "battle") teamBattles[team] = dungeonCheckpoint.restoreBattle(saved.battle, members);
+        restored.push(team);
+      }
+      return restored;
+    }
+
     // 周回の中で乱数を使う処理は、その周回の乱数の並びで実行する（周回のないチームは基の乱数）
     const inTeam = (teamIndex, fn) => (teamRuns[teamIndex] ? inRun(teamRuns[teamIndex], fn) : fn());
     return {
-      teamRuns, teamBattles,
+      teamRuns, teamBattles, capturePilotRuns, restorePilotRuns,
       isTeamRunActive, isTeamLocked, runBuffs, restoreTeamParty,
       startRun,
       startBattle: (run) => inRun(run, () => startBattle(run)),

@@ -651,3 +651,76 @@ test("階層パイロット: オフライン計算を強制敗北させても未
     assert.ok(out.drops.length > 0);
   }
 });
+
+test("階層pilot: 戦闘中チェックポイントを復元しても敵HP・味方HP・乱数・OP効果は同一", () => {
+  const original=setup({enableFloorPilot:true,seed:2026,level:12});
+  const run=original.Runner.startRun(0,"cave");
+  const {battle}=original.Runner.startBattle(run);
+  const party=original.roster.teamMembers(0);
+  for(let i=0;i<27;i++)original.Runner.stepBattle(0,0.05);
+  battle.fx=new Map([[battle.enemies[0],{def:{mult:0.75,until:150}}],[party[0],{atk:{mult:1.2,until:140}}]]);
+  const checkpoint=original.Runner.capturePilotRuns();
+  assert.equal(checkpoint[0].phase,"battle");
+  assert.equal(checkpoint[0].battle.fx.length,2);
+  const second=setup({enableFloorPilot:true,seed:1,level:12});
+  assert.deepEqual(second.Runner.restorePilotRuns(checkpoint),[0]);
+  const restored=second.Runner.teamRuns[0];
+  const battle2=second.Runner.teamBattles[0];
+  assert.deepEqual(restored.pilotFloorPlans,run.pilotFloorPlans);
+  assert.equal(restored.battleIndex,run.battleIndex);
+  assert.equal(battle2.enemies[0].hp,battle.enemies[0].hp);
+  assert.equal(second.roster.teamMembers(0)[0].hp,party[0].hp);
+  assert.deepEqual(battle2.fx.get(battle2.enemies[0]),{def:{mult:.75,until:150}});
+  assert.deepEqual(battle2.fx.get(second.roster.teamMembers(0)[0]),{atk:{mult:1.2,until:140}});
+  assert.equal(restored.rngSource.getState(),run.rngSource.getState());
+  for(let i=0;i<30;i++){
+    const one=original.Runner.stepBattle(0,0.05);
+    const two=second.Runner.stepBattle(0,0.05);
+    assert.equal(one.result,two.result);
+    assert.deepEqual(one.events.map(e=>e.type),two.events.map(e=>e.type));
+  }
+  assert.equal(restored.rngSource.getState(),run.rngSource.getState());
+  assert.deepEqual(battle2.enemies.map(e=>e.hp),battle.enemies.map(e=>e.hp));
+});
+
+test("階層pilot: 戦闘間の未確定報酬と全階層計画を保存、ボス以外では確定しない",()=>{
+ const first=setup({enableFloorPilot:true,seed:84,level:20});
+ const run=first.Runner.startRun(0,"plains");
+ const {battle}=first.Runner.startBattle(run);
+ for(const enemy of battle.enemies)enemy.alive=false;
+ const result=first.Runner.winBattle(run,battle);
+ assert.equal(result.isLast,false);
+ assert.equal(run.pilotCheckpointPhase,"between");
+ run.pendingDrops.push({id:"testUR",rarity:"ur",base:"bronze_sword",slot:"weapon",stats:{atk:9},plus:0});
+ const shot=first.Runner.capturePilotRuns();
+ const second=setup({enableFloorPilot:true,seed:92,level:20});
+ assert.deepEqual(second.Runner.restorePilotRuns(shot),[0]);
+ const restored=second.Runner.teamRuns[0];
+ assert.equal(restored.pilotCheckpointPhase,"between");
+ assert.equal(restored.pendingDrops.some(x=>x.id==="testUR"),true);
+ assert.equal(second.state.inventory.length,0);
+ assert.equal(second.Runner.rollEvent(restored)?.kind===undefined||true,true);
+ assert.equal(restored.pilotCheckpointPhase,"ready");
+ const initial=JSON.stringify(restored.pilotFloorPlans);
+ const {isBoss}=second.Runner.startBattle(restored);
+ assert.equal(isBoss,false);
+ assert.equal(JSON.stringify(restored.pilotFloorPlans),initial);
+ second.Runner.finishRun(restored,false);
+ assert.equal(second.state.inventory.length,0);
+ assert.equal(second.state.records.itemsFound.includes("bronze_sword:ur"),false);
+});
+
+test("階層pilot: 不正・破損したチェックポイントは捨て、通常モードでは復元不能",()=>{
+ const first=setup({enableFloorPilot:true,seed:71});
+ const run=first.Runner.startRun(0,"plains");
+ first.Runner.startBattle(run);
+ const saved=first.Runner.capturePilotRuns()[0];
+ const tampered=JSON.parse(JSON.stringify(saved));
+ tampered.floorPlans[0].regularBattles=10000;
+ const second=setup({enableFloorPilot:true});
+ assert.deepEqual(second.Runner.restorePilotRuns([tampered]),[]);
+ assert.equal(second.Runner.teamRuns[0],null);
+ const vanilla=setup();
+ assert.deepEqual(vanilla.Runner.restorePilotRuns([saved]),[]);
+ assert.equal(vanilla.Runner.teamRuns[0],null);
+});

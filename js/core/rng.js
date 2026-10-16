@@ -22,13 +22,20 @@
   // シード付きの乱数（mulberry32）。同じシードなら同じ並びになる
   function seededSource(seed) {
     let a = seed >>> 0;
-    return function () {
+    const source = function () {
       a = (a + 0x6d2b79f5) >>> 0;
       let t = a;
       t = Math.imul(t ^ (t >>> 15), t | 1);
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
+    // 探索中の同一乱数列をセーブ/復元するための状態API。
+    source.getState = () => a >>> 0;
+    source.setState = (next) => {
+      if (!Number.isInteger(next) || next < 0 || next > 0xffffffff) throw new RangeError("invalid RNG state");
+      a = next >>> 0;
+    };
+    return source;
   }
 
   function createRng(seed) {

@@ -28,6 +28,8 @@ function settleAfterBackground(savedAt) {
   for (let i = 0; i < TEAM_COUNT; i++) {
     const run = teamRuns[i];
     if (!S.autoRepeat[i].active || !run || !run.dungeon) continue;
+    // pilotでは可視復帰時も同じrunの続きを戦う。再周回への置換はしない。
+    if (run.pilotSchedule) continue;
     if (elapsedMs / 1000 < Runner.estimateOfflineRunSeconds(run.dungeon)) continue;
     targets.push(i);
   }
@@ -62,6 +64,7 @@ setInterval(() => { if (!document.hidden) saveGame(); }, 20000);
 loadGame();
 renderTitle();
 showScreen("screen-title");
+if (pilotRestoredTeams.length) resumePilotExplorations();
 document.getElementById("btnSettingsAnnounce").classList.toggle("hidden", !isFeatureEnabled("announcements"));
 
 // 起動時は「お知らせ→オフライン結果」の順でキューへ積み、他のモーダルが無い時だけ1つずつ開く
