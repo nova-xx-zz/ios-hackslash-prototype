@@ -80,6 +80,9 @@ function logBattleEvent(run, battle, ev) {
       else logLine(t, `${ev.target.name}の${names[ev.stat]}が下がった！`, "system");
       break;
     }
+    case "bossPhase":
+      logLine(t, `${ev.enemy.name}：${ev.hint}`, "system");
+      break;
     case "enemyDown":
       logLine(t, `${ev.enemy.name} をたおした！`, "system");
       updateCardSubtitle(t, enemyRoster(battle));
