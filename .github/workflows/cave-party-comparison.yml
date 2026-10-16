@@ -1,0 +1,19 @@
+name: Cave party composition experiment
+on:
+  push:
+    branches:
+      - 'feature/cave-party-comparison-*'
+  workflow_dispatch:
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Run actual battle simulations for party compositions
+        run: node tools/cave-party-comparison.js --trials=240
