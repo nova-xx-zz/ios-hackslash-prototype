@@ -62,6 +62,7 @@ setInterval(() => { if (!document.hidden) saveGame(); }, 20000);
 loadGame();
 renderTitle();
 showScreen("screen-title");
+if (pilotRestoredTeams.length) resumePilotExplorations();
 document.getElementById("btnSettingsAnnounce").classList.toggle("hidden", !isFeatureEnabled("announcements"));
 
 // 起動時は「お知らせ→オフライン結果」の順でキューへ積み、他のモーダルが無い時だけ1つずつ開く
