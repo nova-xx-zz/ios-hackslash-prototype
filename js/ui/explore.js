@@ -145,6 +145,7 @@ requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(loop); });
 // EXP・ドロップ（踏破まで保留）・踏破の記録・テイムの判定は js/model/run.js（winBattle）
 function onVictory(run, battle) {
   const r = Runner.winBattle(run, battle);
+  if (run.pilotSchedule) scheduleSave();
   logLine(run.team, `EXP +${r.expGain}`, "system");
   if (!r.isLast) {
     scheduleNext(run.team, () => {
@@ -170,6 +171,7 @@ function scheduleNext(teamIndex, fn, delayMs) {
 // 抽選と反映は js/model/run.js（rollEvent。オフライン精算と共通）。ここはログの文章と画面の更新
 function rollDungeonEvent(run) {
   const ev = Runner.rollEvent(run);
+  if (run.pilotSchedule) scheduleSave();
   if (!ev) return;
   const t = run.team;
   if (ev.kind === "treasure") {
