@@ -429,6 +429,20 @@
       return list;
     }
 
+    // 探索専用スキルは戦闘アビリティと別配列。戦闘AIに渡さない。
+    // 習得判定は出撃時の現ジョブのレベルに従い、SPを消費せず自動解放。
+    function explorationSkills(c) {
+      if (!c || c.isMonster) return [];
+      const job = JOBS[c.job];
+      return job && Array.isArray(job.explorationSkills)
+        ? job.explorationSkills.filter((skill) => c.level >= skill.reqLevel)
+        : [];
+    }
+    function explorationSkillChance(c, id) {
+      const skill = explorationSkills(c).find((x) => x.id === id);
+      return skill ? Math.max(0, Math.min(1, skill.successRate)) : 0;
+    }
+
     function isSkillActive(c, abilityId) {
       return c.skillActive[abilityId] !== false; // default ON
     }
@@ -454,7 +468,7 @@
 
     return {
       gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
-      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
+      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, explorationSkills, explorationSkillChance, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
 
