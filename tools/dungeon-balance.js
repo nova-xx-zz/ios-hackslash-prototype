@@ -74,8 +74,8 @@ function buildScenario(dungeonId, profile, seed) {
   const rng = createRng(seed);
   let runner = null;
   const roster = createRoster({
-    data, state, runBuffs: (team) => runner.runBuffs(team),
-    isTeamLocked: (team) => runner.isTeamLocked(team),
+    data, state, runBuffs: (team) => runner ? runner.runBuffs(team) : null,
+    isTeamLocked: (team) => runner ? runner.isTeamLocked(team) : false,
   });
   const inventory = createInventory({ data, state, roster, rng, isFeatureEnabled: data.isFeatureEnabled });
   const specs = STARTER_PARTY.map(x => Object.assign({}, x));
