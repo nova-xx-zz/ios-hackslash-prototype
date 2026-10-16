@@ -56,3 +56,32 @@ test("確認用モード: キーに頭を付けた別の保存場所に読み書
   assert.equal(debug.getInt(KEYS.material, 0), 999);
   assert.equal(raw.getItem(DEBUG_PREFIX + KEYS.material), "999");
 });
+
+test("階層パイロット: ?dungeonPilot=1 は通常のセーブと分離され、本番では無効", () => {
+  const storage = require("../js/core/storage.js");
+  const oldRuntime = globalThis.QPRuntime;
+  const oldLocation = globalThis.location;
+  const oldStorage = globalThis.localStorage;
+  const raw = storage.createMemoryBackend();
+  try {
+    globalThis.localStorage = raw;
+    globalThis.QPRuntime = { channel: "preview" };
+    globalThis.location = { search: "?dungeonPilot=1" };
+    assert.equal(storage.isDungeonPilotMode(), true);
+    const pilot = storage.createStorage(storage.defaultBackend());
+    assert.equal(pilot.set(storage.KEYS.save, "pilot-data"), true);
+    assert.equal(raw.getItem("qpdungeonpilot:" + storage.KEYS.save), "pilot-data");
+    assert.equal(raw.getItem(storage.KEYS.save), null, "旧セーブに触れない");
+    globalThis.location = { search: "" };
+    assert.equal(storage.isDungeonPilotMode(), false);
+    const regular = storage.createStorage(storage.defaultBackend());
+    assert.equal(regular.getString(storage.KEYS.save), null, "通常モードで試作セーブを読まない");
+    globalThis.QPRuntime = { channel: "production" };
+    globalThis.location = { search: "?dungeonPilot=1" };
+    assert.equal(storage.isDungeonPilotMode(), false, "本番URLでもpilot有効化不可");
+  } finally {
+    globalThis.QPRuntime = oldRuntime;
+    globalThis.location = oldLocation;
+    globalThis.localStorage = oldStorage;
+  }
+});
