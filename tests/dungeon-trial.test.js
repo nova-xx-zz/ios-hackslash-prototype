@@ -79,6 +79,7 @@ test("3Fボスは単純1フェーズ、5Fロックゴーレムは60%で1度だ�
   assert.equal(after.effects[0].mult, 1.25);
   const noRepeat = advancePilotBossPhase("rock_golem", after.phase, 20);
   assert.deepEqual(noRepeat, { phase: 2, effects: [] });
+  assert.deepEqual(advancePilotBossPhase("rock_golem", 1, 0), { phase: 1, effects: [] }); // 撃破後の特殊行動なし
 });
 
 test("UR/LR・宝箱・中ボス報酬を含め、最終踏破以外は1件も確定しない", () => {
