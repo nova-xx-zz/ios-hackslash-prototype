@@ -415,6 +415,10 @@
     // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
     // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
     function computeOfflineRun(dungeon, teamIndex, observers) {
+      if (core.storage && core.storage.isGearTrialMode && core.storage.isGearTrialMode() &&
+          dungeon && dungeon.id === "cave") {
+        dungeon = Object.assign({}, dungeon, { pilotLateNormalFactor: 1 });
+      }
       const party = R.teamMembers(teamIndex).map((c) => {
         const s = R.computeStats(c);
         return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
