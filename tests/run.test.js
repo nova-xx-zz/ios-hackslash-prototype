@@ -43,6 +43,7 @@ function setup(opts) {
   Runner = createRunner({
     data, state, roster, inventory, rng, teamCount: 4, battleEnv,
     enableFloorPilot: !!opts.enableFloorPilot,
+    enableGearTrial: !!opts.enableGearTrial,
     autoDisassemble: () => filter,
     markDexSeen: (k) => dex.add(k),
     setBestStage: (n) => best.push(n),
