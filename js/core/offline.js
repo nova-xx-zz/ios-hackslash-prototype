@@ -43,7 +43,7 @@
       expByBattle.push(rewards.battleExp(enemies));
       // 実戦と同じく勝利時点の生存者だけにEXP。テスト用のfightがIDを返さない場合はnull（旧仕様互換）。
       eligibleIdsByBattle.push(Array.isArray(result.eligibleIds) ? result.eligibleIds.slice() : null);
-      for (const e of enemies) if (ctx.isTamable(e.key)) defeatedTamable.push(e.key);
+      for (const e of enemies) if (!e.isBoss && ctx.isTamable(e.key, e)) defeatedTamable.push(e.key);
       drops.push(...rewards.rollBattleDrops(ctx.rules, ctx.rollOne, rng));
       if (ctx.rollRareOne) drops.push(...rewards.rollRareDrops(enemies, ctx.rollRareOne));
       const isLast = i === ctx.battles - 1;
