@@ -142,7 +142,13 @@
     // ---------- 出発・戦闘 ----------
     // mode: "normal"（省略時）| "hard" | "extra"
     function startRun(teamIndex, dungeonId, mode) {
-      const d = getModeDungeon(dungeonId, mode);
+      const originalDungeon = getModeDungeon(dungeonId, mode);
+      // 装備×編成試験では洞窟の20%弱化を打ち消し、元の敵強さを使う。
+      // ダンジョン本体の静的データは変更しない。
+      const d = core.storage && core.storage.isGearTrialMode && core.storage.isGearTrialMode() &&
+        originalDungeon.id === "cave"
+          ? Object.assign({}, originalDungeon, { pilotLateNormalFactor: 1 })
+          : originalDungeon;
       const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
       const run = {
         team: teamIndex, dungeon: d, battleIndex: 0, finished: false,
