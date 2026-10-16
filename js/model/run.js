@@ -598,6 +598,10 @@
         if (!saved || teamRuns[team] || typeof saved.dungeonId !== "string") continue;
         let d;
         try { d = getModeDungeon(saved.dungeonId, saved.mode); } catch (_) { continue; }
+        if (gearTrialEnabled && d && d.id === "cave") {
+          // 戦闘途中のリロードでも、出発時と同じ元の敵倍率に復元する。
+          d = Object.assign({}, d, { pilotLateNormalFactor: 1 });
+        }
         if (!isPilotDungeon(d)) continue;
         const floors = dungeonTrial.FLOOR_COUNTS[d.id];
         if (!dungeonCheckpoint.validate(saved, d, team, floors)) continue;
