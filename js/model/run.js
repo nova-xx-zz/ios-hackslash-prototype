@@ -81,7 +81,15 @@
         const tpl = getEnemyTemplate(role.key);
         if (!tpl) throw new RangeError("Unknown enemy: " + role.key);
         // 旧battleIndex×6%を全戦闘数へ掛けない。階層による緩やかな伸びだけ適用。
-        const mult = (1 + (d.level - 1) * 0.12) * (1 + (entry.floor - 1) * 0.045) * (role.isBoss ? 1.55 : 1);
+        // 深層の通常敵だけの強さを後から校正可能にする。
+        // 中ボス・最終ボスには適用しない。通常設定が無ければ旧値1.0。
+        const lateNormalFactor = d.id === "cave" && entry.floor >= 4 && !role.isBoss
+          ? (d.pilotLateNormalFactor === undefined ? 1 : d.pilotLateNormalFactor) : 1;
+        if (!Number.isFinite(lateNormalFactor) || lateNormalFactor <= 0 || lateNormalFactor > 1) {
+          throw new RangeError("invalid pilot late-floor normal multiplier");
+        }
+        const mult = (1 + (d.level - 1) * 0.12) * (1 + (entry.floor - 1) * 0.045)
+          * (role.isBoss ? 1.55 : 1) * lateNormalFactor;
         const enemy = makeEnemy(tpl, mult, role.isBoss, d.power, role.isRare, d.mode);
         enemy.pilotBoss = role.isBoss && d.id === "cave";
         enemy.pilotPhase = 1;
@@ -400,13 +408,14 @@
     // 1周ぶんの結果をjs/core/offline.jsで計算する（ゲームの状態はまだ変えない）。
     // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
     // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
-    function computeOfflineRun(dungeon, teamIndex) {
+    function computeOfflineRun(dungeon, teamIndex, observers) {
       const party = R.teamMembers(teamIndex).map((c) => {
         const s = R.computeStats(c);
         return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
       });
       const env = Object.assign({}, deps.battleEnv(), { rng });
       const pilot = isPilotDungeon(dungeon) ? createPilotSchedule(dungeon) : null;
+      const observeBattle = observers && typeof observers.onBattleFinish === "function" ? observers.onBattleFinish : null;
       let offlineAuraDef = 0;
       if (pilot) {
         const originalStats = env.stats;
@@ -421,6 +430,13 @@
         rules: REWARD_RULES,
         timing: OFFLINE_TIMING,
         buildEncounter: (i) => pilot ? buildPilotEncounter(dungeon, pilot.schedule[i]) : buildEncounter(dungeon, i),
+        onBattleFinish: observeBattle ? (result) => observeBattle({
+          ...result, floor: pilot ? pilot.schedule[result.index].floor : null,
+          boss: pilot ? !!pilot.schedule[result.index].boss : result.index === dungeon.battles - 1,
+          alive: party.filter(c => c.alive).length,
+          hp: party.reduce((s,c) => s + Math.max(0,c.hp), 0),
+          mp: party.reduce((s,c) => s + Math.max(0,c.mp), 0),
+        }) : null,
         fight: (enemies) => {
           if (party.length === 0) return { won: false, seconds: 0 };
           const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
@@ -620,7 +636,10 @@
       rollEvent: (run) => inRun(run, () => rollEvent(run)),
       finishRun, advanceAutoRepeat, interruptRun,
       estimateOfflineRunSeconds,
-      computeOfflineRun: (dungeon, teamIndex) => inStream(newStream(), () => computeOfflineRun(dungeon, teamIndex)),
+      computeOfflineRun: (dungeon, teamIndex, observers) => inStream(
+        observers && Number.isSafeInteger(observers.seed) && observers.seed >= 0 && observers.seed <= 0xffffffff
+          ? rngMod.seededSource(observers.seed) : newStream(),
+        () => computeOfflineRun(dungeon, teamIndex, observers)),
       applyOfflineRun, runOfflineProgressForTeam, runOfflineProgress,
     };
   }
