@@ -587,8 +587,12 @@ test("階層パイロット: 未確定UR/LRを全滅・撤退でロストし、�
   const { Runner, state } = setup({seed:33, enableFloorPilot:true, level:22});
   const run = Runner.startRun(0, "plains");
   const { battle } = Runner.startBattle(run);
+  assert.throws(() => Runner.winBattle(run, battle), /living enemies/);
+  for (const e of battle.enemies) e.alive = false;
   const win = Runner.winBattle(run, battle);
   assert.equal(win.isLast, false);
+  assert.throws(() => Runner.winBattle(run, battle), /already resolved/);
+  assert.throws(() => Runner.finishRun(run, true), /Final boss/);
   assert.ok(run.pendingDrops.length);
   assert.ok(!state.clearedDungeons.has("plains"));
   const rare = {id:"pilot-ur",base:"bronze_sword",slot:"weapon",stats:{atk:10},rarity:"ur",plus:0,materialValue:400};
@@ -597,6 +601,8 @@ test("階層パイロット: 未確定UR/LRを全滅・撤退でロストし、�
   const before = state.inventory.length;
   Runner.finishRun(run,false);
   assert.equal(run.wiped,true);
+  Runner.finishRun(run,false); // 二重呼び出しでも報酬・履歴を増やさない
+  assert.equal(state.records.runHistory.length,1);
   assert.equal(state.inventory.length,before);
   assert.equal(state.records.itemsFound.includes("bronze_sword:ur"),false);
   assert.equal(state.records.itemsFound.includes("bronze_sword:lr"),false);
