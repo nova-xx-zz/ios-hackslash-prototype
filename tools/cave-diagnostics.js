@@ -10,13 +10,14 @@ const POWER = Object.freeze([
 ]);
 const BUILDS = Object.freeze(["recommended", "reinforced", "refined"]);
 const SEED_BASE = 87001000;
-function measureCave(profileId, factor, trials = 240) {
+function measureCave(profileId, factor, trials = 240, lateFactor = 1) {
   const profile = PROFILES.find(p => p.id === profileId);
   if (!profile || !BUILDS.includes(profileId) || !Number.isInteger(trials) || trials < 1 || trials > 2500 ||
-      !POWER.some(p => p.factor === factor)) throw Error("invalid diagnostic case");
+      !POWER.some(p => p.factor === factor) || ![1, .95, .9, .85, .8, .75, .7, .65].includes(lateFactor)) throw Error("invalid diagnostic case");
   const scenario = buildScenario("cave", profile, SEED_BASE);
   // Isolated in-memory dungeon value; never modify global DUNGEONS or game defaults.
-  const simulated = Object.assign({}, scenario.d, { power: Number((scenario.d.power * factor).toFixed(5)) });
+  const simulated = Object.assign({}, scenario.d, { power: Number((scenario.d.power * factor).toFixed(5)),
+    pilotLateNormalFactor: lateFactor });
   const floorFailures = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, boss: 0, timeout: 0 };
   const boss = { reached: 0, defeated: 0 };
   const floorVisits = [0,0,0,0,0];
@@ -57,7 +58,7 @@ function measureCave(profileId, factor, trials = 240) {
   }
   const pct=x=>Math.round(x * 10000 / trials)/100;
   const num=x=>Math.round(x*100)/100;
-  return { profileId, factor, configuredPower: simulated.power, trials,
+  return { profileId, factor, lateFactor, configuredPower: simulated.power, trials,
     clear, fail, clearPct:pct(clear), failPct:pct(fail),
     floorFailures, floorVisits, boss, bossReachPct:pct(boss.reached),
     bossWinPctOfReached:boss.reached?num(boss.defeated*100/boss.reached):null,
@@ -67,17 +68,21 @@ function measureCave(profileId, factor, trials = 240) {
     avgSeconds:num(summedSeconds/trials), dropsPerTry:num(sumDrops/trials),
     maxObservedEnemies, failedDropsLeaked:!zeroLeak, wins };
 }
-function runDiagnostics(trials=240){
+function runDiagnostics(trials=240, mode="power"){
   const rows=[];
-  for(const p of POWER) for(const id of BUILDS) rows.push(measureCave(id,p.factor,trials));
-  return { version:1,trials,seedBase:SEED_BASE,rows };
+  if (mode === "late") {
+    for (const factor of [1, .9, .8, .7]) for (const id of BUILDS) rows.push(measureCave(id,1,trials,factor));
+  } else if (mode === "power") {
+    for(const p of POWER) for(const id of BUILDS) rows.push(measureCave(id,p.factor,trials));
+  } else throw Error("unknown mode");
+  return { version:1,trials,mode,seedBase:SEED_BASE,rows };
 }
 if(require.main===module) {
   const a=process.argv.find(s=>s.startsWith("--trials="));
-  const result=runDiagnostics(a?Number(a.split("=")[1]):240);
+  const result=runDiagnostics(a?Number(a.split("=")[1]):240,process.argv.includes("--late")?"late":"power");
   console.log("cave 5F boss-stage failure diagnostic, normal difficulty");
-  console.log("profile power clear% reachedBoss% defeatedAtBoss failedF1/F2/F3/F4/F5 boss avgSec");
-  for(const r of result.rows) console.log([r.profileId,r.configuredPower,r.clearPct,r.bossReachPct,r.floorFailures.boss,
+  console.log("profile power lateNormalMult clear% reachedBoss% defeatedAtBoss failedF1/F2/F3/F4/F5 boss avgSec");
+  for(const r of result.rows) console.log([r.profileId,r.configuredPower,r.lateFactor,r.clearPct,r.bossReachPct,r.floorFailures.boss,
     ...[1,2,3,4,5].map(x=>r.floorFailures[x]),r.avgSeconds].join(" "));
   console.log("CAVE_DIAGNOSTIC_JSON="+JSON.stringify(result));
 }
