@@ -69,14 +69,39 @@ function equipScenario(c, roster, d, profile) {
     }
   }
 }
+// An entirely simulation-only early enhancement proposal. We do not replace the
+// live itemStats function. Preserve all rarity/+99 behavior except a capped
+// +1/+2/+3 main-stat milestone at +4/+8/+12 (max 3 late-game).
+function itemStatsEarlyMilestones(item) {
+  const original = data.itemStats(item);
+  const plus = Number(item && item.plus) || 0;
+  const stages = Math.floor(Math.min(Math.max(0, plus), 12) / 4);
+  if (!stages) return original;
+  const raw = item.stats || (item.stat ? { [item.stat]: item.value || 0 } : {});
+  const keys = Object.keys(raw);
+  if (!keys.length || !raw[keys[0]]) return original;
+  const main = raw[keys[0]];
+  const out = { ...original };
+  for (const key of keys) {
+    // Main stat gets exactly one extra point per 4 enhancements.
+    const gain = Math.round(stages * raw[key] / main);
+    out[key] += gain;
+  }
+  return out;
+}
+
 function buildScenario(dungeonId, profile, seed, options = {}) {
   if (!IDS.includes(dungeonId) || !PROFILES.some(p => p.id === profile.id)) throw Error("invalid scenario");
   const d = data.getDungeon(dungeonId);
   const state = createState({ teamCount: 4 });
   const rng = createRng(seed);
   let runner = null;
+  const gearPreview = options.enhancePreview || "current";
+  if (!["current", "earlyMilestones"].includes(gearPreview)) throw new RangeError("invalid enhancement preview");
+  const modelData = gearPreview === "earlyMilestones"
+    ? Object.assign({}, data, { itemStats: itemStatsEarlyMilestones }) : data;
   const roster = createRoster({
-    data, state, runBuffs: (team) => runner ? runner.runBuffs(team) : null,
+    data: modelData, state, runBuffs: (team) => runner ? runner.runBuffs(team) : null,
     isTeamLocked: (team) => runner ? runner.isTeamLocked(team) : false,
   });
   const inventory = createInventory({ data, state, roster, rng, isFeatureEnabled: data.isFeatureEnabled });
@@ -120,7 +145,7 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
   });
-  return { d, state, roster, runner };
+  return { d, state, roster, runner, enhancementPreview: gearPreview };
 }
 
 function measureScenario(dungeonId, profileId, trials, seed) {
@@ -205,4 +230,4 @@ if (require.main === module) {
   const trials = input ? Number(input.split("=")[1]) : 32;
   printReport(runBalance(trials));
 }
-module.exports = { buildScenario, measureScenario, runBalance, printReport, PROFILES, IDS, SEEDS };
+module.exports = { buildScenario, itemStatsEarlyMilestones, measureScenario, runBalance, printReport, PROFILES, IDS, SEEDS };
