@@ -175,6 +175,15 @@ function rollDungeonEvent(run) {
   if (ev.kind === "treasure") {
     if (!ev.item) logEvent(t, "treasure", "宝箱を見つけた！", "しかし、宝箱の中身は空っぽだった・・・");
     else logEvent(t, "treasure", "宝箱を見つけた！", `${itemLabel(ev.item)} を手に入れた`);
+  } else if (ev.kind === "lockedTreasure") {
+    const message = ev.success ? `盗賊の解錠に成功！ ${itemLabel(ev.item)} は踏破まで未確定`
+      : "解錠スキルが未習得、または解錠に失敗した";
+    logEvent(t, "treasure", "鍵付き宝箱を発見した！", message);
+  } else if (ev.kind === "springAura") {
+    logEvent(t, "blessing", "不思議な泉から魔力の霧が漂う……",
+      ev.defensePercent > 0 ? `守護の加護：防御力+${Math.round(ev.total * 100)}%（累積）`
+        : `弱化の霧：防御補正${Math.round(ev.total * 100)}%（累積）`);
+    if (t === S.activeTeam) { renderDock(); updateBattleDOM(); }
   } else if (ev.kind === "trap") {
     logEvent(t, "trap", ev.wide ? "毒ガスが噴き出した！" : "落とし穴に落ちた！", "");
     for (const h of ev.hits) logLine(t, `${h.c.name} は ${h.dmg} のダメージを受けた`, "down");
