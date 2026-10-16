@@ -69,7 +69,7 @@ function equipScenario(c, roster, d, profile) {
     }
   }
 }
-function buildScenario(dungeonId, profile, seed) {
+function buildScenario(dungeonId, profile, seed, options = {}) {
   if (!IDS.includes(dungeonId) || !PROFILES.some(p => p.id === profile.id)) throw Error("invalid scenario");
   const d = data.getDungeon(dungeonId);
   const state = createState({ teamCount: 4 });
@@ -80,8 +80,15 @@ function buildScenario(dungeonId, profile, seed) {
     isTeamLocked: (team) => runner ? runner.isTeamLocked(team) : false,
   });
   const inventory = createInventory({ data, state, roster, rng, isFeatureEnabled: data.isFeatureEnabled });
-  const specs = STARTER_PARTY.map(x => Object.assign({}, x));
-  if (profile.thief) specs[1] = { job: "thief", race: "beastkin" };
+  // Allow diagnostics to substitute a five-member composition while preserving races.
+  // This stays in the benchmark harness and is never exposed to the live game.
+  const supplied = options.partySpecs;
+  if (supplied && (!Array.isArray(supplied) || supplied.length !== 5 ||
+    supplied.some(x => !x || !data.JOBS[x.job] || !data.RACES[x.race]))) {
+    throw new TypeError("partySpecs must be five valid job/race members");
+  }
+  const specs = (supplied || STARTER_PARTY).map(x => Object.assign({}, x));
+  if (profile.thief && !supplied) specs[1] = { job: "thief", race: "beastkin" };
   state.roster = specs.map((spec, i) => {
     const c = roster.newCharacter("測定員" + i, spec.job, spec.race, { team: 0, level: d.level });
     equipScenario(c, roster, d, profile);
