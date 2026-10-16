@@ -259,3 +259,23 @@ test("攻撃対象が「ランダム」の味方がいても、強化・弱体�
   const b = { enemies: [enemy("x", 3000, { def: 40 }), enemy("y", 3000)], time: 0 };
   assert.doesNotThrow(() => battle.chooseAction(c, party, env, b.enemies, b));
 });
+
+test("階層版ロックゴーレム: 実戦闘stepでHP60%以下の鎧硬化は1回だけ、撃破後は起こらない", () => {
+  const c = member("戦士", S, { atb: 100 });
+  const b = enemy("ロックゴーレム", 100, { key: "rock_golem", hp: 60, def: 10, spd: 0, pilotBoss: true, pilotPhase: 1 });
+  const env = envWith();
+  const first = battle.step({ enemies: [b] }, [c], 0.05, env);
+  assert.equal(first.events.filter((x) => x.type === "bossPhase").length, 1);
+  assert.equal(b.pilotPhase, 2);
+  assert.equal(b.def, 13);
+  c.atb = 100;
+  const second = battle.step({ enemies: [b] }, [c], 0.05, env);
+  assert.equal(second.events.filter((x) => x.type === "bossPhase").length, 0);
+  assert.equal(b.def, 13);
+
+  const killer = member("強打", Object.assign({}, S, { atk: 150 }), { atb: 100 });
+  const fragile = enemy("ロックゴーレム", 100, { key: "rock_golem", hp: 1, spd: 0, pilotBoss: true, pilotPhase: 1 });
+  const killed = battle.step({ enemies: [fragile] }, [killer], 0.05, env);
+  assert.equal(killed.result, "victory");
+  assert.equal(killed.events.filter((x) => x.type === "bossPhase").length, 0);
+});
