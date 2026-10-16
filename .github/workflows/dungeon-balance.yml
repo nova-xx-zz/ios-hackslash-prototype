@@ -1,0 +1,20 @@
+name: Dungeon balance trial
+on:
+  push:
+    branches:
+      - 'feature/dungeon-balance-*'
+  workflow_dispatch:
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Run deterministic dungeon balance study
+        run: node tools/dungeon-balance.js --trials=96
