@@ -3,6 +3,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const { data }=require("../tools/lib/sim.js");
 const enh=require("../js/core/enhance.js");
+const {loadGameData}=require("../tools/lib/load-data.js");
 const { expectedStageCost,enhancementCosts,gatherEconomy,compareMilestones,CONFIGS }=require("../tools/enhancement-economy.js");
 
 test("強化石の期待消費は本体コスト・成功確率・失敗天井から一致して導ける",()=>{
@@ -52,4 +53,14 @@ test("装備5人分の強化に必要な周回目安は実際の強化消費と�
  const c12=enhancementCosts("n",0,12);
  assert.ok(c4.expectedStones<c8.expectedStones);
  assert.ok(c8.expectedStones<c12.expectedStones);
+});
+
+test("R装備の初期分解OFFは専用試験URLに限定し、通常ゲームの初期設定と分解OFFを維持",()=>{
+  const normal=loadGameData({storage:{isGearTrialMode:()=>false}});
+  const trial=loadGameData({storage:{isGearTrialMode:()=>true}});
+  assert.deepEqual(Array.from(normal.DEFAULT_AUTO_DISASSEMBLE_RARITIES),["n","r"]);
+  assert.deepEqual(Array.from(trial.DEFAULT_AUTO_DISASSEMBLE_RARITIES),["n"]);
+  const state=require("node:fs").readFileSync(require("node:path").join(__dirname,"../js/ui/state.js"),"utf8");
+  assert.match(state,/autoDisassemble = store\.getString\(KEYS\.autoDisassemble\) === "1"/);
+  assert.match(state,/if \(Array\.isArray\(saved\)\) autoDisassembleRarities = new Set\(saved\)/);
 });
