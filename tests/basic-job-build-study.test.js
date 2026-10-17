@@ -7,7 +7,7 @@ const {PARTY_BUILDS,SKILLS,GEAR,characterSpecs,measureBuild,runStudy}=require(".
 
 test("一次職6種類を、9種類の合法な5人編成に配置",()=>{
  const all=new Set(Object.values(PARTY_BUILDS).flat());
- assert.deepEqual([...all].sort(),data.BASIC_JOB_IDS.slice().sort());
+ assert.deepEqual([...all].sort(),Object.values(data.JOBS).filter(j=>j.tier==="basic").map(j=>j.id).sort());
  for(const jobs of Object.values(PARTY_BUILDS)){
    assert.equal(jobs.length,5);
    assert.equal(characterSpecs(jobs).length,5);
