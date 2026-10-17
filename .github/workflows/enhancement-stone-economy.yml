@@ -1,0 +1,19 @@
+name: Enhancement stone economy
+on:
+  push:
+    branches:
+      - 'feature/enhancement-stone-economy-*'
+  workflow_dispatch:
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Measure actual 3F/5F loot versus enhancement costs
+        run: node tools/enhancement-economy.js --trials=120
