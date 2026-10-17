@@ -17,3 +17,5 @@ jobs:
       - run: npm ci
       - name: Compare real basic job teams, skill settings and equipment
         run: node tools/basic-job-build-study.js --trials=40
+      - name: Confirm healer vs monk vs dark knight with 160 runs and tree toggles
+        run: node tools/basic-job-build-study.js --focus --trials=160
