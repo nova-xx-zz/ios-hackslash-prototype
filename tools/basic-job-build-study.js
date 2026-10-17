@@ -27,7 +27,7 @@ const SEED=2026101700;
 const ROUND=n=>Math.round(n*100)/100;
 function characterSpecs(jobs) {
   if(!Array.isArray(jobs)||jobs.length!==5)throw new TypeError("need five members");
-  if(jobs.some(j=>!data.BASIC_JOB_IDS.includes(j)))throw new RangeError("basic jobs only");
+  if(jobs.some(j=>!data.JOBS[j] || data.JOBS[j].tier!=="basic"))throw new RangeError("basic jobs only");
   return jobs.map((job,i)=>({job,race:STARTER_PARTY[i].race}));
 }
 function measureBuild(partyId,level,gearId,skillStrategy,trials=40){
