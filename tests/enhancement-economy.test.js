@@ -46,6 +46,9 @@ test("装備5人分の強化に必要な周回目安は実際の強化消費と�
  assert.equal(report.configs.length,5);
  assert.equal(report.examples.length,5);
  assert.equal(report.costs.length,5*2*5);
+ assert.ok(report.configs.every(x=>x.equipmentPlan.equippedPieces>=5));
+ assert.ok(report.configs.every(x=>x.equipmentPlan.expectedStonesToUpgradeAll["4"]>=0));
+ assert.ok(report.configs.every(x=>x.equipmentPlan.expectedStonesToUpgradeAll["12"]>=x.equipmentPlan.expectedStonesToUpgradeAll["4"]));
  assert.ok(report.configs.every(x=>x.trials===2));
  assert.ok(report.costs.every(x=>x.expectedStones>=x.bestCaseStones));
  const c4=enhancementCosts("n",0,4);
