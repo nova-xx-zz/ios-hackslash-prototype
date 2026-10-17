@@ -1,0 +1,19 @@
+name: Basic job build study
+on:
+  push:
+    branches:
+      - 'feature/basic-job-skill-build-*'
+  workflow_dispatch:
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Compare real basic job teams, skill settings and equipment
+        run: node tools/basic-job-build-study.js --trials=40
