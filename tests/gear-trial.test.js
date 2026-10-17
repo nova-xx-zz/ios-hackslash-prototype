@@ -71,8 +71,10 @@ test("actual browser data.itemStats uses the same trial formula only when explic
 
 test("script order allows gearTrial opt-in before equipment and data load", () => {
   const index=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
-  const i=x=>index.indexOf('src="'+x+'"');
-  assert.ok(i("js/core/storage.js?v=8")>=0);
-  assert.ok(i("js/core/equipment.js?v=5")>i("js/core/storage.js?v=8"));
-  assert.ok(i("js/data.js?v=34")>i("js/core/equipment.js?v=5"));
+  // Asset versions change whenever iPhone Safari caches are invalidated.
+  // Assert script load order by filename without pinning cache-buster versions.
+  const i=x=>index.indexOf('src="'+x+'?v=');
+  assert.ok(i("js/core/storage.js")>=0);
+  assert.ok(i("js/core/equipment.js")>i("js/core/storage.js"));
+  assert.ok(i("js/data.js")>i("js/core/equipment.js"));
 });
