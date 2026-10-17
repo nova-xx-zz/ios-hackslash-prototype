@@ -41,6 +41,20 @@ test("スキル設定は本人のON/OFFと優先度を反映し実戦闘へ渡�
  assert.equal(neutral.skillStrategy,"normal");
 });
 
+test("同一PT・同一装備でツリー振分けだけを無効にできる",()=>{
+ const p=PROFILES.find(x=>x.id==="recommended");
+ const members=characterSpecs(PARTY_BUILDS.monkThief);
+ const withTree=buildScenario("cave",p,10,{partySpecs:members,treeStrategy:"standard"});
+ const without=buildScenario("cave",p,10,{partySpecs:members,treeStrategy:"off"});
+ assert.deepEqual(withTree.state.roster.map(x=>x.job),without.state.roster.map(x=>x.job));
+ assert.deepEqual(withTree.state.roster.map(x=>x.equip),without.state.roster.map(x=>x.equip));
+ assert.equal(without.treeStrategy,"off");
+ assert.ok(withTree.state.roster.some((x,i)=>{
+  const a=withTree.roster.computeStats(x),b=without.roster.computeStats(without.state.roster[i]);
+  return a.atk!==b.atk||a.def!==b.def||a.maxHp!==b.maxHp||a.mag!==b.mag||a.spd!==b.spd;
+ }));
+});
+
 test("実戦闘・同seedで再現でき、全滅後の未確定品は持ち帰らない",()=>{
  const a=measureBuild("monkNoPriest",7,"recommended","normal",3);
  const b=measureBuild("monkNoPriest",7,"recommended","normal",3);
