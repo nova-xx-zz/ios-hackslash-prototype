@@ -101,9 +101,22 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
   }
   const specs = (supplied || STARTER_PARTY).map(x => Object.assign({}, x));
   if (profile.thief && !supplied) specs[1] = { job: "thief", race: "beastkin" };
+  const skillStrategy = options.skillStrategy || "normal";
+  if (!["normal", "mpSave", "burstHeal"].includes(skillStrategy)) throw new RangeError("invalid skill strategy");
+  const level = options.levelOverride === undefined ? d.level : options.levelOverride;
+  if (!Number.isInteger(level) || level < d.level || level > 99) throw new RangeError("invalid level");
   state.roster = specs.map((spec, i) => {
-    const c = roster.newCharacter("測定員" + i, spec.job, spec.race, { team: 0, level: d.level });
+    const c = roster.newCharacter("測定員" + i, spec.job, spec.race, { team: 0, level });
     equipScenario(c, roster, d, profile);
+    // Use the same character ability switches/priority fields the real game UI edits.
+    // No synthetic skills or sub-abilities are granted to Lv7 characters.
+    if (skillStrategy === "mpSave") {
+      for (const id of ["mega_fire", "mega_heal", "drain"]) c.skillActive[id] = false;
+    } else if (skillStrategy === "burstHeal") {
+      for (const id of ["heal", "mega_heal", "chi_heal", "drain"]) {
+        if (roster.availableAbilities(c).some(a => a.id === id)) c.abilityPriority[id] = 3;
+      }
+    }
     const s = roster.computeStats(c);
     c.hp = s.maxHp; c.mp = s.maxMp;
     return c;
@@ -117,7 +130,7 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
     stats: roster.computeStats,
     abilities: (c) => roster.availableAbilities(c).filter(a => roster.isSkillActive(c, a.id)),
     mpCost: (c, a) => Math.max(0, Math.round(a.mpCost * (roster.racePassive(c, "mpCostMult") || 1) * (roster.treePassive(c, "mpCostMult") || 1))),
-    tier: () => 2,
+    tier: (c, id) => c.abilityPriority[id] || 2,
     passives: (c) => ({
       lifesteal: roster.racePassive(c, "lifesteal") + roster.treePassive(c, "lifesteal"),
       healBonus: roster.racePassive(c, "healBonus") + roster.treePassive(c, "healBonus"),
@@ -132,7 +145,7 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
   });
-  return { d, state, roster, runner, enhancementPreview: gearPreview };
+  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy };
 }
 
 function measureScenario(dungeonId, profileId, trials, seed) {
