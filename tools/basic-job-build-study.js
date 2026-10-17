@@ -20,8 +20,9 @@ const PARTY_BUILDS=Object.freeze({
 const LEVELS=Object.freeze([7,10]);
 const SKILLS=Object.freeze(["normal","mpSave","burstHeal"]);
 const GEAR=Object.freeze([
- {id:"recommended",profile:"recommended",preview:"current"},
- {id:"enhancedTrial",profile:"reinforced",preview:"earlyMilestones"}
+ {id:"recommended",profile:"recommended",preview:"current",tree:"standard"},
+ {id:"treeOff",profile:"recommended",preview:"current",tree:"off"},
+ {id:"enhancedTrial",profile:"reinforced",preview:"earlyMilestones",tree:"standard"}
 ]);
 const SEED=2026101700;
 const ROUND=n=>Math.round(n*100)/100;
@@ -37,7 +38,7 @@ function measureBuild(partyId,level,gearId,skillStrategy,trials=40){
   const profile=PROFILES.find(x=>x.id===gear.profile);
   const s=buildScenario("cave",profile,SEED,{
     partySpecs:characterSpecs(jobs),levelOverride:level,
-    skillStrategy,enhancePreview:gear.preview,
+    skillStrategy,enhancePreview:gear.preview,treeStrategy:gear.tree,
   });
   // Always test at the original difficulty; never rely on the proposed nerf.
   const dungeon={...s.d,pilotLateNormalFactor:1};
@@ -108,6 +109,16 @@ function measureBuild(partyId,level,gearId,skillStrategy,trials=40){
     })),
   };
 }
+function runFocus(trials=160){
+  if(!Number.isInteger(trials)||trials<1||trials>500)throw new RangeError("invalid focus trials");
+  // Reduced but larger-sample factorial across healer, monk and dark knight approaches.
+  const chosen=["baseline","twoPriestThief","monkThief","darkThief","monkNoPriest","doubleDark"];
+  const rows=[];
+  for(const id of chosen)for(const gear of GEAR)for(const mode of SKILLS)
+    rows.push(measureBuild(id,7,gear.id,mode,trials));
+  return {schema:1,kind:"confirmatory",trials,seedBase:SEED,rows};
+}
+
 function runStudy(trials=40){
   const rows=[];
   for(const level of LEVELS)for(const [id] of Object.entries(PARTY_BUILDS))
@@ -117,10 +128,12 @@ function runStudy(trials=40){
 }
 if(require.main===module){
   const arg=process.argv.find(s=>s.startsWith("--trials="));
-  const report=runStudy(arg?Number(arg.split("=")[1]):40);
+  const report=process.argv.includes("--focus")
+    ?runFocus(arg?Number(arg.split("=")[1]):160)
+    :runStudy(arg?Number(arg.split("=")[1]):40);
   console.log("BASIC_JOB_BUILD_STUDY v1 -- 6 starting jobs, 9 parties, 2 gear profiles, 3 skill choices, Lv7/Lv10");
   console.log("level party gear mode clear% avgSeconds stone/try");
   for(const x of report.rows)console.log([x.level,x.partyId,x.gearId,x.skillStrategy,x.clearPct,x.avgGameSec,x.avgStones].join(" "));
   console.log("BASIC_JOB_STUDY_JSON="+JSON.stringify(report));
 }
-module.exports={PARTY_BUILDS,LEVELS,SKILLS,GEAR,SEED,characterSpecs,measureBuild,runStudy};
+module.exports={PARTY_BUILDS,LEVELS,SKILLS,GEAR,SEED,characterSpecs,measureBuild,runStudy,runFocus};
