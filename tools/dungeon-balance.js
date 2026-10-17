@@ -35,12 +35,29 @@ const FIXED_OPS = Object.freeze({
 });
 const DISASSEMBLE = { enabled: true, rarities: new Set(["n"]) };
 
-function equipScenario(c, roster, d, profile) {
+function equipScenario(c, roster, d, profile, branch = "left") {
   if (profile.tree) {
     const state = roster.getTreeState(c);
     const chosen = standardTreeRanks(c.job, c.level);
     if (chosen.length !== 1 + data.GENERAL_SLOTS.length) throw Error("unexpected tree layout");
-    state.exclusiveRanks = Object.assign({}, chosen[0].ranks);
+    const ranks = Object.assign({}, chosen[0].ranks);
+    if (branch === "right") {
+      // Change exactly the first mutually-exclusive branch in the real job tree.
+      // Costs, prerequisites and node IDs come from actual game data.
+      const tree = chosen[0].tree;
+      const active = tree.nodes.find(n => n.exclusiveGroup && ranks[n.id] > 0);
+      if (active) {
+        const alternatives = tree.nodes.filter(n => n.exclusiveGroup === active.exclusiveGroup && n.id !== active.id);
+        const right = alternatives.at(-1);
+        if (right && right.costByRank[0] === active.costByRank[0] &&
+            (!right.reqLevel || c.level >= right.reqLevel) &&
+            right.prerequisites.every(p => (ranks[p.nodeId] || 0) >= p.minRank)) {
+          delete ranks[active.id];
+          ranks[right.id] = 1;
+        }
+      }
+    }
+    state.exclusiveRanks = ranks;
     for (let i = 0; i < data.GENERAL_SLOTS.length; i++) {
       const slot = data.GENERAL_SLOTS[i].key;
       state.general[slot].ranks = Object.assign({}, chosen[i + 1].ranks);
@@ -103,13 +120,17 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
   if (profile.thief && !supplied) specs[1] = { job: "thief", race: "beastkin" };
   const treeStrategy = options.treeStrategy || "standard";
   if (!["standard", "off"].includes(treeStrategy)) throw new RangeError("invalid tree strategy");
+  const treeBranch = options.treeBranch || "left";
+  if (!["left", "right"].includes(treeBranch)) throw new RangeError("invalid tree branch");
+  const enemyElement = options.enemyElement || "native";
+  if (!["native", "火", "氷", "闇", "光"].includes(enemyElement)) throw new RangeError("invalid enemy element");
   const skillStrategy = options.skillStrategy || "normal";
   if (!["normal", "mpSave", "burstHeal"].includes(skillStrategy)) throw new RangeError("invalid skill strategy");
   const level = options.levelOverride === undefined ? d.level : options.levelOverride;
   if (!Number.isInteger(level) || level < d.level || level > 99) throw new RangeError("invalid level");
   state.roster = specs.map((spec, i) => {
     const c = roster.newCharacter("測定員" + i, spec.job, spec.race, { team: 0, level });
-    equipScenario(c, roster, d, treeStrategy === "off" ? {...profile, tree:false} : profile);
+    equipScenario(c, roster, d, treeStrategy === "off" ? {...profile, tree:false} : profile, treeBranch);
     // Use the same character ability switches/priority fields the real game UI edits.
     // No synthetic skills or sub-abilities are granted to Lv7 characters.
     if (skillStrategy === "mpSave") {
@@ -141,13 +162,21 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
       pierce: roster.treePassive(c, "pierce") || 0,
     }),
   });
+  // Attribute scenarios recolor the EXISTING cave enemies only in memory.
+  // Actual enemy data/element-affinity tables and combat rules are reused;
+  // this does not mutate any dungeon definition, save, or production combat.
+  const runnerData = enemyElement === "native" ? data : Object.assign({}, data, {
+    makeEnemy: (template, ...args) => data.makeEnemy(
+      Object.assign({}, template, { element: enemyElement }), ...args
+    )
+  });
   runner = createRunner({
-    data, state, roster, inventory, rng, teamCount: 4, battleEnv: env,
+    data: runnerData, state, roster, inventory, rng, teamCount: 4, battleEnv: env,
     enableFloorPilot: true,
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
   });
-  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy };
+  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement };
 }
 
 function measureScenario(dungeonId, profileId, trials, seed) {
