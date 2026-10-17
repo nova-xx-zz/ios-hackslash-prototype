@@ -1,0 +1,19 @@
+name: Element and tree buildcraft study
+on:
+  push:
+    branches:
+      - 'feature/element-tree-build-study-*'
+  workflow_dispatch:
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Measure elemental affinity and exclusive tree branch builds
+        run: node tools/element-tree-build-study.js --trials=60
