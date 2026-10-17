@@ -64,6 +64,16 @@ function gatherEconomy(config, trials=120) {
   const scenario=buildScenario(config.dungeonId,profile,SEED_BASE,opts);
   const dungeon={...scenario.d};
   if(config.dungeonId==="cave")dungeon.pilotLateNormalFactor=config.lateFactor;
+  // Equipment slot count comes from real job/race equipment restrictions.
+  const worn = scenario.state.roster.flatMap(ch => Object.values(ch.equip || {}).filter(Boolean));
+  const equipmentPlan = {
+    equippedPieces: worn.length,
+    rarityCounts: worn.reduce((acc,item)=>(acc[item.rarity]=(acc[item.rarity]||0)+1,acc),{}),
+    expectedStonesToUpgradeAll: Object.fromEntries([4,8,12].map(to=>[
+      String(to), round(worn.reduce((sum,item)=>
+        sum+(item.plus>=to?0:enhancementCosts(item.rarity,item.plus,to).expectedStones),0))
+    ]))
+  };
   const counts=Object.fromEntries(FILTERS.map(f=>[f.id,{stones:0,kept:0,disassembled:0,clears:0,zeroClears:0,perAttempt:[]}]));
   let seconds=0, cleared=0, fail=0, failedLeaks=0,totalDrops=0;
   for(let i=0;i<trials;i++){
@@ -106,6 +116,7 @@ function gatherEconomy(config, trials=120) {
   return {id:config.id,dungeonId:config.dungeonId,partyId:config.partyId,
     gearProfile:config.profileId,lateNormalFactor:config.lateFactor,
     trials,cleared,failed:fail,clearPct:round(100*cleared/trials),avgGameSeconds:round(seconds/trials),
+    equipmentPlan,
     confirmedDropsPerAttempt:round(totalDrops/trials),filters};
 }
 
@@ -141,12 +152,13 @@ if(require.main===module){
   const arg=process.argv.find(s=>s.startsWith("--trials="));
   const report=compareMilestones(arg?Number(arg.split("=")[1]):120);
   console.log("DUNGEON_STONE_ECONOMY_V1 trials="+report.trials);
-  console.log("case win% sec/try N-only stone/try default N+R stone/try kept/try runs five N +4 /+8 /+12");
+  console.log("case win% sec/try N-only stone/try default N+R stone/try kept/try wornPieces all+4 stones runs five N +4 /+8 /+12");
   for(const c of report.configs){
     const n=c.filters.find(f=>f.filter==="n"),d=c.filters.find(f=>f.filter==="default-n-r");
     const ex=report.examples.find(x=>x.id===c.id);
     console.log([c.id,c.clearPct,c.avgGameSeconds,n.stonesPerAttempt,d.stonesPerAttempt,
-      d.keptPerAttempt,ex.runsForFiveN4,ex.runsForFiveN8,ex.runsForFiveN12].join(" "));
+      d.keptPerAttempt,c.equipmentPlan.equippedPieces,c.equipmentPlan.expectedStonesToUpgradeAll["4"],
+      ex.runsForFiveN4,ex.runsForFiveN8,ex.runsForFiveN12].join(" "));
   }
   console.log("STONE_ECONOMY_JSON="+JSON.stringify(report));
 }
