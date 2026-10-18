@@ -15,6 +15,8 @@ function measure(partyId,randomTraits,trials=100){
    partySpecs:characterSpecs(PARTY_BUILDS[partyId]),randomTraitEnemies:randomTraits});
  const dungeon={...s.d,pilotLateNormalFactor:1};
  const counts={zero:0,one:0,two:0,three:0,boss:0,rare:0,
+   totalTraits:{zero:0,one:0,two:0,three:0,four:0,five:0},
+   nativeOverThree:0,
    types:{spirit:0,ward:0,armored:0,undead:0}};
  let clear=0,seconds=0,failedLoot=0,kept=0,stones=0,nonBossBattles=0;
  for(let i=0;i<trials;i++){
@@ -23,6 +25,10 @@ function measure(partyId,randomTraits,trials=100){
        if(b.boss){counts.boss++;if(b.enemies.some(e=>e.pilotAddedTrait))throw Error("boss decorated");return;}
        nonBossBattles++;
        const traitEnemies=b.enemies.filter(e=>e.pilotAddedTrait);
+       const nativeTraits=b.enemies.filter(e=>Array.isArray(e.traits)&&e.traits.length>0 && !e.pilotAddedTrait && !e.isBoss).length;
+       const total=nativeTraits+traitEnemies.length;
+       if(total>3){counts.nativeOverThree++;if(traitEnemies.length)throw Error("added to overcap native encounter");}
+       counts.totalTraits[["zero","one","two","three","four","five"][total]]++;
        const n=traitEnemies.length;
        if(n>3||n>b.enemies.length)throw Error("invalid trait count");
        counts[["zero","one","two","three"][n]]++;
