@@ -122,6 +122,8 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
   if (!["standard", "off"].includes(treeStrategy)) throw new RangeError("invalid tree strategy");
   const treeBranch = options.treeBranch || "left";
   if (!["left", "right"].includes(treeBranch)) throw new RangeError("invalid tree branch");
+  const enemyTraitMode = options.enemyTraitMode || "normal";
+  if (!["normal", "hard", "extra"].includes(enemyTraitMode)) throw new RangeError("invalid enemy trait mode");
   const enemyTrait = options.enemyTrait || "native";
   const TRAIT_EXEMPLAR = { spirit:"mirage_spirit", ward:"rock_golem", armored:"mud_crab", undead:"skeleton" };
   if (enemyTrait !== "native" && !Object.hasOwn(TRAIT_EXEMPLAR, enemyTrait)) throw new RangeError("invalid enemy trait");
@@ -178,7 +180,9 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
       // Borrow ACTUAL implementation traits/resistances from an existing enemy.
       const source = data.getEnemyTemplate(TRAIT_EXEMPLAR[enemyTrait]);
       if (!source) throw Error("trait exemplar not found: "+enemyTrait);
-      const donor = data.makeEnemy({...source, element:updated.element}, ...args);
+      const donorArgs = args.slice();
+      donorArgs[4] = enemyTraitMode;
+      const donor = data.makeEnemy({...source, element:updated.element}, ...donorArgs);
       // Preserve native element affinity and selectively add real trait flags.
       const currentElement = enemy.res && enemy.res.el || {};
       const borrowed = donor.res || {};
@@ -192,7 +196,8 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
         if (borrowed[key] !== undefined) enemy.res[key] = borrowed[key];
       }
       const originalArmor = enemy.traits.includes("armored") ? 1.5 : 1;
-      const newArmor = donor.traits.includes("armored") ? 1.5 : 1;
+      const armorMult = {normal:1.5,hard:2.5,extra:4}[enemyTraitMode];
+      const newArmor = donor.traits.includes("armored") ? armorMult : 1;
       enemy.def = Math.round(enemy.def / originalArmor * newArmor);
       enemy.traits = donor.traits.filter(t=>t===enemyTrait);
       return enemy;
@@ -204,7 +209,7 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
   });
-  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement, enemyTrait };
+  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement, enemyTrait, enemyTraitMode };
 }
 
 function measureScenario(dungeonId, profileId, trials, seed) {
