@@ -15,5 +15,9 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Native trait cap and 3F/5F regression tests
+        run: node --test tests/random-trait-encounters.test.js
+      - name: Compare 3F and 5F combat balance
+        run: node tools/random-trait-density-study.js --floor-compare --trials=100
       - name: Benchmark optional randomized 1–3 Normal trait enemies
         run: node tools/random-trait-density-study.js --trials=100
