@@ -2,7 +2,7 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const {createRng}=require("../js/core/rng.js");
-const {TRAIT_TYPES,rollTraitAssignments}=require("../js/core/trait-encounter.js");
+const {TRAIT_TYPES,rollTraitAssignments,capNativeTraitRoles}=require("../js/core/trait-encounter.js");
 const {buildScenario,PROFILES}=require("../tools/dungeon-balance.js");
 const {PARTY_BUILDS,characterSpecs}=require("../tools/basic-job-build-study.js");
 const {data}=require("../tools/lib/sim.js");
@@ -73,4 +73,50 @@ test("試験用実戦闘の一般戦闘のみ最大3特性、ボスと既存敵�
  assert.equal(data.getDungeon("cave").pilotLateNormalFactor,.8);
  assert.equal(data.getEnemyTemplate("rock_golem").element,"土");
  if(!run.cleared)assert.equal(run.drops.length,0);
+});
+
+test("敵の生成前に既存特性を最大3体へ制限、レア種族・敵数・元データを保持",()=>{
+ const roles=[
+  {key:"mud_crab",isRare:false,isBoss:false},
+  {key:"mud_crab",isRare:false,isBoss:false},
+  {key:"gold_crab",isRare:true,isBoss:false},
+  {key:"mud_crab",isRare:false,isBoss:false},
+  {key:"mud_crab",isRare:false,isBoss:false},
+ ];
+ const before=JSON.stringify(roles);
+ const a=capNativeTraitRoles(roles,["mud_crab","bat","goblin"],data.enemyTraits,createRng(449));
+ const b=capNativeTraitRoles(roles,["mud_crab","bat","goblin"],data.enemyTraits,createRng(449));
+ assert.deepEqual(a,b,"fixed seed must produce the same enemy keys");
+ assert.equal(JSON.stringify(roles),before,"do not mutate drawn enemy roles");
+ assert.equal(a.length,roles.length);
+ assert.deepEqual(a[2],roles[2],"rare enemies keep their original species and metadata");
+ assert.equal(a.filter(x=>data.enemyTraits(x.key).length>0).length,3);
+ assert.ok(a.every((x,i)=>i===2||x.key==="mud_crab"||x.key==="bat"||x.key==="goblin"));
+ assert.equal(capNativeTraitRoles(roles.slice(0,3),["mud_crab","bat"],data.enemyTraits,createRng(1)).length,3);
+ assert.throws(()=>capNativeTraitRoles(roles,["mud_crab"],data.enemyTraits,createRng(1)),/cannot cap/);
+ const bossRoles=[{key:"rock_golem",isBoss:true,isRare:false},...roles.slice(0,3)];
+ const preserved=capNativeTraitRoles(bossRoles,["mud_crab","bat"],data.enemyTraits,createRng(1));
+ assert.deepEqual(preserved[0],bossRoles[0]);
+});
+
+test("隔離パイロット3F・5Fの通常戦は既存+追加特性の合計が3体以下",()=>{
+ const p=PROFILES.find(x=>x.id==="recommended");
+ for(const dungeonId of ["plains","forest","cave"]){
+  const a=buildScenario(dungeonId,p,20261018,{randomTraitEnemies:true});
+  const b=buildScenario(dungeonId,p,20261018,{randomTraitEnemies:true});
+  let normals=0;
+  const options={seed:9927,onBattleFinish:battle=>{
+   if(battle.boss){ assert.equal(battle.enemies.some(e=>e.pilotAddedTrait),false);return; }
+   normals++;
+   assert.ok(battle.enemies.length>=1&&battle.enemies.length<=5);
+   assert.ok(battle.enemies.filter(e=>!e.isBoss&&e.traits?.length).length<=3,
+     "native and pilot added trait enemies together must not exceed 3");
+  }};
+  const x=a.runner.computeOfflineRun(a.d,0,options);
+  const y=b.runner.computeOfflineRun(b.d,0,{seed:9927});
+  assert.equal(x.cleared,y.cleared);
+  assert.equal(x.drops.length,y.drops.length);
+  assert.ok(normals>0);
+  if(!x.cleared)assert.equal(x.drops.length,0);
+ }
 });
