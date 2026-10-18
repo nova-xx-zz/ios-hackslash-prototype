@@ -8,10 +8,10 @@ const {settleDrops}=require("../js/core/rewards.js");
 const PARTIES=["baseline","twoPriestThief","monkThief","darkThief","monkNoPriest"];
 const SEED=2026101805;
 const round=n=>Math.round(n*100)/100;
-function measure(partyId,randomTraits,trials=100){
- if(!PARTIES.includes(partyId)||typeof randomTraits!=="boolean"||!Number.isInteger(trials)||trials<1||trials>1000)
+function measure(partyId,randomTraits,trials=100,dungeonId="cave"){
+ if(!PARTIES.includes(partyId)||!["plains","forest","cave"].includes(dungeonId)||typeof randomTraits!=="boolean"||!Number.isInteger(trials)||trials<1||trials>1000)
    throw RangeError("invalid comparison");
- const s=buildScenario("cave",PROFILES.find(x=>x.id==="recommended"),SEED,{
+ const s=buildScenario(dungeonId,PROFILES.find(x=>x.id==="recommended"),SEED,{
    partySpecs:characterSpecs(PARTY_BUILDS[partyId]),randomTraitEnemies:randomTraits});
  const dungeon={...s.d,pilotLateNormalFactor:1};
  const counts={zero:0,one:0,two:0,three:0,boss:0,rare:0,
@@ -27,7 +27,7 @@ function measure(partyId,randomTraits,trials=100){
        const traitEnemies=b.enemies.filter(e=>e.pilotAddedTrait);
        const nativeTraits=b.enemies.filter(e=>Array.isArray(e.traits)&&e.traits.length>0 && !e.pilotAddedTrait && !e.isBoss).length;
        const total=nativeTraits+traitEnemies.length;
-       if(total>3){counts.nativeOverThree++;if(traitEnemies.length)throw Error("added to overcap native encounter");}
+       if(total>3){counts.nativeOverThree++;if(randomTraits)throw Error("pilot exceeded trait cap");}
        counts.totalTraits[["zero","one","two","three","four","five"][total]]++;
        const n=traitEnemies.length;
        if(n>3||n>b.enemies.length)throw Error("invalid trait count");
@@ -44,7 +44,7 @@ function measure(partyId,randomTraits,trials=100){
    }else failedLoot+=result.drops.length;
  }
  if(failedLoot)throw Error("lost drops leaked");
- return {partyId,randomTraits,trials,clear,clearPct:round(100*clear/trials),
+ return {dungeonId,partyId,randomTraits,trials,clear,clearPct:round(100*clear/trials),
    avgSeconds:round(seconds/trials),avgKept:round(kept/trials),
    avgStones:round(stones/trials),nonBossBattles,counts,failedLoot};
 }
@@ -53,11 +53,19 @@ function runStudy(trials=100){
  for(const p of PARTIES)for(const opt of [false,true])results.push(measure(p,opt,trials));
  return {version:1,trials,seed:SEED,results};
 }
+function runFloorStudy(trials=100){
+ const results=[];
+ for(const dungeonId of ["plains","forest","cave"])
+  for(const enabled of [false,true])results.push(measure("baseline",enabled,trials,dungeonId));
+ return {version:1,comparison:"floor3-and-5",trials,seed:SEED,results};
+}
 if(require.main===module){
  const t=process.argv.find(s=>s.startsWith("--trials="));
- const x=runStudy(t?Number(t.split("=")[1]):100);
- for(const r of x.results)console.log([r.partyId,r.randomTraits?"random-1-3":"native",r.clearPct,r.avgSeconds,
+ const x=process.argv.includes("--floor-compare")
+   ?runFloorStudy(t?Number(t.split("=")[1]):100)
+   :runStudy(t?Number(t.split("=")[1]):100);
+ for(const r of x.results)console.log([r.dungeonId,r.partyId,r.randomTraits?"random-1-3":"native",r.clearPct,r.avgSeconds,
    r.nonBossBattles,r.counts.one,r.counts.two,r.counts.three].join(" "));
  console.log("RANDOM_TRAIT_STUDY_JSON="+JSON.stringify(x));
 }
-module.exports={measure,runStudy,PARTIES,SEED};
+module.exports={measure,runStudy,runFloorStudy,PARTIES,SEED};
