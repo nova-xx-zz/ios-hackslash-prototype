@@ -20,6 +20,10 @@ jobs:
       - run: npm ci
       - name: Native trait cap and 3F/5F regression tests
         run: node --test tests/random-trait-encounters.test.js
+      - name: Audit future 10F and 15F spawn density without changing gameplay
+        run: |
+          node --test tests/trait-depth-audit.test.js
+          node tools/trait-depth-audit.js --trials=250
       - name: Compare 3F and 5F combat balance
         run: node tools/random-trait-density-study.js --floor-compare --trials=100
       - name: Benchmark optional randomized 1–3 Normal trait enemies
