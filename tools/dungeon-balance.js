@@ -90,6 +90,7 @@ function equipScenario(c, roster, d, profile, branch = "left") {
 // live itemStats function. Preserve all rarity/+99 behavior except a capped
 // +1/+2/+3 main-stat milestone at +4/+8/+12 (max 3 late-game).
 const equipmentCore = require("../js/core/equipment.js");
+const {rollTraitAssignments,TRAIT_TYPES} = require("../js/core/trait-encounter.js");
 function itemStatsEarlyMilestones(item) {
   return equipmentCore.itemStatsEarlyMilestones(item, data.rarityMult(item.rarity));
 }
@@ -122,6 +123,12 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
   if (!["standard", "off"].includes(treeStrategy)) throw new RangeError("invalid tree strategy");
   const treeBranch = options.treeBranch || "left";
   if (!["left", "right"].includes(treeBranch)) throw new RangeError("invalid tree branch");
+  const randomTraitEnemies = options.randomTraitEnemies === true;
+  if (randomTraitEnemies && (options.enemyTrait && options.enemyTrait !== "native"))
+    throw new RangeError("random traits cannot coexist with all-enemy trait overlay");
+  const allowedRandomTraits=options.allowedRandomTraits || TRAIT_TYPES;
+  if(!Array.isArray(allowedRandomTraits)||!allowedRandomTraits.length||
+    allowedRandomTraits.some(x=>!TRAIT_TYPES.includes(x)))throw new RangeError("unknown random trait");
   const enemyTraitMode = options.enemyTraitMode || "normal";
   if (!["normal", "hard", "extra"].includes(enemyTraitMode)) throw new RangeError("invalid enemy trait mode");
   const enemyTrait = options.enemyTrait || "native";
@@ -203,13 +210,37 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
       return enemy;
     },
   });
+  // This never mutates js/data.js or live browser code. Trial-only, Normal-grade
+  // traits avoid "all attacks immune" encounters before counters are available.
+  const decoratePilotEncounter = randomTraitEnemies ? (enemies,rollRng) => {
+    const assignments=rollTraitAssignments(enemies,rollRng,allowedRandomTraits);
+    const exemplars={spirit:"mirage_spirit",ward:"rock_golem",armored:"mud_crab",undead:"skeleton"};
+    return enemies.map((base,i)=>{
+      const picked=assignments.find(a=>a.index===i);
+      if(!picked)return base;
+      const donorTemplate=data.getEnemyTemplate(exemplars[picked.trait]);
+      if(!donorTemplate)throw Error("missing trait exemplar");
+      const donor=data.makeEnemy({...donorTemplate,element:base.element},1,false,1,false,"normal");
+      const withTrait={...base,traits:[picked.trait],pilotAddedTrait:picked.trait,
+        res:{...base.res,el:{...(base.res?.el||{})}}};
+      if(picked.trait==="spirit")withTrait.res.physical=donor.res.physical;
+      if(picked.trait==="ward")withTrait.res.magic=donor.res.magic;
+      if(picked.trait==="undead"){
+        withTrait.res.nonHoly=donor.res.nonHoly;
+        withTrait.res.el.holy=donor.res.el.holy;
+      }
+      if(picked.trait==="armored")withTrait.def=Math.round(base.def*1.5);
+      return withTrait;
+    });
+  } : undefined;
   runner = createRunner({
     data: runnerData, state, roster, inventory, rng, teamCount: 4, battleEnv: env,
     enableFloorPilot: true,
+    decoratePilotEncounter,
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
   });
-  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement, enemyTrait, enemyTraitMode };
+  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement, enemyTrait, enemyTraitMode, randomTraitEnemies };
 }
 
 function measureScenario(dungeonId, profileId, trials, seed) {
