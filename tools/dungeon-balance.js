@@ -90,7 +90,7 @@ function equipScenario(c, roster, d, profile, branch = "left") {
 // live itemStats function. Preserve all rarity/+99 behavior except a capped
 // +1/+2/+3 main-stat milestone at +4/+8/+12 (max 3 late-game).
 const equipmentCore = require("../js/core/equipment.js");
-const {rollTraitAssignments,TRAIT_TYPES} = require("../js/core/trait-encounter.js");
+const {rollTraitAssignments,capNativeTraitRoles,TRAIT_TYPES} = require("../js/core/trait-encounter.js");
 function itemStatsEarlyMilestones(item) {
   return equipmentCore.itemStatsEarlyMilestones(item, data.rarityMult(item.rarity));
 }
@@ -233,9 +233,15 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
       return withTrait;
     });
   } : undefined;
+  // Benchmark-only hook, not a change to the shipped enemy encounter table.
+  // Uses the canonical native-trait resolver from the real game data.
+  const capPilotNativeTraits = randomTraitEnemies
+    ? (roles, dungeon, rollRng) => capNativeTraitRoles(roles, dungeon.pool, data.enemyTraits, rollRng)
+    : undefined;
   runner = createRunner({
     data: runnerData, state, roster, inventory, rng, teamCount: 4, battleEnv: env,
     enableFloorPilot: true,
+    capPilotNativeTraits,
     decoratePilotEncounter,
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
