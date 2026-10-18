@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - 'feature/random-1to3-trait-encounters-*'
+  pull_request:
+    branches:
+      - 'feature/random-1to3-trait-encounters-*'
   workflow_dispatch:
 jobs:
   compare:
