@@ -5,6 +5,7 @@
 const {createRng}=require("../js/core/rng.js");
 const battle=require("../js/core/battle.js");
 const sim=require("./lib/sim.js");
+const equipment=require("../js/core/equipment.js");
 const {trialInscriptionAbilities}=require("../js/core/inscription-trial.js");
 
 const BASIC_JOBS=Object.freeze(["warrior","mage","priest","thief","monk","darkknight"]);
@@ -23,8 +24,15 @@ function simulateCase(jobId,enemyKeys,engravings,seed=20261019){
   {job:jobId,race:"human"},20,i,{tree:true,gear:{rarity:"n",plus:2,level:7}}));
  for(let i=0;i<members.length;i++){
   const c=members[i];
-  // A regular N accessory with a trial-only property. No real OP/drop changes.
-  if(engravings[i])c.equip.acc1={...c.equip.acc1,trialInscription:engravings[i]};
+  // The N engraving accessory REPLACES the current accessory (rather than
+  // granting a free ability on top of its stats/series bonuses). Its minimal
+  // HP+1 is a mock crafting output, NOT a live item/drop or final price.
+  if(engravings[i]){
+    c.equip.acc1={slot:"accessory",type:"amulet",stats:{hp:1},plus:0,
+      rarity:"n",trialInscription:engravings[i]};
+    c.set=equipment.setBonusTotals(c.equip,sim.data.ITEM_SERIES,
+      sim.data.getUniqueItem,sim.data.itemOptionEffect);
+  }
  }
  const env=sim.makeEnv(rng);
  const baseAbilities=env.abilities,abilityCache=new WeakMap();
