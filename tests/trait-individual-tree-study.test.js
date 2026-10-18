@@ -29,7 +29,7 @@ test("実際の敵特性と耐性を使い、本体の敵データには影響�
  });
  const e=armored.runner.startBattle(armored.runner.startRun(0,"cave")).battle.enemies[0];
  assert.ok(e.def>0);
- assert.deepEqual(e.traits,["armored"]);
+ assert.equal(Array.from(e.traits).join(","),"armored");
  assert.equal(data.getDungeon("cave").pilotLateNormalFactor,native);
  assert.equal(data.getEnemyTemplate("rock_golem").element,template.element);
 });
