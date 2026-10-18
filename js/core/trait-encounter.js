@@ -8,6 +8,7 @@ function rollTraitAssignments(enemies,rng,allowed=TRAIT_TYPES){
  if(!Array.isArray(enemies)||enemies.length<1||enemies.length>5||
    !rng||typeof rng.int!=="function"||!Array.isArray(allowed)||!allowed.length||
    allowed.some(x=>!TRAIT_TYPES.includes(x)))throw new RangeError("invalid trait encounter input");
+ const nativeCount=enemies.filter(e=>e&&!e.isBoss&&Array.isArray(e.traits)&&e.traits.length>0).length;
  const eligible=enemies.map((e,i)=>({e,i}))
    .filter(({e})=>e&&!e.isBoss&&!e.isRare&&(!Array.isArray(e.traits)||e.traits.length===0))
    .map(x=>x.i);
@@ -16,7 +17,9 @@ function rollTraitAssignments(enemies,rng,allowed=TRAIT_TYPES){
  if(!eligible.length)return [];
  const desired=1+rng.int(3); // 1～3 equally weighted
  if(!Number.isInteger(desired)||desired<1||desired>3)throw new RangeError("invalid desired count");
- const count=Math.min(desired,eligible.length);
+ // The target is TOTAL ordinary trait enemies, including existing innate
+ // traits. Do not remove original traits if they exceed 3 in a rare random pack.
+ const count=Math.max(0,Math.min(desired-nativeCount,eligible.length));
  const remaining=eligible.slice();
  const result=[];
  for(let k=0;k<count;k++){
