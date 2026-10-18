@@ -19,6 +19,10 @@ const ENGRAVINGS=Object.freeze({
     id:"holy",name:"聖紋の刻印",ability:"刻印聖撃",kind:"physical",element:"holy",
     ratio:0.40,desc:"全職が聖属性の物理ダメージを使用できる（アンデッド対策）。霊体の物理無効は突破しない",
   }),
+  sanctify:Object.freeze({
+    id:"sanctify",name:"浄魔の刻印",ability:"刻印浄光",kind:"magic",element:"holy",
+    ratio:0.30,desc:"霊体+アンデッドへの最後の対抗策。魔法+聖属性なので通常の魔導刻印より低威力",
+  }),
 });
 
 /**
