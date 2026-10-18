@@ -26,9 +26,16 @@ test("1～3体ランダム特性は敵数上限で丸め、重複・ボス・レ
    {key:"boss",isBoss:true,traits:[]},{key:"rare",isRare:true,traits:[]},
    {key:"native",traits:["spirit"]},{key:"free",traits:[]},
  ];
- const only=rollTraitAssignments(withProtected,createRng(3));
- assert.deepEqual(only.map(x=>x.index),[3]);
+ // 1 innate trait must count toward the 1–3 target, so new additions may
+ // be zero if the random target is one, or one if random target is three.
+ const zero=rollTraitAssignments(withProtected,{int:()=>0});
+ assert.deepEqual(zero,[]);
+ const one=rollTraitAssignments(withProtected,{int:n=>n-1});
+ assert.deepEqual(one.map(x=>x.index),[3]);
  assert.deepEqual(rollTraitAssignments(withProtected.slice(0,3),createRng(3)),[]);
+ const allNative=Array.from({length:4},(_,i)=>({key:String(i),traits:["spirit"]}));
+ assert.deepEqual(rollTraitAssignments(allNative,createRng(1)),[],
+  "never erase pre-existing innate traits even if encounter has >3");
 });
 
 test("試験用実戦闘の一般戦闘のみ最大3特性、ボスと既存敵データは変わらない",()=>{
