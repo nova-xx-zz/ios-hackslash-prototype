@@ -43,8 +43,10 @@ function trialInscriptionAbilities(equip,stats){
    const item=equip[slot];
    if(!item||!item.trialInscription)continue;
    if(item.slot!=="accessory")throw new TypeError("inscription must be on an accessory");
+   if(typeof item.trialInscription!=="string"||
+     !Object.prototype.hasOwnProperty.call(ENGRAVINGS,item.trialInscription))
+     throw new RangeError("unknown trial engraving");
    const def=ENGRAVINGS[item.trialInscription];
-   if(!def)throw new RangeError("unknown trial engraving");
    if(seen.has(def.id))continue;
    seen.add(def.id);
    const base=def.kind==="magic"?Math.max(1,stats.mag):Math.max(1,stats.atk);
