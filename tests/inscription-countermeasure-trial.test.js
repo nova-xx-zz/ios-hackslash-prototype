@@ -9,28 +9,35 @@ const inscribed=(key)=>({slot:"accessory",trialInscription:key});
 const from=(key,stats={atk:40,mag:10})=>
  trialInscriptionAbilities({acc1:inscribed(key)},stats)[0];
 
-test("汎用3刻印は全職共通の装飾品枠から低威力の別種別/聖属性を付与できる",()=>{
+test("汎用4刻印は全職共通の装飾品枠から低威力の別種別/聖属性を付与できる",()=>{
  const neutral={};
  const targets={
   spirit:{res:{physical:0,magic:1}},
   ward:{res:{physical:1,magic:0}},
   undead:{res:{nonHoly:0,el:{holy:1.5}}},
  };
- const arcane=from("arcane"),force=from("force"),holy=from("holy");
+ const arcane=from("arcane"),force=from("force"),holy=from("holy"),sanctify=from("sanctify");
  assert.equal(arcane.kind,"magic");
  assert.equal(force.kind,"physical");
  assert.equal(holy.kind,"physical");
  assert.equal(holy.element,"holy");
+ assert.equal(sanctify.element,"holy");
+ assert.equal(sanctify.kind,"magic");
  assert.equal(battle.damageMult(arcane,null,targets.spirit),1);
  assert.equal(battle.damageMult(force,null,targets.ward),1);
  assert.equal(battle.damageMult(holy,"holy",targets.undead),1.5);
  assert.equal(battle.damageMult(holy,"holy",targets.spirit),0,
   "聖属性物理は物理無効を貫通してはいけない");
  assert.equal(battle.damageMult(arcane,null,targets.undead),0);
+ assert.equal(battle.damageMult(sanctify,"holy",{res:{physical:0,nonHoly:0,el:{holy:1.5}}}),1.5,
+  "霊体+アンデッドは聖属性魔法のみ有効");
+ assert.equal(battle.damageMult(holy,"holy",{res:{physical:0,nonHoly:0}}),0);
+ assert.ok(sanctify.power<arcane.power,"万能な聖魔術は通常魔術より低威力");
  assert.equal(battle.damageMult(force,null,targets.undead),0);
  assert.equal(arcane.mpCost,0);
  assert.equal(force.mpCost,0);
  assert.equal(holy.mpCost,0);
+ assert.equal(sanctify.mpCost,0);
  assert.ok(arcane.power<3);
  assert.ok(Object.keys(neutral).length===0);
 });
@@ -69,7 +76,7 @@ test("刻印技は同じステータスでも職業専用技より弱く設定�
 
 test("実データと実戦闘AI: 一次職全6種で独立した物理・魔法・聖対策を試行",()=>{
  const output=runStudy(20261019);
- assert.equal(output.results.length,BASIC_JOBS.length*4);
+ assert.equal(output.results.length,BASIC_JOBS.length*5);
  for(const row of output.results){
   const x=row.engraved;
   assert.equal(x.engravings.length,5);
@@ -81,6 +88,9 @@ test("実データと実戦闘AI: 一次職全6種で独立した物理・魔法
    assert.ok(x.firstActions.every(a=>typeof a==="string"&&a.length>0));
   }
  }
+ const combined=output.results.find(x=>x.job==="warrior"&&x.case==="spirit_undead");
+ assert.notEqual(combined.baseline.result,"victory","聖魔でない攻撃だけでは二重耐性を倒せない");
+ assert.ok(combined.engraved.enemyHpRemaining<=combined.baseline.enemyHpRemaining);
  const soloWarrior=output.results.find(x=>x.job==="warrior"&&x.case==="spirit");
  assert.notEqual(soloWarrior.baseline.result,"victory",
   "戦士の物理だけではExtra霊体を倒せない");
