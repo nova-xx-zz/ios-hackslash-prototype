@@ -12,6 +12,7 @@ const CASES=Object.freeze([
  {id:"spirit",enemy:"mirage_spirit",engraving:"arcane",rationale:"physical zero -> magic"},
  {id:"ward",enemy:"ice_golem",engraving:"force",rationale:"magic zero -> physical"},
  {id:"undead",enemy:"skeleton",engraving:"holy",rationale:"nonHoly zero -> holy physical"},
+ {id:"spirit_undead",enemy:"wight",engraving:"sanctify",rationale:"physical and nonHoly zero -> holy magic"},
 ]);
 
 function simulateCase(jobId,enemyKeys,engravings,seed=20261019){
@@ -56,9 +57,9 @@ function runStudy(seed=20261019){
  }
  // A mixed encounter verifies that players can distribute their accessory
  // routes among 5 same-job characters rather than changing job compositions.
- const mix=["mirage_spirit","ice_golem","skeleton"];
+ const mix=["mirage_spirit","ice_golem","skeleton","wight"];
  for(const job of BASIC_JOBS)
-  results.push({job,case:"mixed",engraved:simulateCase(job,mix,["arcane","force","holy","arcane","holy"],seed)});
+  results.push({job,case:"mixed",engraved:simulateCase(job,mix,["arcane","force","holy","sanctify","sanctify"],seed)});
  return {version:1,seed,level:20,mode:"extra",kind:"single-battle-isolated",results};
 }
 if(require.main===module){
