@@ -64,7 +64,10 @@ test("試験用実戦闘の一般戦闘のみ最大3特性、ボスと既存敵�
  const run=a.runner.computeOfflineRun({...a.d,pilotLateNormalFactor:1},0,observer);
  const replay=b.runner.computeOfflineRun({...b.d,pilotLateNormalFactor:1},0,{seed:12172});
  assert.equal(run.cleared,replay.cleared);
- assert.deepEqual(run.drops,replay.drops);
+ // Item IDs use a global monotonic itemSeq unrelated to per-run RNG.
+ // Compare drop substance, not global item sequence numbers.
+ const stable=x=>x.map(({id,...item})=>item);
+ assert.deepEqual(stable(run.drops),stable(replay.drops));
  assert.ok(traced>0&&found>0);
  assert.ok(added>0&&bosses>=0);
  assert.equal(data.getDungeon("cave").pilotLateNormalFactor,.8);
