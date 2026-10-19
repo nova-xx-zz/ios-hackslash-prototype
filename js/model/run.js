@@ -73,11 +73,26 @@
     }
     function buildPilotEncounter(d, entry) {
       const planned = dungeonTrial.createEncounterPlan(d, entry.floor, rng, entry.boss);
-      const roles = planned.enemyRoles.map((x) => Object.assign({}, x, { isRare: false }));
+      let roles = planned.enemyRoles.map((x) => Object.assign({}, x, { isRare: false }));
       if (!entry.boss && Array.isArray(d.rares) && d.rares.length && rng.chance(0.04)) {
         const chosen = rng.int(roles.length);
         roles[chosen].key = rng.pick(d.rares);
         roles[chosen].isRare = true;
+      }
+      // Trial-only: cap naturally trait-bearing enemy species BEFORE makeEnemy.
+      // Rare species and bosses are immutable; ordinary encounters are unchanged
+      // when no trial cap hook is injected.
+      if (!entry.boss && typeof deps.capPilotNativeTraits === "function") {
+        const original = roles;
+        const capped = deps.capPilotNativeTraits(roles, d, rng);
+        if (!Array.isArray(capped) || capped.length !== original.length ||
+            capped.some((role, i) => !role || !getEnemyTemplate(role.key) ||
+              role.isBoss !== original[i].isBoss ||
+              role.isRare !== original[i].isRare ||
+              (original[i].isRare && role.key !== original[i].key))) {
+          throw new TypeError("invalid native trait cap result");
+        }
+        roles = capped;
       }
       const encounter = roles.map((role) => {
         const tpl = getEnemyTemplate(role.key);
