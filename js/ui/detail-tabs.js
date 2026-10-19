@@ -383,7 +383,10 @@ function buildJobTab(c) {
 
   const advHead = document.createElement("div");
   advHead.className = "detail-section-head";
-  advHead.innerHTML = `<span>上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）</span><span class="count">${masteredCount(advIds)}/${advIds.length}</span>`;
+  const advCaption = isFeatureEnabled("jobTrialSwordmaster")
+    ? `上級職（基本職Lv.${JOB_MASTER_LEVEL}。けんごうのみ実績＋専用試練も必要）`
+    : `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
+  advHead.innerHTML = `<span>${advCaption}</span><span class="count">${masteredCount(advIds)}/${advIds.length}</span>`;
   wrap.appendChild(advHead);
 
   const advGrid = document.createElement("div");
