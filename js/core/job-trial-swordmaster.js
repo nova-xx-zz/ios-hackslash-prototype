@@ -38,7 +38,7 @@
       levelReady: oldRule,
       achievementReady: hasAchievement(progress),
       trialAvailable: !!enabled && oldRule && hasAchievement(progress) && !progress.trialCleared && !legacy,
-      unlocked: !enabled ? oldRule : oldRule && (legacy || progress.trialCleared),
+      unlocked: !enabled ? oldRule : legacy || (oldRule && progress.trialCleared),
     };
   }
   function recordClear(state, members, hits) {
