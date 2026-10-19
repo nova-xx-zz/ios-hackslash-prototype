@@ -1,0 +1,24 @@
+name: Universal inscription countermeasure study
+on:
+  push:
+    branches:
+      - 'feature/universal-inscriptions-*'
+  pull_request:
+    branches:
+      - 'docs/first-job-any-party-dungeon-philosophy-*'
+  workflow_dispatch:
+jobs:
+  inscription-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Unit/integration test (real battle core)
+        run: node --test tests/inscription-countermeasure-trial.test.js
+      - name: Six mono-job party combat study
+        run: node tools/inscription-countermeasure-study.js
