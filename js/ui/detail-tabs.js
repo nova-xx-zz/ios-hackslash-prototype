@@ -128,7 +128,9 @@ function buildJobCard(c, jobId, unlocked) {
     <div class="job-card-level">${trained ? `Lv.${lvl}${mastered ? '<span class="star">★</span>' : ""}` : "未経験"}</div>
     <div class="job-card-name${job.name.length >= 8 ? " long" : ""}">${job.name}</div>
     <div class="job-card-exp-bar"><div class="fill" style="width:${pct}%"></div></div>`;
-  if (!unlocked) card.title = job.tier === "special" ? specialJobUnlockText(job) : `${JOBS[job.requires.job].name} Lv.${job.requires.level}で解放`;
+  if (!unlocked) card.title = job.tier === "special" ? specialJobUnlockText(job)
+    : jobId === "swordmaster" && isFeatureEnabled("jobTrialSwordmaster") ? "せんしLv50＋実績＋剣豪の試練で解放"
+    : `${JOBS[job.requires.job].name} Lv.${job.requires.level}で解放`;
   card.addEventListener("click", () => {
     if (!unlocked) return;
     switchJob(c, jobId);
@@ -281,6 +283,83 @@ function buildFusionTab(c) {
   return wrap;
 }
 
+// 剣豪だけの試験導線。既存転職・通常ダンジョン・報酬・ショップには影響させない。
+function buildSwordmasterTrialPilot(c) {
+  const pilot = QPCore.jobTrialSwordmaster;
+  const st = pilot.status(S, c, true);
+  const box = document.createElement("div");
+  box.className = "sub-ability-row";
+  const name = document.createElement("strong");
+  name.textContent = "剣豪の試練（試験モード）";
+  box.appendChild(name);
+  const info = document.createElement("div");
+  const hit = Math.min(st.progress.warriorHits, pilot.HIT_TARGET);
+  const clear = Math.min(st.progress.warriorClears, pilot.CLEAR_TARGET);
+  info.textContent = `せんしLv.${st.level}/${pilot.LEVEL_TARGET} ／ 有効打 ${hit}/${pilot.HIT_TARGET} または 成功踏破 ${clear}/${pilot.CLEAR_TARGET}`;
+  box.appendChild(info);
+  const explanation = document.createElement("div");
+  explanation.textContent = st.progress.trialCleared || st.legacy ? "解放条件達成済み。対応する基本職がLv50の仲間は転職可能です。"
+    : "Lv50＋実績で試練に挑戦できます。戦闘は完全自動、試練のEXP・戦利品・通常踏破は付与しません。";
+  box.appendChild(explanation);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "detail-tab";
+  btn.style.marginTop = "10px";
+  btn.textContent = "剣豪の試練に挑戦";
+  const busy = c.team !== null && isTeamLocked(c.team);
+  btn.disabled = !st.trialAvailable || c.team === null || busy;
+  btn.addEventListener("click", () => {
+    if (!pilot.status(S, c, true).trialAvailable || c.team === null || isTeamLocked(c.team)) return;
+    if (!teamMembers(c.team).some((member) => member.id === c.id && member.job === "warrior")) {
+      flashDetailNotice("試練はせんし本人をチームに編成して挑戦してください");
+      renderCharDetail();
+      return;
+    }
+    const trial = pilot.trialDungeon(getDungeon("lava_river"));
+    if (!trial) {
+      flashDetailNotice("試練の敵データを読み込めませんでした");
+      renderCharDetail();
+      return;
+    }
+    btn.disabled = true; // 多重クリックを抑止
+    let result;
+    try {
+      result = Runner.computeOfflineRun(trial, c.team, { maxEnemies: 5 });
+    } catch (err) {
+      flashDetailNotice("試練の計算に失敗しました。再度お試しください");
+      renderCharDetail();
+      return;
+    }
+    if (!result.cleared) {
+      flashDetailNotice("剣豪の試練は失敗。装備・スキルを見直して再挑戦できます");
+      renderCharDetail();
+      return;
+    }
+    const before = Object.assign({}, S.jobTrialSwordmaster);
+    pilot.recordTrialClear(S);
+    if (!saveGame()) {
+      S.jobTrialSwordmaster = before;
+      flashDetailNotice("保存できなかったため、試練の解放を確定しませんでした");
+      renderCharDetail();
+      return;
+    }
+    flashDetailNotice("剣豪の試練を突破！ 上級職「けんごう」が解放されました");
+    renderCharDetail();
+  });
+  box.appendChild(btn);
+  if (!st.trialAvailable && !st.unlocked) {
+    const note = document.createElement("div");
+    note.textContent = "必要条件を満たすと挑戦できます";
+    box.appendChild(note);
+  } else if (st.trialAvailable && c.team === null) {
+    const note = document.createElement("div");
+    note.textContent = "この仲間をパーティに編成してください";
+    box.appendChild(note);
+  }
+  return box;
+}
+
 function buildJobTab(c) {
   if (c.isMonster) return buildFusionTab(c);
   const wrap = document.createElement("div");
@@ -307,6 +386,7 @@ function buildJobTab(c) {
   advGrid.className = "job-card-grid";
   for (const jobId of advIds) advGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
   wrap.appendChild(advGrid);
+  if (isFeatureEnabled("jobTrialSwordmaster")) wrap.appendChild(buildSwordmasterTrialPilot(c));
 
   // 特殊職（機能フラグ specialJobs が有効な間だけ。docs/special-job-design.md）
   const specialIds = SPECIAL_JOB_IDS.filter(jobUsable);
