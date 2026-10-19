@@ -19,6 +19,7 @@
       JOB_EQUIP, MONSTER_EQUIP, MONSTER_ACCESSORY_SLOT_LEVELS, ITEM_SERIES, getUniqueItem, itemOptionEffect,
     } = deps.data;
     const TREE_RESET_COST_PER_SP = deps.data.TREE_RESET_COST_PER_SP || 20;
+    const swordmasterPilot = (root.QPCore && root.QPCore.jobTrialSwordmaster) || (typeof require === "function" ? require("../core/job-trial-swordmaster.js") : null);
 
     // レベル上限: テイムしたモンスターは MONSTER_MAX_LEVEL、人間のキャラは CHAR_MAX_LEVEL（ジョブごとのレベルも同じ上限）
     function levelCap(c) {
@@ -92,6 +93,9 @@
     // 転職: 直前のジョブの進行を保存し、切り替え先のジョブの保持レベルを復元する（無ければLv1から）
     function switchJob(c, jobId) {
       if (c.isMonster || c.job === jobId) return;
+      // プレビュー専用の剣豪試練。UI以外から直接呼ばれても試練前の転職は受け付けない。
+      if (jobId === "swordmaster" && isFeatureEnabled("jobTrialSwordmaster") &&
+          (!jobUnlocked(c, jobId) || (c.team !== null && isTeamLocked(c.team)))) return false;
       c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level: c.level, exp: c.exp, expToNext: c.expToNext });
       c.job = jobId;
       const saved = c.jobLevels[jobId] || { level: 1, exp: 0, expToNext: expForLevel(1) };
@@ -144,6 +148,8 @@
       const job = JOBS[jobId];
       if (job.tier === "special") return specialJobUnlocked(jobId);
       if (job.tier !== "advanced") return true;
+      if (jobId === "swordmaster" && isFeatureEnabled("jobTrialSwordmaster"))
+        return swordmasterPilot.status(S, c, true).unlocked;
       const req = job.requires;
       const lvl = (c.jobLevels[req.job] && c.jobLevels[req.job].level) || 0;
       return lvl >= req.level;
