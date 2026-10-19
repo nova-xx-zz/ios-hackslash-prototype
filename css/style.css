@@ -1615,3 +1615,5 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .settings-contact .btn { text-decoration: none; text-align: center; }
 .settings-contact .settings-note { font-size: 12px; }
 #contactExploreLink { text-decoration: none; text-align: center; white-space: nowrap; }
+/* .btn.small の display:inline-block より優先して、未設定の外部リンクを隠す。 */
+#contactSettingsLink.hidden, #contactExploreLink.hidden { display: none; }
