@@ -1,0 +1,19 @@
+name: Random 1–3 trait encounter study
+on:
+  push:
+    branches:
+      - 'feature/random-1to3-trait-encounters-*'
+  workflow_dispatch:
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Benchmark optional randomized 1–3 Normal trait enemies
+        run: node tools/random-trait-density-study.js --trials=100

@@ -79,7 +79,7 @@
         roles[chosen].key = rng.pick(d.rares);
         roles[chosen].isRare = true;
       }
-      return roles.map((role) => {
+      const encounter = roles.map((role) => {
         const tpl = getEnemyTemplate(role.key);
         if (!tpl) throw new RangeError("Unknown enemy: " + role.key);
         // 旧battleIndex×6%を全戦闘数へ掛けない。階層による緩やかな伸びだけ適用。
@@ -97,6 +97,18 @@
         enemy.pilotPhase = 1;
         return enemy;
       });
+      // Simulation-only trait placement; absent in ordinary browser deps.
+      // Never reassign boss phases, boss status, enemy count, rare tags or reward keys.
+      if (!entry.boss && typeof deps.decoratePilotEncounter === "function") {
+        const decorated = deps.decoratePilotEncounter(encounter, rng, { dungeonId:d.id, floor:entry.floor });
+        if (!Array.isArray(decorated) || decorated.length !== encounter.length ||
+            decorated.some((x,i)=>!x || x.key !== encounter[i].key || x.isBoss !== encounter[i].isBoss ||
+               x.isRare !== encounter[i].isRare)) {
+          throw new TypeError("invalid trait encounter decorator");
+        }
+        return decorated;
+      }
+      return encounter;
     }
     // モード（ノーマル・ハード・エクストラ）を反映したダンジョン（js/data.js の getModeDungeon。無ければノーマルのみ）
     const getModeDungeon = deps.data.getModeDungeon || ((id) => getDungeon(id));
