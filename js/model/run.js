@@ -21,6 +21,7 @@
   const statsCore = core.stats || (typeof require === "function" ? require("../core/stats.js") : null);
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
   const rngMod = core.rng || (typeof require === "function" ? require("../core/rng.js") : null);
+  const swordmasterPilot = core.jobTrialSwordmaster || (typeof require === "function" ? require("../core/job-trial-swordmaster.js") : null);
 
   // オフライン精算: これを超えた経過時間は切り捨てる
   const OFFLINE_MAX_MS = 8 * 60 * 60 * 1000;
@@ -107,6 +108,7 @@
         buffs: { atk: 0, mag: 0, def: 0, spd: 0 },
         expTotal: 0, drops: [], pendingDrops: [], levelUps: [], abilityUnlocks: [], defeatedTamable: [],
         disassembleCount: 0, materialGained: 0,
+        jobTrialWarriorHits: 0, jobTrialSettled: false,
         // 出撃時点の自動分解設定をスナップショットしておく（この周回中に設定画面で変更しても
         // 途中から挙動が変わらないようにするため。おかげで自動分解の設定はロック不要になる）
         autoDisassemble: filter.enabled, autoDisassembleRarities: new Set(filter.rarities),
@@ -141,6 +143,11 @@
       const battle = teamBattles[teamIndex];
       const env = Object.assign({}, deps.battleEnv(), { rng });
       const out = battleCore.step(battle, R.teamMembers(teamIndex), dt, env);
+      if (deps.data.isFeatureEnabled && deps.data.isFeatureEnabled("jobTrialSwordmaster")) {
+        const activeRun = teamRuns[teamIndex];
+        if (activeRun && !activeRun.finished) activeRun.jobTrialWarriorHits += out.events.filter((ev) =>
+          ev.type === "damage" && ev.dmg > 0 && ev.actor && ev.actor.job === "warrior" && !ev.actor.isMonster).length;
+      }
       // オフライン精算と同じく、決着がつかないまま OFFLINE_BATTLE_MAX_SECONDS を超えたら打ち切る（撤退。全滅と同じ扱い）
       if (!out.result && battle.time >= OFFLINE_BATTLE_MAX_SECONDS) out.result = "timeout";
       if (out.result) battle.active = false;
@@ -274,6 +281,11 @@
         run.disassembleCount += settled.disassembled;
         run.materialGained += settled.materialGained;
         run.drops.push(...settled.kept);
+        // 成功した1周につき1回だけ実績を確定（全滅・中断で獲得しない）。
+        if (deps.data.isFeatureEnabled && deps.data.isFeatureEnabled("jobTrialSwordmaster") && !run.jobTrialSettled) {
+          swordmasterPilot.recordClear(S, R.teamMembers(run.team), run.jobTrialWarriorHits);
+          run.jobTrialSettled = true;
+        }
       }
       recordsMod.addRunHistory(records(), {
         at: now(), team: run.team, dungeonId: run.dungeon.id, mode: run.dungeon.mode || "normal", cleared,
@@ -317,7 +329,7 @@
     // 1周ぶんの結果をjs/core/offline.jsで計算する（ゲームの状態はまだ変えない）。
     // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
     // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
-    function computeOfflineRun(dungeon, teamIndex) {
+    function computeOfflineRun(dungeon, teamIndex, options) {
       const party = R.teamMembers(teamIndex).map((c) => {
         const s = R.computeStats(c);
         return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
@@ -328,7 +340,11 @@
         rng,
         rules: REWARD_RULES,
         timing: OFFLINE_TIMING,
-        buildEncounter: (i) => buildEncounter(dungeon, i),
+        buildEncounter: (i) => {
+          const list = buildEncounter(dungeon, i);
+          // 試練だけ敵数を最大5体に固定。通常ダンジョンの敵抽選は一切変更しない。
+          return options && options.maxEnemies === 5 ? list.slice(0, 5) : list;
+        },
         fight: (enemies) => {
           if (party.length === 0) return { won: false, seconds: 0 };
           const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
@@ -384,6 +400,12 @@
       }
       clearedSet(dungeon.mode).add(dungeon.id);
       setBestStage(S.clearedDungeons.size);
+      if (deps.data.isFeatureEnabled && deps.data.isFeatureEnabled("jobTrialSwordmaster")) {
+        const last = outcome.eligibleIdsByBattle && outcome.eligibleIdsByBattle[outcome.eligibleIdsByBattle.length - 1];
+        const survivors = Array.isArray(last) ? party.filter((c) => last.includes(c.id)) : party;
+        // オフライン計算にヒット回数の監査値はないため、確定踏破のみ加算する。
+        swordmasterPilot.recordClear(S, survivors, 0);
+      }
       return { cleared: true, expTotal, itemsGained: settled.kept.length, tamedName, tameBlocked };
     }
 
@@ -467,7 +489,7 @@
       rollEvent: (run) => inRun(run, () => rollEvent(run)),
       finishRun, advanceAutoRepeat, interruptRun,
       estimateOfflineRunSeconds,
-      computeOfflineRun: (dungeon, teamIndex) => inStream(newStream(), () => computeOfflineRun(dungeon, teamIndex)),
+      computeOfflineRun: (dungeon, teamIndex, options) => inStream(newStream(), () => computeOfflineRun(dungeon, teamIndex, options)),
       applyOfflineRun, runOfflineProgressForTeam, runOfflineProgress,
     };
   }

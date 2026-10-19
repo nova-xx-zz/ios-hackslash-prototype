@@ -95,6 +95,11 @@ function loadGame() {
     });
     if (!loaded) return false;
     Object.assign(S, loaded.state);
+    if (isFeatureEnabled("jobTrialSwordmaster") && S.roster.some((c) =>
+        !c.isMonster && (c.job === "swordmaster" || (c.jobLevels && c.jobLevels.swordmaster)))) {
+      // 旧版で剣豪を育成済みなら、新条件の後付けで資格を失わせない（アカウント共通）。
+      S.jobTrialSwordmaster.trialCleared = true;
+    }
     store.set(KEYS.material, S.material);
     // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく。
     // ジョブの装備制限・装飾品の枠数に合わない装備（旧セーブから移した装備など）は所持品に戻す
@@ -175,7 +180,7 @@ const Shop = QPModel.shop.createShop({
 });
 
 const Runner = QPModel.run.createRunner({
-  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES, MONSTER_IV_RANGE },
+  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES, MONSTER_IV_RANGE, isFeatureEnabled },
   state: S,
   roster: Roster,
   inventory: Inventory,
