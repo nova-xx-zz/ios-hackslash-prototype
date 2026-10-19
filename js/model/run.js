@@ -457,7 +457,11 @@
           if (party.length === 0) return { won: false, seconds: 0 };
           const battle = { enemies: enemies.map((e, i) => ({ ...e, id: "e" + i, alive: true })) };
           for (const c of party) { c.atb = rng.float(0, 25); c.defending = false; }
-          const r = battleCore.simulate(battle, party, env, { maxSeconds: OFFLINE_BATTLE_MAX_SECONDS });
+          const r = battleCore.simulate(battle, party, env, {
+            maxSeconds: OFFLINE_BATTLE_MAX_SECONDS,
+            onStep: observers && typeof observers.onBattleStep === "function"
+              ? (step) => observers.onBattleStep(step) : undefined,
+          });
           return { won: r.result === "victory", seconds: r.seconds,
             eligibleIds: party.filter((c) => c.alive).map((c) => c.id) };
         },
