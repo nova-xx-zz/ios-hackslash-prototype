@@ -1609,3 +1609,9 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 @media(max-width:355px) {
   .forge-trial-kind-grid { grid-template-columns: 1fr; }
 }
+
+/* プレリリースのお問い合わせ（設定・探索画面でGoogleフォームを別タブ表示） */
+.settings-contact { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: rgba(140,125,90,.06); }
+.settings-contact .btn { text-decoration: none; text-align: center; }
+.settings-contact .settings-note { font-size: 12px; }
+#contactExploreLink { text-decoration: none; text-align: center; white-space: nowrap; }
