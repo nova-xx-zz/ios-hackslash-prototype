@@ -17,7 +17,9 @@ function startDungeon(teamIndex, id, opts) {
   const run = Runner.startRun(teamIndex, id, opts.mode);
   const d = run.dungeon;
   const modeText = d.mode ? `【${getDungeonMode(d.mode).name}】` : "";
-  logEvent(teamIndex, "start", `${modeText}${d.name} に出発した`, `全${d.battles}戦　推奨レベル ${d.level}`);
+  logEvent(teamIndex, "start", `${modeText}${d.name} に出発した`, d.dungeonFloorPilot
+    ? `全${run.pilotFloorPlans.length}階層・通常戦闘回数は突入時に確定・全${d.battles}戦（ボス含む）`
+    : `全${d.battles}戦　推奨レベル ${d.level}`);
   trimTeamLog(teamIndex);
   if (teamIndex === S.activeTeam) {
     buildPartyDock();
@@ -29,7 +31,9 @@ function startDungeon(teamIndex, id, opts) {
 
 function startBattle(run) {
   const { battle, isBoss } = Runner.startBattle(run);
-  logEvent(run.team, "encounter", isBoss ? "ボスが立ちはだかる！" : "敵が現れた！", enemyRoster(battle));
+  const floorEntry = run.pilotSchedule && run.pilotSchedule[run.battleIndex];
+  const prefix = floorEntry ? `${floorEntry.floor}F・` : "";
+  logEvent(run.team, "encounter", prefix + (isBoss ? "ボスが立ちはだかる！" : "敵が現れた！"), enemyRoster(battle));
   const rare = battle.enemies.find((e) => e.isRare);
   if (rare) logLine(run.team, `レアモンスター ${rare.name} が現れた！（倒すと良い装備を落とす）`, "system");
   // 敵の特性（アンデッド・霊体など）を知らせる

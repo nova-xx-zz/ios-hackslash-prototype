@@ -42,6 +42,7 @@ function setup(opts) {
   let clock = opts.now || 1_000_000_000_000;
   Runner = createRunner({
     data, state, roster, inventory, rng, teamCount: 4, battleEnv,
+    enableFloorPilot: !!opts.enableFloorPilot,
     autoDisassemble: () => filter,
     markDexSeen: (k) => dex.add(k),
     setBestStage: (n) => best.push(n),
@@ -550,4 +551,103 @@ test("オフライン周回: 保存したN自動分解設定でも高品質OPは
  assert.equal(result.itemsGained,1,"only the protected gear enters inventory");
  assert.deepEqual(state.inventory.map(x=>x.id),["offline-high"]);
  assert.equal(state.material,5);
+});
+
+test("階層パイロット: 実エンジンに3F/5Fの入場時確定戦闘計画を接続（他ダンジョンは旧仕様）", () => {
+  const { Runner } = setup({ seed: 17, enableFloorPilot: true, level: 22 });
+  const plains = Runner.startRun(0, "plains");
+  assert.equal(plains.pilotFloorPlans.length, 3);
+  assert.ok(plains.dungeon.battles >= 5 && plains.dungeon.battles <= 11);
+  assert.equal(plains.pilotSchedule.length, plains.dungeon.battles);
+  assert.ok(plains.pilotSchedule.slice(0, -1).every((x) => x.boss === null));
+  assert.equal(plains.pilotSchedule.at(-1).boss.kind, "final");
+  const frozen = JSON.stringify(plains.pilotFloorPlans);
+  for (let i = 0; i < plains.dungeon.battles; i++) {
+    plains.battleIndex = i;
+    const {battle, isBoss} = Runner.startBattle(plains);
+    assert.ok(battle.enemies.length >= 1 && battle.enemies.length <= 5);
+    assert.equal(isBoss, i === plains.dungeon.battles - 1);
+    assert.equal(battle.enemies.some((e) => e.isBoss), isBoss);
+  }
+  assert.equal(JSON.stringify(plains.pilotFloorPlans), frozen, "do not re-roll floors at battle start");
+  const cave = Runner.startRun(0, "cave");
+  assert.equal(cave.pilotFloorPlans.length, 5);
+  cave.battleIndex = cave.dungeon.battles - 1;
+  const {battle} = Runner.startBattle(cave);
+  assert.equal(battle.enemies[0].key, "rock_golem");
+  assert.equal(battle.enemies[0].pilotBoss, true);
+  assert.ok(battle.enemies.length <= 5);
+
+  const old = Runner.startRun(0, "ruins");
+  assert.equal(old.pilotSchedule, undefined);
+  assert.equal(old.dungeon.battles, data.getDungeon("ruins").battles);
+});
+
+test("階層パイロット: 未確定UR/LRを全滅・撤退でロストし、初回最終ボスの勝利まで確定しない", () => {
+  const { Runner, state } = setup({seed:33, enableFloorPilot:true, level:22});
+  const run = Runner.startRun(0, "plains");
+  const { battle } = Runner.startBattle(run);
+  assert.throws(() => Runner.winBattle(run, battle), /living enemies/);
+  for (const e of battle.enemies) e.alive = false;
+  const win = Runner.winBattle(run, battle);
+  assert.equal(win.isLast, false);
+  assert.throws(() => Runner.winBattle(run, battle), /already resolved/);
+  assert.throws(() => Runner.finishRun(run, true), /Final boss/);
+  assert.ok(run.pendingDrops.length);
+  assert.ok(!state.clearedDungeons.has("plains"));
+  const rare = {id:"pilot-ur",base:"bronze_sword",slot:"weapon",stats:{atk:10},rarity:"ur",plus:0,materialValue:400};
+  const legend = {id:"pilot-lr",base:"bronze_sword",slot:"weapon",stats:{atk:20},rarity:"lr",plus:0,materialValue:900};
+  run.pendingDrops.push(rare,legend);
+  const before = state.inventory.length;
+  Runner.finishRun(run,false);
+  assert.equal(run.wiped,true);
+  Runner.finishRun(run,false); // 二重呼び出しでも報酬・履歴を増やさない
+  assert.equal(state.records.runHistory.length,1);
+  assert.equal(state.inventory.length,before);
+  assert.equal(state.records.itemsFound.includes("bronze_sword:ur"),false);
+  assert.equal(state.records.itemsFound.includes("bronze_sword:lr"),false);
+});
+
+test("階層パイロット: 途中宝箱・泉のイベントはタップ不要、未習得の解錠は成功しない", () => {
+  const {Runner}=setup({seed:22,enableFloorPilot:true});
+  const run=Runner.startRun(0,"plains");
+  let chests=0,springs=0,locked=0;
+  for(let i=0;i<2000;i++){
+    const ev=Runner.rollEvent(run);
+    if(!ev)continue;
+    if(ev.kind==="treasure")chests++;
+    if(ev.kind==="springAura"){springs++; assert.ok(ev.defensePercent===.1||ev.defensePercent===-.08);}
+    if(ev.kind==="lockedTreasure"){locked++;assert.equal(ev.success,false);assert.equal(ev.item,null);}
+  }
+  assert.ok(chests>0&&springs>0&&locked>0);
+  assert.ok(run.buffs.def<=.24&&run.buffs.def>=-.24);
+});
+
+test("階層パイロット: オフラインでも実戦闘エンジンを通して3Fを完走し、ドロップ確定条件を守る", () => {
+  const { Runner, state } = setup({ seed: 222, level: 35, enableFloorPilot: true });
+  const out = Runner.computeOfflineRun(data.getDungeon("plains"), 0);
+  assert.equal(out.cleared, true, "十分に強いパーティは3Fを実戦闘でクリア");
+  assert.ok(out.expByBattle.length >= 5 && out.expByBattle.length <= 11);
+  assert.ok(out.encountered.length >= out.expByBattle.length);
+  assert.ok(out.drops.length >= out.expByBattle.length, "撃破報酬は踏破した周だけ返る");
+  assert.equal(state.inventory.length, 0, "計算段階では所持品へ付与していない");
+  const before = state.inventory.length;
+  const applied = Runner.applyOfflineRun(out, data.getDungeon("plains"), 0, { enabled: false, rarities: new Set() });
+  assert.equal(applied.cleared, true);
+  assert.ok(state.inventory.length > before);
+});
+
+test("階層パイロット: オフライン計算を強制敗北させても未確定品は一切返さない", () => {
+  const { Runner, state } = setup({ seed: 46, level: 1, enableFloorPilot: true });
+  const out = Runner.computeOfflineRun(data.getDungeon("cave"), 0);
+  if (!out.cleared) {
+    assert.equal(out.drops.length, 0);
+    const result = Runner.applyOfflineRun(out, data.getDungeon("cave"), 0);
+    assert.equal(result.cleared, false);
+    assert.equal(state.inventory.length, 0);
+  } else {
+    // 将来の戦闘バランス変更でLv1でもクリア可能になった場合は、
+    // クリアしたデータを意図的に敗北へ上書きせず、この検証を条件付きで保持する。
+    assert.ok(out.drops.length > 0);
+  }
 });

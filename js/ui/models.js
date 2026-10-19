@@ -180,7 +180,8 @@ const Shop = QPModel.shop.createShop({
 });
 
 const Runner = QPModel.run.createRunner({
-  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES, MONSTER_IV_RANGE, isFeatureEnabled },
+  enableFloorPilot: QPCore.storage.isDungeonPilotMode(),
+  data: { DUNGEONS, RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, rollItemDrop, rollSpecialDrop, getModeDungeon, ITEM_BASES, MONSTER_IV_RANGE, isFeatureEnabled, makeEnemy },
   state: S,
   roster: Roster,
   inventory: Inventory,

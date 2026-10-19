@@ -36,6 +36,9 @@
 (function (root) {
   "use strict";
 
+  const dungeonTrial = (root.QPCore && root.QPCore.dungeonTrial) ||
+    (typeof require === "function" ? require("./dungeon-trial.js") : null);
+
   const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
 
   // ---- 技の期待効果（AIの技選び用。乱数は平均値で見積もる） ----
@@ -438,6 +441,23 @@
     e.atb = 0;
   }
 
+  // 5F試作: ロックゴーレムのHP60%で一度だけ鎧が硬化する。
+  // 同じstepが通常表示・オフラインsimulateで使用され、HP0の撃破後には発生しない。
+  function advancePilotBosses(battle, events) {
+    if (!dungeonTrial) return;
+    for (const enemy of battle.enemies) {
+      if (!enemy.pilotBoss || !enemy.alive || enemy.hp <= 0) continue;
+      const result = dungeonTrial.advancePilotBossPhase(enemy.key, enemy.pilotPhase || 1, (enemy.hp / enemy.maxHp) * 100);
+      if (!result.effects.length) continue;
+      enemy.pilotPhase = result.phase;
+      for (const effect of result.effects) {
+        if (!effect) continue;
+        if (effect.type === "defense") enemy.def = Math.max(1, Math.round(enemy.def * effect.mult));
+        events.push({ type: "bossPhase", enemy, phase: enemy.pilotPhase, effectId: effect.id, hint: effect.hint });
+      }
+    }
+  }
+
   function battleResult(battle, party) {
     if (battle.enemies.every((e) => !e.alive)) return "victory";
     if (party.every((p) => !p.alive)) return "defeat";
@@ -454,6 +474,7 @@
       c.atb = Math.min(100, c.atb + memberStats(c, env, battle).spd * env.atbRate * dt);
       if (c.atb >= 100) {
         performCharacterAction(c, party, battle, env, events);
+        advancePilotBosses(battle, events);
         const result = battleResult(battle, party);
         if (result) return { events, result };
       }
