@@ -1,5 +1,7 @@
 # 詳細設計書
 
+> 2026-10-19追記：main `094d88d` の実装と照合し、セーブスキーマ（§1.4の追加フィールド）、`js/core/` のモジュール一覧（§3.0）、自動分解の保護を実装に合わせて修正した。参照基点以降のその他の追加機能は各機能の設計書を正とする。
+
 > 2026-10-08追記：§9に本番課金の未実装のデータ・処理要件を追加。現行のセーブスキーマや戦闘コードへ変更を適用したとは扱わない。
 
 > 更新日: 2026-10-07。現行実装の参照基点: `34fee54`（設計書レビュー [2026-10-06](reviews/design-review-2026-10-06.md) の指摘RV-01〜05を反映）。
@@ -113,7 +115,8 @@
   nextCharSeq,
   savedAt: Date.now(),
   autoRepeat: [           // チームごとの自動周回状態（index = チーム番号）
-    { active, target, done, dungeonId, mode },  // dungeonId・mode は保存時に挑戦中のダンジョン（オフライン精算に使う）
+    { active, target, done, dungeonId, mode, disassembleFilter? },  // dungeonId・mode は保存時に挑戦中のダンジョン（オフライン精算に使う）
+    //   disassembleFilter: { enabled, rarities } 稼働中のみ。出撃時の自動分解設定を保存し、再起動後の精算でも同じ条件を使う
     // ...team 1, 2, 3
   ],
   skillBooks: [],         // 予約（§6.3）
@@ -122,6 +125,9 @@
   records,                // 冒険の記録（出会った敵・手に入れた装備・潜った履歴）
   groups,                 // 未編成のグループ分け
   purchases: { unlocks: { autoRepeat100: true, ... }, rosterBoxes, history: [{ id, at }] }, // ショップ（js/model/shop.js）
+  jobGrants: { [jobId]: { at, window } }, // 特殊職の無料キャンペーン解放の記録（js/model/roster.js。docs/special-job-design.md）
+  jobTrialSwordmaster,    // 剣豪解放パイロットの進行（js/core/job-trial-swordmaster.js の normalize。フラグOFFでも既定値を保存）
+  pilotRuns?,             // 3F/5F階層パイロットの途中再開データ（?dungeonPilot=1 の時だけ。保存先も qpdungeonpilot: に分離）
   enabledFeaturesAtSave: [],
 }
 ```
@@ -413,10 +419,17 @@ guaranteedStonesRequired(item) = max(1, ceil(enhanceExpectedCost(item) / 10000))
 | `storage.js` | `createStorage(backend, { onWriteError })`, `KEYS` | 端末への保存の窓口（§4） |
 | `rng.js` | `shared`, `createRng(seed)`, `setSharedSeed(seed)`, `seededSource(seed)`, `withSharedSource(source, fn)` | 乱数（§3.1。チームごとの並びの切り替え） |
 | `enhance.js` | `successRate / cost / expectedCost / pityThreshold / guaranteedRequired`, `attempt(rules, item, { rng, pityEnabled })`, `useGuaranteed(rules, item, stones)` | 装備強化（§2.10）。`attempt` / `useGuaranteed` は判定後の+値・天井ゲージ・確定強化石の残数を返すだけで、装備や所持数は変更しない |
-| `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
+| `rewards.js` | `rollRarity`, `rollItem`, `rollBattleDrops`, `rollEventKind`, `rollTreasure`, `rollTame`, `settleDrops`, `battleExp`, `expForMember` | ドロップ・道中イベント・宝箱・テイム・自動分解（名のある装備・ロック品・高品質OP付き装備は `hasProtectedOption` / `PROTECTED_OP_MIN` で分解しない）。通常プレイ（`onVictory` / `rollDungeonEvent` / `settlePendingDrops` / `attemptTame`）とオフライン精算の両方が同じ関数を使う |
 | `stats.js` | `baseStats(job, race, level)`, `applyBuffs(stats, buffs)` | 基礎ステータス（Lv成長+12%/Lv・種族倍率）と石碑の加護。装備・スキルツリーの上乗せは model/roster.js の `computeStats` |
 | `battle.js` | `step(battle, party, dt, env)`, `simulate(battle, party, env, opts)`, `STEP_SECONDS`（固定刻み0.05秒）, `frameSteps(acc, frameSeconds, speed, maxSteps)`（画面のループの時間の積み立て）, `chooseAction(c, party, env, enemies)`, `expectedValue`, `pickEnemyTarget`, `pickAllyTarget`, `BASIC_ATTACK` | 戦闘エンジン。`chooseAction` は優先度が最も高い技のグループに絞り、その中で期待効果（実際のダメージ式で見積もった与ダメージ／回復量。敵の残りHP・味方の減ったHPを超える分は数えない。会心は期待値）が最大の技を選ぶ（通常の優先度では通常攻撃とも比較し、同値なら消費MPが少ない方）。キャラの能力値・技・パッシブは `env`（game.js の `battleEnv()`）から受け取り、起きたことをイベント（heal / crit / damage / enemyDown / acted / enemyAttack / memberDown）で返す。game.js の `tickTeam` がイベントをログの文章にし（`logBattleEvent`）、勝敗に応じて `onVictory` / `onDefeat` を呼ぶ |
 | `offline.js` | `estimateRunSeconds`, `simulateRun(ctx)` | オフライン進行（§2.11）。`simulateRun` は戦闘を `ctx.fight`（game.js が戦闘エンジンで実際に戦わせる）に任せ、所要時間・遭遇した敵・勝利した戦闘ごとのEXP・持ち帰るドロップ・テイム判定を返す。図鑑登録・EXP付与・所持品への追加は game.js の `applyOfflineRun` が行う |
+| `equipment.js` / `notices.js` | 装備の計算（§2.2）／自動周回の完了通知の予定 | 通知はアプリ版のみ（`js/ui/notify.js`） |
+| `inventory-organize.js` | 所持品の絞り込み・並び替え・安全な一括選択 | [所持品整理](inventory-safe-management.md)。保護品は一括選択から除外 |
+| `save-diagnostics.js` / `save-mirror.js` / `save-segments.js` / `cloud-large-backup.js` / `sync-contract.js` | 保存容量の診断、IndexedDBへの手動検証コピー・分割保存、本番バックアップAPI向けの契約 | すべて読み取り専用か手動操作のみ。正本は従来の `jobquest_save_v1`（[保存容量と移行計画](save-capacity-and-migration-plan.md)・[アカウント移行](account-sync-contract.md)） |
+| `dungeon-trial.js` / `dungeon-checkpoint.js` | ダンジョン3F/5F階層・ボス・途中再開の試作 | 検証版で `?dungeonPilot=1` の時だけ `model/run.js` が使う（保存先 `qpdungeonpilot:`）。[3F・5Fパイロット](dungeon-live-pilot-test.md) |
+| `job-trial-swordmaster.js` | 剣豪解放の1職パイロット | 検証版で `?jobTrial=1` の時だけ有効。[剣豪パイロット](job-trial-swordmaster-pilot.md) |
+| `trait-encounter.js` / `inscription-trial.js` | 特性持ち敵1〜3体の配置／特性対策の刻印装飾品 | シミュレーション（`tools/`）専用。ブラウザの実戦には接続しない |
+| `*-trial.js`（`element-affinity` / `option-*` / `forge-gear` / `loot-protection`） | 属性10種・OP枠・抽出／継承の試作計算 | 試作工房とテストだけが使う。本体の戦闘・ドロップ・セーブには未接続（[属性/OP枠の試作](attribute-slot-core-trial.md)） |
 
 ## 3.0a ゲームの状態とセーブ（`js/model/`）
 
