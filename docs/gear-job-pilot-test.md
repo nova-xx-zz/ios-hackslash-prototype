@@ -1,6 +1,6 @@
 # 3F/5F 装備×ジョブ相乗効果：実機試験モード
 
-> 2026-10-16 / 試験対象: `?dungeonPilot=1&gearTrial=1` / Draft / main・本番環境には未適用
+> 2026-10-16 / 試験対象: `?dungeonPilot=1&gearTrial=1` / 本番環境には未適用（2026-10-19更新：mainに統合済み。検証版で `?dungeonPilot=1&gearTrial=1` の両方を付けた時だけ動き、保存先は `qpgeartrial:` に分離）
 >
 > 既存の [装備×ジョブ診断](reviews/gear-job-synergy-20261016.md) の120周データに基づく**暫定の強化補正**。正式採用前の段階。
 

@@ -1,6 +1,6 @@
 # 探索スキル「解錠術」・鍵付き宝箱の本体統合（パイロット）
 
-> 更新: 2026-10-16 / 対象: 3F・5Fの`?dungeonPilot=1`のみ（main未反映・試験版）
+> 更新: 2026-10-16 / 対象: 3F・5Fの`?dungeonPilot=1`のみ（試験版）（2026-10-19更新：mainに統合済み。ただし検証版（preview）で `?dungeonPilot=1` を付けた時だけ動き、保存先も `qpdungeonpilot:` に分離。通常のURL・正式配信ビルドでは無効）
 >
 > 基本設計: [ダンジョン・ボス設計](dungeon-boss-design.md) / [3F・5F試験](dungeon-live-pilot-test.md) / [途中再開RV](reviews/dungeon-checkpoint-review-20261016.md)
 

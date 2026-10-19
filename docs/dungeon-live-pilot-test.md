@@ -1,6 +1,6 @@
 # ダンジョン3F・5F：本体接続パイロット実装／実機テスト
 
-> 2026-10-16 / 対象: prototype Draft PR #104 / **通常版へのマージ・本番配信は禁止**。
+> 2026-10-16 / 対象: prototype PR #104 / **本番配信は禁止**。（2026-10-19更新：mainに統合済み。ただし検証版（preview）で `?dungeonPilot=1` を付けた時だけ動き、保存先も `qpdungeonpilot:` に分離。通常のURL・正式配信ビルドでは無効）
 > 制限: 3F `plains` `forest`、5F `cave` のみ。
 > [全体仕様](dungeon-boss-design.md) / [35ダンジョン割当](dungeon-floor-assignments.md) / [隔離プレビュー](../dungeon-preview.html)
 
