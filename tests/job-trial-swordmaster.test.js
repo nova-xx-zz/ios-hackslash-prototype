@@ -133,3 +133,16 @@ test("legacy swordmaster training remains accessible in trial", () => {
   assert.equal(pilot.status(state, warrior, true).legacy, true);
   assert.equal(roster.jobUnlocked(warrior, "swordmaster"), true);
 });
+
+test("real battle damage events increment run warriorHits and ignore unrelated team", () => {
+  const { state, runner } = setup();
+  state.roster = state.roster.filter((c) => c.job === "warrior"); // 実データのLv50戦士のみ
+  const run = runner.startRun(0, "plains");
+  runner.startBattle(run);
+  for (let i = 0; i < 50000 && run.jobTrialWarriorHits === 0; i++) {
+    const out = runner.stepBattle(0, 0.05);
+    if (out.result) break;
+  }
+  assert.ok(run.jobTrialWarriorHits >= 1, "有効打は実際のdamageイベントから計測する");
+  assert.equal(state.jobTrialSwordmaster.warriorHits, 0, "踏破前はセーブ対象に加算しない");
+});
