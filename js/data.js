@@ -126,6 +126,10 @@ const JOBS = {
     id: "thief", name: "とうぞく", commandName: "わざ", icon: "🗡️", tier: "basic",
     desc: "素早い身のこなしで多段攻撃を得意とする軽戦士。行動速度が高く、手数で押し切る。",
     base: { hp: 24, mp: 8, atk: 9, mag: 3, def: 5, spd: 10 },
+    explorationSkills: [
+      { id: "thief_lockpick", name: "解錠術", reqLevel: 5, successRate: 0.45,
+        desc: "鍵付き宝箱を発見すると自動で1回解錠を試みる（成功率45%）。報酬はダンジョン踏破まで未確定。" },
+    ],
     abilities: [
       { id: "slash", name: "影刃", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.15, hits: 1, desc: "素早く斬りつける" },
       { id: "wild_slash", name: "乱れ刃", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.5, hits: 3, desc: "3回続けて斬る" },
@@ -197,6 +201,11 @@ const JOBS = {
     requires: { job: "thief", level: JOB_MASTER_LEVEL },
     desc: "とうぞくの上位職。卓越した速さと多彩な技でひたすら手数を重ねる。",
     base: { hp: 27, mp: 10, atk: 13, mag: 4, def: 6, spd: 14 },
+    // 盗賊の上位職。転職条件に盗賊の熟練が必要なため、解錠術を引き継げる。
+    explorationSkills: [
+      { id: "thief_lockpick", name: "解錠術", reqLevel: 1, successRate: 0.45,
+        desc: "鍵付き宝箱を発見すると自動で1回解錠を試みる（成功率45%）。報酬は踏破まで未確定。" },
+    ],
     abilities: [
       { id: "shuriken", name: "飛苦無", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.3, hits: 1, desc: "手裏剣を投げつける" },
       { id: "silent_blade", name: "霞斬り", reqLevel: 5, mpCost: 0, kind: "physical", target: "single", power: 0.48, hits: 3, desc: "音もなく3連撃を放つ" },

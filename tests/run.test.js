@@ -724,3 +724,94 @@ test("階層pilot: 不正・破損したチェックポイントは捨て、通�
  assert.deepEqual(vanilla.Runner.restorePilotRuns([saved]),[]);
  assert.equal(vanilla.Runner.teamRuns[0],null);
 });
+
+test("解錠術: 盗賊Lv5と忍者Lv1で習得。低レベル・他職・モンスターでは習得しない", () => {
+  const {roster}=setup({enableFloorPilot:true});
+  const make = (job, level) => roster.newCharacter("スキル確認", job, "human", {team:0,level});
+  const low = make("thief",4);
+  const thief = make("thief",5);
+  const ninja = make("ninja",1);
+  const fighter = make("warrior",40);
+  const monster = make("thief",40);
+  monster.isMonster = true;
+  assert.equal(roster.explorationSkillChance(low,"thief_lockpick"),0);
+  const newlyLearned=roster.gainExp(low,low.expToNext);
+  assert.equal(roster.explorationSkillChance(low,"thief_lockpick"),.45);
+  assert.ok(newlyLearned.abilityUnlocks.some((message)=>message.includes("解錠術")));
+  assert.equal(roster.explorationSkillChance(thief,"thief_lockpick"),.45);
+  assert.equal(roster.explorationSkillChance(ninja,"thief_lockpick"),.45);
+  assert.equal(roster.explorationSkillChance(fighter,"thief_lockpick"),0);
+  assert.equal(roster.explorationSkillChance(monster,"thief_lockpick"),0);
+  assert.ok(roster.availableAbilities(thief).every(x=>x.id!=="thief_lockpick"),"battle AI must never select exploration skill");
+  assert.ok(roster.availableAbilities(ninja).every(x=>x.id!=="thief_lockpick"));
+});
+
+test("解錠術: 盗賊Lv5が生存中だけ自動解錠を試行し、未確定品は失敗時に全ロスト", () => {
+  const {Runner,roster,state}=setup({enableFloorPilot:true,seed:20261016});
+  const thief=roster.newCharacter("解錠役","thief","human",{team:0,level:5});
+  state.roster[0]=thief;
+  let run=Runner.startRun(0,"plains");
+  let attempted=0,success=0,locked=0;
+  for(let i=0;i<3000;i++){
+    const event=Runner.rollEvent(run);
+    if(!event||event.kind!=="lockedTreasure")continue;
+    locked++;
+    if(event.attempted)attempted++;
+    if(event.success){success++;assert.ok(event.item);}
+  }
+  assert.ok(locked>70);
+  assert.equal(attempted,locked);
+  assert.ok(success>0);
+  assert.ok(success<locked);
+  const pending=run.pendingDrops.length;
+  assert.ok(pending>0);
+  const ownedBefore=state.inventory.length;
+  Runner.finishRun(run,false);
+  assert.equal(state.inventory.length,ownedBefore,"failed dungeon loses all chest items");
+  assert.equal(state.records.itemsFound.length,0,"lost items are not added to found equipment catalogue");
+  thief.alive=false;thief.hp=0;
+  run=Runner.startRun(0,"plains"); // 出発時に全回復するため、直後に戦闘不能にする
+  thief.alive=false;thief.hp=0;
+  let noAttempt=0;
+  for(let i=0;i<600;i++){
+    const ev=Runner.rollEvent(run);
+    if(ev&&ev.kind==="lockedTreasure"){
+      assert.equal(ev.attempted,false);
+      assert.equal(ev.success,false);
+      noAttempt++;
+    }
+  }
+  assert.ok(noAttempt>0);
+});
+
+test("解錠術: 忍者・盗賊が複数いても宝箱1個につき抽選は1回",()=>{
+  const {Runner,roster,state}=setup({enableFloorPilot:true,seed:105});
+  state.roster[0]=roster.newCharacter("鍵師","thief","human",{team:0,level:5});
+  state.roster[1]=roster.newCharacter("忍者","ninja","human",{team:0,level:5});
+  const run=Runner.startRun(0,"plains");
+  let total=0,success=0;
+  for(let i=0;i<3000;i++){
+    const ev=Runner.rollEvent(run);
+    if(ev&&ev.kind==="lockedTreasure"){total++; if(ev.success)success++;}
+  }
+  assert.ok(total>100);
+  assert.ok(success/total>.37&&success/total<.53,success+"/"+total);
+});
+
+test("解錠術: オフライン周回でもクローンパーティの習得状態で判定する", () => {
+  const {Runner,roster,state}=setup({enableFloorPilot:true,seed:772,level:35});
+  state.roster[0]=roster.newCharacter("解錠担当","thief","human",{team:0,level:35});
+  let clonedCalls=0;
+  const native=roster.explorationSkillChance;
+  roster.explorationSkillChance=(c,id)=>{
+    if(c.job==="thief"){
+      const original=state.roster.find(x=>x.id===c.id);
+      if(original&&original!==c) clonedCalls++;
+    }
+    return native(c,id);
+  };
+  const result=Runner.computeOfflineRun(data.getDungeon("plains"),0);
+  assert.ok(result.expByBattle.length>0);
+  assert.ok(clonedCalls>0,"offline chest events must consult the simulated party, not live roster");
+  assert.equal(state.inventory.length,0,"offline calculation must not grant items before settlement");
+});

@@ -108,3 +108,48 @@ test("未知ダンジョン・不正階層・破損RNG入力を拒否する", ()
   assert.throws(() => createEncounterPlan(d, 3, createRng(1), { kind: "mid", key: d.boss }), TypeError);
   assert.throws(() => advancePilotBossPhase("rock_golem", 4, 20), RangeError);
 });
+
+test("鍵付き宝箱: 未習得では解錠しない、習得済み45%なら1回だけ判定", () => {
+  let drops = 0, chances = 0;
+  const rng = { int: (n) => n === 100 ? (chances === 0 ? (chances++, 0) : 60) : 0,
+    chance: (p) => { assert.equal(p, 0.45); chances++; return true; } };
+  const item = () => { drops++; return { id: "key-rare", rarity: "ur" }; };
+  const ev = dungeon.rollPilotEvent(rng, 0.45, item);
+  assert.equal(ev.kind, "lockedTreasure");
+  assert.equal(ev.attempted, true);
+  assert.equal(ev.success, true);
+  assert.equal(drops, 1);
+  assert.equal(chances, 2);
+
+  const rngLocked = { int: (n) => n === 100 ? (rngLocked.calls++ === 0 ? 0 : 60) : 0,
+    calls: 0, chance: () => { throw Error("should never attempt when unlearned"); } };
+  const notLearned = dungeon.rollPilotEvent(rngLocked, 0, item);
+  assert.equal(notLearned.kind, "lockedTreasure");
+  assert.equal(notLearned.attempted, false);
+  assert.equal(notLearned.success, false);
+  assert.equal(notLearned.item, null);
+  assert.equal(drops, 1);
+});
+
+test("鍵付き宝箱: 45%の単発判定・失敗時にドロップしない／0～1以外の率は拒否", () => {
+  const rng = createRng(102016);
+  let attempts = 0, success = 0, drops = 0, failed = 0;
+  for (let i = 0; i < 30000; i++) {
+    const result = dungeon.rollPilotEvent(rng, 0.45, () => ({ id: String(++drops) }));
+    if (!result || result.kind !== "lockedTreasure") continue;
+    assert.equal(result.attempted, true);
+    attempts++;
+    if (result.success) { success++; assert.ok(result.item); }
+    else { failed++; assert.equal(result.item, null); }
+  }
+  assert.ok(attempts > 2500 && attempts < 3800);
+  assert.ok(success / attempts > 0.42 && success / attempts < 0.48, success + "/" + attempts);
+  // TreasureイベントもrollOneを呼ぶため、追加ドロップ総数とは区別する。
+  assert.equal(success + failed, attempts);
+  const forceLocked = (chance) => dungeon.rollPilotEvent(
+    {int: (() => {let n=0;return () => (++n===1?0:60);})(), chance: () => true },
+    chance, () => ({id:"forged"}));
+  assert.throws(() => forceLocked(-0.01), RangeError);
+  assert.throws(() => forceLocked(1.1), RangeError);
+  assert.throws(() => forceLocked(NaN), RangeError);
+});

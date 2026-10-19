@@ -156,7 +156,7 @@
 
   // 戦闘間イベントは手動操作不要。解錠は「習得した」技能がある場合だけ可能。
   // 泉の水を自動で飲ませず、霧の加護/呪いが自動的に付与される。
-  function rollPilotEvent(rng, hasLockpick, rollOne) {
+  function rollPilotEvent(rng, lockpick, rollOne) {
     validateRng(rng);
     if (typeof rollOne !== "function") throw new TypeError("rollOne required");
     if (rng.int(100) >= 40) return null;
@@ -165,8 +165,11 @@
       return { kind: "treasure", item: rng.int(100) < 65 ? rollOne() : null };
     }
     if (roll < 78) {
-      const success = !!hasLockpick && rng.int(100) < 45;
-      return { kind: "lockedTreasure", success, item: success ? rollOne() : null };
+      // 従来のboolean呼び出しも扱える（trueは基準の45%）。通常は確率0～1。
+      const chance = typeof lockpick === "number" ? lockpick : (lockpick === true ? 0.45 : 0);
+      if (!Number.isFinite(chance) || chance < 0 || chance > 1) throw new RangeError("invalid lockpick chance");
+      const success = chance > 0 && rng.chance(chance);
+      return { kind: "lockedTreasure", attempted: chance > 0, success, item: success ? rollOne() : null };
     }
     return { kind: "springAura", defensePercent: rng.int(2) === 0 ? 0.10 : -0.08 };
   }

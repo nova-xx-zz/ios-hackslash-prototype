@@ -419,7 +419,7 @@ function buildJobTab(c) {
 }
 
 // ---------- 詳細: スキルタブ ----------
-const ABILITY_KIND_ICONS = { physical: "⚔️", magic: "🔥", heal: "✨", buff: "📯" };
+const ABILITY_KIND_ICONS = { physical: "⚔️", magic: "🔥", heal: "✨", buff: "📯", exploration: "🗝️" };
 const FX_STAT_NAMES = { atk: "攻撃", mag: "魔力", def: "防御", spd: "素早さ" };
 // 技の名前の横に付ける小さな印（属性・弱体・強化・防御無視）
 function abilityTags(a) {
@@ -520,6 +520,29 @@ function buildSkillTab(c) {
     passiveListWrap.appendChild(none);
   }
   wrap.appendChild(passiveListWrap);
+
+  // 探索専用スキルは戦闘中に選択する技ではなく、鍵付き宝箱に自動発動。
+  // 通常の優先度やON/OFFボタンは付けない。
+  const exploration = jobDef(c).explorationSkills || [];
+  if (exploration.length) {
+    const learned = exploration.filter((a) => c.level >= a.reqLevel);
+    const head = document.createElement("div");
+    head.className = "detail-section-head";
+    head.innerHTML = `<span>探索スキル（自動発動・操作不要）</span><span class="count">${learned.length}/${exploration.length}</span>`;
+    wrap.appendChild(head);
+    const list = document.createElement("div");
+    list.className = "skill-row-list";
+    for (const a of exploration) {
+      const row = buildSkillRow(c, Object.assign({ kind: "exploration" }, a),
+        { locked: c.level < a.reqLevel, staticOn: c.level >= a.reqLevel });
+      const desc = document.createElement("div");
+      desc.className = "sub-ability-row";
+      desc.textContent = a.desc;
+      list.appendChild(row);
+      list.appendChild(desc);
+    }
+    wrap.appendChild(list);
+  }
 
   if (!c.isMonster) {
     const subLabels = ["サブアビリティ①", "サブアビリティ②"];

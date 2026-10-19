@@ -303,16 +303,17 @@
     // 結果: null（何も起きない・対象がいない）または
     //   { kind: "treasure", item（空ならnull） } / { kind: "trap", wide, hits } / { kind: "spring", heals } /
     //   { kind: "shrine", stat, total（このダンジョン中の合計の上昇率） }
-    // 本体に解錠スキルの定義が追加されるまでは「習得済み」を偽装しない。
-    function hasLearnedLockpick(teamIndex) {
-      return R.teamMembers(teamIndex).some((c) => {
-        if (typeof R.availableAbilities !== "function" || typeof R.isSkillActive !== "function") return false;
-        return R.availableAbilities(c).some((a) => a.id === "thief_lockpick" && R.isSkillActive(c, a.id));
-      });
+    // 盗賊Lv5／忍者Lv1の探索専用スキル。「パーティ中で生存している仲間」
+    // のうち最も高い成功率を1回だけ使う。人数で複数回抽選しない。
+    function lockpickChance(members) {
+      if (typeof R.explorationSkillChance !== "function") return 0;
+      return members.reduce((best, c) => c && c.alive && c.hp > 0
+        ? Math.max(best, R.explorationSkillChance(c, "thief_lockpick"))
+        : best, 0);
     }
     function rollEvent(run) {
       if (run.pilotSchedule) {
-        const ev = dungeonTrial.rollPilotEvent(rng, hasLearnedLockpick(run.team), dropFor(run.dungeon));
+        const ev = dungeonTrial.rollPilotEvent(rng, lockpickChance(R.teamMembers(run.team)), dropFor(run.dungeon));
         if (!ev) { run.pilotCheckpointPhase = "ready"; return null; }
         if (ev.item) run.pendingDrops.push(ev.item);
         if (ev.kind === "springAura") {
@@ -445,7 +446,7 @@
             eligibleIds: party.filter((c) => c.alive).map((c) => c.id) };
         },
         // 階層版は通常プレイと同じイベント抽選。旧ルールは従来処理を維持。
-        rollEvent: pilot ? () => dungeonTrial.rollPilotEvent(rng, hasLearnedLockpick(teamIndex), dropFor(dungeon)) : undefined,
+        rollEvent: pilot ? () => dungeonTrial.rollPilotEvent(rng, lockpickChance(party), dropFor(dungeon)) : undefined,
         // 泉と罠は戦闘に影響するので写しに反映する（旧石碑は省略）。
         onEvent: (kind, ev) => {
           if (pilot && kind === "springAura") {
