@@ -9,6 +9,7 @@
   const recordsMod = (root.QPModel && root.QPModel.records) || (typeof require === "function" ? require("./records.js") : null);
   const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
   const shopMod = (root.QPModel && root.QPModel.shop) || (typeof require === "function" ? require("./shop.js") : null);
+  const swordmasterPilot = (root.QPCore && root.QPCore.jobTrialSwordmaster) || (typeof require === "function" ? require("../core/job-trial-swordmaster.js") : null);
 
   // schemaVersion 2からは、このメインセーブのmaterialを正本とし、旧jobquest_materialキーは
   // 互換ミラーとして更新するのみにする（強化石・スキルブックの鑑定など複数キーにまたがる更新を
@@ -45,6 +46,7 @@
       purchases: { unlocks: {}, rosterBoxes: 0, history: [] },
       // 期間限定で解放した特殊職（docs/special-job-design.md §6）。{ jobId: { at（解放した時刻）, window（期間のid） } }
       jobGrants: {},
+      jobTrialSwordmaster: swordmasterPilot.normalize(null), // 試験モード専用。特殊職の公式権利とは別
     };
   }
 
@@ -163,8 +165,9 @@
       groups: state.groups,
       purchases: state.purchases,
       jobGrants: state.jobGrants || {},
+      jobTrialSwordmaster: swordmasterPilot.normalize(state.jobTrialSwordmaster),
       enabledFeaturesAtSave: opts.enabledFeatures || [],
-      // 3F/5Fの試験URLのみ。同じrunの再開に必要な任意フィールド。
+      // 3F/5F試験用。既存セーブと剣豪実績を同じ保存トランザクションで保持。
       ...(Array.isArray(opts.pilotRuns) ? { pilotRuns: opts.pilotRuns } : {}),
     };
   }
@@ -205,6 +208,7 @@
       groups: normalizeGroups(data.groups),
       purchases: shopMod.normalizePurchases(data.purchases),
       jobGrants: normalizeJobGrants(data.jobGrants),
+      jobTrialSwordmaster: swordmasterPilot.normalize(data.jobTrialSwordmaster),
     };
     normalizeCharGroups(state.roster, state.groups);
     // 装備の枠が3つ（武器・防具・装飾品）だった頃のセーブは、新しい枠（右手・左手・頭・体・装飾品1〜3）と
