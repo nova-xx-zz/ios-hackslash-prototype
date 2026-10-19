@@ -459,8 +459,8 @@
           for (const c of party) { c.atb = rng.float(0, 25); c.defending = false; }
           const r = battleCore.simulate(battle, party, env, {
             maxSeconds: OFFLINE_BATTLE_MAX_SECONDS,
-            onStep: observers && typeof observers.onBattleStep === "function"
-              ? (step) => observers.onBattleStep(step) : undefined,
+            onStep: options && typeof options.onBattleStep === "function"
+              ? (step) => options.onBattleStep(step) : undefined,
           });
           return { won: r.result === "victory", seconds: r.seconds,
             eligibleIds: party.filter((c) => c.alive).map((c) => c.id) };
