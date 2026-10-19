@@ -1495,7 +1495,12 @@ const RARITIES = [
 ];
 
 // 自動分解フィルターの初期値（未設定時はN/Rのみ）。実際に使う対象はプレイヤーが画面上で変更でき、端末に保存される
-const DEFAULT_AUTO_DISASSEMBLE_RARITIES = ["n", "r"];
+// 試験モードだけはR装備を初期分解対象から外す。
+// 自動分解そのものはユーザーがONにするまでOFF。選択済みの端末フィルターは優先。
+ // Rの厳選と、分解して強化石を得る選択の両方をプレイヤーに残す。
+const DEFAULT_AUTO_DISASSEMBLE_RARITIES =
+  QPCore.storage && QPCore.storage.isGearTrialMode && QPCore.storage.isGearTrialMode()
+    ? ["n"] : ["n", "r"];
 
 function rollRarity() { return QPCore.rewards.rollRarity(RARITIES, RNG); }
 
