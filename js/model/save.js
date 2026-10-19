@@ -167,6 +167,8 @@
       jobGrants: state.jobGrants || {},
       jobTrialSwordmaster: swordmasterPilot.normalize(state.jobTrialSwordmaster),
       enabledFeaturesAtSave: opts.enabledFeatures || [],
+      // 3F/5F試験用。既存セーブと剣豪実績を同じ保存トランザクションで保持。
+      ...(Array.isArray(opts.pilotRuns) ? { pilotRuns: opts.pilotRuns } : {}),
     };
   }
 
@@ -240,6 +242,7 @@
       // 旧バージョン（単一チームのみの自動周回）のデータはそのままでは形が合わないため、
       // 配列でない場合はオフライン進行の計算対象から外す（ロスター等の本体データは復元される）
       savedAutoRepeat: Array.isArray(data.autoRepeat) ? data.autoRepeat : [],
+      savedPilotRuns: Array.isArray(data.pilotRuns) ? data.pilotRuns : null,
     };
   }
 
