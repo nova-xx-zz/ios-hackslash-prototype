@@ -308,7 +308,7 @@ function buildSwordmasterTrialPilot(c) {
   btn.style.marginTop = "10px";
   btn.textContent = "剣豪の試練に挑戦";
   const busy = c.team !== null && isTeamLocked(c.team);
-  btn.disabled = !st.trialAvailable || c.team === null || busy;
+  btn.disabled = !st.trialAvailable || c.job !== "warrior" || c.team === null || busy;
   btn.addEventListener("click", () => {
     if (!pilot.status(S, c, true).trialAvailable || c.team === null || isTeamLocked(c.team)) return;
     if (!teamMembers(c.team).some((member) => member.id === c.id && member.job === "warrior")) {
@@ -351,6 +351,10 @@ function buildSwordmasterTrialPilot(c) {
   if (!st.trialAvailable && !st.unlocked) {
     const note = document.createElement("div");
     note.textContent = "必要条件を満たすと挑戦できます";
+    box.appendChild(note);
+  } else if (st.trialAvailable && c.job !== "warrior") {
+    const note = document.createElement("div");
+    note.textContent = "試練には、対象の仲間を「せんし」に転職させて参加してください";
     box.appendChild(note);
   } else if (st.trialAvailable && c.team === null) {
     const note = document.createElement("div");
