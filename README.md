@@ -198,6 +198,7 @@ npm run cap:open:ios # Xcode で開く（Mac のみ）
 - `ios/` — Capacitor で生成した Xcode プロジェクト
 - `tools/firebase-entry.js` — `js/vendor/firebase.js` に入れる Firebase の関数の一覧
 - `tools/build-www.js` — アプリに入れるファイルを `www/` にまとめる（index.html から読み込むファイルがすべて入ったかも確認する）
+- `tools/cache-versions.js` — `index.html` の `?v=` の上げ忘れチェック。css/js を変えたら `npm run cache:bump` で番号を上げる（上げ忘れると `npm test` が失敗する。記録は `tools/cache-versions.json`）
 - `js/game.js` — 起動処理（アプリを離れる・戻る時の保存とバックグラウンド復帰時の精算、起動時の読み込みとモーダル）
 - `data/announcements.js` — 冒険者ギルドからのお知らせのデータ
 - `data/roadmap.js` — 今後の予定（ロードマップ）のデータ

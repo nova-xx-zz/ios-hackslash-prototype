@@ -5,6 +5,8 @@
   "description": "ソードクレスト（Sword Crest）: 5人パーティ・オート戦闘のハクスラダンジョン",
   "scripts": {
     "test": "node --test",
+    "cache:check": "node tools/cache-versions.js",
+    "cache:bump": "node tools/cache-versions.js --update",
     "build:www": "node tools/build-www.js",
     "cap:sync": "npm run build:www && npx cap sync",
     "cap:open:ios": "npx cap open ios",

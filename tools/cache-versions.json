@@ -1,0 +1,285 @@
+{
+  "note": "node tools/cache-versions.js --update で更新する。手で編集しない。",
+  "files": {
+    "css/style.css": {
+      "v": 47,
+      "hash": "08a4c9e7035519f026e0916fa8c590e928e8f8a49933c8059426576bb65a6911"
+    },
+    "data/announcements.js": {
+      "v": 14,
+      "hash": "90752aef2b2281f829543dcae76d602183bc003095e3d54c86cfd62d30d2ed80"
+    },
+    "data/roadmap.js": {
+      "v": 2,
+      "hash": "3725626f3a240b50b8b8a1cdb530eba15236c1ec5888e29c735062770b5eac2d"
+    },
+    "icons/apple-touch-icon.png": {
+      "v": 2,
+      "hash": "49d82d8873466fca7ec037e9ad1dfa9da6bc16ba756f6d11e0e8e88839bd4b93"
+    },
+    "icons/icon-192.png": {
+      "v": 2,
+      "hash": "7937ac28d2b8a3436520619f4caec205802283ae72e8f0760e7cfe4c9cef6c93"
+    },
+    "js/cloud.js": {
+      "v": 4,
+      "hash": "cdc6175f15c796f4c11ad52c47f6d6fecb8880ecfe13296f4561ce3d5f31ec0c"
+    },
+    "js/contact-config.js": {
+      "v": 1,
+      "hash": "6e503f3a735fdd25ce64ea856faf871f3bc72298e0b7c4c642ed780b96f7963f"
+    },
+    "js/core/battle.js": {
+      "v": 8,
+      "hash": "27516154663df1ed9c778e3319e1c3544058686c690a66c0e51ecd87af571e9f"
+    },
+    "js/core/cloud-large-backup.js": {
+      "v": 1,
+      "hash": "8bd9c1f2cea5e4211f320bb66d7c29016a7d77afaef9c5e69163a6613a14a173"
+    },
+    "js/core/dungeon-checkpoint.js": {
+      "v": 1,
+      "hash": "e7946754869534c734ce1efca65ddb526e11d433b561188c67640411976cb08c"
+    },
+    "js/core/dungeon-trial.js": {
+      "v": 5,
+      "hash": "8f16a6cab5909319eacc1fba79b48ac8846a0dd5890e44a0b80c9187582eba4d"
+    },
+    "js/core/element-affinity-trial.js": {
+      "v": 1,
+      "hash": "2481fbefde35c58a883ef8b89dcb668ce246e458689a2b32976226ced54eeb3c"
+    },
+    "js/core/enhance.js": {
+      "v": 1,
+      "hash": "6d42fada2a94eaaba8f46ae78a20533ed0aa00a48c3218131f20526e7d33c420"
+    },
+    "js/core/equipment.js": {
+      "v": 5,
+      "hash": "102757602ea14e4e5341cfafaf57f7640df6990bafd47f27acd069aa01be4bdf"
+    },
+    "js/core/forge-gear-trial.js": {
+      "v": 1,
+      "hash": "d49b90645839c003e93de4d62cc62ca1fea1a730df732f64f3399d14c41754aa"
+    },
+    "js/core/inventory-organize.js": {
+      "v": 2,
+      "hash": "2eac417feda303b825e3c74da091d721833d76fae8abf287b7d58790e4080111"
+    },
+    "js/core/job-trial-swordmaster.js": {
+      "v": 1,
+      "hash": "3d1b5841c1c0ca2cbee8aaf4204f014fced8d82e5a60842cbb4b563306cf0285"
+    },
+    "js/core/loot-protection-trial.js": {
+      "v": 1,
+      "hash": "00ef99aa630a1fec061792ff65b3c3476e7a0013e4c7db2ab196e2cb587a208f"
+    },
+    "js/core/notices.js": {
+      "v": 1,
+      "hash": "6d20f7b07c9a9d49eac3fa290ae5695b92ca90c9c7df21a781ea9b326cdd3b42"
+    },
+    "js/core/offline.js": {
+      "v": 5,
+      "hash": "135469a6f02eb7c2022c3fc21bf65a8919ee58e7361b41a549b9a0d162185796"
+    },
+    "js/core/option-balance-trial.js": {
+      "v": 1,
+      "hash": "da392e151817bfd45fc9192072757eb444054a055ecb5cda94d97d070a909436"
+    },
+    "js/core/option-inheritance-trial.js": {
+      "v": 2,
+      "hash": "98f89f56a0856c00b54a89cc8ba696e69eae6f753cc155af7a9c78922cccacb1"
+    },
+    "js/core/option-rarity-trial.js": {
+      "v": 2,
+      "hash": "2564dfcb385ad31c2c01a2aa5db9879c3f44ca540f3554f147362edd47e4b492"
+    },
+    "js/core/option-slots-trial.js": {
+      "v": 1,
+      "hash": "cc075e04868343ef5d8ecd42d8c8afec84cf46431da45a61b85f1b3dbe12c9fa"
+    },
+    "js/core/option-stack-trial.js": {
+      "v": 1,
+      "hash": "c45ecdec9ac83bf9bf6a67a63fc4daad7b239003e3979145051cc7506e9ec97c"
+    },
+    "js/core/rewards.js": {
+      "v": 7,
+      "hash": "0b68862725a36f6622bb890b25ea8bbaff2f40d308c90432ce3712c63e38fa55"
+    },
+    "js/core/rng.js": {
+      "v": 3,
+      "hash": "2aa9f063beb18bd54c7853647d6c54444294b641c17efc667b410bd8121f37bf"
+    },
+    "js/core/save-diagnostics.js": {
+      "v": 1,
+      "hash": "061f9d77478911314359180235753c7304fe58cc24eb9e6bcd6b2c017db98a57"
+    },
+    "js/core/save-mirror.js": {
+      "v": 1,
+      "hash": "d1caccfa8d394c95f8a38c428d4366c3ff446b537930f8a50372869e34a9b98c"
+    },
+    "js/core/save-segments.js": {
+      "v": 1,
+      "hash": "684d25098839231fa1960f950601a4f4d3615c94779fe2f6e39a4944d005affd"
+    },
+    "js/core/stats.js": {
+      "v": 2,
+      "hash": "f52debca8023a52aeb6d1b7a0307f069b3f0c2b7965b7335ed307de85921bd9c"
+    },
+    "js/core/storage.js": {
+      "v": 8,
+      "hash": "313bc7d81eec139a376518632946dd65277dca239f6e3f80ab29822d6f878993"
+    },
+    "js/data.js": {
+      "v": 35,
+      "hash": "1f69060fd93340565cbd66b659d7620af24e8ccce44a4cf2319509707b43ffb4"
+    },
+    "js/debug-gate.js": {
+      "v": 5,
+      "hash": "cdf156a00cf6d7468b9f98df5aaee43814b28b4c7c8ae38dc402d4d3a68a9016"
+    },
+    "js/firebase-config.js": {
+      "v": 1,
+      "hash": "4b2bdfdc1e5ee79199b0820bdd2afd1339a32fb08543f6c6f970005d2914e91d"
+    },
+    "js/game.js": {
+      "v": 33,
+      "hash": "ea5bc4da6c6c29378276c6cffae993cab2cec400fc0f80ee41234ea7b2c10f21"
+    },
+    "js/model/inventory.js": {
+      "v": 11,
+      "hash": "79b314c6fb5cb83f7fe825589a37ec03e5b95450eb6b2430529e09adf129ac04"
+    },
+    "js/model/records.js": {
+      "v": 1,
+      "hash": "76f7064d7b86c65da913d893c45571e2beafd9c197e660ccab7ae3b261c7aad1"
+    },
+    "js/model/roster.js": {
+      "v": 11,
+      "hash": "00759aa85f6ce93550492fe8f1a474dbf2d5fed2b22fde2ecc6163a9fe0c35e3"
+    },
+    "js/model/run.js": {
+      "v": 16,
+      "hash": "6d3dd6e061adcb95fc1d252ddf0c7f734cb374cb138d1c1473a6e1c54b6227ad"
+    },
+    "js/model/save.js": {
+      "v": 11,
+      "hash": "1b68c14c1f5d614671236324bb475f9b0d7c28b66a736ff56f4d7dc448e97738"
+    },
+    "js/model/shop.js": {
+      "v": 3,
+      "hash": "d073044a6ec4a87a5f7cf1464dcf2bd3a5a14bb6c4a28eccf62e5a8a7832d6f5"
+    },
+    "js/options.js": {
+      "v": 2,
+      "hash": "786ae8d157b5cfd91c094ae07ab743feb18e9b1adcbd93e84e010a9e2bbecde5"
+    },
+    "js/pwa.js": {
+      "v": 1,
+      "hash": "d76cef3a6f01bc3147d5df68e4f095759cec9ae440e8125b147ea98b43622477"
+    },
+    "js/runtime-env.js": {
+      "v": 1,
+      "hash": "6a42cb22dd87f8f5bf4560ff483e462bedd01c1c471ef0dae22e3533648088dd"
+    },
+    "js/ui/announcements.js": {
+      "v": 1,
+      "hash": "188d9a3b9f3dffa8e402119aa0aee47883583a32d79c65aafcabb3c63df04cae"
+    },
+    "js/ui/battle.js": {
+      "v": 6,
+      "hash": "8c5b5e346fd9c6f0e322b2695400b562ea89e3fc5f379835692b2a74b42ba797"
+    },
+    "js/ui/book.js": {
+      "v": 9,
+      "hash": "99160047e066b628bb61596417a47b2728331f626bab7bb44c53cf0c8ed31b45"
+    },
+    "js/ui/contact.js": {
+      "v": 1,
+      "hash": "048885a0c3064f15bee7703f9b00e79d53b3ca3da5ad866af4d3461c3232617e"
+    },
+    "js/ui/create.js": {
+      "v": 6,
+      "hash": "3303212e9f5542acb2d87a77a813236b28c748e8291e30f127e90f38eb2c754c"
+    },
+    "js/ui/debug.js": {
+      "v": 9,
+      "hash": "119971c085bb2bfc0e11e11cf041efbd71bad1239c7266b4a4fe3e2218b84a62"
+    },
+    "js/ui/detail-tabs.js": {
+      "v": 13,
+      "hash": "1272fcf86ff94a6505a4b5afce31b6d840f775b1c010348a3ef038f06d3510d3"
+    },
+    "js/ui/detail-tree.js": {
+      "v": 4,
+      "hash": "bdca761350b435495dc38416b4eccc3102d40fee7d4e1bf65a385296f1a370c8"
+    },
+    "js/ui/detail.js": {
+      "v": 4,
+      "hash": "9510fe4b485d7f2b2f0641c53cbf7bd4c03317ef5243a5103a8ef8eb43ef7237"
+    },
+    "js/ui/dock.js": {
+      "v": 10,
+      "hash": "8ef035efd51fae26d82130de7495b38fe72ea16e91428486ba5334ee5502bedc"
+    },
+    "js/ui/explore.js": {
+      "v": 15,
+      "hash": "7791a0f8cfd3b1988ff40720bd8a3847832d8ab98d61ed6d4a447754a09f278c"
+    },
+    "js/ui/forge-trial.js": {
+      "v": 8,
+      "hash": "fc1a15f89ce364cf91ae8c57122a3f4ae23967295270827069654dcf7996c636"
+    },
+    "js/ui/insignia.js": {
+      "v": 3,
+      "hash": "3ad7150910c0d2bd1de7eb80a8fc2aae21fa096306cf2684b0e52333d2379a5e"
+    },
+    "js/ui/inventory.js": {
+      "v": 12,
+      "hash": "32c778899aefbc78a19b01a2611f464e7126d9ed5b084a482ec8d175ed4148c9"
+    },
+    "js/ui/log.js": {
+      "v": 3,
+      "hash": "01910989231d1c1de01443a11420d09b970d149c33025bc27846617d73969cde"
+    },
+    "js/ui/menu.js": {
+      "v": 3,
+      "hash": "932f7c4d7d05e6dbc61e84a5aa5f8ac6bd05568793bef0515f5a2a80458c6260"
+    },
+    "js/ui/models.js": {
+      "v": 20,
+      "hash": "1ea3688ee1439a91ca56e9910dbfa8c1be0185af069e0257d290442617d42108"
+    },
+    "js/ui/notify.js": {
+      "v": 1,
+      "hash": "75bd86ad3b19360c5a1015b042dbcc902908486ee9523806a239166942718abb"
+    },
+    "js/ui/offline.js": {
+      "v": 4,
+      "hash": "72ee0c0381acd4703c09838eb02e35351737bd027272965917d7fda807b100ba"
+    },
+    "js/ui/party.js": {
+      "v": 10,
+      "hash": "5e8db858a169e11484d262968f212c67694d148e0d14447ec12a8a0d54ff4def"
+    },
+    "js/ui/settings.js": {
+      "v": 5,
+      "hash": "0e08183d34196628e8cf32d361063a41864c496b741b26d483245991752b830c"
+    },
+    "js/ui/shop.js": {
+      "v": 5,
+      "hash": "3f129928732acf12a3721d2af0f968ceaef25cb3672197ae62cf32147e18ae6d"
+    },
+    "js/ui/state.js": {
+      "v": 3,
+      "hash": "663d2a8260f319abbee52d30be5faec0882aa910d2116c6da7a630d9a28f1c10"
+    },
+    "js/ui/title-map.js": {
+      "v": 13,
+      "hash": "05e457202ceedb02d586989bfe1f1f9700abe354b4014f15dc0767d117c22af2"
+    },
+    "js/uniques.js": {
+      "v": 3,
+      "hash": "ef9ff973ef801ed16417d87624e6e2ab32d1cb81470f26724bc0cacbf9cbedc2"
+    }
+  }
+}
