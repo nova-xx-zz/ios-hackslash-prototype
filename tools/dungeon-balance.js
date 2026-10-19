@@ -122,6 +122,11 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
   if (!["standard", "off"].includes(treeStrategy)) throw new RangeError("invalid tree strategy");
   const treeBranch = options.treeBranch || "left";
   if (!["left", "right"].includes(treeBranch)) throw new RangeError("invalid tree branch");
+  const enemyTraitMode = options.enemyTraitMode || "normal";
+  if (!["normal", "hard", "extra"].includes(enemyTraitMode)) throw new RangeError("invalid enemy trait mode");
+  const enemyTrait = options.enemyTrait || "native";
+  const TRAIT_EXEMPLAR = { spirit:"mirage_spirit", ward:"rock_golem", armored:"mud_crab", undead:"skeleton" };
+  if (enemyTrait !== "native" && !Object.hasOwn(TRAIT_EXEMPLAR, enemyTrait)) throw new RangeError("invalid enemy trait");
   const enemyElement = options.enemyElement || "native";
   if (!["native", "火", "氷", "闇", "光"].includes(enemyElement)) throw new RangeError("invalid enemy element");
   const skillStrategy = options.skillStrategy || "normal";
@@ -165,10 +170,38 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
   // Attribute scenarios recolor the EXISTING cave enemies only in memory.
   // Actual enemy data/element-affinity tables and combat rules are reused;
   // this does not mutate any dungeon definition, save, or production combat.
-  const runnerData = enemyElement === "native" ? data : Object.assign({}, data, {
-    makeEnemy: (template, ...args) => data.makeEnemy(
-      Object.assign({}, template, { element: enemyElement }), ...args
-    )
+  const runnerData = enemyElement === "native" && enemyTrait === "native" ? data : Object.assign({}, data, {
+    makeEnemy: (template, ...args) => {
+      // Only the diagnostic copy is changed. All original template keys, rewards,
+      // boss flags, HP, ATK and encounter/dungeon data are preserved.
+      const updated = enemyElement === "native" ? template : {...template, element:enemyElement};
+      const enemy = data.makeEnemy(updated, ...args);
+      if (enemyTrait === "native") return enemy;
+      // Borrow ACTUAL implementation traits/resistances from an existing enemy.
+      const source = data.getEnemyTemplate(TRAIT_EXEMPLAR[enemyTrait]);
+      if (!source) throw Error("trait exemplar not found: "+enemyTrait);
+      const donorArgs = args.slice();
+      donorArgs[4] = enemyTraitMode;
+      const donor = data.makeEnemy({...source, element:updated.element}, ...donorArgs);
+      // Preserve native element affinity and selectively add real trait flags.
+      const currentElement = enemy.res && enemy.res.el || {};
+      const borrowed = donor.res || {};
+      const el = {...currentElement, ...borrowed.el};
+      for (const key of ["holy"]) {
+        if (enemyTrait !== "undead" && Object.hasOwn(el,key) &&
+            !Object.hasOwn(currentElement,key)) delete el[key];
+      }
+      enemy.res = {el};
+      for (const key of ["physical","magic","nonHoly"]) {
+        if (borrowed[key] !== undefined) enemy.res[key] = borrowed[key];
+      }
+      const originalArmor = enemy.traits.includes("armored") ? 1.5 : 1;
+      const armorMult = {normal:1.5,hard:2.5,extra:4}[enemyTraitMode];
+      const newArmor = donor.traits.includes("armored") ? armorMult : 1;
+      enemy.def = Math.round(enemy.def / originalArmor * newArmor);
+      enemy.traits = donor.traits.filter(t=>t===enemyTrait);
+      return enemy;
+    },
   });
   runner = createRunner({
     data: runnerData, state, roster, inventory, rng, teamCount: 4, battleEnv: env,
@@ -176,7 +209,7 @@ function buildScenario(dungeonId, profile, seed, options = {}) {
     autoDisassemble: () => DISASSEMBLE,
     markDexSeen: () => {}, setBestStage: () => {},
   });
-  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement };
+  return { d, state, roster, runner, enhancementPreview: gearPreview, skillStrategy, treeStrategy, treeBranch, enemyElement, enemyTrait, enemyTraitMode };
 }
 
 function measureScenario(dungeonId, profileId, trials, seed) {

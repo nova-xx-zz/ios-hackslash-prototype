@@ -1,0 +1,19 @@
+name: Trait + individual tree buildcraft
+on:
+  push:
+    branches:
+      - 'feature/trait-individual-tree-study-*'
+  workflow_dispatch:
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Measure trait counter and one-member skill-tree strategies
+        run: node tools/trait-individual-tree-study.js --trials=60
