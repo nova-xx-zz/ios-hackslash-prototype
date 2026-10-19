@@ -1043,7 +1043,10 @@ const DUNGEONS = [
     id: "cave", region: "verde", name: "こだまの洞窟", x: 26, y: 40, level: 7, battles: 4,
     pool: ["goblin", "bat", "wolf", "cave_bat", "stone_lizard", "shadow_wolf", "mud_crab"], boss: "rock_golem", rares: ["crystal_lizard", "gold_crab"], unlocks: ["ruins"],
     desc: "暗く入り組んだ洞窟。素早い魔物が多い。",
-    power: 1.505, // 敵の強さの倍率（node tools/simulate.js --calibrate の提案値）
+    power: 1.505, // 従来ダンジョン/ボスの倍率は据え置き
+    // 階層pilotの4F・5F通常敵だけ20%弱化。ボスのHP・ATK・DEFは変更しない。
+    // 240周×3装備ビルドの全滅階層別検証（docs/reviews/cave-floor-calibration-20261016.md）。
+    pilotLateNormalFactor: 0.8,
     benchmarkGear: { rarity: "n", plus: 1 }, // 想定プレイヤーの適正装備（到着時の代表値。node tools/progression.js。難易度の調整用でゲーム内には影響しない）
     modePower: { hard: 2.07, extra: 4.225 }, // ハード・エクストラの敵の強さの倍率（node tools/simulate.js --calibrate-modes）
   },

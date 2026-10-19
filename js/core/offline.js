@@ -39,6 +39,7 @@
       for (const e of enemies) encountered.push(e.key);
       const result = ctx.fight(enemies, i);
       seconds += result.seconds;
+      if (ctx.onBattleFinish) ctx.onBattleFinish({ index: i, enemies, won: !!result.won, seconds: result.seconds });
       if (!result.won) return { cleared: false, seconds, encountered, expByBattle, eligibleIdsByBattle, drops: [], tame: null };
       expByBattle.push(rewards.battleExp(enemies));
       // 実戦と同じく勝利時点の生存者だけにEXP。テスト用のfightがIDを返さない場合はnull（旧仕様互換）。
