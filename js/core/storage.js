@@ -96,6 +96,12 @@
   // 別の保存場所（キーの頭に DEBUG_PREFIX）を使い、クラウドセーブも使わない（js/cloud.js・js/ui/debug.js）
   const DEBUG_PREFIX = "qpdebug:";
   const DUNGEON_PILOT_PREFIX = "qpdungeonpilot:";
+  const GEAR_TRIAL_PREFIX = "qpgeartrial:";
+  function isGearTrialMode() {
+    // productionでも通常のdungeonPilotでも使えない二重の明示フラグ。
+    return isDungeonPilotMode() &&
+      /(?:\?|&)gearTrial=1(?:&|$)/.test((root.location && root.location.search) || "");
+  }
   function isDungeonPilotMode() {
     return !(root.QPRuntime && root.QPRuntime.channel === "production") &&
       /(?:\?|&)dungeonPilot=1(?:&|$)/.test((root.location && root.location.search) || "");
@@ -123,12 +129,13 @@
       if (root.QPRuntime && root.QPRuntime.channel === "production") {
         return ls ? prefixedBackend(ls, PRODUCTION_PREFIX) : null;
       }
+      if (ls && isGearTrialMode()) return prefixedBackend(ls, GEAR_TRIAL_PREFIX);
       if (ls && isDungeonPilotMode()) return prefixedBackend(ls, DUNGEON_PILOT_PREFIX);
       return ls && isDebugMode() ? prefixedBackend(ls, DEBUG_PREFIX) : ls;
     } catch (e) { return null; }
   }
 
-  const exported = { KEYS, DEBUG_PREFIX, DUNGEON_PILOT_PREFIX, PRODUCTION_PREFIX, isDungeonPilotMode, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
+  const exported = { KEYS, DEBUG_PREFIX, DUNGEON_PILOT_PREFIX, GEAR_TRIAL_PREFIX, PRODUCTION_PREFIX, isDungeonPilotMode, isGearTrialMode, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
   root.QPCore = root.QPCore || {};
   root.QPCore.storage = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;

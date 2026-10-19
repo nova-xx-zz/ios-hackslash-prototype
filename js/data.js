@@ -1558,7 +1558,15 @@ function rarityMult(key) {
   const rarity = RARITIES.find((r) => r.key === key);
   return rarity ? rarity.mult : 1;
 }
-function itemStats(item) { return QPCore.equipment.itemStats(item, rarityMult(item.rarity)); }
+function itemStats(item) {
+  const mult = rarityMult(item.rarity);
+  // 本番／通常／ダンジョンpilotでは従来式。専用隔離URLでのみ試作式を試す。
+  if (QPCore.storage && typeof QPCore.storage.isGearTrialMode === "function" &&
+      QPCore.storage.isGearTrialMode()) {
+    return QPCore.equipment.itemStatsEarlyMilestones(item, mult);
+  }
+  return QPCore.equipment.itemStats(item, mult);
+}
 // 並べ替え用の代表値: 主能力（最初の能力値）の強化値込みの値
 function itemEffectiveValue(item) {
   const k = QPCore.equipment.primaryStat(item);

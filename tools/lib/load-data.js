@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-function loadGameData() {
+function loadGameData(coreOverrides) {
   const QPCore = {
     rng: require("../../js/core/rng.js"),
     enhance: require("../../js/core/enhance.js"),
@@ -13,6 +13,9 @@ function loadGameData() {
     battle: require("../../js/core/battle.js"),
     equipment: require("../../js/core/equipment.js"),
   };
+  // Optional test-only override to verify feature-gated data.js paths in the same VM
+  // that loads browser script data. Defaults preserve the original test behavior.
+  if (coreOverrides) Object.assign(QPCore, coreOverrides);
   const context = vm.createContext({ QPCore, Math, console });
   // 名のある装備（js/uniques.js）は data.js の続きとして同じスクリプトで読む（ブラウザでも続けて読み込む）
   const code = fs.readFileSync(path.join(__dirname, "../../js/data.js"), "utf8") + "\n" +

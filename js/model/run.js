@@ -59,6 +59,7 @@
     const { RACES, REWARD_RULES, getDungeon, buildEncounter, getEnemyTemplate, makeEnemy, rollItemDrop, rollSpecialDrop } = deps.data;
     // ?dungeonPilot=1 を付けたプレビューで、序盤3ダンジョンだけ実戦に接続する。
     const pilotEnabled = !!deps.enableFloorPilot && !!dungeonTrial && typeof makeEnemy === "function";
+    const gearTrialEnabled = pilotEnabled && !!deps.enableGearTrial;
     const pilotIds = new Set(["plains", "forest", "cave"]);
     const isPilotDungeon = (d) => pilotEnabled && !!d && pilotIds.has(d.id);
     function createPilotSchedule(d) {
@@ -143,7 +144,13 @@
     // ---------- 出発・戦闘 ----------
     // mode: "normal"（省略時）| "hard" | "extra"
     function startRun(teamIndex, dungeonId, mode) {
-      const d = getModeDungeon(dungeonId, mode);
+      const originalDungeon = getModeDungeon(dungeonId, mode);
+      // 装備×編成試験では洞窟の20%弱化を打ち消し、元の敵強さを使う。
+      // ダンジョン本体の静的データは変更しない。
+      const d = gearTrialEnabled &&
+        originalDungeon.id === "cave"
+          ? Object.assign({}, originalDungeon, { pilotLateNormalFactor: 1 })
+          : originalDungeon;
       const filter = deps.autoDisassemble ? deps.autoDisassemble() : { enabled: false, rarities: new Set() };
       const run = {
         team: teamIndex, dungeon: d, battleIndex: 0, finished: false,
@@ -421,6 +428,10 @@
     // 戦闘は通常プレイと同じ戦闘エンジンで、そのチームのキャラの「写し」を実際に戦わせる。写しは装備・スキルツリー・
     // 技の設定を本体と共有するので強さはそのまま反映され、HP/MP・戦闘不能は写し側だけで変化する（周回の間で持ち越す）
     function computeOfflineRun(dungeon, teamIndex, options) {
+      if (gearTrialEnabled &&
+          dungeon && dungeon.id === "cave") {
+        dungeon = Object.assign({}, dungeon, { pilotLateNormalFactor: 1 });
+      }
       const party = R.teamMembers(teamIndex).map((c) => {
         const s = R.computeStats(c);
         return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
@@ -609,6 +620,10 @@
         if (!saved || teamRuns[team] || typeof saved.dungeonId !== "string") continue;
         let d;
         try { d = getModeDungeon(saved.dungeonId, saved.mode); } catch (_) { continue; }
+        if (gearTrialEnabled && d && d.id === "cave") {
+          // 戦闘途中のリロードでも、出発時と同じ元の敵倍率に復元する。
+          d = Object.assign({}, d, { pilotLateNormalFactor: 1 });
+        }
         if (!isPilotDungeon(d)) continue;
         const floors = dungeonTrial.FLOOR_COUNTS[d.id];
         if (!dungeonCheckpoint.validate(saved, d, team, floors)) continue;
