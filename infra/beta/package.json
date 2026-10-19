@@ -1,0 +1,9 @@
+{
+  "name": "swordcrest-beta-operator",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Operator-only invitation provisioning (never ship to game clients)",
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
