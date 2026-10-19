@@ -95,7 +95,7 @@
       if (c.isMonster || c.job === jobId) return;
       // プレビュー専用の剣豪試練。UI以外から直接呼ばれても試練前の転職は受け付けない。
       if (jobId === "swordmaster" && isFeatureEnabled("jobTrialSwordmaster") &&
-          (!jobUnlocked(c, jobId) || (c.team !== null && isTeamLocked(c.team)))) return false;
+          (!jobUnlocked(c, jobId) || (c.team != null && isTeamLocked(c.team)))) return false;
       c.jobLevels[c.job] = Object.assign({}, c.jobLevels[c.job], { level: c.level, exp: c.exp, expToNext: c.expToNext });
       c.job = jobId;
       const saved = c.jobLevels[jobId] || { level: 1, exp: 0, expToNext: expForLevel(1) };
