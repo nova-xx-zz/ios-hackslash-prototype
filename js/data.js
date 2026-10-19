@@ -17,6 +17,9 @@ const FEATURE_FLAGS = {
   shop: true, // ショップ（課金要素）。プロトタイプでは決済の代わりに無料で受け取れる
   enhancePity: true, // 強化の天井（失敗で使った強化石が期待消費の1.5倍に達したら次は必ず成功）
   specialJobs: true, // 特殊ジョブ（巡礼剣士。docs/special-job-design.md）。プロトタイプでテスト中
+  // 通常セーブで試す戦士→剣豪の隔離パイロット。通常の公開URLでは既存転職仕様を保持。
+  jobTrialSwordmaster: typeof window !== "undefined" && !!(globalThis.QPRuntime && globalThis.QPRuntime.channel === "preview")
+    && new URLSearchParams(window.location.search).get("jobTrial") === "1",
 };
 // 正式配布では、検証用の無料購入と未販売の有償相当機能を公開しない。
 // 決済基盤を実装するまでは production のショップは常に無効。単なるクライアント判定を認可には使わない。
@@ -24,6 +27,7 @@ if (globalThis.QPRuntime && globalThis.QPRuntime.channel === "production") {
   FEATURE_FLAGS.shop = false;
   FEATURE_FLAGS.guaranteedStone = false;
   FEATURE_FLAGS.specialJobs = false;
+  FEATURE_FLAGS.jobTrialSwordmaster = false;
 }
 function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 

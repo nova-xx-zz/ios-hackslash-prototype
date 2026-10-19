@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=46">
+<link rel="stylesheet" href="css/style.css?v=47">
 </head>
 <body>
 <div id="app">
@@ -109,6 +109,11 @@
             <span class="settings-label">ユーザーID</span>
             <span class="settings-value settings-uid" id="cloudUid">—</span>
           </div>
+        </div>
+        <div class="settings-contact hidden" id="settingsContactSection">
+          <div class="settings-row"><span class="settings-label">お問い合わせ・不具合報告</span></div>
+          <a class="btn small ghost hidden" id="contactSettingsLink" target="_blank" rel="noopener noreferrer">Googleフォームを開く ↗</a>
+          <p class="settings-note">フォームは外部ページで開きます。セーブデータや個人情報は送信しないでください。</p>
         </div>
         <button class="btn small ghost" id="btnSettingsAnnounce" style="margin-top:12px;">冒険者ギルドからのお知らせ</button>
         <button class="btn small ghost settings-dev-btn" id="btnDevEnter">開発者用</button>
@@ -317,6 +322,7 @@
         <div class="explore-header-actions">
           <button class="btn small ghost" id="btnAutoDisassembleToggle">自動分解 OFF</button>
           <button class="btn small ghost" id="btnSpeedToggle">x1</button>
+          <a class="btn small ghost hidden" id="contactExploreLink" target="_blank" rel="noopener noreferrer">不具合報告 ↗</a>
         </div>
       </div>
       <div id="disassembleFilterRow" class="disassemble-filter-row hidden"></div>
@@ -489,33 +495,36 @@
 <script src="js/core/offline.js?v=4"></script>
 <script src="js/core/stats.js?v=2"></script>
 <script src="js/core/battle.js?v=7"></script>
+<script src="js/core/job-trial-swordmaster.js?v=1"></script>
 <script src="js/core/equipment.js?v=4"></script>
 <script src="js/core/notices.js?v=1"></script>
 <script src="js/model/records.js?v=1"></script>
 <script src="js/model/shop.js?v=2"></script>
-<script src="js/model/save.js?v=10"></script>
-<script src="js/model/roster.js?v=10"></script>
+<script src="js/model/save.js?v=11"></script>
+<script src="js/model/roster.js?v=11"></script>
 <script src="js/model/inventory.js?v=10"></script>
-<script src="js/model/run.js?v=13"></script>
+<script src="js/model/run.js?v=14"></script>
 <script src="js/firebase-config.js?v=1"></script>
 <script src="js/cloud.js?v=4"></script>
-<script src="js/data.js?v=32"></script>
+<script src="js/data.js?v=33"></script>
 <script src="js/uniques.js?v=3"></script>
 <script src="js/options.js?v=2"></script>
 <!-- 画面の処理（元は1つの game.js。この順番で読み込み、トップレベルの関数・変数を共有する） -->
 <script src="js/ui/state.js?v=3"></script>
 <script src="js/ui/insignia.js?v=3"></script>
 <script src="js/ui/announcements.js?v=1"></script>
-<script src="js/ui/models.js?v=18"></script>
+<script src="js/ui/models.js?v=19"></script>
 <script src="js/ui/offline.js?v=4"></script>
 <script src="js/ui/title-map.js?v=13"></script>
+<script src="js/contact-config.js?v=1"></script>
+<script src="js/ui/contact.js?v=1"></script>
 <script src="js/ui/settings.js?v=5"></script>
 <script src="js/ui/debug.js?v=8"></script>
 <script src="js/ui/party.js?v=10"></script>
 <script src="js/ui/create.js?v=6"></script>
 <script src="js/ui/detail.js?v=4"></script>
 <script src="js/ui/detail-tree.js?v=4"></script>
-<script src="js/ui/detail-tabs.js?v=12"></script>
+<script src="js/ui/detail-tabs.js?v=13"></script>
 <script src="js/ui/inventory.js?v=12"></script>
 <script src="js/ui/battle.js?v=5"></script>
 <script src="js/ui/log.js?v=3"></script>
