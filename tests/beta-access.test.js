@@ -38,6 +38,7 @@ function fakePage({ member, user, fails = false }) {
   const doc = {
     currentScript: { getAttribute: key => key === "data-game-src" ? "js/game.js?v=33" : null },
     getElementById: id => id === "app" ? app : el(id),
+    querySelector: () => null,
     createElement(tag) { return { tag, style: {}, setAttribute(){}, remove(){}, innerHTML: "", textContent: "" }; },
     head: { appendChild(){} },
     body: {
