@@ -71,12 +71,14 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregi
 gcloud iam service-accounts create swordcrest-beta-web --display-name="Sword Crest Beta Protected Web" --project sword-crest-beta
 ```
 
-サーバーには招待台帳の**読み取り権限のみ**付与する。
+サーバーにはFirestoreドキュメントの**読み取り権限のみ**付与する。既成の `roles/datastore.viewer` は広範囲のFirestore閲覧操作を許可するため、カスタムロールで読み取り権限に限定する。ただしIAMはコレクション単位の制約ではないため、読み取り権限の対象はβプロジェクト全体である。
 
 ```powershell
 $sa = "swordcrest-beta-web@sword-crest-beta.iam.gserviceaccount.com"
 
-gcloud projects add-iam-policy-binding sword-crest-beta --member="serviceAccount:$sa" --role="roles/datastore.viewer"
+gcloud iam roles create swordcrestBetaDocReader --project=sword-crest-beta --title="Sword Crest Beta Document Reader" --description="Read beta invitation documents without write/list/delete privileges" --permissions="datastore.entities.get,datastore.databases.get,datastore.databases.getMetadata" --stage=GA
+
+gcloud projects add-iam-policy-binding sword-crest-beta --member="serviceAccount:$sa" --role="projects/sword-crest-beta/roles/swordcrestBetaDocReader"
 
 # Cloud RunソースデプロイのCloud Build用権限。
 # デフォルトのCompute Engineサービスアカウントをビルドに使う場合はCloud Run Builderが必要。
