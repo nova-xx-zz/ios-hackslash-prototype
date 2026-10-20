@@ -1,0 +1,38 @@
+name: Beta Cloud Run authorization and package
+on:
+  pull_request:
+    paths:
+      - "infra/beta-web/**"
+      - "tools/package-beta-cloud-run.js"
+      - "tools/build-beta.js"
+      - "js/beta-access.js"
+      - ".github/workflows/beta-cloud-run-security.yml"
+permissions:
+  contents: read
+jobs:
+  beta-cloud-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Verify server authorization and abuse cases
+        run: node --test infra/beta-web/server.test.js
+      - name: Install beta web builder dependencies
+        run: npm ci
+      - name: Build isolated beta + protected Cloud Run package (fake CI Firebase identifiers)
+        env:
+          BETA_PROJECT_CONFIRM: sword-crest-beta
+          SWORD_CREST_BETA_FIREBASE_CONFIG_JSON: '{"apiKey":"CI-FAKE-NOT-REAL","authDomain":"sword-crest-beta.firebaseapp.com","projectId":"sword-crest-beta","appId":"1:99999999999:web:ci-only"}'
+        run: npm run build:beta:cloud-run
+      - name: Verify no static game files are in the Cloud Run public root
+        run: |
+          test -f dist/beta-cloud-run/Dockerfile
+          test -f dist/beta-cloud-run/server.js
+          test -f dist/beta-cloud-run/login.js
+          test -f dist/beta-cloud-run/game/index.html
+          test -f dist/beta-cloud-run/game/js/beta-cloud-run.js
+          test ! -f dist/beta-cloud-run/index.html
+          test ! -f dist/beta-cloud-run/js/game.js

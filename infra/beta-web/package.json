@@ -1,0 +1,15 @@
+{
+  "name": "swordcrest-beta-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Invite-only static game delivery via Firebase session cookies",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "firebase-admin": "13.5.0"
+  }
+}
