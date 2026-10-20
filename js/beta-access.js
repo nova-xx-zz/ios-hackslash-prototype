@@ -4,9 +4,15 @@
   "use strict";
   if (!root.QPRuntime || root.QPRuntime.channel !== "beta") return;
 
-  const source = document.currentScript;
-  const gameSrc = source && source.getAttribute("data-game-src");
-  if (!gameSrc || !/^js\/game\.js\?v=\d+$/.test(gameSrc)) throw Error("Invalid beta game entrypoint");
+  // Only the isolated beta build provides this ordered list. All UI scripts must
+  // load *after* admission because ui/state.js reads the user's local save immediately.
+  const gameScripts = root.QPBetaGameScripts;
+  if (!Array.isArray(gameScripts) || gameScripts.length < 20
+      || gameScripts[0].indexOf("js/ui/state.js?v=") !== 0
+      || !/^js\/game\.js\?v=\d+$/.test(gameScripts[gameScripts.length - 1])
+      || !gameScripts.every(src => /^js\/[a-zA-Z0-9_./-]+\.js\?v=\d+$/.test(src))) {
+    throw Error("Invalid beta game script list");
+  }
   const app = document.getElementById("app");
   if (!app || !root.QP_FIREBASE_CONFIG) throw Error("Missing beta app or Firebase config");
   app.style.display = "none";
@@ -61,38 +67,50 @@
       document.head.appendChild(el);
     });
   }
-  function launch() {
+  async function launch() {
     if (gameLoaded) return;
     gameLoaded = true;
     if (root.QPCloud) root.QPCloud.start();
-    app.style.display = "";
-    screen.remove();
-    // The game already includes Settings; provide an explicit beta account switch path.
-    const settings = document.querySelector("#screen-settings .roster-body");
-    if (settings) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "btn small ghost";
-      button.textContent = "βアカウントからログアウト";
-      button.addEventListener("click", async () => {
-        button.disabled = true;
-        try {
-          if (typeof root.saveGame === "function") root.saveGame();
-          if (root.QPCloud) await root.QPCloud.backupNow();
-          session = null;
-          await fb.signOut(auth);
-          root.location.reload();
-        } catch (e) {
-          button.disabled = false;
-          button.textContent = "ログアウト失敗・もう一度試す";
-        }
-      });
-      settings.appendChild(button);
+    show("ログインを確認しました。ゲームを読み込んでいます…");
+    try {
+      // Strict sequential order is required: these classic scripts share global bindings.
+      for (const src of gameScripts) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.async = false;
+          script.onload = resolve;
+          script.onerror = () => reject(Error("Failed to load game module: " + src));
+          document.body.appendChild(script);
+        });
+      }
+      const settings = document.querySelector("#screen-settings .roster-body");
+      if (settings) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn small ghost";
+        button.textContent = "βアカウントからログアウト";
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          try {
+            if (typeof root.saveGame === "function") root.saveGame();
+            if (root.QPCloud) await root.QPCloud.backupNow();
+            session = null;
+            await fb.signOut(auth);
+            root.location.reload();
+          } catch (e) {
+            button.disabled = false;
+            button.textContent = "ログアウト失敗・もう一度試す";
+          }
+        });
+        settings.appendChild(button);
+      }
+      app.style.display = "";
+      screen.remove();
+    } catch (err) {
+      app.style.display = "none";
+      show("ゲームを読み込めませんでした。ページを再読み込みしてください。", { logout: true });
     }
-    const script = document.createElement("script");
-    script.src = gameSrc;
-    script.onerror = () => { app.style.display = "none"; document.body.appendChild(screen); show("ゲームを読み込めませんでした。ページを再読み込みしてください。", { logout: true }); };
-    document.body.appendChild(script);
   }
   async function checkMember(user) {
     if (checking) return;
