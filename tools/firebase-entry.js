@@ -5,5 +5,6 @@ export { initializeApp } from "firebase/app";
 export {
   initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence,
   onAuthStateChanged, signInAnonymously, GoogleAuthProvider, signInWithPopup, signOut,
+  browserPopupRedirectResolver,
 } from "firebase/auth";
 export { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore/lite";
