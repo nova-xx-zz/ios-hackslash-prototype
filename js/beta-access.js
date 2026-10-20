@@ -67,6 +67,28 @@
     if (root.QPCloud) root.QPCloud.start();
     app.style.display = "";
     screen.remove();
+    // The game already includes Settings; provide an explicit beta account switch path.
+    const settings = document.querySelector("#screen-settings .roster-body");
+    if (settings) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn small ghost";
+      button.textContent = "βアカウントからログアウト";
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          if (typeof root.saveGame === "function") root.saveGame();
+          if (root.QPCloud) await root.QPCloud.backupNow();
+          session = null;
+          await fb.signOut(auth);
+          root.location.reload();
+        } catch (e) {
+          button.disabled = false;
+          button.textContent = "ログアウト失敗・もう一度試す";
+        }
+      });
+      settings.appendChild(button);
+    }
     const script = document.createElement("script");
     script.src = gameSrc;
     script.onerror = () => { app.style.display = "none"; document.body.appendChild(screen); show("ゲームを読み込めませんでした。ページを再読み込みしてください。", { logout: true }); };
