@@ -6,9 +6,8 @@ const { LIMIT, transition, validUid, parseExpiry } = require("./invite-model.js"
 
 function projectIdFromEnv(env) {
   const projectId = env.BETA_FIREBASE_PROJECT_ID;
-  if (!projectId || !/^[a-z][a-z0-9-]{3,63}$/.test(projectId)
-      || ["sword-crest-jp", "sword-crest-production"].includes(projectId)) {
-    throw new Error("Set BETA_FIREBASE_PROJECT_ID to the isolated beta project; never use the old preview or Production");
+  if (projectId !== "sword-crest-beta") {
+    throw new Error("This operator CLI is locked to the confirmed sword-crest-beta Firebase project");
   }
   if (env.BETA_PROJECT_CONFIRM !== projectId) {
     throw new Error("Explicitly confirm the target project with BETA_PROJECT_CONFIRM=<same projectId>");
