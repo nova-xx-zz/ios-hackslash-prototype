@@ -4,6 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = path.join(__dirname, "..");
 const out = path.join(ROOT, "dist", "beta");
+// Operator-confirmed Firebase project. Fail if an unrelated project is configured.
+const BETA_PROJECT_ID = "sword-crest-beta";
 
 function betaFirebase() {
   const raw = process.env.SWORD_CREST_BETA_FIREBASE_CONFIG_JSON;
@@ -14,9 +16,8 @@ function betaFirebase() {
   for (const key of ["apiKey", "authDomain", "projectId", "appId"]) {
     if (typeof c[key] !== "string" || !c[key].trim()) throw Error("Missing beta Firebase config: " + key);
   }
-  if (c.projectId === "sword-crest-jp" || !/^[a-z][a-z0-9-]{3,63}$/.test(c.projectId)
-      || c.authDomain !== c.projectId + ".firebaseapp.com") {
-    throw Error("Use a dedicated beta Firebase project and matching authDomain");
+  if (c.projectId !== BETA_PROJECT_ID || c.authDomain !== BETA_PROJECT_ID + ".firebaseapp.com") {
+    throw Error("Beta build is locked to the confirmed sword-crest-beta Firebase project");
   }
   if (process.env.BETA_PROJECT_CONFIRM !== c.projectId) {
     throw Error("Set BETA_PROJECT_CONFIRM to the exact beta Firebase projectId");
