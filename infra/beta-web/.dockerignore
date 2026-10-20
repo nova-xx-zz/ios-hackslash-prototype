@@ -1,0 +1,5 @@
+**/.DS_Store
+**/*.map
+**/*.log
+node_modules
+.git
