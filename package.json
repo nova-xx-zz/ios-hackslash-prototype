@@ -13,7 +13,9 @@
     "build:release:web": "node tools/build-www.js --web --release",
     "build:release:ios": "node tools/build-www.js --release",
     "cap:sync:release": "npm run build:release:ios && npx cap sync",
-    "build:beta:web": "node tools/build-beta.js"
+    "build:beta:web": "node tools/build-beta.js",
+    "package:beta:cloud-run": "node tools/package-beta-cloud-run.js",
+    "build:beta:cloud-run": "npm run build:beta:web && npm run package:beta:cloud-run"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
