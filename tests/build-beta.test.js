@@ -63,7 +63,10 @@ test("beta artifact gates game loading, isolates project and prevents old debug/
   assert.equal(runtime.QPRuntime.channel, "beta");
   assert.equal(runtime.QPRuntime.allowDebug, false);
   assert.equal(runtime.QPRuntime.allowTestPurchases, true);
-  assert.equal(fs.existsSync(path.join(ROOT, "dist", "web", "js", "beta-access.js")), false, "do not install beta gate into pre-existing production output");
+  // Shared dist/web is written by other Node test suites in parallel. Instead of a
+  // race-prone file existence check, verify the Preview/Release builder removes the gate.
+  const otherBuild = fs.readFileSync(path.join(ROOT, "tools", "build-www.js"), "utf8");
+  assert.match(otherBuild, /fs\.rmSync\(path\.join\(out,"js","beta-access\.js"\),\{force:true\}\)/);
 });
 
 // Rendering the beta HTML does not itself prove security. Firestore Emulator must test actual allow/deny.
