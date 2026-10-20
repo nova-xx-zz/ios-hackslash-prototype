@@ -16,8 +16,7 @@ const template = path.join(base, "infra", "beta-web");
 for (const f of ["server.js", "package.json", "Dockerfile", ".dockerignore"]) {
   fs.copyFileSync(path.join(template, f), path.join(destination, f));
 }
-fs.mkdirSync(path.join(destination, "public-login"), {recursive:true});
-fs.copyFileSync(path.join(template,"login.js"),path.join(destination,"public-login","login.js"));
+fs.copyFileSync(path.join(template,"login.js"),path.join(destination,"login.js"));
 fs.cpSync(sourceDir, path.join(destination, "game"), {recursive:true});
 fs.writeFileSync(path.join(destination,"game","js","beta-cloud-run.js"),
   'window.QPBetaSecureHosting = true;\n');
