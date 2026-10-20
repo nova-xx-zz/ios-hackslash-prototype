@@ -53,7 +53,7 @@ let html = fs.readFileSync(htmlPath, "utf8");
 // All state/UI modules must load after auth: ui/state.js reads storage at top level.
 const marker = '<script src="js/ui/state.js?v=';
 const begin = html.indexOf(marker);
-const game = html.match(/<script src="js\/game\.js\?v=\d+"><\/script>/);
+const game = html.match(/<script src="(js\/game\.js\?v=\d+)"><\/script>/);
 if (begin < 0 || !game) throw Error("Game UI entrypoints changed. Review beta bootstrap");
 const end = html.indexOf(game[0], begin) + game[0].length;
 if (end <= begin) throw Error("Invalid game script block");
