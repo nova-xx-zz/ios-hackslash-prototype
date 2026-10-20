@@ -108,6 +108,7 @@
   }
   // Previewと正式版の保存キーを分ける。別ドメイン＋別Firebaseも必須（これは追加の事故防止策）。
   const PRODUCTION_PREFIX = "scprod:";
+  const BETA_PREFIX = "scbeta:";
   // 確認用モード: この端末で合言葉を入れ済みで、設定画面から入ったままか ?debug がある時だけ（js/debug-gate.js）
   function isDebugMode() {
     const gate = root.QPDebugGate;
@@ -129,13 +130,16 @@
       if (root.QPRuntime && root.QPRuntime.channel === "production") {
         return ls ? prefixedBackend(ls, PRODUCTION_PREFIX) : null;
       }
+      if (root.QPRuntime && root.QPRuntime.channel === "beta") {
+        return ls ? prefixedBackend(ls, BETA_PREFIX) : null;
+      }
       if (ls && isGearTrialMode()) return prefixedBackend(ls, GEAR_TRIAL_PREFIX);
       if (ls && isDungeonPilotMode()) return prefixedBackend(ls, DUNGEON_PILOT_PREFIX);
       return ls && isDebugMode() ? prefixedBackend(ls, DEBUG_PREFIX) : ls;
     } catch (e) { return null; }
   }
 
-  const exported = { KEYS, DEBUG_PREFIX, DUNGEON_PILOT_PREFIX, GEAR_TRIAL_PREFIX, PRODUCTION_PREFIX, isDungeonPilotMode, isGearTrialMode, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
+  const exported = { KEYS, DEBUG_PREFIX, DUNGEON_PILOT_PREFIX, GEAR_TRIAL_PREFIX, PRODUCTION_PREFIX, BETA_PREFIX, isDungeonPilotMode, isGearTrialMode, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
   root.QPCore = root.QPCore || {};
   root.QPCore.storage = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
