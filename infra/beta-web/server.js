@@ -130,7 +130,7 @@ function createHandler({ auth, lookupMember, assetDir, now = Date.now }) {
       return reply(res, 200, loginPage(token), "text/html; charset=utf-8");
     }
     if (req.method === "GET" && pathname === "/_beta/login.js") {
-      return serveFile(path.join(__dirname, "public-login"), "/login.js", req, res);
+      return serveFile(__dirname, "/login.js", req, res);
     }
     if ((req.method === "GET" || req.method === "HEAD") && PUBLIC_LOGIN_ASSETS.has(pathname)) {
       return serveFile(root, pathname, req, res);
