@@ -8,7 +8,7 @@ const vm = require("node:vm");
 const code = fs.readFileSync(path.join(__dirname, "..", "js", "beta-access.js"), "utf8");
 const GAME_SCRIPTS = Array.from({ length: 20 }, (_, i) => i === 0 ? "js/ui/state.js?v=3" : i === 19 ? "js/game.js?v=33" : "js/ui/mock" + i + ".js?v=1");
 
-function fakePage({ member, user, fails = false }) {
+function fakePage({ member, user, fails = false, loginError = null }) {
   const elements = new Map();
   const el = id => {
     if (!elements.has(id)) elements.set(id, {
@@ -20,10 +20,13 @@ function fakePage({ member, user, fails = false }) {
   const app = { style: {} };
   const scripts = [];
   let cloudStarts = 0;
+  let authDeps = null;
+  const popupResolver = { _beta: "browserPopupRedirectResolver" };
   const auth = { currentUser: user };
   const sdk = {
     initializeApp: () => ({}),
-    initializeAuth: () => auth,
+    initializeAuth: (_app, deps) => { authDeps = deps; return auth; },
+    browserPopupRedirectResolver: popupResolver,
     indexedDBLocalPersistence: {}, browserLocalPersistence: {}, inMemoryPersistence: {},
     getFirestore: () => ({}),
     onAuthStateChanged(_auth, cb) { cb(user); },
@@ -32,7 +35,7 @@ function fakePage({ member, user, fails = false }) {
       if (fails) throw Error("permission-denied");
       return { exists: () => !!member, data: () => member };
     },
-    signInWithPopup: async () => ({ user }),
+    signInWithPopup: async () => { if (loginError) throw { code: loginError }; return { user }; },
     GoogleAuthProvider: class {},
     signOut: async () => { auth.currentUser = null; },
   };
@@ -57,7 +60,8 @@ function fakePage({ member, user, fails = false }) {
     location: { reload(){} },
   };
   vm.runInNewContext(code, context);
-  return { elements, scripts, app, cloudStarts: () => cloudStarts, context };
+  return { elements, scripts, app, cloudStarts: () => cloudStarts, context,
+    authDeps: () => authDeps, popupResolver };
 }
 const flush = async () => { await new Promise(resolve => setImmediate(resolve)); };
 
@@ -104,4 +108,27 @@ test("beta only loads game and starts cloud after a valid Google invitation", as
   assert.equal(page.cloudStarts(), 1);
   assert.equal(page.app.style.display, "");
   assert.equal(page.context.QPBetaAccess.getSession().uid, user.uid);
+});
+
+test("beta registers browser popup resolver with Firebase initializeAuth", async () => {
+  const page = fakePage({ user: null });
+  await flush();
+  assert.equal(page.authDeps().popupRedirectResolver, page.popupResolver);
+});
+
+test("Google login reports the actual Firebase failure instead of always claiming popup blocked", async () => {
+  const cases = [
+    ["auth/unauthorized-domain", /承認済みドメイン/],
+    ["auth/popup-blocked", /ポップアップをブロック/],
+    ["auth/operation-not-allowed", /Googleログインが有効/],
+    ["auth/network-request-failed", /ネットワーク/],
+    ["auth/argument-error", /auth\/argument-error/],
+  ];
+  for (const [errorCode, pattern] of cases) {
+    const page = fakePage({ user: null, loginError: errorCode });
+    await flush();
+    await page.elements.get("betaAccessLogin").click();
+    assert.match(page.elements.get("betaAccessMessage").textContent, pattern, errorCode);
+    assert.equal(page.elements.get("betaAccessLogin").hidden, false, errorCode);
+  }
 });
