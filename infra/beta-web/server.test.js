@@ -74,7 +74,10 @@ test("unauthenticated users see only public login, not game HTML or scripts",asy
   let r=await send("/");
   assert.equal(r.code,302);
   assert.equal(r.headers.location,"/login");
-  for(const p of ["/index.html","/js/game.js","/icons/app.png"]){
+  r=await send("/index.html");
+  assert.equal(r.code,302);
+  assert.equal(r.headers.location,"/login");
+  for(const p of ["/js/game.js","/icons/app.png"]){
     r=await send(p);assert.equal(r.code,401);assert.doesNotMatch(r.body,/SECRET-GAME/);
   }
   r=await send("/login");assert.equal(r.code,200);assert.match(r.body,/招待制クローズドβ/);
