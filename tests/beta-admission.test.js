@@ -36,9 +36,10 @@ test("UID and expiry must be explicit and bounded; project is double confirmed",
   for (const date of ["2026-11-01", "broken", "2026-10-01T00:00:00Z", "2027-01-01T00:00:00Z"]) {
     assert.throws(() => parseExpiry(date, Date.parse("2026-10-20T00:00:00Z")));
   }
-  assert.equal(projectIdFromEnv({ BETA_FIREBASE_PROJECT_ID: "swordcrest-beta-test", BETA_PROJECT_CONFIRM: "swordcrest-beta-test" }), "swordcrest-beta-test");
+  assert.equal(projectIdFromEnv({ BETA_FIREBASE_PROJECT_ID: "sword-crest-beta", BETA_PROJECT_CONFIRM: "sword-crest-beta" }), "sword-crest-beta");
   for (const [id, confirm] of [["sword-crest-jp", "sword-crest-jp"],
-    ["swordcrest-beta-test", ""], ["swordcrest-beta-test", "swordcrest-other"]]) {
+    ["another-beta-project", "another-beta-project"],
+    ["sword-crest-beta", ""], ["sword-crest-beta", "swordcrest-other"]]) {
     assert.throws(() => projectIdFromEnv({ BETA_FIREBASE_PROJECT_ID: id, BETA_PROJECT_CONFIRM: confirm }));
   }
 });
