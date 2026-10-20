@@ -82,16 +82,22 @@ function safeFile(root, pathname) {
 function serveFile(root, pathname, req, res) {
   const file = safeFile(root, pathname);
   if (!file) return reply(res, 404, "Not found");
-  fs.stat(file, (err, st) => {
-    if (err || !st.isFile()) return reply(res, 404, "Not found");
-    const type = TYPES[path.extname(file).toLowerCase()] || "application/octet-stream";
-    res.statusCode = 200;
-    res.setHeader("Content-Type", type);
-    res.setHeader("Content-Length", st.size);
-    if (req.method === "HEAD") return res.end();
-    const stream = fs.createReadStream(file);
-    stream.on("error", () => { if (!res.headersSent) reply(res, 500, "Server error"); else res.destroy(); });
-    stream.pipe(res);
+  // Resolve symlinks too: never allow a packaged asset to escape its directory.
+  fs.realpath(file, (resolveErr, real) => {
+    if (resolveErr) return reply(res, 404, "Not found");
+    const relative = path.relative(root, real);
+    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) return reply(res, 404, "Not found");
+    fs.stat(real, (err, st) => {
+      if (err || !st.isFile()) return reply(res, 404, "Not found");
+      const type = TYPES[path.extname(real).toLowerCase()] || "application/octet-stream";
+      res.statusCode = 200;
+      res.setHeader("Content-Type", type);
+      res.setHeader("Content-Length", st.size);
+      if (req.method === "HEAD") return res.end();
+      const stream = fs.createReadStream(real);
+      stream.on("error", () => { if (!res.headersSent) reply(res, 500, "Server error"); else res.destroy(); });
+      stream.pipe(res);
+    });
   });
 }
 function readJson(req, limit = 12 * 1024) {
@@ -193,23 +199,32 @@ function createHandler({ auth, lookupMember, assetDir, now = Date.now }) {
       }
       return reply(res, 401, "Login required");
     }
+    let claims;
     try {
-      const claims = await auth.verifySessionCookie(session, false);
+      claims = await auth.verifySessionCookie(session, false);
       if (!claims || !claims.uid || !claims.firebase || claims.firebase.sign_in_provider !== "google.com") {
         throw Error("invalid_provider");
       }
-      const member = await lookupMember(claims.uid);
-      if (!activeMember(member, now())) {
-        res.setHeader("Set-Cookie", clearSession());
-        return reply(res, 403, "Invitation not active");
-      }
-      return serveFile(root, pathname, req, res);
-    } catch (e) {
-      // A member lookup outage must fail closed, not fall back to static delivery.
-      if (e.code === "firestore_error") return reply(res, 503, "Temporarily unavailable");
+    } catch {
       res.setHeader("Set-Cookie", clearSession());
-      return reply(res, 401, "Session invalid or access unavailable");
+      if (pathname === "/" || pathname === "/index.html") {
+        res.setHeader("Location", "/login");
+        return reply(res, 302, "Login required");
+      }
+      return reply(res, 401, "Invalid session");
     }
+    let member;
+    try {
+      member = await lookupMember(claims.uid);
+    } catch {
+      // Firestore is unavailable; never serve stale files or clear a good login.
+      return reply(res, 503, "Temporarily unavailable");
+    }
+    if (!activeMember(member, now())) {
+      res.setHeader("Set-Cookie", clearSession());
+      return reply(res, 403, "Invitation not active");
+    }
+    return serveFile(root, pathname, req, res);
   };
 }
 function run() {
