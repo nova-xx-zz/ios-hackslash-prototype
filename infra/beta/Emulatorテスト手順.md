@@ -59,7 +59,7 @@ Firestore Emulator: 10 / 10 permission scenarios passed
 
 ## 事故防止
 
-- `infra/beta/firebase.json` は `../firebase/firestore.beta.rules` のみをロード。
+- `infra/beta/prepare-emulator-rules.cjs` が正本の `infra/firebase/firestore.beta.rules` をローカル生成物 `infra/beta/firestore.beta.rules` へコピーします。Emulatorは同じディレクトリ内のこの生成物を読み込みます（Git管理対象外）。
 - `demo-swordcrest-beta` のみを使う。テストスクリプトは `FIRESTORE_EMULATOR_HOST` が `127.0.0.1:8098` か `localhost:8098` でなければ異常終了する。
 - `firebase deploy` はこの手順に含めない。
 - 現在Firebaseコンソールに貼ったルールは**まだ公開しない**。公開するのはエミュレータの正常終了、PRレビュー、対象プロジェクトの再確認後。
