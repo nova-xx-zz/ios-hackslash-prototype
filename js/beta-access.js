@@ -145,6 +145,24 @@
       checking = false;
     }
   }
+  function googleLoginErrorMessage(err) {
+    const code = err && typeof err.code === "string" && /^auth\/[a-z0-9-]+$/.test(err.code)
+      ? err.code : "unknown";
+    switch (code) {
+      case "auth/popup-blocked":
+        return "ブラウザがGoogleログインのポップアップをブロックしました。localhostのポップアップを許可して再試行してください。";
+      case "auth/popup-closed-by-user":
+        return "Googleログイン画面が閉じられました。もう一度ログインしてください。";
+      case "auth/unauthorized-domain":
+        return "このURLはFirebaseの承認済みドメインに登録されていません。localhostとFirebaseのプロジェクト設定を確認してください。";
+      case "auth/operation-not-allowed":
+        return "Firebase AuthenticationのGoogleログインが有効になっていません。";
+      case "auth/network-request-failed":
+        return "認証サーバーに接続できません。ネットワークとブラウザの通信制限をご確認ください。";
+      default:
+        return "Googleログインに失敗しました（" + code + "）。エラーコードを開発者に伝えてください。";
+    }
+  }
   login.addEventListener("click", async () => {
     login.disabled = true;
     show("Googleログインを開いています…");
@@ -152,7 +170,7 @@
       await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
       if (auth.currentUser) await checkMember(auth.currentUser);
     } catch (e) {
-      show("ログインに失敗しました。ポップアップのブロック設定をご確認ください。", { login: true });
+      show(googleLoginErrorMessage(e), { login: true });
     } finally { login.disabled = false; }
   });
   retry.addEventListener("click", () => {
@@ -171,6 +189,8 @@
       const firebaseApp = fb.initializeApp(root.QP_FIREBASE_CONFIG);
       auth = fb.initializeAuth(firebaseApp, {
         persistence: [fb.indexedDBLocalPersistence, fb.browserLocalPersistence, fb.inMemoryPersistence],
+        // Explicit initializeAuth() does not provide browser OAuth dependencies by default.
+        popupRedirectResolver: fb.browserPopupRedirectResolver,
       });
       db = fb.getFirestore(firebaseApp);
       fb.onAuthStateChanged(auth, user => {
