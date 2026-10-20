@@ -9,11 +9,11 @@ const ROOT = path.join(__dirname, "..");
 const SCRIPT = path.join(ROOT, "tools", "build-beta.js");
 const CONFIG = {
   apiKey: "CI-NOT-REAL",
-  authDomain: "swordcrest-beta-ci.firebaseapp.com",
-  projectId: "swordcrest-beta-ci",
+  authDomain: "sword-crest-beta.firebaseapp.com",
+  projectId: "sword-crest-beta",
   appId: "1:11111111:web:beta-ci",
 };
-function run(config, confirm = "swordcrest-beta-ci") {
+function run(config, confirm = "sword-crest-beta") {
   const env = { ...process.env };
   delete env.SWORD_CREST_BETA_FIREBASE_CONFIG_JSON;
   delete env.BETA_PROJECT_CONFIRM;
@@ -24,8 +24,9 @@ function run(config, confirm = "swordcrest-beta-ci") {
 
 test("beta build refuses missing config, original Preview project, or unconfirmed target", () => {
   for (const [config, confirmation] of [
-    [null, "swordcrest-beta-ci"],
+    [null, "sword-crest-beta"],
     [{ ...CONFIG, projectId: "sword-crest-jp", authDomain: "sword-crest-jp.firebaseapp.com" }, "sword-crest-jp"],
+    [{ ...CONFIG, projectId: "other-beta-proj", authDomain: "other-beta-proj.firebaseapp.com" }, "other-beta-proj"],
     [CONFIG, null],
     [CONFIG, "different-id"],
   ]) {
@@ -48,7 +49,7 @@ test("beta artifact gates game loading, isolates project and prevents old debug/
   assert.doesNotMatch(html, /<script src="js\/game\.js\?v=\d+"><\/script>/);
   assert.doesNotMatch(html, /<script src="js\/pwa\.js/);
   assert.doesNotMatch(html, /rel="manifest"/);
-  assert.match(file("js/firebase-config.js"), /swordcrest-beta-ci/);
+  assert.match(file("js/firebase-config.js"), /sword-crest-beta/);
   assert.doesNotMatch(file("js/firebase-config.js"), /sword-crest-jp/);
   assert.match(file("js/beta-access.js"), /GoogleAuthProvider/);
   assert.match(file("js/beta-access.js"), /fb\.getDoc\(fb\.doc\(db, "betaMembers", user\.uid\)\)/);
