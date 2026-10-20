@@ -52,6 +52,18 @@
   function start() {
     const config = root.QP_FIREBASE_CONFIG;
     if (!config || state.status === "ready") return Promise.resolve();
+    // Beta uses a separate Google Auth session approved by the invite gate.
+    // Never fall back to anonymous auth on a beta build.
+    if (root.QPRuntime && root.QPRuntime.channel === "beta") {
+      const session = root.QPBetaAccess && root.QPBetaAccess.getSession();
+      if (!session) return Promise.resolve();
+      fb = session.fb;
+      auth = session.auth;
+      db = session.db;
+      set({ status: "ready", uid: session.uid, error: null });
+      if (pending) scheduleUpload(0);
+      return Promise.resolve();
+    }
     if (starting) return starting;
     set({ status: "connecting", error: null });
     starting = (async () => {
