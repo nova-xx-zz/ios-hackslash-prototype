@@ -95,6 +95,13 @@
           try {
             if (typeof root.saveGame === "function") root.saveGame();
             if (root.QPCloud) await root.QPCloud.backupNow();
+            if (root.QPBetaSecureHosting) {
+              const response = await fetch("/api/logout", {
+                method: "POST", credentials: "same-origin",
+                headers: { "X-SwordCrest-Logout": "1" }
+              });
+              if (!response.ok) throw Error("Cannot clear beta hosting session");
+            }
             session = null;
             await fb.signOut(auth);
             root.location.reload();
@@ -178,6 +185,13 @@
     else show("Googleアカウントでログインしてください。", { login: true });
   });
   logout.addEventListener("click", async () => {
+    if (root.QPBetaSecureHosting) {
+      const response = await fetch("/api/logout", {
+        method: "POST", credentials: "same-origin",
+        headers: { "X-SwordCrest-Logout": "1" }
+      });
+      if (!response.ok) { show("ログアウトに失敗しました。通信を確認して再試行してください。", { logout: true }); return; }
+    }
     session = null;
     if (auth) await fb.signOut(auth);
     root.location.reload();
