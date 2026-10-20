@@ -123,6 +123,21 @@
     };
   }
 
+  // Account-scoped beta saves: keep two testers sharing one browser from silently
+  // loading or uploading each other's local progress. Authorization remains server-side.
+  function betaAccountBackend(backend) {
+    function scoped(key) {
+      const session = root.QPBetaAccess && root.QPBetaAccess.getSession();
+      if (!session || !/^[A-Za-z0-9_-]{4,128}$/.test(session.uid)) throw Error("Beta sign-in required");
+      return BETA_PREFIX + session.uid + ":" + key;
+    }
+    return {
+      getItem(key) { try { return backend.getItem(scoped(key)); } catch (e) { return null; } },
+      setItem(key, value) { return backend.setItem(scoped(key), value); },
+      removeItem(key) { try { backend.removeItem(scoped(key)); } catch (e) {} },
+    };
+  }
+
   // ブラウザのlocalStorage（プライベートモード等で触れない場合はnull）。確認用モードでは別の保存場所
   function defaultBackend() {
     try {
@@ -131,7 +146,7 @@
         return ls ? prefixedBackend(ls, PRODUCTION_PREFIX) : null;
       }
       if (root.QPRuntime && root.QPRuntime.channel === "beta") {
-        return ls ? prefixedBackend(ls, BETA_PREFIX) : null;
+        return ls ? betaAccountBackend(ls) : null;
       }
       if (ls && isGearTrialMode()) return prefixedBackend(ls, GEAR_TRIAL_PREFIX);
       if (ls && isDungeonPilotMode()) return prefixedBackend(ls, DUNGEON_PILOT_PREFIX);
@@ -139,7 +154,7 @@
     } catch (e) { return null; }
   }
 
-  const exported = { KEYS, DEBUG_PREFIX, DUNGEON_PILOT_PREFIX, GEAR_TRIAL_PREFIX, PRODUCTION_PREFIX, BETA_PREFIX, isDungeonPilotMode, isGearTrialMode, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
+  const exported = { KEYS, DEBUG_PREFIX, DUNGEON_PILOT_PREFIX, GEAR_TRIAL_PREFIX, PRODUCTION_PREFIX, BETA_PREFIX, betaAccountBackend, isDungeonPilotMode, isGearTrialMode, createStorage, createMemoryBackend, defaultBackend, isDebugMode, prefixedBackend };
   root.QPCore = root.QPCore || {};
   root.QPCore.storage = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;
