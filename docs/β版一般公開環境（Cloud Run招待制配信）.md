@@ -58,8 +58,14 @@ node --test infra/beta-web/server.test.js
 以降のコマンドを実行する**前に**課金先・予算・サービス名が合っていることを再確認する。
 
 ```powershell
+# Firebaseプロジェクトを管理している「開発用Gmail」でログイン。
+# 請求用Gmailが別でも、請求先アカウントとの関連付けが済んでいれば構わない。
 gcloud auth login
+gcloud auth list
 gcloud config set project sword-crest-beta
+gcloud projects describe sword-crest-beta --format="value(projectId)"
+
+# ここまでは対象を確認するだけ。以下は本人確認後に実施。
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iam.googleapis.com --project sword-crest-beta
 
 gcloud iam service-accounts create swordcrest-beta-web --display-name="Sword Crest Beta Protected Web" --project sword-crest-beta
@@ -71,6 +77,13 @@ gcloud iam service-accounts create swordcrest-beta-web --display-name="Sword Cre
 $sa = "swordcrest-beta-web@sword-crest-beta.iam.gserviceaccount.com"
 
 gcloud projects add-iam-policy-binding sword-crest-beta --member="serviceAccount:$sa" --role="roles/datastore.viewer"
+
+# Cloud RunソースデプロイのCloud Build用権限。
+# デフォルトのCompute Engineサービスアカウントをビルドに使う場合はCloud Run Builderが必要。
+# 組織設定や実際のビルドサービスアカウントが異なる場合は、そのアカウントへ付与する。
+$projectNumber = gcloud projects describe sword-crest-beta --format="value(projectNumber)"
+$builder = "$projectNumber-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding sword-crest-beta --member="serviceAccount:$builder" --role="roles/run.builder"
 ```
 
 Firebase Admin SDKのIDトークン失効チェック・セッション作成用のIAM権限を限定して付与する。
@@ -80,6 +93,8 @@ gcloud iam roles create swordcrestBetaWebAuth --project=sword-crest-beta --title
 
 gcloud projects add-iam-policy-binding sword-crest-beta --member="serviceAccount:$sa" --role="projects/sword-crest-beta/roles/swordcrestBetaWebAuth"
 ```
+
+Cloud Runのソースデプロイ時には、実行者側にも `roles/run.sourceDeveloper`、`roles/serviceusage.serviceUsageConsumer`、ランタイムサービスアカウントに対する `roles/iam.serviceAccountUser` が必要。権限不足はデプロイエラーの内容を確認して最小権限だけを付与する。Google Cloudの仕様・実際のビルド用サービスアカウントを確認すること。
 
 *権限が不足する場合に、サービスアカウントへOwner/Editorを付与して解決しない。必要な権限を確認して改めてレビューする。*
 
