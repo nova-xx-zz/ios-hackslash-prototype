@@ -136,8 +136,10 @@
       show("ログインを確認しました。ゲームを開始します…");
       launch();
     } catch (err) {
+      // A signed-in tester still needs their own UID for operator enrollment,
+      // even while the Firestore rules have not yet been published.
       show("認証または通信で確認できませんでした。接続状況を確認し、再試行してください。", {
-        retry: true, logout: true
+        uid: user && user.uid ? user.uid : null, retry: true, logout: true
       });
     } finally {
       checking = false;
