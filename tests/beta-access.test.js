@@ -6,6 +6,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const code = fs.readFileSync(path.join(__dirname, "..", "js", "beta-access.js"), "utf8");
+const GAME_SCRIPTS = Array.from({ length: 20 }, (_, i) => i === 0 ? "js/ui/state.js?v=3" : i === 19 ? "js/game.js?v=33" : "js/ui/mock" + i + ".js?v=1");
 
 function fakePage({ member, user, fails = false }) {
   const elements = new Map();
@@ -43,13 +44,14 @@ function fakePage({ member, user, fails = false }) {
     head: { appendChild(){} },
     body: {
       insertBefore(){},
-      appendChild(elem) { if (elem.tag === "script") scripts.push(elem.src); },
+      appendChild(elem) { if (elem.tag === "script") { scripts.push(elem.src); queueMicrotask(() => elem.onload && elem.onload()); } },
     },
   };
   const context = {
     document: doc,
     QPRuntime: { channel: "beta" },
     QP_FIREBASE_CONFIG: { projectId: "swordcrest-beta-ci" },
+    QPBetaGameScripts: GAME_SCRIPTS,
     QPFirebase: sdk,
     QPCloud: { start(){ cloudStarts++; } },
     location: { reload(){} },
@@ -97,7 +99,7 @@ test("beta only loads game and starts cloud after a valid Google invitation", as
   const member = { enabled: true, expiresAt: { toMillis: () => Date.now() + 3600000 } };
   const page = fakePage({ user, member });
   await flush();
-  assert.deepEqual(page.scripts, ["js/game.js?v=33"]);
+  assert.deepEqual(page.scripts, GAME_SCRIPTS);
   assert.equal(page.cloudStarts(), 1);
   assert.equal(page.app.style.display, "");
   assert.equal(page.context.QPBetaAccess.getSession().uid, user.uid);
