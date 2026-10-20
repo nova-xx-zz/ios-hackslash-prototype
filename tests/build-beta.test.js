@@ -39,7 +39,12 @@ test("beta artifact gates game loading, isolates project and prevents old debug/
   assert.equal(result.status, 0, result.stderr);
   const file = p => fs.readFileSync(path.join(ROOT, "dist", "beta", p), "utf8");
   const html = file("index.html");
-  assert.match(html, /src="js\/beta-access\.js\?v=1" data-game-src="js\/game\.js\?v=\d+"/);
+  assert.match(html, /src="js\/beta-script-list\.js\?v=1"/);
+  assert.match(html, /src="js\/beta-access\.js\?v=2"/);
+  assert.doesNotMatch(html, /<script src="js\/ui\/state\.js/);
+  const manifest = file("js/beta-script-list.js");
+  assert.match(manifest, /js\/ui\/state\.js\?v=/);
+  assert.match(manifest, /js\/game\.js\?v=/);
   assert.doesNotMatch(html, /<script src="js\/game\.js\?v=\d+"><\/script>/);
   assert.doesNotMatch(html, /<script src="js\/pwa\.js/);
   assert.doesNotMatch(html, /rel="manifest"/);
