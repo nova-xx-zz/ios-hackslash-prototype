@@ -92,6 +92,7 @@ test("beta fails closed for non-Google auth and Firebase permission errors", asy
   const denied = fakePage({ user: { uid: "google-test", providerData: [{ providerId: "google.com" }] }, fails: true });
   await flush();
   assert.deepEqual(denied.scripts, []);
+  assert.match(denied.elements.get("betaAccessUid").textContent, /google-test/, "signed-in UID is available before rules publishing");
 });
 
 test("beta only loads game and starts cloud after a valid Google invitation", async () => {
