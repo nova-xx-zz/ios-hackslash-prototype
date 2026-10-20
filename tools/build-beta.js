@@ -50,14 +50,28 @@ require("esbuild").buildSync({
 });
 const htmlPath = path.join(out, "index.html");
 let html = fs.readFileSync(htmlPath, "utf8");
-const game = html.match(/<script src="(js\/game\.js\?v=\d+)"><\/script>/);
-if (!game) throw Error("Game entrypoint changed. Review beta bootstrap before shipping");
-html = html.replace(game[0],
-  '<script src="js/beta-access.js?v=1" data-game-src="' + game[1] + '"></script>');
+// All state/UI modules must load after auth: ui/state.js reads storage at top level.
+const marker = '<script src="js/ui/state.js?v=';
+const begin = html.indexOf(marker);
+const game = html.match(/<script src="js\/game\.js\?v=\d+"><\/script>/);
+if (begin < 0 || !game) throw Error("Game UI entrypoints changed. Review beta bootstrap");
+const end = html.indexOf(game[0], begin) + game[0].length;
+if (end <= begin) throw Error("Invalid game script block");
+const scripts = [...html.slice(begin, end).matchAll(/<script src="([^"]+)"><\/script>/g)].map(x => x[1]);
+if (scripts.length < 20 || !scripts.every(x => /^js\/[a-zA-Z0-9_./-]+\.js\?v=\d+$/.test(x))
+    || !scripts[0].startsWith("js/ui/state.js?v=") || scripts[scripts.length - 1] !== game[1]) {
+  throw Error("Unexpected game script dependency order");
+}
+fs.writeFileSync(path.join(out, "js", "beta-script-list.js"),
+  "// Injected only by the isolated beta build.\nwindow.QPBetaGameScripts=" + JSON.stringify(scripts) + ";\n");
+html = html.slice(0, begin) +
+  '<script src="js/beta-script-list.js?v=1"></script>\n<script src="js/beta-access.js?v=2"></script>' +
+  html.slice(end);
 html = html.replace(/<script src="js\/pwa\.js\?v=\d+"><\/script>/, "");
 html = html.replace('<link rel="manifest" href="manifest.webmanifest">', "");
-if (html.includes('<script src="' + game[1] + '"></script>')) {
-  throw Error("Game still launches without beta sign-in");
+if (html.includes('<script src="' + game[1] + '"></script>')
+    || html.includes('<script src="' + scripts[0] + '"></script>')) {
+  throw Error("Game state still initializes before beta sign-in");
 }
 fs.writeFileSync(htmlPath, html);
 
