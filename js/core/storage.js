@@ -103,7 +103,7 @@
       /(?:\?|&)gearTrial=1(?:&|$)/.test((root.location && root.location.search) || "");
   }
   function isDungeonPilotMode() {
-    return !(root.QPRuntime && root.QPRuntime.channel === "production") &&
+    return !(root.QPRuntime && ["production", "beta"].includes(root.QPRuntime.channel)) &&
       /(?:\?|&)dungeonPilot=1(?:&|$)/.test((root.location && root.location.search) || "");
   }
   // Previewと正式版の保存キーを分ける。別ドメイン＋別Firebaseも必須（これは追加の事故防止策）。
