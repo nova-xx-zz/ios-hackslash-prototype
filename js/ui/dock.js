@@ -112,25 +112,32 @@ function renderAutoRepeatRow() {
     status.textContent = `${ar.done}/${ar.target} 周`;
     row.appendChild(status);
   } else {
-    const chips = document.createElement("div");
-    chips.className = "auto-repeat-chips";
+    // 回数はプルダウンで選ぶ（まだ買っていない回数は🔒付きで並べ、選ぶとショップへ案内する）
+    const select = document.createElement("select");
+    select.className = "auto-repeat-select";
+    select.setAttribute("aria-label", "自動周回の回数");
+    select.disabled = locked;
     for (const choice of Shop.autoRepeatChoices()) {
-      const n = choice.n;
-      const chip = document.createElement("button");
-      chip.className = "auto-repeat-chip" + (ar.target === n ? " active" : "") + (choice.locked ? " shop-locked" : "");
-      chip.textContent = choice.locked ? `🔒x${n}` : `x${n}`;
-      chip.disabled = locked;
-      chip.addEventListener("click", () => {
-        if (isTeamLocked(i)) return;
-        // まだ買っていない回数は、ショップで買えることを案内する
-        if (choice.locked) { openShop("screen-battle", "auto_repeat_100"); return; }
-        ar.target = n;
-        store.set(KEYS.autoRepeatTarget, n);
-        renderAutoRepeatRow();
-      });
-      chips.appendChild(chip);
+      const opt = document.createElement("option");
+      opt.value = String(choice.n);
+      opt.textContent = choice.locked ? `🔒 x${choice.n}（ショップ）` : `x${choice.n}`;
+      if (ar.target === choice.n) opt.selected = true;
+      select.appendChild(opt);
     }
-    row.appendChild(chips);
+    select.addEventListener("change", () => {
+      if (isTeamLocked(i)) return;
+      const n = Number(select.value);
+      const choice = Shop.autoRepeatChoices().find((c) => c.n === n);
+      if (!choice) return;
+      if (choice.locked) {
+        select.value = String(ar.target); // 選択は元に戻してからショップを開く
+        openShop("screen-battle", "auto_repeat_100");
+        return;
+      }
+      ar.target = n;
+      store.set(KEYS.autoRepeatTarget, n);
+    });
+    row.appendChild(select);
   }
 
   const btn = document.createElement("button");

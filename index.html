@@ -320,12 +320,15 @@
           <div class="material-line" id="materialLine">強化石 0</div>
         </div>
         <div class="explore-header-actions">
-          <button class="btn small ghost" id="btnAutoDisassembleToggle">自動分解 OFF</button>
-          <button class="btn small ghost" id="btnSpeedToggle">x1</button>
-          <a class="btn small ghost hidden" id="contactExploreLink" target="_blank" rel="noopener noreferrer">不具合報告 ↗</a>
+          <div class="explore-header-buttons">
+            <button class="btn small ghost" id="btnAutoDisassembleToggle">自動分解 OFF</button>
+            <button class="btn small ghost" id="btnSpeedToggle">x1</button>
+            <a class="btn small ghost hidden" id="contactExploreLink" target="_blank" rel="noopener noreferrer">不具合報告 ↗</a>
+          </div>
+          <!-- 自動分解の対象レア度（自動分解ボタンの真下に出す） -->
+          <div id="disassembleFilterRow" class="disassemble-filter-row hidden"></div>
         </div>
       </div>
-      <div id="disassembleFilterRow" class="disassemble-filter-row hidden"></div>
       <div class="explore-content">
         <div class="explore-welcome hidden" id="exploreWelcome">
           <div class="explore-welcome-inner">
