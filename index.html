@@ -321,12 +321,12 @@
         </div>
         <div class="explore-header-actions">
           <div class="explore-header-buttons">
-            <button class="btn small ghost" id="btnAutoDisassembleToggle">自動分解 OFF</button>
+            <button class="btn small ghost" id="btnAutoDisassembleToggle" aria-haspopup="true" aria-expanded="false" aria-controls="disassemblePopover">自動分解 OFF</button>
             <button class="btn small ghost" id="btnSpeedToggle">x1</button>
             <a class="btn small ghost hidden" id="contactExploreLink" target="_blank" rel="noopener noreferrer">不具合報告 ↗</a>
           </div>
-          <!-- 自動分解の対象レア度（自動分解ボタンの真下に出す） -->
-          <div id="disassembleFilterRow" class="disassemble-filter-row hidden"></div>
+          <!-- 自動分解の設定（ON/OFF・対象レア度）。自動分解ボタンを押すと真下にポップオーバーで開く。js/ui/dock.js -->
+          <div id="disassemblePopover" class="disassemble-popover hidden" role="dialog" aria-label="自動分解の設定"></div>
         </div>
       </div>
       <div class="explore-content">

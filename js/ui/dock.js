@@ -192,38 +192,77 @@ function isAutoDisassembleLocked() {
 }
 let autoDisassembleLockShown = null; // 表示中のロック状態（変わった時だけ描き直すため）
 function updateAutoDisassembleButton() {
-  const locked = isAutoDisassembleLocked();
-  autoDisassembleLockShown = locked;
+  autoDisassembleLockShown = isAutoDisassembleLocked();
   const btn = document.getElementById("btnAutoDisassembleToggle");
-  btn.textContent = autoDisassemble ? "自動分解 ON" : "自動分解 OFF";
+  const open = isDisassemblePopoverOpen();
+  btn.textContent = `自動分解 ${autoDisassemble ? "ON" : "OFF"} ${open ? "▴" : "▾"}`; // 対象のレア度はポップオーバーの中だけで見せる
   btn.classList.toggle("toggle-on", autoDisassemble);
-  btn.disabled = locked;
-  btn.title = locked ? "探索中・自動周回中のパーティがある間は変更できません" : "";
-  document.getElementById("disassembleFilterRow").classList.toggle("hidden", !autoDisassemble);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
 }
-document.getElementById("btnAutoDisassembleToggle").addEventListener("click", () => {
-  if (isAutoDisassembleLocked()) return;
-  autoDisassemble = !autoDisassemble;
-  store.set(KEYS.autoDisassemble, autoDisassemble ? "1" : "0");
+function isDisassemblePopoverOpen() {
+  return !document.getElementById("disassemblePopover").classList.contains("hidden");
+}
+function setDisassemblePopover(open) {
+  document.getElementById("disassemblePopover").classList.toggle("hidden", !open);
+  // 縦の短い画面ではポップオーバーが下のドックまで届くため、開いている間はヘッダー側をドックより手前に出す
+  document.getElementById("screen-battle").classList.toggle("dpop-open", open);
+  if (!open) disassembleHighConfirm = null; // 閉じたらUR・LRの確認待ちは取り消す
+  renderDisassembleFilter();
   updateAutoDisassembleButton();
+}
+// 探索中でも中身は見られるように、ボタン自体は常に押せる（変更だけをロックする）
+document.getElementById("btnAutoDisassembleToggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  setDisassemblePopover(!isDisassemblePopoverOpen());
+});
+// ポップオーバーの外をタップしたら閉じる。中のタップは描き直しで押した要素がDOMから外れ、
+// document側では「外」に見えてしまうため、ポップオーバー自身で止めておく
+document.getElementById("disassemblePopover").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => {
+  if (isDisassemblePopoverOpen()) setDisassemblePopover(false);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && isDisassemblePopoverOpen()) setDisassemblePopover(false);
 });
 // UR・LR を自動分解の対象に入れる時は2回押し（1回目で注意を出す）
 const HIGH_RARITIES = ["ur", "lr"];
 let disassembleHighConfirm = null; // 確認待ちのレア度キー
 function renderDisassembleFilter() {
-  const row = document.getElementById("disassembleFilterRow");
+  const pop = document.getElementById("disassemblePopover");
   const locked = isAutoDisassembleLocked();
-  row.innerHTML = `<span class="disassemble-filter-label">対象:</span>`;
+  pop.innerHTML = "";
+
+  // 1行目: 自動分解のON/OFFスイッチ
+  const master = document.createElement("button");
+  master.className = "dpop-master";
+  master.setAttribute("role", "switch");
+  master.setAttribute("aria-checked", autoDisassemble ? "true" : "false");
+  master.disabled = locked;
+  master.innerHTML = `<span>自動分解</span><span class="dpop-switch${autoDisassemble ? " on" : ""}" aria-hidden="true"></span>`;
+  master.addEventListener("click", () => {
+    if (isAutoDisassembleLocked()) return;
+    autoDisassemble = !autoDisassemble;
+    store.set(KEYS.autoDisassemble, autoDisassemble ? "1" : "0");
+    disassembleHighConfirm = null;
+    renderDisassembleFilter();
+    updateAutoDisassembleButton();
+  });
+  pop.appendChild(master);
+
+  // 対象のレア度（☑形式）。OFFの間も選んでおけるが、薄く表示する
+  const list = document.createElement("div");
+  list.className = "dpop-list" + (autoDisassemble ? "" : " off");
   for (const rarity of RARITIES) {
-    const chip = document.createElement("button");
     const on = autoDisassembleRarities.has(rarity.key);
-    chip.className = "disassemble-chip" + (on ? " active" : "");
-    chip.textContent = rarity.key.toUpperCase();
-    chip.title = rarity.name;
-    chip.disabled = locked;
-    if (on) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
-    if (disassembleHighConfirm === rarity.key) chip.classList.add("confirming");
-    chip.addEventListener("click", () => {
+    const row = document.createElement("button");
+    row.className = "dpop-row" + (disassembleHighConfirm === rarity.key ? " confirming" : "");
+    row.setAttribute("role", "checkbox");
+    row.setAttribute("aria-checked", on ? "true" : "false");
+    row.disabled = locked;
+    row.innerHTML = `<span class="dpop-check${on ? " on" : ""}" aria-hidden="true">${on ? "✓" : ""}</span>` +
+      `<span class="dpop-rarity" style="color:${rarity.color}">${rarity.key.toUpperCase()}</span>`;
+    row.setAttribute("aria-label", rarity.name);
+    row.addEventListener("click", () => {
       if (isAutoDisassembleLocked()) return;
       const turningOnHigh = !autoDisassembleRarities.has(rarity.key) && HIGH_RARITIES.includes(rarity.key);
       if (turningOnHigh && disassembleHighConfirm !== rarity.key) {
@@ -238,24 +277,27 @@ function renderDisassembleFilter() {
       else autoDisassembleRarities.add(rarity.key);
       saveAutoDisassembleFilter();
       renderDisassembleFilter();
+      updateAutoDisassembleButton();
     });
-    row.appendChild(chip);
+    list.appendChild(row);
   }
+  pop.appendChild(list);
+
   if (disassembleHighConfirm) {
-    const warn = document.createElement("span");
-    warn.className = "disassemble-filter-note warn";
+    const warn = document.createElement("p");
+    warn.className = "dpop-note warn";
     warn.textContent = `${disassembleHighConfirm.toUpperCase()}も自動で分解されます。よければもう一度押してください（名のある装備は分解しません）`;
-    row.appendChild(warn);
+    pop.appendChild(warn);
   }
-  const optionNote = document.createElement("span");
-  optionNote.className = "disassemble-filter-note";
+  const optionNote = document.createElement("p");
+  optionNote.className = "dpop-note";
   optionNote.textContent = "高品質OP・特殊OP付き装備はレア度にかかわらず自動保護（手動分解は別）";
-  row.appendChild(optionNote);
+  pop.appendChild(optionNote);
   if (locked) {
-    const note = document.createElement("span");
-    note.className = "disassemble-filter-note";
-    note.textContent = "探索中は変更できません";
-    row.appendChild(note);
+    const note = document.createElement("p");
+    note.className = "dpop-note lock";
+    note.textContent = "探索中・自動周回中は変更できません";
+    pop.appendChild(note);
   }
 }
 renderDisassembleFilter();
