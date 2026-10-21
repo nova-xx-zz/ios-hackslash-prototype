@@ -1289,7 +1289,9 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 #screen-battle .explore-header > :first-child { min-width: 0; }
 .explore-eyebrow {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 5px;
+  /* 自動分解ONで右の列（対象レア度）が広がっても「◆ ギルド待機」が次の行へ落ちないよう、1行に固定する。
+     右上のボタンの高さには収まる幅なので、はみ出してもボタンとは重ならない */
+  display: flex; align-items: center; flex-wrap: nowrap; white-space: nowrap; gap: 6px; margin-bottom: 5px;
   font-family: "Cinzel", serif; font-size: 9px; font-weight: 600; letter-spacing: 0.12em; color: #dec28c;
 }
 .explore-state { font-family: inherit; font-size: 9px; letter-spacing: 0; color: #c0cdd0; }
