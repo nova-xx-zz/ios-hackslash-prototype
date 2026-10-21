@@ -191,21 +191,11 @@ function isAutoDisassembleLocked() {
   return false;
 }
 let autoDisassembleLockShown = null; // 表示中のロック状態（変わった時だけ描き直すため）
-// ボタンの表記: OFF か、対象のレア度の要約（N から順に続く時は「N〜SR」、全部なら「全て」）
-function autoDisassembleSummary() {
-  if (!autoDisassemble) return "OFF";
-  const on = RARITIES.filter((r) => autoDisassembleRarities.has(r.key));
-  if (on.length === 0) return "対象なし";
-  if (on.length === RARITIES.length) return "全て";
-  const contiguousFromN = on.every((r, idx) => r.key === RARITIES[idx].key);
-  if (contiguousFromN && on.length >= 3) return `N〜${on[on.length - 1].key.toUpperCase()}`;
-  return on.map((r) => r.key.toUpperCase()).join("・");
-}
 function updateAutoDisassembleButton() {
   autoDisassembleLockShown = isAutoDisassembleLocked();
   const btn = document.getElementById("btnAutoDisassembleToggle");
   const open = isDisassemblePopoverOpen();
-  btn.textContent = `自動分解 ${autoDisassembleSummary()} ${open ? "▴" : "▾"}`;
+  btn.textContent = `自動分解 ${autoDisassemble ? "ON" : "OFF"} ${open ? "▴" : "▾"}`; // 対象のレア度はポップオーバーの中だけで見せる
   btn.classList.toggle("toggle-on", autoDisassemble);
   btn.setAttribute("aria-expanded", open ? "true" : "false");
 }
