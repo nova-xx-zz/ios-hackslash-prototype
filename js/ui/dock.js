@@ -270,8 +270,8 @@ function renderDisassembleFilter() {
     row.setAttribute("aria-checked", on ? "true" : "false");
     row.disabled = locked;
     row.innerHTML = `<span class="dpop-check${on ? " on" : ""}" aria-hidden="true">${on ? "✓" : ""}</span>` +
-      `<span class="dpop-rarity" style="color:${rarity.color}">${rarity.key.toUpperCase()}</span>` +
-      `<span class="dpop-rarity-name">${rarity.name}</span>`;
+      `<span class="dpop-rarity" style="color:${rarity.color}">${rarity.key.toUpperCase()}</span>`;
+    row.setAttribute("aria-label", rarity.name);
     row.addEventListener("click", () => {
       if (isAutoDisassembleLocked()) return;
       const turningOnHigh = !autoDisassembleRarities.has(rarity.key) && HIGH_RARITIES.includes(rarity.key);

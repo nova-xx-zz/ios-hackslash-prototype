@@ -1303,13 +1303,13 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 #screen-battle.dpop-open .explore-wrap { z-index: 6; } /* .bottom-dock（z-index: 5）より手前 */
 .disassemble-popover {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: 20;
-  width: 212px; padding: 6px 12px 10px; border-radius: 8px;
+  width: 176px; padding: 6px 12px 10px; border-radius: 8px;
   background: #13242a; border: 1px solid #c9a463; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
   text-shadow: none;
 }
 .disassemble-popover.hidden { display: none; }
 .disassemble-popover::before {
-  content: ""; position: absolute; top: -6px; right: 70px; width: 10px; height: 10px;
+  content: ""; position: absolute; top: -6px; right: 60px; width: 10px; height: 10px;
   background: #13242a; border-left: 1px solid #c9a463; border-top: 1px solid #c9a463; transform: rotate(45deg);
 }
 .dpop-master, .dpop-row {
@@ -1331,9 +1331,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .dpop-check.on { background: #d9b979; border-color: #d9b979; }
 .dpop-rarity { width: 22px; font-weight: 700; }
-.dpop-rarity-name { font-size: 11px; color: #a9b6b8; }
 .dpop-row.confirming .dpop-check { border-color: var(--hp); }
-.dpop-row.confirming .dpop-rarity-name { color: var(--hp); }
+.dpop-row.confirming .dpop-rarity { text-decoration: underline; text-decoration-color: var(--hp); }
 .dpop-master:disabled, .dpop-row:disabled { cursor: default; opacity: 0.55; }
 .dpop-note { margin: 6px 0 0; font-size: 10px; line-height: 1.5; color: #9fadb0; }
 .dpop-note.warn { color: var(--hp); }
