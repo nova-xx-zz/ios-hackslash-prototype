@@ -11,7 +11,8 @@
   // 確認用モード（?debug）では、確認用のデータを本番のバックアップに上書きしないよう、クラウドセーブを使わない
   // （QPCloud を用意しないので、設定画面のクラウドセーブの欄も出ない）
   if (root.QPCore && root.QPCore.storage && (root.QPCore.storage.isDebugMode() || root.QPCore.storage.isDungeonPilotMode())) return;
-  const UPLOAD_INTERVAL_MS = 60 * 1000;
+  const UPLOAD_INTERVAL_MS = 5 * 60 * 1000;
+  const RETRY_INTERVAL_MS = 60 * 1000;
   const START_DELAY_MS = 1500;
   // 設定画面の容量診断と同じ上限を使い、表示と実際の送信判定を一致させる。
   const saveDiagnostics = root.QPCore.saveDiagnostics;
@@ -20,8 +21,9 @@
   const state = { status: "off", uid: null, lastUploadAt: null, lastUploadSavedAt: null, error: null };
   const listeners = new Set();
   let fb = null, auth = null, db = null;
-  let pending = null; // まだ送っていない最新のセーブ { json, savedAt }
-  let timer = null, lastSentAt = 0, uploading = null;
+  let pending = null; // まだ送っていない最新のセーブ { json, savedAt, key }
+  let timer = null, lastSentAt = 0, retryAfter = 0, uploading = null;
+  let lastUploadedKey = null; // 実際に送信が成功した内容。保存時刻だけの変更は同期しない
 
   function set(patch) {
     Object.assign(state, patch);
@@ -76,9 +78,30 @@
     return starting;
   }
 
+  // ローカルセーブは20秒ごとにsavedAtを更新するため、単純なJSON比較だと
+  // アイドル時も永遠にdirtyになる。進行が変わらなければ同じデータとして扱う。
+  // ただし自動周回中は保存時刻がオフライン精算の起点になるため、savedAtも同期対象。
+  function contentKey(json) {
+    try {
+      const data = JSON.parse(json);
+      if (!Array.isArray(data.autoRepeat) || !data.autoRepeat.some((ar) => ar && ar.active)) {
+        delete data.savedAt;
+      }
+      return JSON.stringify(data);
+    } catch (e) {
+      return json; // 不正なJSONも送信時の通常のサイズ判定へ。ここでゲームを止めない
+    }
+  }
+
+  function clearScheduledUpload() {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+  }
+
   function scheduleUpload(delay) {
-    if (timer) return;
-    const wait = delay !== undefined ? delay : Math.max(0, lastSentAt + UPLOAD_INTERVAL_MS - Date.now());
+    if (timer !== null || !pending || state.status !== "ready") return;
+    const wait = delay !== undefined ? delay :
+      Math.max(0, lastSentAt + UPLOAD_INTERVAL_MS - Date.now(), retryAfter - Date.now());
     timer = setTimeout(() => { timer = null; upload(); }, wait);
   }
 
@@ -87,41 +110,59 @@
     if (uploading) return uploading;
     if (!pending) return true;
     if (state.status !== "ready") return false;
-    const { json, savedAt } = pending;
-    if (!saveDiagnostics.cloudAccepts(json)) {
+
+    const item = pending;
+    if (item.key === lastUploadedKey) {
+      pending = null;
+      return true;
+    }
+    if (!saveDiagnostics.cloudAccepts(item.json)) {
+      // 容量超過時も端末データは保持する。クラウド制限に収まる次のセーブは再度送信できる。
       pending = null;
       set({ error: "セーブが大きすぎてクラウドに保存できません（設定→保存状況を確認してください）" });
       return false;
     }
+
     pending = null;
     uploading = (async () => {
       try {
         await fb.setDoc(fb.doc(db, "saves", state.uid), {
-          data: json,
-          savedAt,
+          data: item.json,
+          savedAt: item.savedAt,
           schemaVersion: root.QPModel && root.QPModel.save ? root.QPModel.save.SCHEMA_VERSION : null,
-          chars: json.length,
+          chars: item.json.length,
           updatedAt: fb.serverTimestamp(),
         });
         lastSentAt = Date.now();
-        set({ lastUploadAt: lastSentAt, lastUploadSavedAt: savedAt, error: null });
+        retryAfter = 0;
+        lastUploadedKey = item.key;
+        set({ lastUploadAt: lastSentAt, lastUploadSavedAt: item.savedAt, error: null });
         return true;
       } catch (e) {
-        if (!pending) pending = { json, savedAt }; // 送れなかった分は、より新しいセーブが来ていなければ送り直す
+        // 通信失敗なら一番新しいセーブを残し、1分以上空けて再送する。
+        if (!pending) pending = item;
+        retryAfter = Date.now() + RETRY_INTERVAL_MS;
         set({ error: errorText(e) });
         return false;
       } finally {
         uploading = null;
+        if (pending && pending.key === lastUploadedKey) pending = null;
+        // 送信中に更新されたセーブの取りこぼしと、失敗時の無限即時再試行を防ぐ。
+        clearScheduledUpload();
+        if (pending) scheduleUpload();
       }
     })();
     return uploading;
   }
 
-  // 今の進行をすぐに送る（設定画面の「今すぐバックアップ」）。saveGame が qp:saved で最新のセーブを渡す
+  // 設定画面の手動実行は5分制限の対象外。進行を端末保存してから最新スナップショットを送る。
   async function backupNow() {
     if (state.status !== "ready") await start();
-    if (typeof root.saveGame === "function") root.saveGame();
-    clearTimeout(timer); timer = null;
+    if (state.status !== "ready") return false;
+    if (typeof root.saveGame === "function" && !root.saveGame()) return false;
+    clearScheduledUpload();
+    if (uploading) await uploading;
+    clearScheduledUpload();
     return upload();
   }
 
@@ -140,15 +181,32 @@
   }
 
   root.addEventListener("qp:saved", (ev) => {
-    pending = { json: ev.detail.json, savedAt: ev.detail.savedAt };
+    if (!ev.detail || typeof ev.detail.json !== "string") return;
+    const item = { json: ev.detail.json, savedAt: ev.detail.savedAt, key: contentKey(ev.detail.json) };
+    // アイドル中のsavedAt更新だけなら、Firebaseへの不要な書き込みを省く。
+    // 送信中は先に書き込まれる内容が異なる可能性があるため、最新を保留する。
+    if (!uploading && item.key === lastUploadedKey) {
+      pending = null;
+      clearScheduledUpload();
+      return;
+    }
+    pending = item;
     if (state.status === "ready") scheduleUpload();
   });
-  // アプリを離れる時は、待たずに送る（送り切れなかった分は次に開いた時に送る）
+  // iOS Safariではバックグラウンド送信が保証されない。可能なら即時送信し、失敗分は定期再試行。
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && pending && state.status === "ready") { clearTimeout(timer); timer = null; upload(); }
+    if (document.hidden && pending && state.status === "ready") {
+      clearScheduledUpload();
+      upload();
+    }
   });
-  // オフラインから戻ったら、つなぎ直す
-  root.addEventListener("online", () => { if (state.status === "error") start(); });
+  root.addEventListener("online", () => {
+    if (state.status === "error") start();
+    else if (pending && state.status === "ready") {
+      clearScheduledUpload();
+      scheduleUpload(0);
+    }
+  });
   root.addEventListener("load", () => setTimeout(start, START_DELAY_MS));
 
   root.QPCloud = {
