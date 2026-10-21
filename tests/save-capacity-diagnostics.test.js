@@ -101,7 +101,7 @@ test("クラウド送信判定と設定画面が共通の定数を使い、ス�
  const cloud=fs.readFileSync(path.join(__dirname,"../js/cloud.js"),"utf8");
  const idx=html.indexOf('js/core/save-diagnostics.js?v=1');
  assert.ok(idx>=0);
- assert.ok(idx<html.indexOf('js/cloud.js?v=4'));
+ assert.ok(idx<html.indexOf('js/cloud.js?v=5'));
  assert.ok(idx<html.indexOf('js/ui/settings.js?v=5'));
  assert.match(cloud,/root\.QPCore\.saveDiagnostics/);
  assert.match(cloud,/saveDiagnostics\.cloudAccepts\(json\)/);
