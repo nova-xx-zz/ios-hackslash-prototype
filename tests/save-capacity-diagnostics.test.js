@@ -104,7 +104,7 @@ test("クラウド送信判定と設定画面が共通の定数を使い、ス�
  assert.ok(idx<html.indexOf('js/cloud.js?v=5'));
  assert.ok(idx<html.indexOf('js/ui/settings.js?v=5'));
  assert.match(cloud,/root\.QPCore\.saveDiagnostics/);
- assert.match(cloud,/saveDiagnostics\.cloudAccepts\(json\)/);
+ assert.match(cloud,/saveDiagnostics\.cloudAccepts\(item\.json\)/);
  assert.match(html,/id="btnSaveStorageDiagnostics"/);
  assert.match(html,/id="saveStorageDiagnosticsResult"/);
 });
