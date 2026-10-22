@@ -140,6 +140,12 @@
       if (mode === "extra") return S.clearedExtra || (S.clearedExtra = new Set());
       return S.clearedDungeons;
     }
+    // 自動周回の解放は「そのダンジョン × 難易度を最低1回踏破済み」で判定する。
+    // 挑戦・全滅・別難易度の踏破だけでは解放されない。チームには依存しない。
+    function canAutoRepeat(dungeonId, mode) {
+      if (!dungeonId || !getDungeon(dungeonId) || !["normal", "hard", "extra"].includes(mode || "normal")) return false;
+      return clearedSet(mode).has(dungeonId);
+    }
     // オプション効果「パーティの獲得EXP」「パーティの強化石」の倍率
     const partyMult = (teamIndex, key) => 1 + (R.partyBonus ? R.partyBonus(teamIndex, key) : 0);
     const markDexSeen = deps.markDexSeen || (() => {});
@@ -570,6 +576,11 @@
       if (!autoRepeatInfo || !autoRepeatInfo.active || !autoRepeatInfo.dungeonId || !savedAt) return null;
       const dungeon = getModeDungeon(autoRepeatInfo.dungeonId, autoRepeatInfo.mode);
       if (!dungeon) return null;
+      // 旧バージョンで未踏破なのに開始できたセーブも、オフライン報酬を発生させない。
+      if (!canAutoRepeat(dungeon.id, dungeon.mode)) {
+        S.autoRepeat[teamIndex].active = false;
+        return null;
+      }
       // 離れていた時間（最大8時間。端末の時計が戻っていても負にしない）を、実際に戦った時間で使い切るまで周回する。
       // 時間内に終わらなかった周は数えない（その周の結果は反映しない）
       let budgetSeconds = clamp(now() - savedAt, 0, OFFLINE_MAX_MS) / 1000;
@@ -696,7 +707,7 @@
     const inTeam = (teamIndex, fn) => (teamRuns[teamIndex] ? inRun(teamRuns[teamIndex], fn) : fn());
     return {
       teamRuns, teamBattles, capturePilotRuns, restorePilotRuns,
-      isTeamRunActive, isTeamLocked, runBuffs, restoreTeamParty,
+      isTeamRunActive, isTeamLocked, canAutoRepeat, runBuffs, restoreTeamParty,
       startRun,
       startBattle: (run) => inRun(run, () => startBattle(run)),
       stepBattle: (teamIndex, dt) => inTeam(teamIndex, () => stepBattle(teamIndex, dt)),
