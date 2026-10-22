@@ -1672,3 +1672,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 #contactExploreLink { text-decoration: none; text-align: center; white-space: nowrap; }
 /* .btn.small の display:inline-block より優先して、未設定の外部リンクを隠す。 */
 #contactSettingsLink.hidden, #contactExploreLink.hidden { display: none; }
+
+/* 冒険の手引き: 注意文とFAQ。既存の辞典用スタイルを変更しない。 */
+.book-guide-warning{padding:10px 12px;border-left:3px solid #dfb96b;background:rgba(208,138,60,.12);border-radius:4px;font-weight:650;}
+.book-guide-faq{white-space:pre-line;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.book-sub{line-height:1.6;}
