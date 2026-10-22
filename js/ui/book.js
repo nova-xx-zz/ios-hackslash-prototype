@@ -37,6 +37,7 @@ let bookStack = []; // 開いているページの順番（最後が今のペー
 function openBook() {
   bookStack = [bookRootPage()];
   renderBook();
+  document.getElementById("bookBody").scrollTop = 0;
   showScreen("screen-book");
 }
 function pushBookPage(page) {
