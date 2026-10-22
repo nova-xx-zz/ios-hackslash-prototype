@@ -23,77 +23,29 @@ function bookIcon(name) {
   return `<svg class="book-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BOOK_ICONS[name] || BOOK_ICONS.guide}</svg>`;
 }
 
-// 冒険の手引き（遊び方）。数値はゲームの設定（data.js）と合わせて書く
-const BOOK_GUIDE = [
-  { title: "ゲームについて", body: [
-    "仲間を集めてパーティを作り、ダンジョンへ送り出して強くしていくハクスラRPGです。戦闘はすべて自動で進みます。",
-    "ダンジョンを踏破すると次のダンジョンが解放されます。仲間を育て、装備を集めて、奥のダンジョンを目指しましょう。",
-  ] },
-  { title: "パーティと編成", body: [
-    "パーティは第一〜第四の4つ。1つのパーティには5人まで入れられます。4つのパーティは同時に別々のダンジョンを探索できます。",
-    "編成画面でメンバーを長押しして動かすと、別のパーティや控えに移せます。仲間は「編成」の「仲間を呼ぶ」から増やせます。",
-    "探索中・自動周回中のパーティは、編成・装備・スキル・転職などを変更できません。",
-  ] },
-  { title: "種族とジョブ", body: [
-    "キャラの能力値は「種族」と「ジョブ」の組み合わせで決まります。種族ごとに会心率アップや被ダメージ軽減などの特性もあります。",
-    "ジョブはキャラ詳細の「ジョブ」から、いつでも切り替えられます。ジョブごとにレベルを持っていて、戻ればそのレベルから再開できます。",
-    `基本職をLv.${JOB_MASTER_LEVEL}まで極めると、対応する上級職に転職できるようになります。`,
-  ] },
-  { title: "スキルとスキルツリー", body: [
-    "使える技はジョブのレベルで増えていきます。スキルの画面で技のON/OFFと優先度（優先・通常・温存）を決めると、自動戦闘がそれに従って技を選びます。",
-    "サブアビリティには、これまでに育てたことのあるジョブの技を入れられます。いろいろなジョブを育てるほど選べる技が増えます。",
-    "レベルアップでSPを得て、スキルツリーで能力の強化や新しい技を習得できます。",
-  ] },
-  { title: "装備と強化", body: [
-    "ダンジョンで見つけた装備は、踏破すると手に入ります。全滅すると、その周回で見つけた装備は持ち帰れません。",
-    "装備の枠は、右手・左手・頭・体・装飾品の5か所です。装飾品は最初1枠で、スキルツリーの「装備の心得」「装備の極意」で3枠まで増えます（モンスターはLv20・Lv40で増えます）。",
-    "ジョブによって持てる装備の種類が違います（まほうつかいは剣やよろいを持てない、など）。両手武器は強力ですが、持っている間は左手に何も付けられません。とうぞく・ぶとうか・けんごうなどの二刀流のジョブは、左手にも片手武器を持てます。",
-    "装備はシリーズ（ブロンズ・アイアンなど）に分かれ、地方ごとに手に入るシリーズが変わります。同じシリーズを2・4・6個そろえて付けると、セット効果が付きます。",
-    "地方ごとに29種類の「名のある装備」（◆）があります。★レアモンスターやボスがときどき落とし、ふつうの戦闘でもまれに手に入ります。能力値が高く、会心率や吸収などの特殊効果が付きます。",
-    "☠の付いた装備は呪われています。とても強力ですが、被ダメージが増える・最大HPが減るなどのデメリットがあります。おまかせ装備では選ばれないので、付ける時は自分で選んでください。",
-    "装備は強化石を使って強化できます。強化値が高いほど成功しにくくなります。",
-    "所持品の「分解する」で、選んだ装備を強化石に変えられます。",
-  ] },
-  { title: "ハードとエクストラ", body: [
-    "ダンジョンをノーマルで踏破すると「ハード」、ハードを踏破すると「エクストラ」に挑めるようになります。マップでダンジョンを選んで、モードを切り替えてください。",
-    "ハードは推奨Lvが10、エクストラは25上がった強さの敵が出ます。EXPはハードで1.5倍、エクストラで2倍です。",
-    "ハード・エクストラで手に入る装備は、レベルが上がるうえに「オプション効果」が付きます（ハードは1〜2個、エクストラは強い効果が2〜3個）。能力値アップ・会心率や吸収などの戦闘の効果のほか、パーティの獲得EXPや強化石が増える周回向けの効果もあります。",
-  ] },
-  { title: "地方とレアモンスター", body: [
-    "ダンジョンは地方ごとに分かれています。地方の最後のダンジョンを踏破すると、次の地方へ進めるようになります。マップの上の地方の名前を押すと、地方を切り替えられます。",
-    "奥のダンジョンで拾った装備ほど、装備のレベルが高く強くなります（装備のレベルは、拾ったダンジョンの推奨Lvです）。",
-    "ダンジョンには、まれにそのダンジョンだけのレアモンスター（★）が現れます。強めですがEXPが多く、倒すとスーパーレア以上の装備を必ず落とします。",
-  ] },
-  { title: "探索と自動周回", body: [
-    "探索画面の「マップ」からダンジョンを選んで出発します。ダンジョンでは何回か戦闘があり、最後はボスとの戦いです。",
-    "道中では宝箱・罠・泉・石碑のできごとが起きることがあります。",
-    "自動周回を使うと、同じダンジョンに決めた回数だけ自動で出発し続けます。全滅すると止まります。",
-  ] },
-  { title: "自動分解", body: [
-    "探索画面右上の「自動分解」をONにすると、選んだレア度の装備は手に入れた時に強化石に変わります。",
-    "自動分解の設定は全パーティ共通です。探索中・自動周回中のパーティがある間は変更できません。",
-  ] },
-  { title: "離れている間の進行", body: [
-    "自動周回中にアプリを閉じると、次に開いた時に、離れていた時間（最大8時間）ぶんの周回の結果をまとめて受け取れます。",
-    "結果を受け取ると自動周回はいったん止まります。続ける時は、もう一度「自動周回開始」を押してください。",
-  ] },
-  { title: "データの保存", body: [
-    "進行は端末に自動で保存されます。クラウドにも自動でバックアップされ、端末のデータが消えた時はタイトルの「データ復元」で戻せます。",
-    "ホーム画面に追加したアプリとSafariで開いたページは、別々のデータになります。",
-  ] },
-];
+// 章・記事の本文は book-guide-content.js で管理する。旧 BOOK_GUIDE は廃止。
+const BOOK_PROTO_HIDDEN_TOPICS = new Set(["BKG-024", "BKG-025"]); // 正式版の認証・実決済は試作版にはない
+function visibleBookGuideTopics() {
+  return BOOK_GUIDE_CONTENT.topics.filter((topic) => !BOOK_PROTO_HIDDEN_TOPICS.has(topic.id));
+}
+function bookGuideById(id) {
+  return visibleBookGuideTopics().find((topic) => topic.id === id) || null;
+}
 
 let bookStack = []; // 開いているページの順番（最後が今のページ）。各ページは { title, sub, render(body) }
 
 function openBook() {
   bookStack = [bookRootPage()];
   renderBook();
+  document.getElementById("bookBody").scrollTop = 0;
   showScreen("screen-book");
 }
 function pushBookPage(page) {
+  const body = document.getElementById("bookBody");
+  bookStack[bookStack.length - 1].scrollTop = body.scrollTop;
   bookStack.push(page);
   renderBook();
-  document.getElementById("bookBody").scrollTop = 0;
+  body.scrollTop = 0;
 }
 function renderBook() {
   const page = bookStack[bookStack.length - 1];
@@ -106,7 +58,12 @@ function renderBook() {
   page.render(body);
 }
 document.getElementById("btnBookBack").addEventListener("click", () => {
-  if (bookStack.length > 1) { bookStack.pop(); renderBook(); return; }
+  if (bookStack.length > 1) {
+    bookStack.pop();
+    renderBook();
+    document.getElementById("bookBody").scrollTop = bookStack[bookStack.length - 1].scrollTop || 0;
+    return;
+  }
   openExploreHub();
 });
 
@@ -163,23 +120,62 @@ function bookRootPage() {
   };
 }
 
-// ---------- 冒険の手引き ----------
+// ---------- 冒険の手引き（章 → 記事） ----------
 function guideIndexPage() {
   return {
     title: "冒険の手引き",
+    sub: "知りたい章を選んでください",
     render(body) {
-      body.appendChild(bookList(BOOK_GUIDE.map((g) => bookRow({ label: g.title, onClick: () => pushBookPage(guideTopicPage(g)) }))));
+      const visible = visibleBookGuideTopics();
+      body.appendChild(bookList(BOOK_GUIDE_CONTENT.chapters.map((chapter) => {
+        const count = visible.filter((topic) => topic.chapterId === chapter.id).length;
+        return bookRow({
+          iconHtml: bookIcon("guide"),
+          label: chapter.title,
+          meta: count + "項目",
+          onClick: () => pushBookPage(guideChapterPage(chapter)),
+        });
+      })));
     },
   };
 }
-function guideTopicPage(g) {
+function guideChapterPage(chapter) {
   return {
-    title: g.title,
+    title: chapter.title,
+    render(body) {
+      const topics = visibleBookGuideTopics().filter((topic) => topic.chapterId === chapter.id);
+      body.appendChild(bookList(topics.map((topic) => bookRow({
+        label: topic.title,
+        onClick: () => pushBookPage(guideTopicPage(topic)),
+      }))));
+    },
+  };
+}
+function guideTopicPage(topic) {
+  return {
+    title: topic.title,
+    sub: topic.summary,
     render(body) {
       const box = document.createElement("div");
       box.className = "book-text";
-      for (const line of g.body) box.appendChild(bookParagraph(line));
+      const lines = topic.id === "BKG-026"
+        ? topic.body.map((line) => line.includes("別の端末で続きから遊べません")
+          ? "**Q. 別の端末で続きから遊べません。**\nA. タイトル画面の「データ復元」と「データの保存」の説明を確認してください。" : line)
+        : topic.body;
+      for (const line of lines) {
+        const warning = /^(?:\*\*)?(?:注意：|全滅すると)/.test(line);
+        const paragraph = bookParagraph(line.replace(/\*\*/g, ""), warning ? "book-guide-warning" : "");
+        if (/^\*\*Q\./.test(line)) paragraph.classList.add("book-guide-faq");
+        box.appendChild(paragraph);
+      }
       body.appendChild(box);
+      const related = topic.related.map(bookGuideById).filter(Boolean);
+      if (related.length) {
+        body.appendChild(bookHeading("関連する項目"));
+        body.appendChild(bookList(related.map((entry) => bookRow({
+          label: entry.title, onClick: () => pushBookPage(guideTopicPage(entry)),
+        }))));
+      }
     },
   };
 }
