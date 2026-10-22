@@ -116,7 +116,7 @@ function renderAutoRepeatRow() {
     const select = document.createElement("select");
     select.className = "auto-repeat-select";
     select.setAttribute("aria-label", "自動周回の回数");
-    select.disabled = locked;
+    select.disabled = locked || !canStart;
     for (const choice of Shop.autoRepeatChoices()) {
       const opt = document.createElement("option");
       opt.value = String(choice.n);
