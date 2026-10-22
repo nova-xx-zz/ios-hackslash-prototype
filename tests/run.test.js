@@ -306,6 +306,27 @@ test("周回の終了: 踏破なら保留ドロップを出撃時の設定で振
   assert.equal(Runner.isTeamRunActive(0), false);
 });
 
+test("自動周回の解放: 初回踏破前や失敗後は不可、ダンジョン・難易度ごとに判定する", () => {
+  const { state, Runner } = setup();
+  assert.equal(Runner.canAutoRepeat("plains"), false);
+  assert.equal(Runner.canAutoRepeat("forest"), false);
+  assert.equal(Runner.canAutoRepeat("unknown"), false);
+  const failed = Runner.startRun(0, "plains");
+  Runner.finishRun(failed, false);
+  assert.equal(Runner.canAutoRepeat("plains"), false, "全滅では自動周回を解放しない");
+  state.clearedDungeons.add("plains");
+  assert.equal(Runner.canAutoRepeat("plains", "normal"), true);
+  assert.equal(Runner.canAutoRepeat("plains", "hard"), false);
+  assert.equal(Runner.canAutoRepeat("plains", "extra"), false);
+  assert.equal(Runner.canAutoRepeat("forest", "normal"), false);
+  state.clearedHard.add("plains");
+  assert.equal(Runner.canAutoRepeat("plains", "hard"), true);
+  assert.equal(Runner.canAutoRepeat("plains", "extra"), false);
+  state.clearedExtra.add("plains");
+  assert.equal(Runner.canAutoRepeat("plains", "extra"), true);
+  assert.equal(Runner.canAutoRepeat("plains", "invalid"), false);
+});
+
 test("自動周回: 全滅で停止、目標回数で完了、それ以外は続ける", () => {
   const { state, Runner } = setup();
   const ar = state.autoRepeat[0];
@@ -336,8 +357,28 @@ test("中断: 進行中の周回を打ち切ってチームを回復する（終
   assert.equal(Runner.interruptRun(0), false);
 });
 
+test("オフライン精算: 未踏破の旧セーブは報酬を付けず自動周回を停止する", () => {
+  const { state, Runner, setClock } = setup({ level: 8 });
+  const savedAt = 1_000_000_000_000;
+  setClock(savedAt + 60 * 60 * 1000);
+  const snapshot = JSON.stringify(state.roster);
+  assert.equal(Runner.runOfflineProgress([
+    { active: true, target: 5, done: 0, dungeonId: "plains" },
+  ], savedAt), null);
+  assert.equal(state.autoRepeat[0].active, false);
+  assert.equal(state.inventory.length, 0);
+  assert.equal(state.records.runHistory.length, 0);
+  assert.equal(JSON.stringify(state.roster), snapshot);
+
+  state.clearedDungeons.add("plains");
+  assert.equal(Runner.runOfflineProgress([
+    { active: true, target: 5, done: 0, dungeonId: "plains", mode: "hard" },
+  ], savedAt), null, "ノーマル済みでもハード未踏破ならオフライン精算を拒否する");
+});
+
 test("オフライン精算: 離れていた時間ぶん周回し、自動周回を止めて結果を返す", () => {
   const { state, Runner, dex, setClock } = setup({ level: 8 });
+  state.clearedDungeons.add("plains");
   const savedAt = 1_000_000_000_000;
   setClock(savedAt + 60 * 60 * 1000); // 1時間
   const info = { active: true, target: 5, done: 1, dungeonId: "plains" };
@@ -362,6 +403,7 @@ test("オフライン精算: 離れていた時間ぶん周回し、自動周回
 
 test("オフライン精算: 1周ぶんの時間が経っていなければ周回せず、止まった理由を返す。対象がなければnull", () => {
   const { state, Runner, setClock } = setup({ level: 8 });
+  state.clearedDungeons.add("plains");
   const savedAt = 1_000_000_000_000;
   setClock(savedAt + 1000);
   const [s] = Runner.runOfflineProgress([{ active: true, target: 5, done: 0, dungeonId: "plains" }], savedAt);
@@ -374,13 +416,14 @@ test("オフライン精算: 1周ぶんの時間が経っていなければ周�
 
 test("オフライン精算: 弱いパーティで全滅したら、そこまでのEXPは残り、ドロップは持ち帰れない", () => {
   const { state, Runner, setClock } = setup({ level: 1 });
+  state.clearedDungeons.add("peak");
   const savedAt = 1_000_000_000_000;
   setClock(savedAt + OFFLINE_MAX_MS * 3); // 8時間を超えた分は切り捨て
   const [s] = Runner.runOfflineProgress([{ active: true, target: 3, done: 0, dungeonId: "peak" }], savedAt);
   assert.equal(s.wipedOut, true);
   assert.equal(s.cleared, 0);
   assert.equal(state.inventory.length, 0);
-  assert.equal(state.clearedDungeons.has("peak"), false);
+  assert.equal(state.clearedDungeons.has("peak"), true, "既存の踏破履歴を全滅で消さない");
 });
 
 test("テイム: どのダンジョンでテイムしても、仲間になるモンスターはLv1から", () => {
@@ -397,6 +440,7 @@ test("オフライン精算の保存保証: 報酬と自動周回の停止は1�
   const savedAt = 1_000_000_000_000;
   // 離れる直前のセーブ: チーム1が自動周回中
   const before = setup({ level: 8 });
+  before.state.clearedDungeons.add("plains");
   before.state.autoRepeat[0] = { active: true, target: 5, done: 1 };
   const beforeJson = JSON.stringify(save.serialize(before.state, { now: savedAt, runDungeonIds: ["plains"] }));
 
@@ -434,6 +478,7 @@ test("オフライン精算の保存保証: 報酬と自動周回の停止は1�
 test("テイム: 仲間のBOXが満員の間は抽選せず、通常プレイ・オフライン精算とも仲間は増えない", () => {
   let full = true;
   const { state, Runner, setClock } = setup({ level: 8, canAddMonster: () => !full });
+  state.clearedDungeons.add("plains");
   const run = { defeatedTamable: ["slime"] };
   assert.deepEqual(Runner.attemptTame(run), { success: false, full: true });
   assert.equal(Runner.attemptTame({ defeatedTamable: [] }), null);
@@ -485,6 +530,7 @@ test("オフラインEXP: 勝利時に生存者IDが空なら0人、旧形式結
 test("自動分解: 保存済みの出撃時設定を再起動後のオフライン周回へ引き継ぐ", () => {
   const save = require("../js/model/save.js");
   const { state, Runner, filter, setClock } = setup({ level: 8, seed: 51 });
+  state.clearedDungeons.add("plains");
   const run = Runner.startRun(0, "plains");
   state.autoRepeat[0] = { active: true, target: 5, done: 0 };
   const savedAt = 1_000_000_000_000;
@@ -510,6 +556,7 @@ test("自動分解: 保存済みの出撃時設定を再起動後のオフライ
 
 test("自動分解: 旧セーブに出撃時設定がなければ現在値にフォールバック（互換）", () => {
   const { state, Runner, filter, setClock } = setup({ level: 8, seed: 51 });
+  state.clearedDungeons.add("plains");
   filter.rarities.clear();
   const savedAt = 1_000_000_000_000;
   setClock(savedAt + 60 * 60 * 1000);
