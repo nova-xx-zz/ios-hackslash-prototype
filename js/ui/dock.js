@@ -99,7 +99,7 @@ function renderAutoRepeatRow() {
   const ar = S.autoRepeat[i];
   const run = teamRuns[i];
   const locked = isTeamLocked(i);
-  const canStart = !!(run && run.dungeon);
+  const canStart = !!(run && run.dungeon && Runner.canAutoRepeat(run.dungeon.id, run.dungeon.mode));
 
   const label = document.createElement("div");
   label.className = "auto-repeat-label";
@@ -144,7 +144,9 @@ function renderAutoRepeatRow() {
   btn.className = "btn small " + (ar.active ? "ghost" : "primary");
   btn.textContent = ar.active ? "停止" : "自動周回開始";
   btn.disabled = ar.active ? false : (locked || !canStart);
-  if (!ar.active && !canStart) btn.title = "先にダンジョンへ出撃してください";
+  if (!ar.active && !canStart) btn.title = run && run.dungeon
+    ? "この難易度のダンジョンを1回クリアすると解放されます"
+    : "先にダンジョンへ出撃してください";
   btn.addEventListener("click", () => {
     if (ar.active) {
       ar.active = false;
@@ -152,16 +154,25 @@ function renderAutoRepeatRow() {
       renderDock();
       return;
     }
-    if (isTeamLocked(i) || !canStart) return;
+    // 描画後に別の出撃状況へ変わっても、最新の踏破実績で再検証する。
+    const currentRun = teamRuns[i];
+    if (isTeamLocked(i) || !currentRun || !currentRun.dungeon ||
+        !Runner.canAutoRepeat(currentRun.dungeon.id, currentRun.dungeon.mode)) return;
     // 買っていない回数が選ばれていたら（クラウドから戻したセーブなど）、買える範囲の最大にする
     const choice = Shop.autoRepeatChoices().find((c) => c.n === ar.target);
     if (!choice || choice.locked) ar.target = Math.max(...Shop.autoRepeatChoices().filter((c) => !c.locked).map((c) => c.n));
     ar.active = true;
     ensureNotifyPermission(); // アプリ版: 初めて自動周回を始めた時に、完了通知の許可を求める
     ar.done = 0;
-    startDungeon(i, run.dungeon.id, { navigate: true, mode: run.dungeon.mode });
+    startDungeon(i, currentRun.dungeon.id, { navigate: true, mode: currentRun.dungeon.mode });
   });
   row.appendChild(btn);
+  if (!ar.active && run && run.dungeon && !canStart) {
+    const hint = document.createElement("div");
+    hint.className = "auto-repeat-status";
+    hint.textContent = "この難易度を1回クリアすると解放";
+    row.appendChild(hint);
+  }
 }
 
 function updateBattleDOM() {
