@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=59">
+<link rel="stylesheet" href="css/style.css?v=60">
 </head>
 <body>
 <div id="app">
@@ -254,13 +254,16 @@
   <!-- FORGE-TRIAL-SCREEN-END -->
   <!-- キャラ作成画面 -->
   <section id="screen-create" class="screen hidden">
-    <div class="roster-wrap">
-      <div class="roster-header">
-        <div class="map-title">仲間を作る</div>
+    <div class="roster-wrap create-wrap">
+      <div class="roster-header create-header">
+        <div class="create-heading">
+          <div class="create-overline">CREATE COMPANION</div>
+          <h1 class="create-page-title">仲間を作る</h1>
+        </div>
         <button class="btn small ghost" id="btnCreateBack">もどる</button>
       </div>
       <div id="createBody" class="roster-body"></div>
-      <div class="roster-footer">
+      <div class="roster-footer create-footer">
         <button class="btn small ghost" id="btnCreateRandom">ランダム</button>
         <button class="btn small primary" id="btnCreateConfirm">なかまにする</button>
       </div>
@@ -539,7 +542,7 @@
 <script src="js/ui/settings.js?v=5"></script>
 <script src="js/ui/debug.js?v=9"></script>
 <script src="js/ui/party.js?v=10"></script>
-<script src="js/ui/create.js?v=6"></script>
+<script src="js/ui/create.js?v=7"></script>
 <script src="js/ui/detail.js?v=5"></script>
 <script src="js/ui/detail-tree.js?v=4"></script>
 <script src="js/ui/detail-tabs.js?v=14"></script>
