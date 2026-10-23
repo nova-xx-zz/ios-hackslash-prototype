@@ -16,24 +16,30 @@ let teamLogs = Array.from({ length: TEAM_COUNT }, () => []); // [{type,title,sub
 // 案内が残ったり、ログ行の追記先（lastElementChild）に混ざったりしないようにする。
 function renderExploreScene(teamIndex) {
   const run = teamRuns[teamIndex];
-  const idle = !run && teamLogs[teamIndex].length === 0;
+  const pending = pendingDungeons[teamIndex];
+  // 別ダンジョンを選んだ時は前回の戦闘ログではなく出撃準備画面を表示する。
+  const idle = !!pending || (!run && teamLogs[teamIndex].length === 0);
   const emptyParty = teamMembers(teamIndex).length === 0;
+  const selected = pending && getModeDungeon(pending.id, pending.mode);
   document.getElementById("exploreWelcome").classList.toggle("hidden", !idle);
   document.getElementById("logFeed").classList.toggle("hidden", idle);
   document.getElementById("screen-battle").classList.toggle("explore-idle", idle);
-  document.getElementById("exploreState").textContent = run
-    ? (isTeamRunActive(teamIndex) ? "探索中" : "帰還") : "ギルド待機";
-  document.getElementById("exploreWelcomeTitle").textContent = emptyParty ? "仲間を編成しよう" : "冒険の準備";
+  document.getElementById("exploreState").textContent = pending
+    ? "出撃待ち" : run ? (isTeamRunActive(teamIndex) ? "探索中" : "帰還") : "ギルド待機";
+  document.getElementById("exploreWelcomeTitle").textContent = emptyParty
+    ? "仲間を編成しよう" : selected ? selected.name : "冒険の準備";
   document.getElementById("exploreWelcomeCopy").textContent = emptyParty
     ? "このパーティには仲間がいません。編成してから出発しましょう。"
-    : "行き先を選んで、探索に出発しましょう。";
-  document.getElementById("exploreEmbarkLabel").textContent = emptyParty ? "仲間を編成する" : "マップを開く";
+    : selected ? `【${getDungeonMode(pending.mode).name}】推奨Lv.${selected.level}。出撃ボタンを押すまで探索は始まりません。`
+      : "行き先を選んで、探索に出発しましょう。";
+  document.getElementById("exploreEmbarkLabel").textContent = emptyParty
+    ? "仲間を編成する" : pending ? "選んだダンジョンへ出撃" : "マップを開く";
 }
 
 document.getElementById("btnExploreEmbark").addEventListener("click", () => {
   if (isTeamLocked(S.activeTeam)) return;
   // 既存の導線を利用し、未編成のまま出撃したり、案内から即座に戦闘を始めたりしない。
-  if (activeParty().length) document.getElementById("btnDockMap").click();
+  if (activeParty().length) document.getElementById(pendingDungeons[S.activeTeam] ? "btnPrepareDeploy" : "btnDockMap").click();
   else openPartyScreen("screen-battle"); // まだ誰も編成していなければ、パーティ編成の画面へ直接
 });
 

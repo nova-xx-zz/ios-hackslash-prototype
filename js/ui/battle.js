@@ -16,6 +16,8 @@ function startDungeon(teamIndex, id, opts) {
   clearTimeout(nextBattleTimer[teamIndex]);
   const run = Runner.startRun(teamIndex, id, opts.mode);
   const d = run.dungeon;
+  // 実際に出撃してから選択中の行き先を解除する（マップで選んだだけでは解除しない）。
+  pendingDungeons[teamIndex] = null;
   // 前回の出撃先はチームごとに保存し、タイトルから戻った直後でも再出撃・自動周回を可能にする。
   S.lastDungeons[teamIndex] = { id: d.id, mode: d.mode || "normal" };
   scheduleSave();
