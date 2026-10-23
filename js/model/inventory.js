@@ -151,7 +151,7 @@
       const set = savedSet(c, index);
       if (!set) return { ok: false, reason: "empty" };
       if (typeof name !== "string") return { ok: false, reason: "invalid" };
-      const trimmed = name.replace(/[\\u0000-\\u001f\\u007f]/g, "").trim();
+      const trimmed = name.replace(/[\x00-\x1f\x7f]/g, "").trim();
       if (!trimmed || Array.from(trimmed).length > 20) return { ok: false, reason: "invalid" };
       set.name = trimmed;
       return { ok: true };
