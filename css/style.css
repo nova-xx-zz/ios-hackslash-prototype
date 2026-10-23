@@ -771,6 +771,15 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .skill-toggle-circle.static { cursor: default; }
 
 /* キャラ詳細: モンスター合成タブ */
+.detail-action-bar {
+  flex: 0 0 auto; position: relative; z-index: 2;
+  padding: 8px 12px 10px;
+  background: rgba(9, 20, 26, 0.98);
+  border-top: 1px solid var(--border);
+}
+.detail-action-bar.hidden { display: none; }
+.detail-action-bar .fusion-footer { margin: 0 0 5px; gap: 6px; flex-wrap: wrap; }
+.detail-action-bar .btn { margin: 0; min-height: 43px; font-size: 13px; line-height: 1.35; }
 .fusion-footer { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--sub-text); margin: 10px 0 8px; }
 .fusion-footer span:last-child { color: var(--atb); }
 
@@ -1256,7 +1265,9 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .actor-card.acted { border-color: var(--atb); box-shadow: 0 0 0 2px rgba(255,210,77,0.25); }
 .actor-card.down { opacity: 0.35; }
 .actor-name { font-size: 10.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.actor-job { font-size: 9px; color: var(--sub-text); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actor-job { display: flex; align-items: center; gap: 2px; min-width: 0; font-size: 9px; color: var(--sub-text); margin-bottom: 3px; white-space: nowrap; }
+.actor-job-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actor-job-level { flex: 0 0 auto; font-size: 9px; font-variant-numeric: tabular-nums; }
 .stat-bar { height: 5px; border-radius: 3px; background: rgba(0,0,0,0.5); margin-top: 2px; overflow: hidden; }
 .stat-bar .fill { height: 100%; transition: width 0.15s linear; }
 .stat-bar.hp .fill { background: var(--hp); }
@@ -1496,6 +1507,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .equip-choice.enhance-open { background: rgba(255,159,77,0.18); border-color: #ff9f4d; color: #ffc98a; }
+.equip-unequip-all { display: block; width: 100%; margin-top: 7px; min-height: 36px; border-color: rgba(255, 159, 77, 0.55); color: #f3c59b; }
+.equip-unequip-all:disabled { opacity: 0.4; }
 
 .enhance-result {
   margin-top: 10px; padding: 8px 10px;
