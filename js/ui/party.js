@@ -28,7 +28,7 @@ function renderJobsScreen() {
       name: `${TEAM_NAMES[i]}（${TEAM_LABELS[i]}）`,
       meta: `${members.length}/${MAX_ACTIVE}人`,
       viewed: i === S.activeTeam,
-      exploring: isTeamRunActive(i),
+      exploring: isTeamLocked(i),
       locked: isTeamLocked(i),
       expanded: expandedTeams.has(i),
       onToggle: () => {
