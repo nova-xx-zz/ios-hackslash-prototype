@@ -57,6 +57,7 @@ function setup() {
     createElement: () => new Element(),
   };
   const running = new Set([0]);
+  const repeating = new Set();
   const runs = [{ battleIndex: 0, buffs: {}, dungeon: { id: "plains", name: "はじまりの草原", mode: "normal", battles: 3 } }, null, null, null];
   const S = { activeTeam: 0, material: 123, lastDungeons: [null, null, null, null] };
   const events = [];
@@ -64,7 +65,7 @@ function setup() {
     document, TEAM_LABELS: ["I", "II", "III", "IV"],
     TEAM_NAMES: ["第一のパーティ", "第二のパーティ", "第三のパーティ", "第四のパーティ"],
     S, teamRuns: runs, pendingDungeons: [null, null, null, null], STAT_LABELS: {},
-    isTeamRunActive: (i) => running.has(i), isTeamLocked: () => false,
+    isTeamRunActive: (i) => running.has(i), isTeamLocked: (i) => running.has(i) || repeating.has(i),
     getModeDungeon: () => null, getDungeonMode: () => ({ name: "通常" }),
     teamMembers: (i) => i === 0 ? [{ id: "a" }] : [],
     renderLogFeed: (i) => events.push("log:" + i),
@@ -77,7 +78,7 @@ function setup() {
     autoDisassembleLockShown: null,
   });
   vm.runInContext(source.slice(start, end), ctx);
-  return { ctx, elements, running, events, S };
+  return { ctx, elements, running, repeating, runs, events, S };
 }
 
 test("探索画面タブから人数を除き、番号＋探索中だけを表示する", () => {
@@ -125,4 +126,34 @@ test("探索ドックの表示領域は拡大しつつタブのタップ領域�
   assert.match(css, /#screen-battle \.team-tab-status:empty \{ display: none; \}/);
   assert.doesNotMatch(css, /\.team-tab\.exploring::after/);
   assert.match(css, /#screen-battle \.party-row \{ gap: 6px; padding: 5px 10px 6px; \}/);
+});
+
+test("自動周回の周回間は「探索中」を維持し、全周回完了・全滅で解除する", () => {
+  const { ctx, elements, running, repeating, runs } = setup();
+  running.delete(0);
+  runs[0].finished = true; // 1周クリア後、次の周回の出撃待ち
+  repeating.add(0);
+  ctx.renderDock();
+  assert.equal(elements.dockStatus.textContent, "探索中…");
+  assert.equal(elements.teamTabs.children[0].querySelector(".team-tab-status").textContent, "探索中");
+
+  repeating.add(2); // 別チームも自動周回の周回間
+  ctx.updateTeamTabStatus();
+  assert.equal(elements.teamTabs.children[2].querySelector(".team-tab-status").textContent, "探索中");
+
+  repeating.delete(0); // 指定した周回数がすべて完了
+  ctx.renderDock();
+  assert.equal(elements.dockStatus.textContent, "踏破");
+  assert.equal(elements.teamTabs.children[0].querySelector(".team-tab-status").textContent, "");
+
+  repeating.add(0);
+  runs[0].wiped = true;
+  repeating.delete(0); // 自動周回中の全滅・撤退
+  ctx.renderDock();
+  assert.equal(elements.dockStatus.textContent, "失敗");
+  assert.equal(elements.teamTabs.children[0].querySelector(".team-tab-status").textContent, "");
+
+  repeating.delete(2); // オフライン精算後は自動周回が解除される
+  ctx.updateTeamTabStatus();
+  assert.equal(elements.teamTabs.children[2].querySelector(".team-tab-status").textContent, "");
 });
