@@ -216,7 +216,6 @@ function updateBattleDOM() {
     if (!el) continue;
     const s = computeStats(c);
     el.classList.toggle("down", !c.alive);
-    el.classList.toggle("acted", c.actedFlash > 0);
     el.querySelector(".stat-bar.hp .fill").style.width = clamp((c.hp / s.maxHp) * 100, 0, 100) + "%";
     el.querySelector(".hpnum").textContent = `HP ${Math.max(0, Math.round(c.hp))}/${s.maxHp}`;
     el.querySelector(".stat-bar.mp .fill").style.width = clamp((c.mp / s.maxMp) * 100, 0, 100) + "%";
