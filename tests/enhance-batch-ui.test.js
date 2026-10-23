@@ -32,10 +32,13 @@ function setup({ locked = false } = {}) {
   const item = { id: "sword-1", name: "ミスリルソード", slot: "weapon", rarity: "n", plus: 0 };
   const S = { material: 1000, guaranteedStones: { free: 2, paid: 3 }, inventory: [item], roster: [] };
   const nodes = {};
-  const presets = [5, 10, 14, 20].map((v) => new Element({ "data-enhance-target": String(v) }));
+  const presets = [5, 10, 14, 20].map((v) => {
+    const element = new Element({ "data-enhance-target": String(v) });
+    nodes["enBatchPreset" + v] = element;
+    return element;
+  });
   const document = {
     getElementById: (id) => nodes[id] || (nodes[id] = new Element()),
-    querySelectorAll: (selector) => selector === "[data-enhance-target]" ? presets : [],
   };
   let saved = 0;
   const calls = [];
