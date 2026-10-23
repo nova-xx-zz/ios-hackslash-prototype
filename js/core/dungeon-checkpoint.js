@@ -38,7 +38,7 @@
       autoDisassembleRarities: [...run.autoDisassembleRarities],
       members: party.map((p) => ({
         id: p.id, hp: p.hp, mp: p.mp, alive: p.alive, atb: p.atb || 0,
-        defending: !!p.defending, actedFlash: p.actedFlash || 0,
+        defending: !!p.defending,
       })),
       battle: rawBattle,
     };

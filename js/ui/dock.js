@@ -55,7 +55,7 @@ function renderDock() {
   renderLogFeed(S.activeTeam);
   document.getElementById("dockStatus").textContent = pending
     ? "出撃待ち"
-    : !d ? "出発準備" : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
+    : !d ? "出発準備" : locked ? "探索中…" : (run.wiped ? "失敗" : "踏破");
   const pct = !pending && d ? (Math.min(run.battleIndex + (running ? 0 : 1), d.battles) / d.battles) * 100 : 0;
   document.getElementById("dockProgressFill").style.width = clamp(pct, 0, 100) + "%";
 
@@ -77,9 +77,9 @@ function renderDock() {
   TEAM_LABELS.forEach((label, i) => {
     const btn = document.createElement("button");
     btn.className = "team-tab" + (i === S.activeTeam ? " active" : "");
-    // 探索画面では編成人数を表示せず、探索中のチームだけ状態を横並びで知らせる。
+    // 探索画面では編成人数を表示せず、自動周回の周回間も含め探索中を示す。
     btn.innerHTML = `<span class="team-tab-label">${label}</span><span class="team-tab-status"></span>`;
-    setTeamTabExploring(btn, i, isTeamRunActive(i));
+    setTeamTabExploring(btn, i, isTeamLocked(i));
     btn.addEventListener("click", () => {
       if (i === S.activeTeam) return;
       S.activeTeam = i;
@@ -105,7 +105,8 @@ function updateTeamTabStatus() {
   if (!tabs) return;
   const buttons = tabs.children;
   for (let i = 0; i < buttons.length; i++) {
-    const exploring = isTeamRunActive(i);
+    // 自動周回の周回間は run.finished でも自動周回が継続するため表示を維持する。
+    const exploring = isTeamLocked(i);
     if (buttons[i].classList.contains("exploring") !== exploring) {
       setTeamTabExploring(buttons[i], i, exploring);
     }
@@ -215,7 +216,6 @@ function updateBattleDOM() {
     if (!el) continue;
     const s = computeStats(c);
     el.classList.toggle("down", !c.alive);
-    el.classList.toggle("acted", c.actedFlash > 0);
     el.querySelector(".stat-bar.hp .fill").style.width = clamp((c.hp / s.maxHp) * 100, 0, 100) + "%";
     el.querySelector(".hpnum").textContent = `HP ${Math.max(0, Math.round(c.hp))}/${s.maxHp}`;
     el.querySelector(".stat-bar.mp .fill").style.width = clamp((c.mp / s.maxMp) * 100, 0, 100) + "%";

@@ -53,7 +53,7 @@ function setup() {
     getModeDungeon: (id, mode) => ({ id, mode, name: "選択ダンジョン", level: 20 }),
     getDungeonMode: (mode) => ({ name: mode === "normal" ? "ノーマル" : "ハード" }),
     teamMembers: (i) => members[i], activeParty: () => members[context.S.activeTeam],
-    isTeamRunActive: (i) => !!runs[i]?.active, isTeamLocked: (i) => locked.has(i),
+    isTeamRunActive: (i) => !!runs[i]?.active, isTeamLocked: (i) => locked.has(i) || !!runs[i]?.active,
     // 未編成の時はパーティ編成の画面を直接開く（下のナビの「編成」は編成メニューを開くため）
     openPartyScreen: () => routes.push("party"),
   });
@@ -133,4 +133,15 @@ test("別ダンジョンを選択したら前回の戦闘ログではなく出�
   pendingDungeons[0] = null;
   c.renderLogFeed(0);
   assert.equal(e.exploreWelcome.classList.contains("hidden"), true);
+});
+
+test("自動周回の周回間だけは run が終了していても探索中表示が残る", () => {
+  const { context: c, elements: e, runs, locked } = setup();
+  runs[0] = { active: false }; // 踏破後、次の自動周回の開始待ち
+  locked.add(0); // Runner.isTeamLocked: 自動周回 active
+  c.renderLogFeed(0);
+  assert.equal(e.exploreState.textContent, "探索中");
+  locked.delete(0); // 指定周回数が完了、またはオフライン精算で停止
+  c.renderLogFeed(0);
+  assert.equal(e.exploreState.textContent, "帰還");
 });
