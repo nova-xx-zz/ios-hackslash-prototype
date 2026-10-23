@@ -137,7 +137,19 @@
           const id = set.slots[key];
           slots[key] = typeof id === "string" && id.length <= 120 && id.trim() ? id : null;
         }
-        return { slots };
+        const name = typeof set.name === "string" ? Array.from(set.name.trim()).slice(0, 20).join("") : "";
+        const preview = {};
+        if (set.preview && typeof set.preview === "object" && !Array.isArray(set.preview)) {
+          for (const key of allowed) {
+            const entry = set.preview[key];
+            if (!slots[key] || !entry || typeof entry !== "object") continue;
+            const name = typeof entry.name === "string" ? entry.name.slice(0, 80) : "";
+            const rarity = typeof entry.rarity === "string" ? entry.rarity.slice(0, 8) : "";
+            const plus = Number.isSafeInteger(entry.plus) ? Math.max(0, Math.min(99, entry.plus)) : 0;
+            preview[key] = { name, rarity, plus };
+          }
+        }
+        return { slots, name, preview };
       });
       if (sets.some(Boolean)) Object.defineProperty(out, c.id, { value: sets, enumerable: true, writable: true, configurable: true });
     }
