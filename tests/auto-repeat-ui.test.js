@@ -44,6 +44,7 @@ function setup() {
     clearedHard: new Set(),
     clearedExtra: new Set(),
     autoRepeat: Array.from({ length: 4 }, () => ({ active: false, target: 5, done: 0 })),
+    lastDungeons: [null, null, null, null],
   };
   const runs = [{ finished: true, dungeon: { id: "plains", mode: "normal" } }, null, null, null];
   const started = [];
@@ -57,6 +58,7 @@ function setup() {
       },
     },
     isTeamLocked: () => false,
+    teamMembers: () => [{ id: "c1" }], // 実ゲームの編成済みチーム相当
     Shop: { autoRepeatChoices: () => [{ n: 1, locked: false }, { n: 5, locked: false }] },
     store: { set: () => {} }, KEYS: { autoRepeatTarget: "target" },
     logLine: () => {}, renderDock: () => {}, ensureNotifyPermission: () => {},

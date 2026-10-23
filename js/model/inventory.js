@@ -111,6 +111,71 @@
       clampVitals(c);
     }
 
+    // ---------- 装備マイセット ----------
+    // 現在着用している「実物のアイテムID」だけを3枠まで保存。
+    // 読込時に同一キャラの現在装備と所持品のみを対象とし、他のキャラから装備を奪わない。
+    const EQUIPMENT_SET_COUNT = 3;
+    function savedSet(c, index) {
+      if (!c || !Number.isInteger(index) || index < 0 || index >= EQUIPMENT_SET_COUNT) return null;
+      return (S.equipmentSets && S.equipmentSets[c.id] || [])[index] || null;
+    }
+    function saveEquipmentSet(c, index) {
+      if (!c || !Number.isInteger(index) || index < 0 || index >= EQUIPMENT_SET_COUNT ||
+          (c.team !== null && isTeamLocked(c.team))) return { ok: false, reason: "locked" };
+      const ids = Object.values(c.equip || {}).filter(Boolean).map((item) => item.id);
+      if (!ids.length || ids.some((id) => typeof id !== "string" || !id)) return { ok: false, reason: "invalid" };
+      if (new Set(ids).size !== ids.length) return { ok: false, reason: "duplicate" };
+      if (!S.equipmentSets) S.equipmentSets = {};
+      if (!Object.prototype.hasOwnProperty.call(S.equipmentSets, c.id)) {
+        Object.defineProperty(S.equipmentSets, c.id, { value: [], enumerable: true, writable: true, configurable: true });
+      }
+      const slots = {};
+      for (const pos of equipment.POSITIONS) slots[pos] = c.equip[pos] ? c.equip[pos].id : null;
+      S.equipmentSets[c.id][index] = { slots };
+      return { ok: true };
+    }
+    function deleteEquipmentSet(c, index) {
+      if (c && c.team !== null && isTeamLocked(c.team)) return false;
+      if (!savedSet(c, index)) return false;
+      S.equipmentSets[c.id][index] = null;
+      return true;
+    }
+    function applyEquipmentSet(c, index) {
+      if (!c || (c.team !== null && isTeamLocked(c.team))) return { ok: false, reason: "locked" };
+      const set = savedSet(c, index);
+      if (!set) return { ok: false, reason: "empty" };
+      const pool = S.inventory.concat(equipment.POSITIONS.map((p) => c.equip[p]).filter(Boolean));
+      const byId = new Map();
+      for (const item of pool) {
+        if (typeof item.id !== "string" || !item.id) continue;
+        // 同一IDが別アイテムに存在する場合、曖昧な装備を選ばず適用を拒否する。
+        if (byId.has(item.id) && byId.get(item.id) !== item) byId.set(item.id, null);
+        else if (!byId.has(item.id)) byId.set(item.id, item);
+      }
+      const next = equipment.emptyEquip();
+      const chosen = new Set();
+      for (const p of equipment.POSITIONS) {
+        const id = set.slots[p];
+        if (id == null) continue;
+        const item = byId.get(id);
+        if (!item || chosen.has(item)) return { ok: false, reason: "missing" };
+        next[p] = item;
+        chosen.add(item);
+      }
+      const profile = R.equipProfile(c), acc = R.accessorySlots(c);
+      for (const p of equipment.POSITIONS) {
+        if (next[p] && !equipment.canPlace(profile, next[p], p, next, acc)) {
+          return { ok: false, reason: "job" };
+        }
+      }
+      // 全枠検証後に一括適用。途中で装備不可になっても所持品を失わない。
+      S.inventory.length = 0;
+      for (const item of pool) if (!chosen.has(item)) S.inventory.push(item);
+      for (const p of equipment.POSITIONS) c.equip[p] = next[p];
+      clampVitals(c);
+      return { ok: true };
+    }
+
     // ---------- 強化石・確定強化石 ----------
     function addMaterial(n) {
       S.material += n;
@@ -324,6 +389,7 @@
     return {
       releaseCandidates, releaseMembers,
       clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
+      savedSet, saveEquipmentSet, deleteEquipmentSet, applyEquipmentSet,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
       canBatchEnhance, estimateEnhanceToTarget, enhanceToTarget,

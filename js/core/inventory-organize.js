@@ -11,6 +11,15 @@
  function isSafeBulkCandidate(item){
    return !!item && BULK_RARITIES.includes(item.rarity) && !isValuable(item);
  }
+ // 明示的な拡張選択でもロック済みは対象にしない。未ロックの貴重品・呪い・UR/LR等は
+ // UI側の確認操作を経て初めて一括分解できる。
+ function isBulkSelectable(item,includeValuable,includeCursed){
+   if(!item||item.locked)return false;
+   // 旧2引数の互換は維持。UIは独立した2条件を明示する。
+   if(includeCursed===undefined)includeCursed=includeValuable;
+   if(item.cursed)return !!includeCursed;
+   return !!includeValuable||isSafeBulkCandidate(item);
+ }
  function matches(item,view){
    if(view==="all")return true;
    if(view==="valuable")return isValuable(item);
@@ -44,7 +53,7 @@
    });
    return metrics.map(m=>m.item);
  }
- const api={BULK_RARITIES,VIEWS,isValuable,isSafeBulkCandidate,matches,filter,sort};
+ const api={BULK_RARITIES,VIEWS,isValuable,isSafeBulkCandidate,isBulkSelectable,matches,filter,sort};
  root.QPCore=root.QPCore||{};
  root.QPCore.inventoryOrganize=api;
  if(typeof module!=="undefined"&&module.exports)module.exports=api;

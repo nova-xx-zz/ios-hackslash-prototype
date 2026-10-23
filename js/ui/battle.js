@@ -16,6 +16,9 @@ function startDungeon(teamIndex, id, opts) {
   clearTimeout(nextBattleTimer[teamIndex]);
   const run = Runner.startRun(teamIndex, id, opts.mode);
   const d = run.dungeon;
+  // 前回の出撃先はチームごとに保存し、タイトルから戻った直後でも再出撃・自動周回を可能にする。
+  S.lastDungeons[teamIndex] = { id: d.id, mode: d.mode || "normal" };
+  scheduleSave();
   const modeText = d.mode ? `【${getDungeonMode(d.mode).name}】` : "";
   logEvent(teamIndex, "start", `${modeText}${d.name} に出発した`, d.dungeonFloorPilot
     ? `全${run.pilotFloorPlans.length}階層・通常戦闘回数は突入時に確定・全${d.battles}戦（ボス含む）`

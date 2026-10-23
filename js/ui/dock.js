@@ -14,7 +14,7 @@ function buildPartyDock() {
     card.innerHTML = `
       <div class="actor-insignia">${jobInsignia(c.isMonster ? null : jobDef(c).id)}</div>
       <div class="actor-name">${escapeHtml(c.name)}</div>
-      <div class="actor-job">${jobDef(c).name} Lv.${c.level}</div>
+      <div class="actor-job"><span class="actor-job-name">${escapeHtml(jobDef(c).name)}</span><span class="actor-job-level">Lv.${c.level}</span></div>
       <div class="stat-bar hp"><div class="fill" style="width:100%"></div></div>
       <div class="stat-num hpnum"></div>
       <div class="stat-bar mp"><div class="fill" style="width:100%"></div></div>
@@ -52,7 +52,9 @@ function renderDock() {
   const pct = d ? (Math.min(run.battleIndex + (running ? 0 : 1), d.battles) / d.battles) * 100 : 0;
   document.getElementById("dockProgressFill").style.width = clamp(pct, 0, 100) + "%";
 
-  document.getElementById("btnRedeploy").disabled = locked || !d;
+  const recentDungeon = S.lastDungeons && S.lastDungeons[S.activeTeam];
+  const redeployTarget = d || recentDungeon;
+  document.getElementById("btnRedeploy").disabled = locked || !redeployTarget || teamMembers(S.activeTeam).length === 0;
   document.getElementById("btnDockMap").disabled = locked;
   updateAutoDisassembleButton();
   renderDisassembleFilter();
@@ -99,7 +101,10 @@ function renderAutoRepeatRow() {
   const ar = S.autoRepeat[i];
   const run = teamRuns[i];
   const locked = isTeamLocked(i);
-  const canStart = !!(run && run.dungeon && Runner.canAutoRepeat(run.dungeon.id, run.dungeon.mode));
+  const last = S.lastDungeons && S.lastDungeons[i];
+  const destination = run && run.dungeon ? run.dungeon : last;
+  const canStart = !!(destination && teamMembers(i).length > 0 &&
+    Runner.canAutoRepeat(destination.id, destination.mode));
 
   const label = document.createElement("div");
   label.className = "auto-repeat-label";
@@ -144,7 +149,7 @@ function renderAutoRepeatRow() {
   btn.className = "btn small " + (ar.active ? "ghost" : "primary");
   btn.textContent = ar.active ? "停止" : "自動周回開始";
   btn.disabled = ar.active ? false : (locked || !canStart);
-  if (!ar.active && !canStart) btn.title = run && run.dungeon
+  if (!ar.active && !canStart) btn.title = destination
     ? "この難易度のダンジョンを1回クリアすると解放されます"
     : "先にダンジョンへ出撃してください";
   btn.addEventListener("click", () => {
@@ -156,18 +161,20 @@ function renderAutoRepeatRow() {
     }
     // 描画後に別の出撃状況へ変わっても、最新の踏破実績で再検証する。
     const currentRun = teamRuns[i];
-    if (isTeamLocked(i) || !currentRun || !currentRun.dungeon ||
-        !Runner.canAutoRepeat(currentRun.dungeon.id, currentRun.dungeon.mode)) return;
+    const recent = S.lastDungeons && S.lastDungeons[i];
+    const selected = currentRun && currentRun.dungeon ? currentRun.dungeon : recent;
+    if (isTeamLocked(i) || teamMembers(i).length === 0 || !selected ||
+        !Runner.canAutoRepeat(selected.id, selected.mode)) return;
     // 買っていない回数が選ばれていたら（クラウドから戻したセーブなど）、買える範囲の最大にする
     const choice = Shop.autoRepeatChoices().find((c) => c.n === ar.target);
     if (!choice || choice.locked) ar.target = Math.max(...Shop.autoRepeatChoices().filter((c) => !c.locked).map((c) => c.n));
     ar.active = true;
     ensureNotifyPermission(); // アプリ版: 初めて自動周回を始めた時に、完了通知の許可を求める
     ar.done = 0;
-    startDungeon(i, currentRun.dungeon.id, { navigate: true, mode: currentRun.dungeon.mode });
+    startDungeon(i, selected.id, { navigate: true, mode: selected.mode });
   });
   row.appendChild(btn);
-  if (!ar.active && run && run.dungeon && !canStart) {
+  if (!ar.active && destination && !canStart && teamMembers(i).length > 0) {
     const hint = document.createElement("div");
     hint.className = "auto-repeat-status";
     hint.textContent = "この難易度を1回クリアすると解放";
@@ -316,8 +323,10 @@ updateAutoDisassembleButton();
 renderAutoRepeatRow();
 document.getElementById("btnRedeploy").addEventListener("click", () => {
   const run = teamRuns[S.activeTeam];
-  if (isTeamLocked(S.activeTeam) || !run) return;
-  startDungeon(S.activeTeam, run.dungeon.id, { navigate: true, mode: run.dungeon.mode });
+  const recent = S.lastDungeons && S.lastDungeons[S.activeTeam];
+  const destination = run && run.dungeon ? run.dungeon : recent;
+  if (isTeamLocked(S.activeTeam) || !destination || teamMembers(S.activeTeam).length === 0) return;
+  startDungeon(S.activeTeam, destination.id, { navigate: true, mode: destination.mode });
 });
 document.getElementById("btnDockMap").addEventListener("click", () => {
   openMap();

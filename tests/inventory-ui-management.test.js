@@ -23,6 +23,7 @@ class Element {
  }
  set innerHTML(v){assert.equal(v,"");this.children=[];}
  appendChild(v){this.children.push(v);return v;}
+ setAttribute(name,value){this[name]=String(value);}
  addEventListener(name,fn){this.listeners[name]=fn;}
  click(){if(!this.disabled)this.listeners.click?.();}
 }

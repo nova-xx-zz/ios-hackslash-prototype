@@ -83,6 +83,10 @@ function renderCharDetail() {
   const sameView = wrap.dataset.view === `${c.id}:${detailTab}`;
   const keepScroll = sameView ? wrap.scrollTop : 0;
   wrap.innerHTML = "";
+  // モンスター合成などの実行ボタンは一覧スクロールから独立して下部へ固定。
+  const actionBar = document.getElementById("detailActionBar");
+  actionBar.replaceChildren();
+  actionBar.classList.add("hidden");
   // ツリーの選んだマスの詳細は、画面の下に固定して出す（buildTreeTab が中身を入れる）
   const sheet = document.getElementById("detailSheet");
   sheet.innerHTML = "";

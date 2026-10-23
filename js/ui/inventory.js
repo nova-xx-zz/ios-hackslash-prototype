@@ -19,6 +19,8 @@ const inventoryOrganize = QPCore.inventoryOrganize;
 let disassembleMode = false;
 let disassembleSelection = new Set(); // 選んだアイテム（オブジェクトそのもの）
 let disassembleConfirming = false;
+let bulkIncludeValuable = false; // 貴重品・強化済み・UR/LRは明示した時だけ一括候補
+let bulkIncludeCursed = false; // 呪いは独立した選択条件
 
 let inventoryReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
 // opts: { disassemble（分解する装備を選ぶ状態で開く）, returnScreen }
@@ -40,6 +42,8 @@ function exitDisassembleMode() {
   disassembleMode = false;
   disassembleSelection = new Set();
   disassembleConfirming = false;
+  bulkIncludeValuable = false;
+  bulkIncludeCursed = false;
 }
 
 function showInventoryMessage(text) {
@@ -97,12 +101,38 @@ function renderDisassembleControls() {
     label.textContent = "まとめて選ぶ:";
     bulk.appendChild(label);
     const shown = shownInventoryItems();
-    // 一括操作は安全候補のみ。高品質・強化済み・ロック・名のある装備・UR/LRは個別選択でのみ分解可。
-    const safe = shown.filter(inventoryOrganize.isSafeBulkCandidate);
+    // 初期状態は安全候補のみ。任意で貴重品/呪い/UR/LRも対象にできるが、ロックは常に除外する。
+    const mode = document.createElement("button");
+    mode.className = "disassemble-chip" + (bulkIncludeValuable ? " active" : "");
+    mode.textContent = bulkIncludeValuable ? "貴重を含む" : "貴重を含まない";
+    mode.setAttribute("aria-pressed", bulkIncludeValuable ? "true" : "false");
+    mode.addEventListener("click", () => {
+      bulkIncludeValuable = !bulkIncludeValuable;
+      for (const item of [...disassembleSelection]) {
+        if (!inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed)) disassembleSelection.delete(item);
+      }
+      disassembleConfirming = false;
+      renderInventoryScreen();
+    });
+    bulk.appendChild(mode);
+    const cursedMode = document.createElement("button");
+    cursedMode.className = "disassemble-chip" + (bulkIncludeCursed ? " active" : "");
+    cursedMode.textContent = bulkIncludeCursed ? "呪いを含む" : "呪いを含まない";
+    cursedMode.setAttribute("aria-pressed", bulkIncludeCursed ? "true" : "false");
+    cursedMode.addEventListener("click", () => {
+      bulkIncludeCursed = !bulkIncludeCursed;
+      for (const item of [...disassembleSelection]) {
+        if (!inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed)) disassembleSelection.delete(item);
+      }
+      disassembleConfirming = false;
+      renderInventoryScreen();
+    });
+    bulk.appendChild(cursedMode);
+    const safe = shown.filter((item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed));
     const safeAll = safe.length > 0 && safe.every(i => disassembleSelection.has(i));
     const safeBtn = document.createElement("button");
     safeBtn.className = "disassemble-chip" + (safeAll ? " active" : "");
-    safeBtn.textContent = `安全候補すべて (${safe.length})`;
+    safeBtn.textContent = `${bulkIncludeValuable || bulkIncludeCursed ? "条件一致すべて" : "安全候補すべて"} (${safe.length})`;
     safeBtn.disabled = safe.length === 0;
     safeBtn.addEventListener("click", () => {
       for (const item of safe) { if (safeAll) disassembleSelection.delete(item); else disassembleSelection.add(item); }
@@ -116,7 +146,7 @@ function renderDisassembleControls() {
       const chip = document.createElement("button");
       chip.className = "disassemble-chip" + (all ? " active" : "");
       chip.textContent = rarity.key.toUpperCase();
-      chip.title = rarity.name + "の安全な整理候補のみを一括選択";
+      chip.title = rarity.name + "の現在の一括選択条件に一致する装備を選ぶ（ロック除外）";
       chip.disabled = items.length === 0;
       if (all) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
       chip.addEventListener("click", () => {
@@ -134,6 +164,7 @@ function renderDisassembleControls() {
   const selected = [...disassembleSelection];
   const gain = selected.reduce((sum, i) => sum + Inventory.disassembleValue(i), 0);
   const enhanced = selected.filter((i) => (i.plus || 0) > 0).length;
+  const lockedSelected = selected.some((i) => i.locked);
   const high = selected.filter((i) => i.rarity === "ur" || i.rarity === "lr").length;
   const highOp = selected.filter((i) => QPCore.rewards.hasProtectedOption(i)).length;
   const special = selected.filter((i) => i.unique || i.cursed).length;
@@ -148,7 +179,7 @@ function renderDisassembleControls() {
   }
   document.getElementById("inventoryDisassembleSummary").textContent = text;
   const confirm = document.getElementById("btnDisassembleConfirm");
-  confirm.disabled = selected.length === 0;
+  confirm.disabled = selected.length === 0 || lockedSelected;
   confirm.textContent = disassembleConfirming ? "本当に分解する" : "分解する";
 }
 
@@ -351,7 +382,7 @@ document.getElementById("btnDisassembleCancel").addEventListener("click", () => 
   renderInventoryScreen();
 });
 document.getElementById("btnDisassembleConfirm").addEventListener("click", () => {
-  if (disassembleSelection.size === 0) return;
+  if (disassembleSelection.size === 0 || [...disassembleSelection].some((item) => item.locked)) return;
   if (!disassembleConfirming) { disassembleConfirming = true; armConfirm(); renderInventoryScreen(); return; }
   if (!confirmReady()) return;
   const result = Inventory.disassembleItems([...disassembleSelection]);
@@ -363,6 +394,10 @@ document.getElementById("btnDisassembleConfirm").addEventListener("click", () =>
 
 // 装備セクション（枠をタップで所持品から選ぶ）
 let openSlot = null; // "charId:枠のkey"
+let unequipAllConfirmCharId = null;
+let unequipAllConfirmUntil = 0;
+let overwriteEquipmentSetConfirm = null;
+let overwriteEquipmentSetUntil = 0;
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
@@ -442,6 +477,102 @@ function buildEquipSection(c) {
   autoBtn.textContent = "おまかせ装備（呪いの装備は選ばない）";
   autoBtn.addEventListener("click", () => { autoEquip(c); renderCharDetail(); });
   wrap.appendChild(autoBtn);
+
+  if (EQUIP_POSITIONS.some((pos) => !!c.equip[pos.key])) {
+    const removeAll = document.createElement("button");
+    removeAll.className = "equip-choice equip-unequip-all";
+    const confirming = unequipAllConfirmCharId === c.id && Date.now() < unequipAllConfirmUntil;
+    removeAll.textContent = confirming ? "もう一度押すと装備をすべて外します" : "装備をすべて外す";
+    removeAll.disabled = c.team !== null && isTeamLocked(c.team);
+    removeAll.addEventListener("click", () => {
+      if (c.team !== null && isTeamLocked(c.team)) return;
+      if (unequipAllConfirmCharId !== c.id || Date.now() >= unequipAllConfirmUntil) {
+        unequipAllConfirmCharId = c.id;
+        unequipAllConfirmUntil = Date.now() + 10000;
+        armConfirm();
+        renderCharDetail();
+        return;
+      }
+      if (!confirmReady()) return;
+      for (const pos of EQUIP_POSITIONS) if (c.equip[pos.key]) unequipSlot(c, pos.key);
+      unequipAllConfirmCharId = null;
+      unequipAllConfirmUntil = 0;
+      openSlot = null;
+      saveGame();
+      renderCharDetail();
+    });
+    wrap.appendChild(removeAll);
+  }
+
+  // マイセットはキャラクターごとに3枠。実物の装備IDを保存するので、
+  // 分解・他キャラへ移動した装備は勝手に代替せず、読み込みを中止する。
+  const sets = document.createElement("section");
+  sets.className = "equip-mysets";
+  const setsLabel = document.createElement("div");
+  setsLabel.className = "equip-mysets-title";
+  setsLabel.textContent = "装備マイセット";
+  sets.appendChild(setsLabel);
+  for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+    const preset = savedSet(c, slotIndex);
+    const row = document.createElement("div");
+    row.className = "equip-myset-row";
+    const label = document.createElement("span");
+    label.textContent = `セット${slotIndex + 1} ${preset ? "登録済み" : "未登録"}`;
+    row.appendChild(label);
+    const save = document.createElement("button");
+    save.className = "equip-choice";
+    const overwriteKey = c.id + ":" + slotIndex;
+    save.textContent = preset && overwriteEquipmentSetConfirm === overwriteKey && Date.now() < overwriteEquipmentSetUntil ? "上書きを確定" : "保存";
+    save.disabled = c.team !== null && isTeamLocked(c.team);
+    save.addEventListener("click", () => {
+      if (preset && (overwriteEquipmentSetConfirm !== overwriteKey || Date.now() >= overwriteEquipmentSetUntil)) {
+        overwriteEquipmentSetConfirm = overwriteKey;
+        overwriteEquipmentSetUntil = Date.now() + 10000;
+        armConfirm();
+        renderCharDetail();
+        return;
+      }
+      if (preset && !confirmReady()) return;
+      const result = saveEquipmentSet(c, slotIndex);
+      overwriteEquipmentSetConfirm = null;
+      overwriteEquipmentSetUntil = 0;
+      flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}を保存しました` :
+        "装備を1つ以上付けてください（IDのない装備は登録できません）");
+      if (result.ok) saveGame();
+      renderCharDetail();
+    });
+    row.appendChild(save);
+    const load = document.createElement("button");
+    load.className = "equip-choice";
+    load.textContent = "呼出";
+    load.disabled = !preset || c.team !== null && isTeamLocked(c.team);
+    load.addEventListener("click", () => {
+      const result = applyEquipmentSet(c, slotIndex);
+      const messages = { missing: "登録した装備が所持品にないか、他の仲間が装備しています",
+        job: "現在のジョブや装備枠では装着できません", locked: "探索中のため変更できません" };
+      flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}に切り替えました` :
+        messages[result.reason] || "装備マイセットを呼び出せません");
+      if (result.ok) saveGame();
+      renderCharDetail();
+    });
+    row.appendChild(load);
+    if (preset) {
+      const del = document.createElement("button");
+      del.className = "equip-choice";
+      del.textContent = "削除";
+      del.disabled = c.team !== null && isTeamLocked(c.team);
+      del.addEventListener("click", () => {
+        if (deleteEquipmentSet(c, slotIndex)) {
+          saveGame();
+          flashDetailNotice(`装備マイセット${slotIndex + 1}の登録を解除しました`);
+          renderCharDetail();
+        }
+      });
+      row.appendChild(del);
+    }
+    sets.appendChild(row);
+  }
+  wrap.appendChild(sets);
 
   // 開いている枠の候補一覧（そのキャラが付けられる物だけ）
   const opened = EQUIP_POSITIONS.find((p) => openSlot === `${c.id}:${p.key}`);
