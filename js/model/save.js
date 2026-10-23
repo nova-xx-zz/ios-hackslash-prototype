@@ -32,6 +32,7 @@
       // 自動周回（チームごとに独立して設定・進行する）
       autoRepeat: Array.from({ length: teamCount }, () => ({ active: false, target: opts.autoRepeatTarget || 5, done: 0 })),
       lastDungeons: Array.from({ length: teamCount }, () => null), // 再起動しても前回の行き先を各チームに保持
+      equipmentSets: {}, // キャラIDごとの装備マイセット（最大3セット、アイテムIDのみ記録）
       skillBooks: [], // スキルブック機能(未実装)向けの予約フィールド
       material: 0, // 強化石
       // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金・無料配布）は未実装で、
@@ -121,6 +122,28 @@
 
   // キャラの group を、存在するグループのidかnullにそろえる（パーティ所属中のキャラはグループに入らない）。
   // group を持たないキャラ（グループ機能より前のセーブ）はそのまま（無い＝未編成）
+  // セーブに混ざった未知の部位・巨大な値を除外し、旧セーブのセット未登録を許容する。
+  function normalizeEquipmentSets(raw, roster) {
+    const out = {};
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+    const allowed = new Set(equipment.POSITIONS);
+    for (const c of roster) {
+      const input = Object.prototype.hasOwnProperty.call(raw, c.id) ? raw[c.id] : null;
+      if (!Array.isArray(input)) continue;
+      const sets = input.slice(0, 3).map((set) => {
+        if (!set || typeof set !== "object" || !set.slots || typeof set.slots !== "object") return null;
+        const slots = {};
+        for (const key of allowed) {
+          const id = set.slots[key];
+          slots[key] = typeof id === "string" && id.length <= 120 && id.trim() ? id : null;
+        }
+        return { slots };
+      });
+      if (sets.some(Boolean)) Object.defineProperty(out, c.id, { value: sets, enumerable: true, writable: true, configurable: true });
+    }
+    return out;
+  }
+
   function normalizeCharGroups(roster, groups) {
     const ids = new Set(groups.map((g) => g.id));
     for (const c of roster) {
@@ -143,6 +166,7 @@
       inventory: state.inventory,
       activeTeam: state.activeTeam,
       lastDungeons: (state.lastDungeons || []).map((d) => d ? { id: d.id, mode: d.mode || "normal" } : null),
+      equipmentSets: state.equipmentSets || {},
       clearedDungeons: [...state.clearedDungeons],
       clearedHard: [...(state.clearedHard || [])],
       clearedExtra: [...(state.clearedExtra || [])],
@@ -199,6 +223,7 @@
       activeTeam: typeof data.activeTeam === "number" ? Math.min(teamCount - 1, count(data.activeTeam)) : 0,
       // 旧セーブでは自動周回情報にダンジョンIDが残るため、その情報も移行に利用する。
       // チームや難易度を共有せず、未踏破ダンジョンでの周回はRunner側が拒否する。
+      equipmentSets: normalizeEquipmentSets(data.equipmentSets, roster),
       lastDungeons: Array.from({ length: teamCount }, (_, i) => {
         const d = (Array.isArray(data.lastDungeons) && data.lastDungeons[i]) ||
           (Array.isArray(data.autoRepeat) && data.autoRepeat[i]);
