@@ -381,6 +381,7 @@ document.getElementById("btnDisassembleConfirm").addEventListener("click", () =>
 // 装備セクション（枠をタップで所持品から選ぶ）
 let openSlot = null; // "charId:枠のkey"
 let unequipAllConfirmCharId = null;
+let overwriteEquipmentSetConfirm = null;
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
@@ -484,6 +485,74 @@ function buildEquipSection(c) {
     });
     wrap.appendChild(removeAll);
   }
+
+  // マイセットはキャラクターごとに3枠。実物の装備IDを保存するので、
+  // 分解・他キャラへ移動した装備は勝手に代替せず、読み込みを中止する。
+  const sets = document.createElement("section");
+  sets.className = "equip-mysets";
+  const setsLabel = document.createElement("div");
+  setsLabel.className = "equip-mysets-title";
+  setsLabel.textContent = "装備マイセット";
+  sets.appendChild(setsLabel);
+  for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+    const preset = savedSet(c, slotIndex);
+    const row = document.createElement("div");
+    row.className = "equip-myset-row";
+    const label = document.createElement("span");
+    label.textContent = `セット${slotIndex + 1} ${preset ? "登録済み" : "未登録"}`;
+    row.appendChild(label);
+    const save = document.createElement("button");
+    save.className = "equip-choice";
+    const overwriteKey = c.id + ":" + slotIndex;
+    save.textContent = preset && overwriteEquipmentSetConfirm === overwriteKey ? "上書きを確定" : "保存";
+    save.disabled = c.team !== null && isTeamLocked(c.team);
+    save.addEventListener("click", () => {
+      if (preset && overwriteEquipmentSetConfirm !== overwriteKey) {
+        overwriteEquipmentSetConfirm = overwriteKey;
+        armConfirm();
+        renderCharDetail();
+        return;
+      }
+      if (preset && !confirmReady()) return;
+      const result = saveEquipmentSet(c, slotIndex);
+      overwriteEquipmentSetConfirm = null;
+      flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}を保存しました` :
+        "装備を1つ以上付けてください（IDのない装備は登録できません）");
+      if (result.ok) saveGame();
+      renderCharDetail();
+    });
+    row.appendChild(save);
+    const load = document.createElement("button");
+    load.className = "equip-choice";
+    load.textContent = "呼出";
+    load.disabled = !preset || c.team !== null && isTeamLocked(c.team);
+    load.addEventListener("click", () => {
+      const result = applyEquipmentSet(c, slotIndex);
+      const messages = { missing: "登録した装備が所持品にないか、他の仲間が装備しています",
+        job: "現在のジョブや装備枠では装着できません", locked: "探索中のため変更できません" };
+      flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}に切り替えました` :
+        messages[result.reason] || "装備マイセットを呼び出せません");
+      if (result.ok) saveGame();
+      renderCharDetail();
+    });
+    row.appendChild(load);
+    if (preset) {
+      const del = document.createElement("button");
+      del.className = "equip-choice";
+      del.textContent = "削除";
+      del.disabled = c.team !== null && isTeamLocked(c.team);
+      del.addEventListener("click", () => {
+        if (deleteEquipmentSet(c, slotIndex)) {
+          saveGame();
+          flashDetailNotice(`装備マイセット${slotIndex + 1}の登録を解除しました`);
+          renderCharDetail();
+        }
+      });
+      row.appendChild(del);
+    }
+    sets.appendChild(row);
+  }
+  wrap.appendChild(sets);
 
   // 開いている枠の候補一覧（そのキャラが付けられる物だけ）
   const opened = EQUIP_POSITIONS.find((p) => openSlot === `${c.id}:${p.key}`);
