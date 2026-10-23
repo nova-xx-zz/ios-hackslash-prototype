@@ -144,6 +144,54 @@
     return out;
   }
 
+  // 旧ドロップ処理は起動のたび item_1 から採番していたため、別物に同じIDが付き得た。
+  // セーブ復元時に重複を修復。どの実物を保存したか特定できないセットは誤適用しない。
+  function repairDuplicateItemIds(state) {
+    const entries = [];
+    for (const c of state.roster) {
+      for (const pos of equipment.POSITIONS) {
+        if (c.equip && c.equip[pos]) entries.push({ item: c.equip[pos], owner: c, pos });
+      }
+    }
+    for (const item of state.inventory) entries.push({ item });
+    const byOriginalId = new Map();
+    const reserved = new Set();
+    for (const entry of entries) {
+      const id = entry.item.id;
+      if (typeof id !== "string" || !id) continue;
+      reserved.add(id);
+      if (!byOriginalId.has(id)) byOriginalId.set(id, []);
+      byOriginalId.get(id).push(entry);
+    }
+    let seq = 1;
+    const newId = () => {
+      let id;
+      do { id = "recovered_item_" + seq++; } while (reserved.has(id));
+      reserved.add(id);
+      return id;
+    };
+    const used = new Set();
+    for (const entry of entries) {
+      const id = entry.item.id;
+      if (typeof id !== "string" || !id || used.has(id)) entry.item.id = newId();
+      used.add(entry.item.id);
+    }
+    for (const c of state.roster) {
+      const sets = state.equipmentSets && state.equipmentSets[c.id];
+      if (!Array.isArray(sets)) continue;
+      for (const set of sets) {
+        if (!set || !set.slots) continue;
+        for (const pos of equipment.POSITIONS) {
+          const id = set.slots[pos];
+          const candidates = byOriginalId.get(id);
+          if (!candidates || candidates.length <= 1) continue;
+          const worn = candidates.find((entry) => entry.owner === c && entry.pos === pos);
+          set.slots[pos] = worn ? worn.item.id : "__ambiguous_equipment_set__" + id;
+        }
+      }
+    }
+  }
+
   function normalizeCharGroups(roster, groups) {
     const ids = new Set(groups.map((g) => g.id));
     for (const c of roster) {
@@ -258,6 +306,7 @@
       for (const it of state.inventory) equipment.migrateItem(it, legacy);
       state.records.itemsFound = migrateFoundKeys(state.records.itemsFound, legacy);
     }
+    repairDuplicateItemIds(state);
     // 記録が無かった頃のセーブでも、いま持っている装備（所持品・装備中）はアイテム辞典に載せる
     if (opts.itemBases) {
       const owned = state.inventory.slice();
