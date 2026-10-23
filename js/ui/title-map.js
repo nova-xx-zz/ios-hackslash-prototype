@@ -153,7 +153,13 @@ function regionReached(region) {
   return DUNGEONS.some((d) => d.region === region.id && isDungeonOpen(d));
 }
 function openMap() {
-  const selected = selectedDungeonId && getDungeon(selectedDungeonId);
+  // マップは表示中パーティの出撃準備先、なければ前回出撃先を初期表示する。
+  // 他パーティで選んだだけの行き先を引き継がない。
+  const choice = pendingDungeons[S.activeTeam] || (S.lastDungeons && S.lastDungeons[S.activeTeam]);
+  const selected = choice && getDungeon(choice.id);
+  selectedDungeonId = selected ? selected.id : null;
+  selectedDungeonMode = selected && isDungeonModeOpen(selected, choice.mode || "normal")
+    ? (choice.mode || "normal") : "normal";
   const furthest = DUNGEONS.filter((d) => isDungeonOpen(d)).pop();
   mapRegionId = (selected || furthest || DUNGEONS[0]).region;
   renderMap();
@@ -249,6 +255,16 @@ function isDungeonModeCleared(d, mode) {
   return (mode === "hard" ? S.clearedHard : mode === "extra" ? S.clearedExtra : S.clearedDungeons).has(d.id);
 }
 
+// 行き先決定は戦闘を開始しない。探索画面で出撃操作をもう一度行う。
+function stageDungeonDeparture(teamIndex, dungeonId, mode) {
+  const d = getDungeon(dungeonId);
+  if (!d || isTeamLocked(teamIndex) || teamMembers(teamIndex).length === 0 ||
+      !isDungeonModeOpen(d, mode)) return false;
+  pendingDungeons[teamIndex] = { id: d.id, mode };
+  openExploreHub();
+  return true;
+}
+
 function renderDungeonInfo(d) {
   const el = document.getElementById("dungeonInfo");
   const party = activeParty();
@@ -282,9 +298,9 @@ function renderDungeonInfo(d) {
     btn.textContent = `${TEAM_NAMES[S.activeTeam]}が空です（編成してください）`;
     btn.disabled = true;
   } else {
-    btn.textContent = `${TEAM_NAMES[S.activeTeam]}で出発する${selectedDungeonMode !== "normal" ? `（${getDungeonMode(selectedDungeonMode).name}）` : ""}`;
+    btn.textContent = `${TEAM_NAMES[S.activeTeam]}の行き先に決定${selectedDungeonMode !== "normal" ? `（${getDungeonMode(selectedDungeonMode).name}）` : ""}`;
     const mode = selectedDungeonMode;
-    btn.addEventListener("click", () => startDungeon(S.activeTeam, d.id, { navigate: true, mode }));
+    btn.addEventListener("click", () => stageDungeonDeparture(S.activeTeam, d.id, mode));
   }
   el.appendChild(btn);
 }
