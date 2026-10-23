@@ -494,18 +494,36 @@ let enhanceItem = null;
 let enhanceMessage = "";
 let enhanceOnClose = null; // 呼び出し元の画面を再描画するコールバック（未指定ならキャラ詳細を再描画）
 let enhanceGuaranteedConfirm = false; // 確定強化石のボタンを1回押して確認待ちか（有償の石も使うため2回押しで確定）
+let enhanceBatchTarget = 14; // 一括強化の初期目標
+let enhanceBatchBudget = 500; // 1回で消費できる通常強化石の上限
+let enhanceBatchConfirm = false;
+let enhanceBatchBusy = false;
+let enhanceBatchMessage = "";
+let enhanceBatchSucceeded = false;
+
+function normalizeEnhanceBatchInput(value, min, max, fallback) {
+  const n = Number(value);
+  return Number.isSafeInteger(n) && n >= min && n <= max ? n : fallback;
+}
 
 function openEnhanceModal(item, onClose) {
   enhanceItem = item;
   enhanceMessage = "";
   enhanceOnClose = onClose || null;
   enhanceGuaranteedConfirm = false;
+  enhanceBatchTarget = Math.min(ENHANCE_MAX_PLUS, Math.max(14, (item.plus || 0) + 1));
+  enhanceBatchBudget = Inventory.ENHANCE_BATCH_BUDGET_MAX;
+  enhanceBatchConfirm = false;
+  enhanceBatchBusy = false;
+  enhanceBatchMessage = "";
+  enhanceBatchSucceeded = false;
   renderEnhanceModal();
   document.getElementById("enhanceModal").classList.remove("hidden");
 }
 
 function closeEnhanceModal() {
   document.getElementById("enhanceModal").classList.add("hidden");
+  enhanceBatchConfirm = false;
   enhanceItem = null;
   const onClose = enhanceOnClose;
   enhanceOnClose = null;
@@ -548,7 +566,41 @@ function renderEnhanceModal() {
 
   const btn = document.getElementById("btnEnhanceGo");
   btn.disabled = maxed || S.material < cost;
-  btn.textContent = maxed ? "強化値が上限です" : (S.material < cost ? "強化石が足りません" : "強化する");
+  btn.textContent = maxed ? "強化値が上限です" : (S.material < cost ? "強化石が足りません" : "1回強化する");
+
+  // 一括強化も通常の強化石を使用。目標・上限は整数かつ許容範囲だけ受け付ける。
+  const batchTargetInput = document.getElementById("enBatchTarget");
+  const batchBudgetInput = document.getElementById("enBatchBudget");
+  batchTargetInput.value = String(enhanceBatchTarget);
+  batchTargetInput.disabled = maxed;
+  batchBudgetInput.value = String(enhanceBatchBudget);
+  batchBudgetInput.max = String(Inventory.ENHANCE_BATCH_BUDGET_MAX);
+  batchBudgetInput.disabled = maxed;
+  for (const preset of document.querySelectorAll("[data-enhance-target]")) {
+    preset.classList.toggle("selected", Number(preset.getAttribute("data-enhance-target")) === enhanceBatchTarget);
+    preset.disabled = maxed;
+  }
+  const canBatch = !enhanceBatchBusy && Inventory.canBatchEnhance(item) &&
+    enhanceBatchTarget > item.plus && enhanceBatchTarget <= ENHANCE_MAX_PLUS &&
+    Math.min(enhanceBatchBudget, S.material) >= cost;
+  const batchBtn = document.getElementById("btnEnhanceBatch");
+  batchBtn.disabled = !canBatch;
+  batchBtn.textContent = enhanceBatchConfirm && canBatch
+    ? `本当に目標+${enhanceBatchTarget}まで強化する（最大${enhanceBatchBudget}個）`
+    : `目標+${enhanceBatchTarget}まで一括強化`;
+  const batchHint = document.getElementById("enBatchHint");
+  batchHint.textContent = !Inventory.canBatchEnhance(item) && !maxed
+    ? "所持していない装備、または探索中のパーティの装備は一括強化できません。"
+    : maxed ? "強化値が上限に達しています。"
+    : item.plus >= enhanceBatchTarget ? "目標を達成しました。続ける場合は目標を上げてください。"
+    : enhanceBatchBudget < cost ? `1回の必要数${cost}個が設定した上限${enhanceBatchBudget}個を超えています。`
+    : S.material < cost ? "通常の強化石が不足しています。"
+    : enhanceBatchConfirm
+      ? "通常の強化石のみを消費します。成功を保証するものではありません。もう一度押すと開始します。"
+      : `現在+${item.plus} → 目標+${enhanceBatchTarget}。消費は最大${enhanceBatchBudget}個、失敗時も消費します。`;
+  const batchResult = document.getElementById("enBatchResult");
+  batchResult.textContent = enhanceBatchMessage;
+  batchResult.className = "enhance-result" + (enhanceBatchMessage ? enhanceBatchSucceeded ? " success" : " fail" : "");
 
   const gBtn = document.getElementById("btnEnhanceGuaranteed");
   gBtn.classList.toggle("hidden", !isFeatureEnabled("guaranteedStone"));
@@ -580,6 +632,8 @@ function formatEnhanceRate(rate) {
 }
 
 document.getElementById("btnEnhanceGo").addEventListener("click", () => {
+  enhanceBatchConfirm = false;
+  enhanceBatchMessage = "";
   // 判定と強化石・+値・天井ゲージへの反映は js/model/inventory.js
   const result = Inventory.enhanceItem(enhanceItem);
   if (!result) return;
@@ -590,9 +644,88 @@ document.getElementById("btnEnhanceGo").addEventListener("click", () => {
   scheduleSave();
   renderEnhanceModal();
 });
+// 入力変更時は確認を解除する。範囲外・少数・NaNは既定値へ戻す。
+document.getElementById("enBatchTarget").addEventListener("change", (event) => {
+  if (!enhanceItem) return;
+  enhanceBatchTarget = normalizeEnhanceBatchInput(event.target.value, 1, ENHANCE_MAX_PLUS, enhanceBatchTarget);
+  enhanceBatchConfirm = false;
+  enhanceBatchMessage = "";
+  renderEnhanceModal();
+});
+document.getElementById("enBatchBudget").addEventListener("change", (event) => {
+  if (!enhanceItem) return;
+  enhanceBatchBudget = normalizeEnhanceBatchInput(event.target.value, 1, Inventory.ENHANCE_BATCH_BUDGET_MAX, enhanceBatchBudget);
+  enhanceBatchConfirm = false;
+  enhanceBatchMessage = "";
+  renderEnhanceModal();
+});
+for (const preset of document.querySelectorAll("[data-enhance-target]")) {
+  preset.addEventListener("click", () => {
+    if (!enhanceItem) return;
+    enhanceBatchTarget = Number(preset.getAttribute("data-enhance-target"));
+    enhanceBatchConfirm = false;
+    enhanceBatchMessage = "";
+    renderEnhanceModal();
+  });
+}
+document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
+  if (!enhanceItem || enhanceBatchBusy) return;
+  // iPhoneの数字入力を確定せずボタンを押した場合も、この瞬間の値を検証する。
+  const targetInput = document.getElementById("enBatchTarget");
+  const budgetInput = document.getElementById("enBatchBudget");
+  const newTarget = normalizeEnhanceBatchInput(targetInput.value, 1, ENHANCE_MAX_PLUS, enhanceBatchTarget);
+  const newBudget = normalizeEnhanceBatchInput(budgetInput.value, 1, Inventory.ENHANCE_BATCH_BUDGET_MAX, enhanceBatchBudget);
+  if (newTarget !== enhanceBatchTarget || newBudget !== enhanceBatchBudget) {
+    enhanceBatchTarget = newTarget;
+    enhanceBatchBudget = newBudget;
+    enhanceBatchConfirm = false;
+    renderEnhanceModal();
+    return;
+  }
+  if (!Inventory.canBatchEnhance(enhanceItem) ||
+      enhanceItem.plus >= enhanceBatchTarget ||
+      Math.min(enhanceBatchBudget, S.material) < enhanceCost(enhanceItem)) {
+    enhanceBatchConfirm = false;
+    renderEnhanceModal();
+    return;
+  }
+  if (!enhanceBatchConfirm) {
+    enhanceGuaranteedConfirm = false; // 有償石の二段階確認と混線させない
+    enhanceBatchConfirm = true;
+    armConfirm();
+    enhanceBatchMessage = "";
+    renderEnhanceModal();
+    return;
+  }
+  if (!confirmReady()) return;
+  enhanceBatchConfirm = false;
+  enhanceBatchBusy = true;
+  try {
+    const result = Inventory.enhanceToTarget(enhanceItem, enhanceBatchTarget, enhanceBatchBudget);
+    if (!result) return;
+    const reason = {
+      target: "目標達成",
+      budget: "消費上限に達する前に停止",
+      material: "強化石不足で停止",
+      invalid: "強化を安全に続けられず停止",
+    }[result.reason] || "停止";
+    enhanceBatchSucceeded = result.reason === "target";
+    enhanceBatchMessage =
+      `${reason}：+${result.fromPlus} → +${result.plus}（目標+${result.targetPlus}）\n` +
+      `${result.attempts}回挑戦／成功${result.successes}回・失敗${result.failures}回\n` +
+      `通常強化石 ${result.spent}個消費／残り${result.remainingMaterial}個`;
+    // 結果を同じセーブとして保存。課金・確定強化石は使わない。
+    if (result.attempts > 0 && !saveGame()) enhanceBatchMessage += "\n端末保存に失敗しました。保存容量を確認してください。";
+  } finally {
+    enhanceBatchBusy = false;
+    renderEnhanceModal();
+  }
+});
+
 // 確定強化石: その段の期待消費に応じた個数を消費して必ず+1する（通常の強化石は消費しない）。
 // 消費は取り消せないため即時保存する
 document.getElementById("btnEnhanceGuaranteed").addEventListener("click", () => {
+  enhanceBatchConfirm = false;
   if (enhanceItem && !Inventory.isMaxed(enhanceItem) && guaranteedStoneTotal() < guaranteedStonesRequired(enhanceItem)) {
     const screen = document.querySelector(".screen:not(.hidden)");
     closeEnhanceModal();
