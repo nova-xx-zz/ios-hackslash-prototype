@@ -92,7 +92,7 @@ test("v2: 装飾付き選択帯・登録プレビュー・名前入力のスク�
 
 test("参考画像v3: コンパクトカード・紋章・2列プレビューとスマホ対応", () => {
   const reference = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
-  assert.match(html, /css\/create-reference\.css\?v=2/);
+  assert.match(html, /css\/create-reference\.css\?v=3/);
   assert.match(reference, /grid-template-columns:45px minmax\(0,1fr\)/);
   assert.match(reference, /grid-template-columns:53px minmax\(0,1fr\)/);
   assert.match(reference, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
@@ -125,4 +125,26 @@ test("仲間作成v4: アイコンとプレビューを縮小し、登録情報�
   assert.match(reference, /@media\(max-width:385px\)/);
   assert.match(reference, /\.name-input\s*\{height:44px;min-height:44px;/s);
   assert.match(reference, /\.create-name-reroll\s*\{height:44px;min-height:44px;/s);
+});
+
+test("仲間作成v5: 金枠はカードの四隅だけで、文字・選択スロットに線が被らない", () => {
+  const reference = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
+  const overlay = reference.slice(reference.indexOf("/*\n * v5:"));
+  assert.ok(overlay.length > 0, "v5 overlay must be present");
+  assert.match(overlay, /#screen-create \.create-row\.create-ornate::after/);
+  assert.match(overlay, /#screen-create #btnCreateBack::after/);
+  assert.match(overlay, /#screen-create \.create-footer \.btn::after/);
+  assert.doesNotMatch(overlay, /#screen-create \.create-preview-shell::after/);
+  assert.match(overlay, /border-image: none;/);
+  assert.match(overlay, /pointer-events: none;/);
+  assert.match(overlay, /background-size: 23px 23px;/);
+  assert.match(overlay, /height: auto;/);
+  assert.match(overlay, /white-space: normal;/);
+  assert.match(overlay, /overflow-wrap: anywhere;/);
+  for (const corner of ["tl","tr","bl","br"]) {
+    assert.match(overlay, new RegExp("companion-corner-" + corner + "\\.svg"));
+    const svg = fs.readFileSync(path.join(__dirname, "../icons/companion-corner-" + corner + ".svg"), "utf8");
+    assert.match(svg, /<svg /);
+    assert.match(svg, /viewBox="0 0 26 26"/);
+  }
 });
