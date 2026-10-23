@@ -8,6 +8,17 @@
   "use strict";
 
   const HISTORY_MAX = 200;
+  const PRESET_BASE = 5;
+  const PRESET_STEP = 5;
+  const PRESET_MAX = 20;
+  const PRESET_MAX_PACKS = (PRESET_MAX - PRESET_BASE) / PRESET_STEP;
+
+  // プロトタイプのみ: 購入済みの5枠パック数はセーブデータで持つ。本番はサーバー権利を正本とする。
+  function presetSlotLimit(purchases) {
+    const count = purchases && purchases.presetPacks;
+    const packs = Number.isSafeInteger(count) ? Math.min(PRESET_MAX_PACKS, Math.max(0, count)) : 0;
+    return PRESET_BASE + packs * PRESET_STEP;
+  }
 
   function createShop(deps) {
     const S = deps.state;
@@ -17,7 +28,7 @@
     const cleared = (id) => !!(S.clearedDungeons && S.clearedDungeons.has(id));
 
     function purchases() {
-      if (!S.purchases) S.purchases = { unlocks: {}, rosterBoxes: 0, history: [] };
+      if (!S.purchases) S.purchases = { unlocks: {}, rosterBoxes: 0, presetPacks: 0, history: [] };
       return S.purchases;
     }
     function hasUnlock(key) { return !key || !!purchases().unlocks[key]; }
@@ -39,6 +50,9 @@
     }
     // あと n 人増やせるか（上限を超えて持っている場合は増やせない）
     function canAddToRoster(n) { return S.roster.length + (n || 1) <= rosterCapacity(); }
+
+    // ---------- 装備マイセット（全キャラ共通の上限） ----------
+    function presetCapacity() { return presetSlotLimit(purchases()); }
 
     // ---------- 選べる回数・速さ ----------
     function autoRepeatChoices() { return AUTO_REPEAT_CHOICES.map((c) => ({ n: c.n, locked: !hasUnlock(c.unlock), unlock: c.unlock || null })); }
@@ -74,6 +88,10 @@
         const count = purchases().rosterBoxes;
         return { owned: false, soldOut: count >= maxRosterBoxes(), count };
       }
+      if (product.kind === "presetPack") {
+        const count = Math.min(PRESET_MAX_PACKS, purchases().presetPacks || 0);
+        return { owned: false, soldOut: count >= PRESET_MAX_PACKS, count, capacity: presetCapacity() };
+      }
       return { owned: false, soldOut: false };
     }
     // 購入する（プロトタイプでは無料で付与）。結果: { ok, product, reason（"unknown"・"soldOut"）}
@@ -87,6 +105,7 @@
       const p = purchases();
       if (product.kind === "unlock") p.unlocks[product.unlock] = true;
       else if (product.kind === "rosterBox") p.rosterBoxes += 1;
+      else if (product.kind === "presetPack") p.presetPacks = Math.min(PRESET_MAX_PACKS, (p.presetPacks || 0) + 1);
       else if (product.kind === "guaranteedStone") S.guaranteedStones.paid += product.amount;
       else return { ok: false, product, reason: "unknown" };
       p.history.push({ id: product.id, at: now() });
@@ -95,27 +114,29 @@
     }
 
     return {
-      hasUnlock, getProduct, products, rosterCapacity, canAddToRoster, maxRosterBoxes,
+      hasUnlock, getProduct, products, rosterCapacity, canAddToRoster, maxRosterBoxes, presetCapacity,
       autoRepeatChoices, battleSpeeds, nextBattleSpeed, productStatus, purchase,
     };
   }
 
   // セーブから読んだ購入の記録を使える形にそろえる（壊れた値は捨てる）
   function normalizePurchases(data) {
-    const out = { unlocks: {}, rosterBoxes: 0, history: [] };
+    const out = { unlocks: {}, rosterBoxes: 0, presetPacks: 0, history: [] };
     if (!data || typeof data !== "object") return out;
     if (data.unlocks && typeof data.unlocks === "object") {
       for (const [k, v] of Object.entries(data.unlocks)) if (v === true) out.unlocks[k] = true;
     }
     const n = Number(data.rosterBoxes);
     out.rosterBoxes = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    const packs = Number(data.presetPacks);
+    out.presetPacks = Number.isSafeInteger(packs) && packs > 0 ? Math.min(PRESET_MAX_PACKS, packs) : 0;
     if (Array.isArray(data.history)) {
       out.history = data.history.filter((h) => h && typeof h.id === "string" && typeof h.at === "number").slice(-HISTORY_MAX);
     }
     return out;
   }
 
-  const exported = { createShop, normalizePurchases };
+  const exported = { createShop, normalizePurchases, presetSlotLimit, PRESET_BASE, PRESET_STEP, PRESET_MAX };
   root.QPModel = root.QPModel || {};
   root.QPModel.shop = exported;
   if (typeof module !== "undefined" && module.exports) module.exports = exported;

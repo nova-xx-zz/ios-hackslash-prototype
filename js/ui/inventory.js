@@ -532,16 +532,17 @@ function buildEquipSection(c) {
     wrap.appendChild(removeAll);
   }
 
-  // マイセットはキャラクターごとに3枠。実物の装備IDを保存するので、
+  // マイセットは初期5枠、購入パック1つにつき+5枠（最大20）。実物の装備IDを保存するので、
   // 分解・他キャラへ移動した装備は勝手に代替せず、読み込みを中止する。
   const sets = document.createElement("section");
   sets.id = "equip-mysets-panel";
   sets.className = "equip-mysets" + (mysetsOpen ? "" : " hidden");
   const setsLabel = document.createElement("div");
   setsLabel.className = "equip-mysets-title";
-  setsLabel.textContent = "装備マイセット";
+  const presetLimit = Shop.presetCapacity();
+  setsLabel.textContent = `装備マイセット（${presetLimit}/20枠）`;
   sets.appendChild(setsLabel);
-  for (let slotIndex = 0; slotIndex < 3; slotIndex++) {
+  for (let slotIndex = 0; slotIndex < presetLimit; slotIndex++) {
     const preset = savedSet(c, slotIndex);
     const row = document.createElement("div");
     row.className = "equip-myset-row";
@@ -692,6 +693,16 @@ function buildEquipSection(c) {
       row.appendChild(del);
     }
     sets.appendChild(row);
+  }
+  if (presetLimit < 20 && isFeatureEnabled("shop")) {
+    const expansion = document.createElement("button");
+    expansion.className = "equip-choice equip-myset-expand";
+    expansion.textContent = `＋5枠解放（現在 ${presetLimit}/20枠・480円予定）`;
+    expansion.addEventListener("click", () => {
+      openEquipmentSetsCharId = null;
+      openShop("screen-chardetail", "preset_slots_5");
+    });
+    sets.appendChild(expansion);
   }
   mysetsAnchor.appendChild(sets);
 

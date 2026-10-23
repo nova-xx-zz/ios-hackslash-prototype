@@ -49,6 +49,8 @@ const SHOP_PRODUCTS = [
     desc: "確定強化石10個に、おまけ1個付き" },
   { id: "roster_box_50", kind: "rosterBox", name: "仲間のBOX +50", price: 250,
     desc: "所持できる仲間の上限を50人増やす（何回でも、上限1000人まで）" },
+  { id: "preset_slots_5", kind: "presetPack", name: "マイセット登録枠 +5", price: 480,
+    desc: "全キャラクターのマイセット登録枠を5つ増やす（初期5枠・最大20枠／3回まで購入可）" },
   // 特殊ジョブの解放（docs/special-job-design.md §6）。最初は無料キャンペーン（期間中に業火の霊峰を踏破すると無料で解放）で、
   // 後から有料に切り替える。salesFrom: 販売開始（ISO 8601）。null（未定）の間は並べない。運営が切り替える日を入れる。
   // feature: その機能フラグが無効な間は並べない。grantsJob: 無料キャンペーンで解放済み（state.jobGrants）なら買えない

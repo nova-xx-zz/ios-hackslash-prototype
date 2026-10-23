@@ -131,14 +131,17 @@ test("保存データ: マイセットから未知枠・余分なセット・不
   const src = { schemaVersion: save.SCHEMA_VERSION,
     roster: [{ id: "c1", name: "アレン", level: 1, exp: 0, equip: {} }],
     equipmentSets: { c1: [{ slots: { main: "sword1", injected: "x" } },
-      { slots: { head: 3 } }, { slots: { body: "body1" } }, { slots: { main: "overflow" } }],
+      { slots: { head: 3 } }, { slots: { body: "body1" } }, { slots: { main: "overflow" } }].concat(
+      Array.from({ length: 21 }, (_, i) => ({ slots: { main: "additional-" + i } }))),
       unknown: [{ slots: { main: "x" } }] } };
   const loaded = save.deserialize(src, {}).state.equipmentSets;
-  assert.equal(loaded.c1.length, 3);
+  assert.equal(loaded.c1.length, 20);
   assert.equal(loaded.c1[0].slots.main, "sword1");
   assert.equal(loaded.c1[0].slots.injected, undefined);
   assert.equal(loaded.c1[1].slots.head, null);
   assert.equal(loaded.c1[2].slots.body, "body1");
+  assert.equal(loaded.c1[3].slots.main, "overflow");
+  assert.equal(loaded.c1[19].slots.main, "additional-15");
   assert.equal(loaded.unknown, undefined);
 });
 

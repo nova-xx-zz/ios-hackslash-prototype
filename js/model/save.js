@@ -32,7 +32,7 @@
       // 自動周回（チームごとに独立して設定・進行する）
       autoRepeat: Array.from({ length: teamCount }, () => ({ active: false, target: opts.autoRepeatTarget || 5, done: 0 })),
       lastDungeons: Array.from({ length: teamCount }, () => null), // 再起動しても前回の行き先を各チームに保持
-      equipmentSets: {}, // キャラIDごとの装備マイセット（最大3セット、アイテムIDのみ記録）
+      equipmentSets: {}, // キャラIDごとの装備マイセット（無料5セット、5枠×3回購入で最大20セット）
       skillBooks: [], // スキルブック機能(未実装)向けの予約フィールド
       material: 0, // 強化石
       // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金・無料配布）は未実装で、
@@ -45,7 +45,7 @@
       // 仲間がどのグループにいるかは各キャラの group（グループのid。パーティ所属中・未編成なら null）に持つ
       groups: [],
       // ショップで買ったもの（買い切りの解放・仲間のBOXの拡張回数・購入の記録。js/model/shop.js）
-      purchases: { unlocks: {}, rosterBoxes: 0, history: [] },
+      purchases: { unlocks: {}, rosterBoxes: 0, presetPacks: 0, history: [] },
       // 期間限定で解放した特殊職（docs/special-job-design.md §6）。{ jobId: { at（解放した時刻）, window（期間のid） } }
       jobGrants: {},
       jobTrialSwordmaster: swordmasterPilot.normalize(null), // 試験モード専用。特殊職の公式権利とは別
@@ -130,7 +130,8 @@
     for (const c of roster) {
       const input = Object.prototype.hasOwnProperty.call(raw, c.id) ? raw[c.id] : null;
       if (!Array.isArray(input)) continue;
-      const sets = input.slice(0, 3).map((set) => {
+      // 購入権利とセット内容は別物。上限が戻っても登録済みデータは消さず保全する。
+      const sets = input.slice(0, shopMod.PRESET_MAX).map((set) => {
         if (!set || typeof set !== "object" || !set.slots || typeof set.slots !== "object") return null;
         const slots = {};
         for (const key of allowed) {

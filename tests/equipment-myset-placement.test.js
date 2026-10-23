@@ -54,11 +54,14 @@ function setup() {
   const sword = { id: "s1", name: "ミスリルソード", plus: 7, rarity: "sr", hands: 1, slot: "weapon", stats: {} };
   const candidate = { id: "s2", name: "ドラゴンソード", plus: 3, rarity: "ur", hands: 1, slot: "weapon", stats: {} };
   const char = { id: "hero", team: null, equip: { main: sword, head: null }, isMonster: false };
-  const state = { inventory: [candidate] };
+  const state = { inventory: [candidate], purchases: { presetPacks: 0 } };
   const sets = [{ slots: { main: "s1" }, name: "ボス用", preview: { main: { name: "ミスリルソード", rarity: "sr", plus: 7 } } }, null, null];
-  let drawCalls = 0, saved = 0, loadCalls = 0;
+  let drawCalls = 0, saved = 0, loadCalls = 0, openedShop = null;
   const context = vm.createContext({
     document: { createElement: (tag) => new Element(tag) }, S: state,
+    Shop: { presetCapacity: () => 5 + (state.purchases.presetPacks || 0) * 5 },
+    isFeatureEnabled: () => true,
+    openShop: (screen, product) => { openedShop = { screen, product }; },
     EQUIP_POSITIONS: [{ key: "main", name: "右手" }, { key: "head", name: "頭" }],
     QPCore: { equipment: { ACC_POSITIONS: [] } },
     equipProfile: () => ({ weapons: ["sword"], shields: [], head: [], body: [] }),
@@ -78,6 +81,7 @@ function setup() {
   vm.runInContext(implementation, context);
   return { char, candidate, sets, context, get drawCalls() { return drawCalls; },
     get saved() { return saved; }, get loadCalls() { return loadCalls; },
+    get openedShop() { return openedShop; },
     build: () => context.buildEquipSection(char),
   };
 }
@@ -149,4 +153,28 @@ test("ポップオーバーは高さ制限つきでスクロール可能", () =>
   assert.match(css, /\.equip-mysets\s*\{[^}]*max-height:[^;]+;/s);
   assert.match(css, /\.equip-mysets\s*\{[^}]*overflow-y:\s*auto;/s);
   assert.match(css, /\.equip-mysets\.hidden\s*\{\s*display:\s*none;/);
+});
+
+
+test("マイセット: 無課金は5枠。＋5枠のテスト購入導線をショップに表示", () => {
+  const x = setup();
+  const root = x.build();
+  const panel = find(root, (e) => e.id === "equip-mysets-panel")[0];
+  assert.equal(find(panel, (e) => e.className === "equip-myset-row").length, 5);
+  assert.ok(find(panel, (e) => e.textContent === "装備マイセット（5/20枠）").length);
+  const expand = find(panel, (e) => e.className.includes("equip-myset-expand"))[0];
+  assert.ok(expand);
+  expand.click();
+  assert.deepEqual(x.openedShop, { screen: "screen-chardetail", product: "preset_slots_5" });
+});
+
+test("マイセット: パック解放ごとに10/15/20枠。20枠で追加購入導線が消える", () => {
+  const x = setup();
+  for (const packs of [1, 2, 3]) {
+    x.context.S.purchases.presetPacks = packs;
+    const panel = find(x.build(), (e) => e.id === "equip-mysets-panel")[0];
+    assert.equal(find(panel, (e) => e.className === "equip-myset-row").length, 5 + packs * 5);
+    assert.ok(find(panel, (e) => e.textContent === `装備マイセット（${5 + packs * 5}/20枠）`).length);
+    assert.equal(find(panel, (e) => e.className.includes("equip-myset-expand")).length, packs < 3 ? 1 : 0);
+  }
 });

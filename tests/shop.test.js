@@ -76,12 +76,12 @@ test("購入の記録: セーブに保存して読み込める。壊れた値は
   shop.purchase("roster_box_50");
   const json = JSON.parse(JSON.stringify(serialize(state, { now: 1 })));
   const loaded = deserialize(json, {});
-  assert.deepEqual(loaded.state.purchases, { unlocks: { autoRepeat100: true }, rosterBoxes: 1, history: state.purchases.history });
+  assert.deepEqual(loaded.state.purchases, { unlocks: { autoRepeat100: true }, rosterBoxes: 1, presetPacks: 0, history: state.purchases.history });
 
   delete json.purchases;
-  assert.deepEqual(deserialize(json, {}).state.purchases, { unlocks: {}, rosterBoxes: 0, history: [] });
+  assert.deepEqual(deserialize(json, {}).state.purchases, { unlocks: {}, rosterBoxes: 0, presetPacks: 0, history: [] });
   assert.deepEqual(normalizePurchases({ unlocks: { speed3: "yes", speed5: true }, rosterBoxes: -2, history: [{ id: 1 }, { id: "a", at: 2 }] }),
-    { unlocks: { speed5: true }, rosterBoxes: 0, history: [{ id: "a", at: 2 }] });
+    { unlocks: { speed5: true }, rosterBoxes: 0, presetPacks: 0, history: [{ id: "a", at: 2 }] });
 });
 
 test("自動周回x100: 業火の霊峰（ノーマル）を踏破するまで買えない。x5はx3を持っていなくても使える", () => {
@@ -125,4 +125,37 @@ test("特殊ジョブの解放: 販売開始（salesFrom）前・未定は並ば
   // 機能フラグが無効なら並ばない
   const off = createShop({ data: Object.assign({}, data, { SHOP_PRODUCTS: products, isFeatureEnabled: (k) => k !== "specialJobs" }), state, now: () => sale });
   assert.equal(off.products().some((p) => p.id === "job_pilgrim_unlock"), false);
+});
+
+
+test("マイセット: 無料5枠から5枠単位で3回購入し最大20枠・4回目は拒否", () => {
+  const { state, shop } = setup(1);
+  const sku = "preset_slots_5";
+  assert.equal(shop.presetCapacity(), 5);
+  assert.equal(shop.getProduct(sku).price, 480);
+  for (const count of [1, 2, 3]) {
+    assert.equal(shop.purchase(sku).ok, true);
+    assert.equal(shop.presetCapacity(), 5 + count * 5);
+    assert.equal(shop.productStatus(shop.getProduct(sku)).count, count);
+  }
+  assert.equal(shop.productStatus(shop.getProduct(sku)).soldOut, true);
+  assert.equal(shop.purchase(sku).reason, "soldOut");
+  assert.equal(state.purchases.history.filter((p) => p.id === sku).length, 3);
+  const loaded = deserialize(JSON.parse(JSON.stringify(serialize(state, { now: 2 }))), {});
+  const restored = createShop({ data, state: loaded.state });
+  assert.equal(restored.presetCapacity(), 20);
+  assert.equal(restored.purchase(sku).reason, "soldOut");
+});
+
+test("マイセット: 旧セーブは5枠、改ざんや不正な購入回数は0〜3に正規化", () => {
+  const { shop } = setup();
+  assert.equal(shop.presetCapacity(), 5);
+  for (const [input, expected] of [[-1, 5], [99, 20], [1.5, 5], ["bad", 5], [2, 15]]) {
+    const purchases = normalizePurchases({ presetPacks: input });
+    assert.equal(createShop({ data, state: { ...createState({ teamCount: 4 }), purchases } }).presetCapacity(), expected);
+  }
+  const state = createState({ teamCount: 4 });
+  const forbidden = createShop({ data, state, allowTestPurchases: false });
+  assert.equal(forbidden.purchase("preset_slots_5").reason, "disabled");
+  assert.equal(forbidden.presetCapacity(), 5);
 });
