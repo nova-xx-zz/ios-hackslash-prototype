@@ -87,9 +87,6 @@ function logBattleEvent(run, battle, ev) {
       logLine(t, `${ev.enemy.name} をたおした！`, "system");
       updateCardSubtitle(t, enemyRoster(battle));
       break;
-    case "acted":
-      ev.actor.actedFlash = 0.35;
-      break;
     case "enemyAttack":
       logLine(t, `${ev.enemy.name} のこうげき！ ${ev.target.name}に${ev.dmg}のダメージ！`, "hit");
       break;
@@ -129,7 +126,6 @@ function tick(dt) {
 function tickTeam(i, dt) {
   const run = teamRuns[i];
   const battle = teamBattles[i];
-  for (const c of teamMembers(i)) if (c.actedFlash > 0) c.actedFlash -= dt;
   const { events, result } = Runner.stepBattle(i, dt); // 決着したら battle.active は false になる
   for (const ev of events) logBattleEvent(run, battle, ev);
   if (result) {
@@ -276,26 +272,22 @@ function finishRun(run, info) {
 
   if (!run.pilotSchedule) saveGame();
 
-  if (isViewed) {
-    buildPartyDock();
-    renderDock();
-  }
+  if (isViewed) buildPartyDock();
 
   const ar = S.autoRepeat[run.team];
   const next = Runner.advanceAutoRepeat(run);
   if (next === "stoppedByWipe") {
     logLine(run.team, `パーティが${info.retreated ? "撤退" : "全滅"}したため自動周回を停止しました`, "system");
-    if (isViewed) renderDock();
   } else if (next === "completed") {
     logLine(run.team, `自動周回が完了しました（${ar.done}周）`, "system");
-    if (isViewed) renderDock();
   } else if (next === "continue") {
     logLine(run.team, `自動周回 ${ar.done}/${ar.target} 周完了。次のダンジョンへ出発します…`, "system");
-    if (isViewed) renderAutoRepeatRow();
     const nextId = run.dungeon.id;
     const nextMode = run.dungeon.mode;
     scheduleNext(run.team, () => startDungeon(run.team, nextId, { mode: nextMode }), 1400);
   }
+  // 1周終了と自動周回終了を判定してから描画する。周回間も「探索中」を維持する。
+  if (isViewed) renderDock();
   // pilotは自動周回のdone/activeを更新した後、報酬と一緒に保存する。
   if (run.pilotSchedule) saveGame();
 }
