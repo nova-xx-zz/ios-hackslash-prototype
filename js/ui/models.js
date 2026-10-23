@@ -175,7 +175,7 @@ const Inventory = QPModel.inventory.createInventory({
 });
 const {
   clampVitals, equipItem, unequipSlot, autoEquip, guaranteedStoneTotal, isPityReady, normalizeCharEquip,
-  savedSet, saveEquipmentSet, deleteEquipmentSet, applyEquipmentSet,
+  savedSet, saveEquipmentSet, renameEquipmentSet, equipmentSetPreview, deleteEquipmentSet, applyEquipmentSet,
 } = Inventory;
 
 // ---------- ダンジョン1周の進行 ----------
