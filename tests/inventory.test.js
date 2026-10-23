@@ -514,3 +514,34 @@ test("同一参照が重複した所持品も選択個数だけ処分する（�
  assert.deepEqual(inv.disassembleItems([duplicate,duplicate]),{count:1,materialGained:5});
  assert.deepEqual(state.inventory,[other]);
 });
+
+
+test("マイセット: 初期5枠、5枠パック解放後は20枠まで保存・呼出可能", () => {
+  const { state, roster, inv } = setup();
+  const { createShop } = require("../js/model/shop.js");
+  const shop = createShop({ data, state, now: () => 1000 });
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  const sword = item("weapon", "atk", 5);
+  state.inventory.push(sword);
+  assert.equal(inv.equipItem(c, sword), true);
+  for (let i = 0; i < 5; i++) assert.equal(inv.saveEquipmentSet(c, i).ok, true);
+  assert.equal(inv.saveEquipmentSet(c, 5).ok, false);
+  assert.equal(inv.savedSet(c, 5), null);
+  for (const capacity of [10, 15, 20]) {
+    assert.equal(shop.purchase("preset_slots_5").ok, true);
+    assert.equal(shop.presetCapacity(), capacity);
+    for (let i = capacity - 5; i < capacity; i++) {
+      assert.equal(inv.saveEquipmentSet(c, i).ok, true);
+      assert.equal(inv.savedSet(c, i).slots.main, sword.id);
+    }
+  }
+  assert.equal(inv.saveEquipmentSet(c, 20).ok, false);
+  assert.equal(inv.renameEquipmentSet(c, 19, "ボス周回").ok, true);
+  assert.equal(inv.savedSet(c, 19).name, "ボス周回");
+  assert.equal(inv.applyEquipmentSet(c, 19).ok, true);
+  const { serialize, deserialize } = require("../js/model/save.js");
+  const restored = deserialize(JSON.parse(JSON.stringify(serialize(state, { now: Date.now() }))), {}).state;
+  assert.equal(restored.equipmentSets[c.id].length, 20);
+  assert.equal(restored.equipmentSets[c.id][19].name, "ボス周回");
+  assert.equal(restored.purchases.presetPacks, 3);
+});
