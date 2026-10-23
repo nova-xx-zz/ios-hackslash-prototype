@@ -16,9 +16,10 @@ let teamLogs = Array.from({ length: TEAM_COUNT }, () => []); // [{type,title,sub
 // 案内が残ったり、ログ行の追記先（lastElementChild）に混ざったりしないようにする。
 function renderExploreScene(teamIndex) {
   const run = teamRuns[teamIndex];
-  const idle = !run && teamLogs[teamIndex].length === 0;
-  const emptyParty = teamMembers(teamIndex).length === 0;
   const pending = pendingDungeons[teamIndex];
+  // 別ダンジョンを選んだ時は前回の戦闘ログではなく出撃準備画面を表示する。
+  const idle = !!pending || (!run && teamLogs[teamIndex].length === 0);
+  const emptyParty = teamMembers(teamIndex).length === 0;
   const selected = pending && getModeDungeon(pending.id, pending.mode);
   document.getElementById("exploreWelcome").classList.toggle("hidden", !idle);
   document.getElementById("logFeed").classList.toggle("hidden", idle);
