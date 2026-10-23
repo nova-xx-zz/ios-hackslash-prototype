@@ -153,3 +153,58 @@
   #screen-create .pv-note {gap:5px;}
   #screen-create .pv-note-label {flex-basis:53px;}
 }
+
+/*
+ * v5: 9-slice SVG frame can paint inner horizontal strokes across controls
+ * when the card is compact, particularly in iOS Safari. Replace ONLY the
+ * name/race/job card and action-button overlay with small corner ornaments.
+ * Preview frame and its artwork are intentionally unchanged.
+ */
+#screen-create .create-row.create-ornate::after,
+#screen-create #btnCreateBack::after,
+#screen-create .create-footer .btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border: 0;
+  border-image: none;
+  background-image:
+    url("../icons/companion-corner-tl.svg"),
+    url("../icons/companion-corner-tr.svg"),
+    url("../icons/companion-corner-bl.svg"),
+    url("../icons/companion-corner-br.svg");
+  background-position: left top, right top, left bottom, right bottom;
+  background-size: 23px 23px;
+  background-repeat: no-repeat;
+}
+/* Leave room at the edges for ornaments; never cover the description text. */
+#screen-create .create-row-name {box-sizing:border-box;}
+#screen-create .create-pick-row {
+  box-sizing: border-box;
+  height: auto;
+  overflow: visible;
+}
+#screen-create .create-pick-row .cr-main,
+#screen-create .create-pick-row .cr-sub {
+  min-width: 0;
+  overflow: visible;
+}
+#screen-create .create-pick-row .cr-sub {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* The outer 1px frame is still visible on compact cards and action buttons. */
+#screen-create .create-row.create-ornate,
+#screen-create #btnCreateBack,
+#screen-create .create-footer .btn {
+  isolation: isolate;
+}
+@media (max-width:385px) {
+  #screen-create .create-row.create-ornate::after,
+  #screen-create #btnCreateBack::after,
+  #screen-create .create-footer .btn::after {
+    background-size: 19px 19px;
+  }
+}
