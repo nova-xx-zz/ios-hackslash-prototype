@@ -12,6 +12,7 @@
   const rewards = (root.QPCore && root.QPCore.rewards) || (typeof require === "function" ? require("../core/rewards.js") : null);
   const equipment = (root.QPCore && root.QPCore.equipment) || (typeof require === "function" ? require("../core/equipment.js") : null);
   const stats = (root.QPCore && root.QPCore.stats) || (typeof require === "function" ? require("../core/stats.js") : null);
+  const shopRules = (root.QPModel && root.QPModel.shop) || (typeof require === "function" ? require("./shop.js") : null);
 
   // モンスター合成で、素材が積み上げてきたEXPのうち対象に還元する割合
   const FUSION_EXP_RATE = 0.5;
@@ -112,15 +113,15 @@
     }
 
     // ---------- 装備マイセット ----------
-    // 現在着用している「実物のアイテムID」だけを3枠まで保存。
+    // 現在着用している「実物のアイテムID」を利用可能な枠数まで保存。
     // 読込時に同一キャラの現在装備と所持品のみを対象とし、他のキャラから装備を奪わない。
-    const EQUIPMENT_SET_COUNT = 3;
+    const equipmentSetCount = () => shopRules.presetSlotLimit(S.purchases);
     function savedSet(c, index) {
-      if (!c || !Number.isInteger(index) || index < 0 || index >= EQUIPMENT_SET_COUNT) return null;
+      if (!c || !Number.isInteger(index) || index < 0 || index >= equipmentSetCount()) return null;
       return (S.equipmentSets && S.equipmentSets[c.id] || [])[index] || null;
     }
     function saveEquipmentSet(c, index) {
-      if (!c || !Number.isInteger(index) || index < 0 || index >= EQUIPMENT_SET_COUNT ||
+      if (!c || !Number.isInteger(index) || index < 0 || index >= equipmentSetCount() ||
           (c.team !== null && isTeamLocked(c.team))) return { ok: false, reason: "locked" };
       const ids = Object.values(c.equip || {}).filter(Boolean).map((item) => item.id);
       if (!ids.length || ids.some((id) => typeof id !== "string" || !id)) return { ok: false, reason: "invalid" };
