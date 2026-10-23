@@ -92,9 +92,9 @@ test("v2: 装飾付き選択帯・登録プレビュー・名前入力のスク�
 
 test("参考画像v3: コンパクトカード・紋章・2列プレビューとスマホ対応", () => {
   const reference = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
-  assert.match(html, /css\/create-reference\.css\?v=1/);
-  assert.match(reference, /grid-template-columns:55px minmax\(0,1fr\)/);
-  assert.match(reference, /grid-template-columns:65px minmax\(0,1fr\)/);
+  assert.match(html, /css\/create-reference\.css\?v=2/);
+  assert.match(reference, /grid-template-columns:45px minmax\(0,1fr\)/);
+  assert.match(reference, /grid-template-columns:53px minmax\(0,1fr\)/);
   assert.match(reference, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(reference, /#screen-create \.pv-art\s*\{[^}]*z-index:0;/s);
   assert.match(reference, /@media\(max-width:385px\)/);
@@ -109,4 +109,20 @@ test("参考画像から切り出したプレビュー写真素材を使用", ()
   assert.ok(art.length > 2000);
   assert.equal(art.subarray(0, 4).toString(), "RIFF");
   assert.equal(art.subarray(8, 12).toString(), "WEBP");
+});
+
+test("仲間作成v4: アイコンとプレビューを縮小し、登録情報をフッターの裏に隠さない", () => {
+  const reference = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
+  assert.match(reference, /\.create-row-name\s*\{[^}]*grid-template-columns:45px minmax\(0,1fr\)/s);
+  assert.match(reference, /\.create-pick-row\s*\{[^}]*grid-template-columns:53px minmax\(0,1fr\)/s);
+  assert.match(reference, /\.create-pick-row \.cr-symbol\s*\{[^}]*width:47px;height:47px;/s);
+  assert.match(reference, /\.create-preview-shell\s*\{[^}]*min-height:0;/s);
+  assert.match(reference, /\.preview-box\s*\{min-height:0;/s);
+  assert.match(reference, /\.pv-note\s*\{display:flex;flex-direction:row;align-items:baseline;/s);
+  assert.match(reference, /\.create-preview-shell\s*\{overflow:visible;max-height:none;/s);
+  assert.match(reference, /#screen-create #createBody\s*\{[^}]*overflow-y:auto;/s);
+  assert.match(reference, /@media\(max-height:800px\)/);
+  assert.match(reference, /@media\(max-width:385px\)/);
+  assert.match(reference, /\.name-input\s*\{height:44px;min-height:44px;/s);
+  assert.match(reference, /\.create-name-reroll\s*\{height:44px;min-height:44px;/s);
 });
