@@ -127,9 +127,10 @@ function renderAutoRepeatRow() {
   const locked = isTeamLocked(i);
   const last = S.lastDungeons && S.lastDungeons[i];
   const pending = pendingDungeons[i];
-  const destination = run && run.dungeon ? run.dungeon : last;
-  // 新しい行き先を確認中は、過去のダンジョンで自動周回を誤開始させない。
-  const canStart = !!(!pending && destination && teamMembers(i).length > 0 &&
+  // マップで選んだ出撃準備先を最優先する。踏破済みならここから自動周回を開始できる。
+  // 前回の出撃先が残っていても、異なるダンジョンへ誤出撃しないようにする。
+  const destination = pending || (run && run.dungeon ? run.dungeon : last);
+  const canStart = !!(destination && teamMembers(i).length > 0 &&
     Runner.canAutoRepeat(destination.id, destination.mode));
 
   const label = document.createElement("div");
@@ -175,9 +176,8 @@ function renderAutoRepeatRow() {
   btn.className = "btn small " + (ar.active ? "ghost" : "primary");
   btn.textContent = ar.active ? "停止" : "自動周回開始";
   btn.disabled = ar.active ? false : (locked || !canStart);
-  if (!ar.active && !canStart) btn.title = pending
-    ? "行き先を選択中です。まず出撃してください"
-    : destination ? "この難易度のダンジョンを1回クリアすると解放されます"
+  if (!ar.active && !canStart) btn.title = destination
+    ? "この難易度のダンジョンを1回クリアすると解放されます"
     : "先にダンジョンへ出撃してください";
   btn.addEventListener("click", () => {
     if (ar.active) {
@@ -186,11 +186,10 @@ function renderAutoRepeatRow() {
       renderDock();
       return;
     }
-    // 描画後に別の出撃状況へ変わっても、最新の踏破実績で再検証する。
-    if (pendingDungeons[i]) return;
+    // 描画後の行き先変更にも追従し、必ず選択中の行き先と最新の踏破実績で再検証する。
     const currentRun = teamRuns[i];
     const recent = S.lastDungeons && S.lastDungeons[i];
-    const selected = currentRun && currentRun.dungeon ? currentRun.dungeon : recent;
+    const selected = pendingDungeons[i] || (currentRun && currentRun.dungeon ? currentRun.dungeon : recent);
     if (isTeamLocked(i) || teamMembers(i).length === 0 || !selected ||
         !Runner.canAutoRepeat(selected.id, selected.mode)) return;
     // 買っていない回数が選ばれていたら（クラウドから戻したセーブなど）、買える範囲の最大にする
@@ -202,10 +201,10 @@ function renderAutoRepeatRow() {
     startDungeon(i, selected.id, { navigate: true, mode: selected.mode });
   });
   row.appendChild(btn);
-  if (!ar.active && (pending || destination && !canStart) && teamMembers(i).length > 0) {
+  if (!ar.active && destination && !canStart && teamMembers(i).length > 0) {
     const hint = document.createElement("div");
     hint.className = "auto-repeat-status";
-    hint.textContent = pending ? "行き先決定中：出撃してから周回できます" : "この難易度を1回クリアすると解放";
+    hint.textContent = "この難易度を1回クリアすると解放";
     row.appendChild(hint);
   }
 }
