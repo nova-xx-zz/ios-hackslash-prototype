@@ -186,7 +186,7 @@
           const candidates = byOriginalId.get(id);
           if (!candidates || candidates.length <= 1) continue;
           const worn = candidates.find((entry) => entry.owner === c && entry.pos === pos);
-          set.slots[pos] = worn ? worn.item.id : "__ambiguous_equipment_set__" + id;
+          set.slots[pos] = worn ? worn.item.id : "__ambiguous_equipment_set__" + id.slice(0, 90);
         }
       }
     }
