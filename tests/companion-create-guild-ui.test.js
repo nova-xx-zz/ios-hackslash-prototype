@@ -24,11 +24,11 @@ test("UIはギルド見出し・下部固定ボタン・iOSの16px入力・狭�
   assert.match(css, /#screen-create \.name-input\s*\{[^}]*font-size: 16px;/s);
   assert.match(css, /@media \(max-width: 359px\)/);
   assert.match(html, /css\/create-ornate\.css\?v=1/);
-  assert.match(html, /js\/ui\/create\.js\?v=8/);
+  assert.match(html, /js\/ui\/create\.js\?v=9/);
 });
 
 test("種族ジョブの選択カードをクリックでき、表示文言はtextContent", () => {
-  const start = create.indexOf("function buildCreatePickRow(");
+  const start = create.indexOf("function createRaceInsignia(");
   const end = create.indexOf("function statStars(", start);
   assert.ok(start >= 0 && end > start);
   class El {
@@ -88,4 +88,25 @@ test("v2: 装飾付き選択帯・登録プレビュー・名前入力のスク�
   assert.match(ornate, /position:absolute; z-index:-1/);
   assert.match(frame, /<svg/);
   assert.match(art, /<svg/);
+});
+
+test("参考画像v3: コンパクトカード・紋章・2列プレビューとスマホ対応", () => {
+  const reference = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
+  assert.match(html, /css\/create-reference\.css\?v=1/);
+  assert.match(reference, /grid-template-columns:55px minmax\(0,1fr\)/);
+  assert.match(reference, /grid-template-columns:65px minmax\(0,1fr\)/);
+  assert.match(reference, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(reference, /#screen-create \.pv-art\s*\{[^}]*z-index:0;/s);
+  assert.match(reference, /@media\(max-width:385px\)/);
+  assert.match(create, /function createRaceInsignia\(id\)/);
+  assert.match(create, /function createJobInsignia\(id\)/);
+});
+
+test("参考画像から切り出したプレビュー写真素材を使用", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
+  const art = fs.readFileSync(path.join(__dirname, "../icons/companion-preview-stilllife.webp"));
+  assert.match(css, /companion-preview-stilllife\.webp/);
+  assert.ok(art.length > 2000);
+  assert.equal(art.subarray(0, 4).toString(), "RIFF");
+  assert.equal(art.subarray(8, 12).toString(), "WEBP");
 });

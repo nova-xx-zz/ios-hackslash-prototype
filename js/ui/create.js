@@ -88,6 +88,25 @@ function renderCreateScreen() {
   updateCreatePreview();
 }
 
+
+function createRaceInsignia(id) {
+  const designs = {
+    sylvan:'<path d="M32 53V18m0 29-15 7m15-17 15 13M32 37l-15-9m15 0 13-12M32 22 23 12m9 10L42 9M21 29l-7-11m28 13 9-14M11 55h42"/><path d="M16 53q-5-15 1-26m31 26q6-12 0-26"/>',
+    stonekin:'<path d="m11 38 10-20 12-10 17 13 6 17-15 15H22Z"/><path d="m21 18 12 16 17-13M33 34l-11 19m11-19 8 19"/>',
+    nocturne:'<path d="M39 9A22 22 0 1 0 53 45 24 24 0 0 1 39 9Z"/><path d="m16 12 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/>',
+    beastkin:'<path d="M16 37Q10 26 20 22q7 0 12 10 6-10 13-10 10 5 4 15-7 18-17 18S23 55 16 37Z"/><circle cx="19" cy="16" r="4"/><circle cx="29" cy="11" r="4"/><circle cx="40" cy="12" r="4"/><circle cx="49" cy="17" r="4"/>',
+    human:'<path d="M32 8 51 20v20L32 54 13 40V20Z"/><path d="M32 15v31m-11-18 11-9 11 9m-22 0 11 18 11-18"/>',
+    artisan:'<path d="M14 47 45 16m-9-7 18 18M11 35l18 18M12 12l40 40"/>',
+    spiritkin:'<path d="M32 6C16 21 16 37 32 55 48 37 48 21 32 6Z"/><path d="M10 33h44M32 12v41M19 22l26 24M45 22 19 46"/>',
+    giant:'<path d="m6 50 16-34 11 19 8-14 17 29Z"/><path d="M22 16l-3 18 14 1 9 15M41 21l-6 18"/>'
+  };
+  return '<svg class="create-insignia-svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (designs[id] || designs.human) + '</svg>';
+}
+function createJobInsignia(id) {
+  if (id !== "thief") return jobInsignia(id);
+  return '<svg class="create-insignia-svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(-43 32 32)"><path d="m29 8 3-6 3 6v30l-3 6-3-6Z"/><path d="M21 38h22M32 44v14M27 58h10"/></g><g transform="rotate(43 32 32)"><path d="m29 8 3-6 3 6v30l-3 6-3-6Z"/><path d="M21 38h22M32 44v14M27 58h10"/></g></svg>';
+}
+
 function buildCreatePickRow(label, value, sub, onClick, kind, id) {
   const row = document.createElement("button");
   row.type = "button";
@@ -96,8 +115,8 @@ function buildCreatePickRow(label, value, sub, onClick, kind, id) {
   const symbol = document.createElement("span");
   symbol.className = "cr-symbol cr-" + kind;
   symbol.setAttribute("aria-hidden", "true");
-  if (kind === "job") symbol.innerHTML = jobInsignia(id);
-  else symbol.textContent = RACES[id].icon || "✦";
+  if (kind === "job") symbol.innerHTML = createJobInsignia(id);
+  else symbol.innerHTML = createRaceInsignia(id);
   const main = document.createElement("span");
   main.className = "cr-main";
   const head = document.createElement("span");
