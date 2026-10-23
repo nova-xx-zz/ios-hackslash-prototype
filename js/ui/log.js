@@ -25,7 +25,7 @@ function renderExploreScene(teamIndex) {
   document.getElementById("logFeed").classList.toggle("hidden", idle);
   document.getElementById("screen-battle").classList.toggle("explore-idle", idle);
   document.getElementById("exploreState").textContent = pending
-    ? "出撃待ち" : run ? (isTeamRunActive(teamIndex) ? "探索中" : "帰還") : "ギルド待機";
+    ? "出撃待ち" : run ? (isTeamLocked(teamIndex) ? "探索中" : "帰還") : "ギルド待機";
   document.getElementById("exploreWelcomeTitle").textContent = emptyParty
     ? "仲間を編成しよう" : selected ? selected.name : "冒険の準備";
   document.getElementById("exploreWelcomeCopy").textContent = emptyParty
