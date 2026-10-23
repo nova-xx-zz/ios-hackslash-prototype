@@ -19,6 +19,7 @@ const inventoryOrganize = QPCore.inventoryOrganize;
 let disassembleMode = false;
 let disassembleSelection = new Set(); // 選んだアイテム（オブジェクトそのもの）
 let disassembleConfirming = false;
+let bulkIncludeValuable = false; // 貴重品・呪い・強化済み・UR/LRは明示した時だけ一括候補
 
 let inventoryReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
 // opts: { disassemble（分解する装備を選ぶ状態で開く）, returnScreen }
@@ -40,6 +41,7 @@ function exitDisassembleMode() {
   disassembleMode = false;
   disassembleSelection = new Set();
   disassembleConfirming = false;
+  bulkIncludeValuable = false;
 }
 
 function showInventoryMessage(text) {
@@ -97,12 +99,26 @@ function renderDisassembleControls() {
     label.textContent = "まとめて選ぶ:";
     bulk.appendChild(label);
     const shown = shownInventoryItems();
-    // 一括操作は安全候補のみ。高品質・強化済み・ロック・名のある装備・UR/LRは個別選択でのみ分解可。
-    const safe = shown.filter(inventoryOrganize.isSafeBulkCandidate);
+    // 初期状態は安全候補のみ。任意で貴重品/呪い/UR/LRも対象にできるが、ロックは常に除外する。
+    const mode = document.createElement("button");
+    mode.className = "disassemble-chip" + (bulkIncludeValuable ? " active" : "");
+    mode.textContent = bulkIncludeValuable ? "貴重・呪いを含む（ロック除外）" : "貴重・呪いは含まない";
+    mode.setAttribute("aria-pressed", bulkIncludeValuable ? "true" : "false");
+    mode.addEventListener("click", () => {
+      bulkIncludeValuable = !bulkIncludeValuable;
+      // 安全モードへ戻したら危険な選択を残さない（非表示のスロットも含めて保護）。
+      if (!bulkIncludeValuable) for (const item of [...disassembleSelection]) {
+        if (!inventoryOrganize.isSafeBulkCandidate(item)) disassembleSelection.delete(item);
+      }
+      disassembleConfirming = false;
+      renderInventoryScreen();
+    });
+    bulk.appendChild(mode);
+    const safe = shown.filter((item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable));
     const safeAll = safe.length > 0 && safe.every(i => disassembleSelection.has(i));
     const safeBtn = document.createElement("button");
     safeBtn.className = "disassemble-chip" + (safeAll ? " active" : "");
-    safeBtn.textContent = `安全候補すべて (${safe.length})`;
+    safeBtn.textContent = `${bulkIncludeValuable ? "ロック以外すべて" : "安全候補すべて"} (${safe.length})`;
     safeBtn.disabled = safe.length === 0;
     safeBtn.addEventListener("click", () => {
       for (const item of safe) { if (safeAll) disassembleSelection.delete(item); else disassembleSelection.add(item); }
@@ -116,7 +132,7 @@ function renderDisassembleControls() {
       const chip = document.createElement("button");
       chip.className = "disassemble-chip" + (all ? " active" : "");
       chip.textContent = rarity.key.toUpperCase();
-      chip.title = rarity.name + "の安全な整理候補のみを一括選択";
+      chip.title = rarity.name + (bulkIncludeValuable ? "の未ロック装備（貴重・呪い含む）" : "の安全な整理候補のみ") + "を一括選択";
       chip.disabled = items.length === 0;
       if (all) { chip.style.background = rarity.color; chip.style.color = "#171a1a"; }
       chip.addEventListener("click", () => {
@@ -134,6 +150,7 @@ function renderDisassembleControls() {
   const selected = [...disassembleSelection];
   const gain = selected.reduce((sum, i) => sum + Inventory.disassembleValue(i), 0);
   const enhanced = selected.filter((i) => (i.plus || 0) > 0).length;
+  const lockedSelected = selected.some((i) => i.locked);
   const high = selected.filter((i) => i.rarity === "ur" || i.rarity === "lr").length;
   const highOp = selected.filter((i) => QPCore.rewards.hasProtectedOption(i)).length;
   const special = selected.filter((i) => i.unique || i.cursed).length;
@@ -148,7 +165,7 @@ function renderDisassembleControls() {
   }
   document.getElementById("inventoryDisassembleSummary").textContent = text;
   const confirm = document.getElementById("btnDisassembleConfirm");
-  confirm.disabled = selected.length === 0;
+  confirm.disabled = selected.length === 0 || lockedSelected;
   confirm.textContent = disassembleConfirming ? "本当に分解する" : "分解する";
 }
 
@@ -351,7 +368,7 @@ document.getElementById("btnDisassembleCancel").addEventListener("click", () => 
   renderInventoryScreen();
 });
 document.getElementById("btnDisassembleConfirm").addEventListener("click", () => {
-  if (disassembleSelection.size === 0) return;
+  if (disassembleSelection.size === 0 || [...disassembleSelection].some((item) => item.locked)) return;
   if (!disassembleConfirming) { disassembleConfirming = true; armConfirm(); renderInventoryScreen(); return; }
   if (!confirmReady()) return;
   const result = Inventory.disassembleItems([...disassembleSelection]);
@@ -363,6 +380,7 @@ document.getElementById("btnDisassembleConfirm").addEventListener("click", () =>
 
 // 装備セクション（枠をタップで所持品から選ぶ）
 let openSlot = null; // "charId:枠のkey"
+let unequipAllConfirmCharId = null;
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
@@ -442,6 +460,30 @@ function buildEquipSection(c) {
   autoBtn.textContent = "おまかせ装備（呪いの装備は選ばない）";
   autoBtn.addEventListener("click", () => { autoEquip(c); renderCharDetail(); });
   wrap.appendChild(autoBtn);
+
+  if (EQUIP_POSITIONS.some((pos) => !!c.equip[pos.key])) {
+    const removeAll = document.createElement("button");
+    removeAll.className = "equip-choice equip-unequip-all";
+    const confirming = unequipAllConfirmCharId === c.id;
+    removeAll.textContent = confirming ? "もう一度押すと装備をすべて外します" : "装備をすべて外す";
+    removeAll.disabled = c.team !== null && isTeamLocked(c.team);
+    removeAll.addEventListener("click", () => {
+      if (c.team !== null && isTeamLocked(c.team)) return;
+      if (unequipAllConfirmCharId !== c.id) {
+        unequipAllConfirmCharId = c.id;
+        armConfirm();
+        renderCharDetail();
+        return;
+      }
+      if (!confirmReady()) return;
+      for (const pos of EQUIP_POSITIONS) if (c.equip[pos.key]) unequipSlot(c, pos.key);
+      unequipAllConfirmCharId = null;
+      openSlot = null;
+      saveGame();
+      renderCharDetail();
+    });
+    wrap.appendChild(removeAll);
+  }
 
   // 開いている枠の候補一覧（そのキャラが付けられる物だけ）
   const opened = EQUIP_POSITIONS.find((p) => openSlot === `${c.id}:${p.key}`);
