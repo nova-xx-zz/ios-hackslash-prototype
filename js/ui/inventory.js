@@ -576,8 +576,9 @@ function renderEnhanceModal() {
   batchBudgetInput.value = String(enhanceBatchBudget);
   batchBudgetInput.max = String(Inventory.ENHANCE_BATCH_BUDGET_MAX);
   batchBudgetInput.disabled = maxed;
-  for (const preset of document.querySelectorAll("[data-enhance-target]")) {
-    preset.classList.toggle("selected", Number(preset.getAttribute("data-enhance-target")) === enhanceBatchTarget);
+  for (const value of [5, 10, 14, 20]) {
+    const preset = document.getElementById("enBatchPreset" + value);
+    preset.classList.toggle("selected", value === enhanceBatchTarget);
     preset.disabled = maxed;
   }
   const canBatch = !enhanceBatchBusy && Inventory.canBatchEnhance(item) &&
@@ -659,10 +660,10 @@ document.getElementById("enBatchBudget").addEventListener("change", (event) => {
   enhanceBatchMessage = "";
   renderEnhanceModal();
 });
-for (const preset of document.querySelectorAll("[data-enhance-target]")) {
-  preset.addEventListener("click", () => {
+for (const value of [5, 10, 14, 20]) {
+  document.getElementById("enBatchPreset" + value).addEventListener("click", () => {
     if (!enhanceItem) return;
-    enhanceBatchTarget = Number(preset.getAttribute("data-enhance-target"));
+    enhanceBatchTarget = value;
     enhanceBatchConfirm = false;
     enhanceBatchMessage = "";
     renderEnhanceModal();
