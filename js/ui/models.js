@@ -208,6 +208,9 @@ const Runner = QPModel.run.createRunner({
 const { teamRuns, teamBattles, isTeamRunActive, isTeamLocked, runOfflineProgress } = Runner;
 // 4チームがそれぞれ独立にダンジョンへ出撃できるよう、進行状態(run)・戦闘状態(battle)・
 // 自動周回状態はすべてチームごとの配列で管理し、全チームが常に並行して進行する
+// マップで「行き先決定」しても即出撃しない。各パーティの一時的な出撃準備先。
+// セーブの lastDungeons（実際に出撃した行き先）とは分離する。
+const pendingDungeons = Array.from({ length: TEAM_COUNT }, () => null);
 let selectedDungeonId = null;
 let jobsReturnScreen = "screen-battle"; // タイトルは常設ナビを持たないスプラッシュのため、既定の戻り先は探索画面にする
 let speedMult = 1;
