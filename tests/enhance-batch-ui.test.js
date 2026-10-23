@@ -59,7 +59,7 @@ function setup({ locked = false } = {}) {
     itemStatsText: () => "攻撃力10", itemMark: () => "", rarityColor: () => "#fff",
     itemOptionsText: () => "", getUniqueItem: () => null, itemEffectText: () => "",
     enhanceSuccessRate: () => 0.9, enhanceCost: () => 3,
-    isFeatureEnabled: () => false, guaranteedStoneTotal: () => 5,
+    isFeatureEnabled: () => false, guaranteedStoneTotal: () => 5, guaranteedStonesRequired: () => 1,
     renderCharDetail: () => {}, scheduleSave: () => {},
     saveGame: () => { saved++; return true; },
     armConfirm: () => {}, confirmReady: () => true,
