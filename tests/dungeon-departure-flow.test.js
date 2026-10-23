@@ -62,7 +62,7 @@ test("マップで行き先を決定しても出撃せず、探索画面の出�
   assert.equal(f.hubOpens, 1);
   assert.deepEqual(f.departures, []);
   assert.deepEqual(f.lastDungeons[0], { id: "plains", mode: "normal" });
-  assert.deepEqual(f.pendingDungeons[0], { id: "forest", mode: "normal" });
+  assert.deepEqual(JSON.parse(JSON.stringify(f.pendingDungeons[0])), { id: "forest", mode: "normal" });
   f.callbacks["btnPrepareDeploy:click"]();
   assert.deepEqual(f.departures, [{ i: 0, id: "forest", mode: "normal", navigate: true }]);
 });
@@ -74,7 +74,7 @@ test("チームごとに出撃準備先が分かれ、別の仲間のダンジ�
   f.state.activeTeam = 1;
   f.callbacks["btnPrepareDeploy:click"]();
   assert.deepEqual(f.departures, [{ i: 1, id: "plains", mode: "normal", navigate: true }]);
-  assert.deepEqual(f.pendingDungeons[0], { id: "forest", mode: "normal" });
+  assert.deepEqual(JSON.parse(JSON.stringify(f.pendingDungeons[0])), { id: "forest", mode: "normal" });
   f.state.activeTeam = 0;
   f.callbacks["btnPrepareDeploy:click"]();
   assert.equal(f.departures[1].id, "forest");
