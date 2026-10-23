@@ -24,8 +24,6 @@
     const isFeatureEnabled = deps.isFeatureEnabled || (() => false);
     const onMaterialChange = deps.onMaterialChange || (() => {});
     const isTeamLocked = deps.isTeamLocked || (() => false);
-    // 1回の一括強化で消費してよい通常強化石の上限。課金石は対象外。
-    const ENHANCE_BATCH_BUDGET_MAX = 500;
 
     // ---------- 装備 ----------
     function clampVitals(c) {
@@ -149,36 +147,54 @@
       return false;
     }
 
-    // 目標まで、通常の1回強化を同じルールで繰り返す。
-    // 各抽選の前に「その1回を払うと消費上限を超えないか」を検証し、超える場合は抽選しない。
-    // 成功率・天井・通常石の消費は enhanceItem に集約し、確定強化石には触れない。
-    function enhanceToTarget(item, targetPlus, maxSpend) {
-      if (!canBatchEnhance(item) ||
-          !Number.isSafeInteger(targetPlus) || targetPlus <= item.plus || targetPlus > ENHANCE_MAX_PLUS ||
-          !Number.isSafeInteger(maxSpend) || maxSpend < 1 || maxSpend > ENHANCE_BATCH_BUDGET_MAX) return null;
+    // 目標到達まで各+1の「天井まで失敗し続けた場合」の最大消費を計算する。
+    // すでに貯めた天井ゲージは今の段だけに適用。成功後は毎段0から計算。
+    // 天井OFFなら必ず成功する上限は無いためnull（実行は所持石がある間だけ）。
+    function estimateEnhanceToTarget(item, targetPlus) {
+      if (!item || !Number.isSafeInteger(item.plus) || item.plus < 0 ||
+          !Number.isSafeInteger(targetPlus) || targetPlus <= item.plus || targetPlus > ENHANCE_MAX_PLUS) return null;
+      if (!isFeatureEnabled("enhancePity")) return { targetPlus, maxStones: null };
+      let maxStones = 0;
+      for (let plus = item.plus; plus < targetPlus; plus++) {
+        const perRoll = enhance.cost(ENHANCE_RULES, item.rarity, plus);
+        const ceiling = enhance.pityThreshold(ENHANCE_RULES, item.rarity, plus);
+        if (!Number.isSafeInteger(perRoll) || perRoll <= 0 || !Number.isSafeInteger(ceiling) || ceiling < 0) return null;
+        const previousPity = plus === item.plus && Number.isFinite(item.pity)
+          ? Math.max(0, item.pity) : 0;
+        // 「天井ゲージに到達するまでの失敗」+「次の確定成功1回」が最悪ケース。
+        const failRolls = Math.max(0, Math.ceil((ceiling - previousPity) / perRoll));
+        maxStones += (failRolls + 1) * perRoll;
+        if (!Number.isSafeInteger(maxStones)) return null;
+      }
+      return { targetPlus, maxStones };
+    }
+
+    // 上記の最大値を先払いしたり、天井分を無条件に消費したりはしない。
+    // 通常の1回強化を反復し、成功したら即座に次の+段へ進む。
+    // 目標に到達または所持石が次の抽選に足りない場合に止める。
+    function enhanceToTarget(item, targetPlus) {
+      if (!canBatchEnhance(item) || !estimateEnhanceToTarget(item, targetPlus)) return null;
 
       const fromPlus = item.plus;
       let attempts = 0, successes = 0, failures = 0, pityHits = 0, spent = 0;
-      let reason = "budget";
+      let reason = "material";
       while (item.plus < targetPlus) {
+        if (!canBatchEnhance(item)) { reason = "invalid"; break; }
         const nextCost = enhanceCost(item);
         if (!Number.isSafeInteger(nextCost) || nextCost <= 0) { reason = "invalid"; break; }
-        if (spent + nextCost > maxSpend) { reason = "budget"; break; }
         if (S.material < nextCost) { reason = "material"; break; }
         const result = enhanceItem(item);
         if (!result) { reason = "invalid"; break; }
-        attempts += 1;
+        attempts++;
         spent += result.cost;
         if (result.success) {
-          successes += 1;
-          if (result.pityHit) pityHits += 1;
-        } else failures += 1;
+          successes++;
+          if (result.pityHit) pityHits++;
+        } else failures++;
       }
       if (item.plus >= targetPlus) reason = "target";
-      return {
-        fromPlus, targetPlus, plus: item.plus, attempts, successes, failures,
-        pityHits, spent, reason, remainingMaterial: S.material,
-      };
+      return { fromPlus, targetPlus, plus: item.plus, attempts, successes, failures,
+        pityHits, spent, reason, remainingMaterial: S.material };
     }
 
     // 確定強化石で必ず+1する（通常の強化石は消費しない。消費は無償分から）。できなければnull。結果: { plus, required }
@@ -310,7 +326,7 @@
       clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
-      ENHANCE_BATCH_BUDGET_MAX, canBatchEnhance, enhanceToTarget,
+      canBatchEnhance, estimateEnhanceToTarget, enhanceToTarget,
       setLocked, receiveDrops, disassembleValue, disassembleItems,
       fusionCandidates, materialExp, fusionExpGain, fuse,
     };
