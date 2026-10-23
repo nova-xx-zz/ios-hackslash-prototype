@@ -101,3 +101,12 @@ test("参考画像v3: コンパクトカード・紋章・2列プレビューと
   assert.match(create, /function createRaceInsignia\(id\)/);
   assert.match(create, /function createJobInsignia\(id\)/);
 });
+
+test("参考画像から切り出したプレビュー写真素材を使用", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
+  const art = fs.readFileSync(path.join(__dirname, "../icons/companion-preview-stilllife.webp"));
+  assert.match(css, /companion-preview-stilllife\.webp/);
+  assert.ok(art.length > 2000);
+  assert.equal(art.subarray(0, 4).toString(), "RIFF");
+  assert.equal(art.subarray(8, 12).toString(), "WEBP");
+});

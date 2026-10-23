@@ -79,7 +79,7 @@
 #screen-create .pv-art {
   z-index:0;right:-13px;top:-25px;bottom:-11px;width:71%;opacity:.97;
   background:linear-gradient(90deg,#071217 0%,rgba(7,18,23,.86) 22%,rgba(7,18,23,.04) 75%),
-  url("../icons/companion-stilllife.svg") right bottom/contain no-repeat;
+  url("../icons/companion-preview-stilllife.webp") right bottom/auto 105% no-repeat;
 }
 #screen-create .pv-profile {position:relative;z-index:2;padding-bottom:7px;border-bottom:1px solid rgba(194,149,77,.68);}
 #screen-create .pv-name {font-size:15px;line-height:1.4;}
