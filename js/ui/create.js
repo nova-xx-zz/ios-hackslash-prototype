@@ -28,7 +28,7 @@ function renderCreateScreen() {
   // 名前
   const nameField = document.createElement("div");
   nameField.className = "create-row create-row-name";
-  nameField.innerHTML = `<div class="cr-label">なまえ</div>`;
+  nameField.innerHTML = '<div class="cr-heading"><span class="cr-symbol cr-name" aria-hidden="true">✒</span><label class="cr-label" for="createName">なまえ</label></div>';
   const nameRow = document.createElement("div");
   nameRow.className = "name-row";
   const input = document.createElement("input");
@@ -36,6 +36,8 @@ function renderCreateScreen() {
   input.id = "createName";
   input.type = "text";
   input.maxLength = 8;
+  input.autocomplete = "off";
+  input.spellcheck = false;
   input.value = draft.name;
   input.addEventListener("input", () => {
     draft.name = input.value;
@@ -43,7 +45,8 @@ function renderCreateScreen() {
   });
   nameRow.appendChild(input);
   const dice = document.createElement("button");
-  dice.className = "pick-chip";
+  dice.type = "button";
+  dice.className = "pick-chip create-name-reroll";
   dice.textContent = "別の名前";
   dice.addEventListener("click", () => {
     draft.name = rollNewRecruit().name;
@@ -54,34 +57,50 @@ function renderCreateScreen() {
   wrap.appendChild(nameField);
 
   // 種族
-  wrap.appendChild(buildCreatePickRow("しゅぞく", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race")));
+  wrap.appendChild(buildCreatePickRow("しゅぞく", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race"), "race", draft.race));
 
   // ジョブ
   const jobSub = JOBS[draft.job].abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
-  wrap.appendChild(buildCreatePickRow("ジョブ", JOBS[draft.job].name, jobSub, () => openCreatePick("job")));
+  wrap.appendChild(buildCreatePickRow("ジョブ", JOBS[draft.job].name, jobSub, () => openCreatePick("job"), "job", draft.job));
 
   // プレビュー
   const previewLabel = document.createElement("div");
   previewLabel.className = "create-section-label";
-  previewLabel.textContent = "プレビュー";
+  previewLabel.textContent = "登録プレビュー";
   wrap.appendChild(previewLabel);
   const box = document.createElement("div");
   box.className = "preview-box";
   box.id = "createPreview";
+  box.setAttribute("aria-live", "polite");
   wrap.appendChild(box);
   updateCreatePreview();
 }
 
-function buildCreatePickRow(label, value, sub, onClick) {
+function buildCreatePickRow(label, value, sub, onClick, kind, id) {
   const row = document.createElement("button");
-  row.className = "create-row";
-  row.innerHTML = `
-    <div class="cr-main">
-      <div class="cr-label">${label}</div>
-      <div class="cr-value">${value}</div>
-      <div class="cr-sub">${sub}</div>
-    </div>
-    <div class="cr-chev">›</div>`;
+  row.type = "button";
+  row.className = "create-row create-pick-row";
+  row.setAttribute("aria-label", `${label}：${value}。変更する`);
+  const symbol = document.createElement("span");
+  symbol.className = "cr-symbol cr-" + kind;
+  symbol.setAttribute("aria-hidden", "true");
+  if (kind === "job") symbol.innerHTML = jobInsignia(id);
+  else symbol.textContent = RACES[id].icon || "✦";
+  const main = document.createElement("span");
+  main.className = "cr-main";
+  for (const [className, text] of [["cr-label", label], ["cr-value", value], ["cr-sub", sub]]) {
+    const el = document.createElement("span");
+    el.className = className;
+    el.textContent = text;
+    main.appendChild(el);
+  }
+  const chevron = document.createElement("span");
+  chevron.className = "cr-chev";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "›";
+  row.appendChild(symbol);
+  row.appendChild(main);
+  row.appendChild(chevron);
   row.addEventListener("click", onClick);
   return row;
 }
@@ -193,11 +212,18 @@ function updateCreatePreview() {
   const race = RACES[draft.race];
   const passives = Object.keys(race.passive).map((k) => PASSIVE_LABELS[k](race.passive[k]));
   if (race.expMult !== 1) passives.push(`獲得経験値 ${Math.round((race.expMult - 1) * 100)}%`);
+  const abilities = availableAbilities(preview).map((a) => a.name);
+  const stats = [["HP", s.maxHp], ["MP", s.maxMp], ["ATK", s.atk], ["MAG", s.mag], ["DEF", s.def], ["SPD", Math.round(s.spd * 10) / 10]];
   box.innerHTML = `
-    <div class="pv-name">${escapeHtml(draft.name || "ななし")} — ${race.name}・${JOBS[draft.job].name} Lv.${preview.level}</div>
-    <div class="pv-stats">HP ${s.maxHp}　MP ${s.maxMp}　ATK ${s.atk}　MAG ${s.mag}　DEF ${s.def}　SPD ${Math.round(s.spd * 10) / 10}</div>
-    <div class="pv-note">${passives.length ? "種族特性: " + passives.join(" / ") : "種族特性: なし"}</div>
-    <div class="pv-note">習得済み: ${availableAbilities(preview).map((a) => a.name).join("、") || "なし"}</div>`;
+    <div class="pv-profile">
+      <div class="pv-name">${escapeHtml(draft.name || "ななし")} <span class="pv-role">— ${escapeHtml(race.name)}・${escapeHtml(JOBS[draft.job].name)}</span></div>
+      <span class="pv-level">Lv.${preview.level}</span>
+    </div>
+    <div class="pv-stats">${stats.map(([key, value]) => `<div class="pv-stat"><span class="pv-stat-key">${key}</span><strong>${value}</strong></div>`).join("")}</div>
+    <div class="pv-details">
+      <div class="pv-note"><span class="pv-note-label">種族特性</span><span>${passives.length ? passives.map(escapeHtml).join(" / ") : "なし"}</span></div>
+      <div class="pv-note"><span class="pv-note-label">習得済み</span><span>${abilities.length ? abilities.map(escapeHtml).join("、") : "なし"}</span></div>
+    </div>`;
 }
 
 const PASSIVE_LABELS = {
