@@ -462,7 +462,27 @@
       <div class="modal-desc" id="enDesc"></div>
       <div class="modal-stats" id="enStats"></div>
       <div class="enhance-result" id="enResult"></div>
-      <button class="btn primary modal-ok" id="btnEnhanceGo">強化する</button>
+      <button class="btn primary modal-ok" id="btnEnhanceGo">1回強化する</button>
+      <section class="enhance-batch-box" aria-label="一括強化">
+        <div class="enhance-batch-heading">目標まで一括強化 <span>通常の強化石のみ</span></div>
+        <div class="enhance-batch-fields">
+          <label for="enBatchTarget">目標強化値
+            <input id="enBatchTarget" type="number" inputmode="numeric" min="1" max="99" step="1" value="14">
+          </label>
+          <label for="enBatchBudget">消費上限（個）
+            <input id="enBatchBudget" type="number" inputmode="numeric" min="1" max="500" step="1" value="500">
+          </label>
+        </div>
+        <div class="enhance-batch-presets" aria-label="強化目標の候補">
+          <button class="btn small ghost" type="button" data-enhance-target="5">+5</button>
+          <button class="btn small ghost" type="button" data-enhance-target="10">+10</button>
+          <button class="btn small ghost" type="button" data-enhance-target="14">+14</button>
+          <button class="btn small ghost" type="button" data-enhance-target="20">+20</button>
+        </div>
+        <p class="enhance-batch-hint" id="enBatchHint">失敗時も強化石を消費。500個を超える前に停止します。</p>
+        <button class="btn primary modal-ok" id="btnEnhanceBatch" type="button">目標まで一括強化</button>
+        <div class="enhance-result" id="enBatchResult" aria-live="polite"></div>
+      </section>
       <button class="btn modal-ok hidden" id="btnEnhanceGuaranteed">確定強化石で強化する</button>
       <button class="btn ghost modal-ok" id="btnEnhanceLock">🔓 ロックする（分解から守る）</button>
       <button class="btn ghost modal-ok" id="btnEnhanceClose">とじる</button>
