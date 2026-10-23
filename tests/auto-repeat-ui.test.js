@@ -48,8 +48,9 @@ function setup() {
   };
   const runs = [{ finished: true, dungeon: { id: "plains", mode: "normal" } }, null, null, null];
   const started = [];
+  const pendingDungeons = [null, null, null, null];
   const context = vm.createContext({
-    document, S: state, teamRuns: runs,
+    document, S: state, teamRuns: runs, pendingDungeons,
     Runner: {
       canAutoRepeat: (id, mode) => {
         const cleared = mode === "hard" ? state.clearedHard
@@ -71,7 +72,7 @@ function setup() {
     const row = document.getElementById("autoRepeatRow");
     return { row, button: row.children.find((c) => c.tagName === "button") };
   }
-  return { state, runs, started, render };
+  return { state, runs, started, pendingDungeons, render };
 }
 
 test("自動周回ボタンは挑戦済みでも未踏破なら無効、踏破後に有効", () => {
@@ -120,4 +121,31 @@ test("描画後に状態が変わってもクリック時の再検証で不正�
   runs[0] = { finished: true, dungeon: { id: "forest", mode: "normal" } };
   next.click();
   assert.equal(started.length, 0, "描画時とは別のダンジョンへの切替も検知");
+});
+
+test("別ダンジョンを準備中は前回ダンジョンの自動周回が始まらない", () => {
+  const { state, pendingDungeons, render, started } = setup();
+  state.clearedDungeons.add("plains");
+  state.lastDungeons[0] = { id: "plains", mode: "normal" };
+  assert.equal(render().button.disabled, false);
+  pendingDungeons[0] = { id: "forest", mode: "normal" };
+  const out = render();
+  assert.equal(out.button.disabled, true);
+  assert.ok(out.row.children.some((node) => node.textContent.includes("行き先決定中")));
+  out.button.click();
+  assert.deepEqual(started, []);
+  assert.deepEqual(state.lastDungeons[0], { id: "plains", mode: "normal" });
+  pendingDungeons[0] = null;
+  render().button.click();
+  assert.deepEqual(started, [{ team: 0, id: "plains", mode: "normal" }]);
+});
+test("自動周回の表示後でも選択中の行き先が変われば誤出撃しない", () => {
+  const { state, pendingDungeons, render, started } = setup();
+  state.clearedDungeons.add("plains");
+  const button = render().button;
+  assert.equal(button.disabled, false);
+  pendingDungeons[0] = { id: "forest", mode: "normal" };
+  button.click();
+  assert.deepEqual(started, []);
+  assert.equal(state.autoRepeat[0].active, false);
 });
