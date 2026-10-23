@@ -129,7 +129,7 @@ test("特殊ジョブの解放: 販売開始（salesFrom）前・未定は並ば
 
 
 test("マイセット: 無料5枠から5枠単位で3回購入し最大20枠・4回目は拒否", () => {
-  const { state, shop } = setup();
+  const { state, shop } = setup(1);
   const sku = "preset_slots_5";
   assert.equal(shop.presetCapacity(), 5);
   assert.equal(shop.getProduct(sku).price, 480);
