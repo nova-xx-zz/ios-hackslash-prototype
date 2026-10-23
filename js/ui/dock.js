@@ -34,6 +34,8 @@ function renderDock() {
   const running = isTeamRunActive(S.activeTeam);
   const locked = isTeamLocked(S.activeTeam);
   const d = run ? run.dungeon : null;
+  const pending = pendingDungeons[S.activeTeam];
+  const pendingDungeon = pending && getModeDungeon(pending.id, pending.mode);
 
   const buffText = run
     ? Object.keys(run.buffs)
@@ -41,20 +43,30 @@ function renderDock() {
         .map((k) => `${STAT_LABELS[k]}+${Math.round(run.buffs[k] * 100)}%`)
         .join(" ")
     : "";
-  document.getElementById("exploreSub").textContent = d
-    ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
-    : "ダンジョン未選択";
-  document.getElementById("dockDungeon").textContent = d ? `${d.mode ? `【${getDungeonMode(d.mode).name}】` : ""}${d.name}` : "冒険者ギルド";
+  document.getElementById("exploreSub").textContent = pendingDungeon
+    ? `${pendingDungeon.name}　推奨Lv.${pendingDungeon.level}　出撃前（まだ戦闘は始まりません）`
+    : d
+      ? `${d.name}　${Math.min(run.battleIndex + 1, d.battles)}/${d.battles}戦目${buffText ? "　加護: " + buffText : ""}`
+      : "ダンジョン未選択";
+  const shownDungeon = pendingDungeon || d;
+  document.getElementById("dockDungeon").textContent = shownDungeon
+    ? `${shownDungeon.mode ? `【${getDungeonMode(shownDungeon.mode).name}】` : ""}${shownDungeon.name}`
+    : "冒険者ギルド";
   renderLogFeed(S.activeTeam);
-  document.getElementById("dockStatus").textContent = !d
-    ? "出発準備"
-    : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
-  const pct = d ? (Math.min(run.battleIndex + (running ? 0 : 1), d.battles) / d.battles) * 100 : 0;
+  document.getElementById("dockStatus").textContent = pending
+    ? "出撃待ち"
+    : !d ? "出発準備" : running ? "探索中…" : (run.wiped ? "失敗" : "踏破");
+  const pct = !pending && d ? (Math.min(run.battleIndex + (running ? 0 : 1), d.battles) / d.battles) * 100 : 0;
   document.getElementById("dockProgressFill").style.width = clamp(pct, 0, 100) + "%";
 
   const recentDungeon = S.lastDungeons && S.lastDungeons[S.activeTeam];
   const redeployTarget = d || recentDungeon;
-  document.getElementById("btnRedeploy").disabled = locked || !redeployTarget || teamMembers(S.activeTeam).length === 0;
+  const redeployButton = document.getElementById("btnRedeploy");
+  redeployButton.style.display = pending ? "none" : "";
+  redeployButton.disabled = locked || !redeployTarget || teamMembers(S.activeTeam).length === 0;
+  const prepareButton = document.getElementById("btnPrepareDeploy");
+  prepareButton.style.display = pending ? "" : "none";
+  prepareButton.disabled = !pending || locked || teamMembers(S.activeTeam).length === 0;
   document.getElementById("btnDockMap").disabled = locked;
   updateAutoDisassembleButton();
   renderDisassembleFilter();
@@ -102,8 +114,10 @@ function renderAutoRepeatRow() {
   const run = teamRuns[i];
   const locked = isTeamLocked(i);
   const last = S.lastDungeons && S.lastDungeons[i];
+  const pending = pendingDungeons[i];
   const destination = run && run.dungeon ? run.dungeon : last;
-  const canStart = !!(destination && teamMembers(i).length > 0 &&
+  // 新しい行き先を確認中は、過去のダンジョンで自動周回を誤開始させない。
+  const canStart = !!(!pending && destination && teamMembers(i).length > 0 &&
     Runner.canAutoRepeat(destination.id, destination.mode));
 
   const label = document.createElement("div");
@@ -149,8 +163,9 @@ function renderAutoRepeatRow() {
   btn.className = "btn small " + (ar.active ? "ghost" : "primary");
   btn.textContent = ar.active ? "停止" : "自動周回開始";
   btn.disabled = ar.active ? false : (locked || !canStart);
-  if (!ar.active && !canStart) btn.title = destination
-    ? "この難易度のダンジョンを1回クリアすると解放されます"
+  if (!ar.active && !canStart) btn.title = pending
+    ? "行き先を選択中です。まず出撃してください"
+    : destination ? "この難易度のダンジョンを1回クリアすると解放されます"
     : "先にダンジョンへ出撃してください";
   btn.addEventListener("click", () => {
     if (ar.active) {
@@ -160,6 +175,7 @@ function renderAutoRepeatRow() {
       return;
     }
     // 描画後に別の出撃状況へ変わっても、最新の踏破実績で再検証する。
+    if (pendingDungeons[i]) return;
     const currentRun = teamRuns[i];
     const recent = S.lastDungeons && S.lastDungeons[i];
     const selected = currentRun && currentRun.dungeon ? currentRun.dungeon : recent;
@@ -174,10 +190,10 @@ function renderAutoRepeatRow() {
     startDungeon(i, selected.id, { navigate: true, mode: selected.mode });
   });
   row.appendChild(btn);
-  if (!ar.active && destination && !canStart && teamMembers(i).length > 0) {
+  if (!ar.active && (pending || destination && !canStart) && teamMembers(i).length > 0) {
     const hint = document.createElement("div");
     hint.className = "auto-repeat-status";
-    hint.textContent = "この難易度を1回クリアすると解放";
+    hint.textContent = pending ? "行き先決定中：出撃してから周回できます" : "この難易度を1回クリアすると解放";
     row.appendChild(hint);
   }
 }
@@ -322,11 +338,20 @@ renderDisassembleFilter();
 updateAutoDisassembleButton();
 renderAutoRepeatRow();
 document.getElementById("btnRedeploy").addEventListener("click", () => {
+  if (pendingDungeons[S.activeTeam]) return;
   const run = teamRuns[S.activeTeam];
   const recent = S.lastDungeons && S.lastDungeons[S.activeTeam];
   const destination = run && run.dungeon ? run.dungeon : recent;
   if (isTeamLocked(S.activeTeam) || !destination || teamMembers(S.activeTeam).length === 0) return;
   startDungeon(S.activeTeam, destination.id, { navigate: true, mode: destination.mode });
+});
+document.getElementById("btnPrepareDeploy").addEventListener("click", () => {
+  const team = S.activeTeam;
+  const selected = pendingDungeons[team];
+  if (!selected || isTeamLocked(team) || teamMembers(team).length === 0) return;
+  const dungeon = getDungeon(selected.id);
+  if (!dungeon || !isDungeonModeOpen(dungeon, selected.mode)) return;
+  startDungeon(team, selected.id, { navigate: true, mode: selected.mode });
 });
 document.getElementById("btnDockMap").addEventListener("click", () => {
   openMap();
