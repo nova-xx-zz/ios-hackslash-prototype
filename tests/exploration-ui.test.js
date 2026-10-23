@@ -47,16 +47,20 @@ function setup() {
   const runs = [null, null, null, null];
   const locked = new Set();
   const routes = [];
+  const pendingDungeons = [null, null, null, null];
   const context = vm.createContext({
-    document, TEAM_COUNT: 4, S: { activeTeam: 0 }, teamRuns: runs,
+    document, TEAM_COUNT: 4, S: { activeTeam: 0 }, teamRuns: runs, pendingDungeons,
+    getModeDungeon: (id, mode) => ({ id, mode, name: "選択ダンジョン", level: 20 }),
+    getDungeonMode: (mode) => ({ name: mode === "normal" ? "ノーマル" : "ハード" }),
     teamMembers: (i) => members[i], activeParty: () => members[context.S.activeTeam],
     isTeamRunActive: (i) => !!runs[i]?.active, isTeamLocked: (i) => locked.has(i),
     // 未編成の時はパーティ編成の画面を直接開く（下のナビの「編成」は編成メニューを開くため）
     openPartyScreen: () => routes.push("party"),
   });
   document.getElementById("btnDockMap").addEventListener("click", () => routes.push("map"));
+  document.getElementById("btnPrepareDeploy").addEventListener("click", () => routes.push("depart"));
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui/log.js"), "utf8"), context);
-  return { context, elements, runs, locked, routes };
+  return { context, elements, runs, locked, routes, pendingDungeons };
 }
 
 test("待機中は出発案内を表示し、ログの追記先には案内を入れない", () => {
@@ -110,4 +114,23 @@ test("出発案内は編成状況に応じた既存導線を開き、探索ロ�
   locked.add(1);
   e.btnExploreEmbark.click();
   assert.deepEqual(routes, ["map", "party"]);
+});
+
+test("別ダンジョンを選択したら前回の戦闘ログではなく出撃準備画面を表示", () => {
+  const { context: c, elements: e, runs, routes, pendingDungeons } = setup();
+  runs[0] = { active: false };
+  c.logEvent(0, "start", "前回の戦闘", "前回のダンジョン");
+  pendingDungeons[0] = { id: "forest", mode: "hard" };
+  c.renderLogFeed(0);
+  assert.equal(e.exploreWelcome.classList.contains("hidden"), false);
+  assert.equal(e.logFeed.classList.contains("hidden"), true);
+  assert.equal(e.exploreWelcomeTitle.textContent, "選択ダンジョン");
+  assert.equal(e.exploreState.textContent, "出撃待ち");
+  assert.match(e.exploreWelcomeCopy.textContent, /出撃ボタンを押すまで探索は始まりません/);
+  assert.equal(e.exploreEmbarkLabel.textContent, "選んだダンジョンへ出撃");
+  e.btnExploreEmbark.click();
+  assert.deepEqual(routes, ["depart"]);
+  pendingDungeons[0] = null;
+  c.renderLogFeed(0);
+  assert.equal(e.exploreWelcome.classList.contains("hidden"), true);
 });
