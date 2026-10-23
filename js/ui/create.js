@@ -19,18 +19,24 @@ function openCreateScreen(returnScreen) {
   draft = { name: r.name, race: r.race, job: r.job };
   renderCreateScreen();
   showScreen("screen-create");
+  document.getElementById("createBody").scrollTop = 0; // 新規作成時は必ず名前欄から表示
 }
 
 function renderCreateScreen() {
   const wrap = document.getElementById("createBody");
   wrap.innerHTML = "";
 
-  // 名前
+  // 名前入力は編集可能なまま、装飾枠と羽ペンを独立したUIとして構成する。
   const nameField = document.createElement("div");
-  nameField.className = "create-row create-row-name";
-  nameField.innerHTML = '<div class="cr-heading"><span class="cr-symbol cr-name" aria-hidden="true">✒</span><label class="cr-label" for="createName">なまえ</label></div>';
+  nameField.className = "create-row create-row-name create-ornate";
+  const nameHeading = document.createElement("div");
+  nameHeading.className = "cr-heading";
+  nameHeading.innerHTML = "<span class=\"cr-name-symbol\"><svg viewBox=\"0 0 44 44\" aria-hidden=\"true\"><path d=\"M8 36C18 29 22 24 34 7c-2 15-10 25-24 29l-4 4\" fill=\"#e8d2a1\" stroke=\"#d2ab64\" stroke-width=\"1.2\"/><path d=\"M13 31 29 13M19 26l-6-1M24 21l-1-6\" fill=\"none\" stroke=\"#573b1c\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg></span><label class=\"cr-label\" for=\"createName\">なまえ</label>";
+  nameField.appendChild(nameHeading);
   const nameRow = document.createElement("div");
   nameRow.className = "name-row";
+  const inputShell = document.createElement("div");
+  inputShell.className = "create-name-input-shell";
   const input = document.createElement("input");
   input.className = "name-input";
   input.id = "createName";
@@ -43,43 +49,49 @@ function renderCreateScreen() {
     draft.name = input.value;
     updateCreatePreview();
   });
-  nameRow.appendChild(input);
-  const dice = document.createElement("button");
-  dice.type = "button";
-  dice.className = "pick-chip create-name-reroll";
-  dice.textContent = "別の名前";
-  dice.addEventListener("click", () => {
+  inputShell.appendChild(input);
+  const nameDice = document.createElement("span");
+  nameDice.className = "create-name-dice";
+  nameDice.setAttribute("aria-hidden", "true");
+  nameDice.innerHTML = "<svg viewBox=\"0 0 34 34\" aria-hidden=\"true\"><path d=\"m17 2 13 7v16l-13 7-13-7V9Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"m17 17 13-8M17 17 4 9M17 17v15\" stroke=\"currentColor\" stroke-width=\"1.4\"/><circle cx=\"10\" cy=\"12\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"22\" cy=\"12\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"24\" cy=\"23\" r=\"1.4\" fill=\"currentColor\"/><circle cx=\"11\" cy=\"23\" r=\"1.4\" fill=\"currentColor\"/></svg>";
+  inputShell.appendChild(nameDice);
+  nameRow.appendChild(inputShell);
+  const reroll = document.createElement("button");
+  reroll.type = "button";
+  reroll.className = "pick-chip create-name-reroll";
+  reroll.textContent = "別の名前";
+  reroll.addEventListener("click", () => {
     draft.name = rollNewRecruit().name;
     renderCreateScreen();
   });
-  nameRow.appendChild(dice);
+  nameRow.appendChild(reroll);
   nameField.appendChild(nameRow);
   wrap.appendChild(nameField);
 
-  // 種族
+  // 種族・ジョブの情報は変えず、紋章と金縁の選択帯で表現する。
   wrap.appendChild(buildCreatePickRow("しゅぞく", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race"), "race", draft.race));
-
-  // ジョブ
   const jobSub = JOBS[draft.job].abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
   wrap.appendChild(buildCreatePickRow("ジョブ", JOBS[draft.job].name, jobSub, () => openCreatePick("job"), "job", draft.job));
 
-  // プレビュー
+  const previewShell = document.createElement("div");
+  previewShell.className = "create-preview-shell create-ornate";
   const previewLabel = document.createElement("div");
   previewLabel.className = "create-section-label";
-  previewLabel.textContent = "登録プレビュー";
-  wrap.appendChild(previewLabel);
+  previewLabel.textContent = "プレビュー";
+  previewShell.appendChild(previewLabel);
   const box = document.createElement("div");
   box.className = "preview-box";
   box.id = "createPreview";
   box.setAttribute("aria-live", "polite");
-  wrap.appendChild(box);
+  previewShell.appendChild(box);
+  wrap.appendChild(previewShell);
   updateCreatePreview();
 }
 
 function buildCreatePickRow(label, value, sub, onClick, kind, id) {
   const row = document.createElement("button");
   row.type = "button";
-  row.className = "create-row create-pick-row";
+  row.className = "create-row create-pick-row create-ornate";
   row.setAttribute("aria-label", `${label}：${value}。変更する`);
   const symbol = document.createElement("span");
   symbol.className = "cr-symbol cr-" + kind;
@@ -88,19 +100,31 @@ function buildCreatePickRow(label, value, sub, onClick, kind, id) {
   else symbol.textContent = RACES[id].icon || "✦";
   const main = document.createElement("span");
   main.className = "cr-main";
-  for (const [className, text] of [["cr-label", label], ["cr-value", value], ["cr-sub", sub]]) {
-    const el = document.createElement("span");
-    el.className = className;
-    el.textContent = text;
-    main.appendChild(el);
-  }
-  const chevron = document.createElement("span");
-  chevron.className = "cr-chev";
-  chevron.setAttribute("aria-hidden", "true");
-  chevron.textContent = "›";
+  const head = document.createElement("span");
+  head.className = "cr-top";
+  const title = document.createElement("span");
+  title.className = "cr-label";
+  title.textContent = label;
+  const select = document.createElement("span");
+  select.className = "cr-select-box";
+  const valueSpan = document.createElement("span");
+  valueSpan.className = "cr-value";
+  valueSpan.textContent = value;
+  const chev = document.createElement("span");
+  chev.className = "cr-chev";
+  chev.setAttribute("aria-hidden", "true");
+  chev.textContent = "›";
+  select.appendChild(valueSpan);
+  select.appendChild(chev);
+  head.appendChild(title);
+  head.appendChild(select);
+  const desc = document.createElement("span");
+  desc.className = "cr-sub";
+  desc.textContent = sub;
+  main.appendChild(head);
+  main.appendChild(desc);
   row.appendChild(symbol);
   row.appendChild(main);
-  row.appendChild(chevron);
   row.addEventListener("click", onClick);
   return row;
 }
@@ -215,6 +239,7 @@ function updateCreatePreview() {
   const abilities = availableAbilities(preview).map((a) => a.name);
   const stats = [["HP", s.maxHp], ["MP", s.maxMp], ["ATK", s.atk], ["MAG", s.mag], ["DEF", s.def], ["SPD", Math.round(s.spd * 10) / 10]];
   box.innerHTML = `
+    <div class="pv-art" aria-hidden="true"></div>
     <div class="pv-profile">
       <div class="pv-name">${escapeHtml(draft.name || "ななし")} <span class="pv-role">— ${escapeHtml(race.name)}・${escapeHtml(JOBS[draft.job].name)}</span></div>
       <span class="pv-level">Lv.${preview.level}</span>
