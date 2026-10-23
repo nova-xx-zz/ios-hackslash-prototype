@@ -381,7 +381,9 @@ document.getElementById("btnDisassembleConfirm").addEventListener("click", () =>
 // 装備セクション（枠をタップで所持品から選ぶ）
 let openSlot = null; // "charId:枠のkey"
 let unequipAllConfirmCharId = null;
+let unequipAllConfirmUntil = 0;
 let overwriteEquipmentSetConfirm = null;
+let overwriteEquipmentSetUntil = 0;
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
@@ -465,13 +467,14 @@ function buildEquipSection(c) {
   if (EQUIP_POSITIONS.some((pos) => !!c.equip[pos.key])) {
     const removeAll = document.createElement("button");
     removeAll.className = "equip-choice equip-unequip-all";
-    const confirming = unequipAllConfirmCharId === c.id;
+    const confirming = unequipAllConfirmCharId === c.id && Date.now() < unequipAllConfirmUntil;
     removeAll.textContent = confirming ? "もう一度押すと装備をすべて外します" : "装備をすべて外す";
     removeAll.disabled = c.team !== null && isTeamLocked(c.team);
     removeAll.addEventListener("click", () => {
       if (c.team !== null && isTeamLocked(c.team)) return;
-      if (unequipAllConfirmCharId !== c.id) {
+      if (unequipAllConfirmCharId !== c.id || Date.now() >= unequipAllConfirmUntil) {
         unequipAllConfirmCharId = c.id;
+        unequipAllConfirmUntil = Date.now() + 10000;
         armConfirm();
         renderCharDetail();
         return;
@@ -479,6 +482,7 @@ function buildEquipSection(c) {
       if (!confirmReady()) return;
       for (const pos of EQUIP_POSITIONS) if (c.equip[pos.key]) unequipSlot(c, pos.key);
       unequipAllConfirmCharId = null;
+      unequipAllConfirmUntil = 0;
       openSlot = null;
       saveGame();
       renderCharDetail();
@@ -504,11 +508,12 @@ function buildEquipSection(c) {
     const save = document.createElement("button");
     save.className = "equip-choice";
     const overwriteKey = c.id + ":" + slotIndex;
-    save.textContent = preset && overwriteEquipmentSetConfirm === overwriteKey ? "上書きを確定" : "保存";
+    save.textContent = preset && overwriteEquipmentSetConfirm === overwriteKey && Date.now() < overwriteEquipmentSetUntil ? "上書きを確定" : "保存";
     save.disabled = c.team !== null && isTeamLocked(c.team);
     save.addEventListener("click", () => {
-      if (preset && overwriteEquipmentSetConfirm !== overwriteKey) {
+      if (preset && (overwriteEquipmentSetConfirm !== overwriteKey || Date.now() >= overwriteEquipmentSetUntil)) {
         overwriteEquipmentSetConfirm = overwriteKey;
+        overwriteEquipmentSetUntil = Date.now() + 10000;
         armConfirm();
         renderCharDetail();
         return;
@@ -516,6 +521,7 @@ function buildEquipSection(c) {
       if (preset && !confirmReady()) return;
       const result = saveEquipmentSet(c, slotIndex);
       overwriteEquipmentSetConfirm = null;
+      overwriteEquipmentSetUntil = 0;
       flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}を保存しました` :
         "装備を1つ以上付けてください（IDのない装備は登録できません）");
       if (result.ok) saveGame();
