@@ -28,7 +28,7 @@ test("UIはギルド見出し・下部固定ボタン・iOSの16px入力・狭�
 });
 
 test("種族ジョブの選択カードをクリックでき、表示文言はtextContent", () => {
-  const start = create.indexOf("function buildCreatePickRow(");
+  const start = create.indexOf("function createRaceInsignia(");
   const end = create.indexOf("function statStars(", start);
   assert.ok(start >= 0 && end > start);
   class El {
