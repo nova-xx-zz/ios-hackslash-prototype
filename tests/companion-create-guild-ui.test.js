@@ -93,8 +93,8 @@ test("v2: 装飾付き選択帯・登録プレビュー・名前入力のスク�
 test("参考画像v3: コンパクトカード・紋章・2列プレビューとスマホ対応", () => {
   const reference = fs.readFileSync(path.join(__dirname, "../css/create-reference.css"), "utf8");
   assert.match(html, /css\/create-reference\.css\?v=2/);
-  assert.match(reference, /grid-template-columns:55px minmax\(0,1fr\)/);
-  assert.match(reference, /grid-template-columns:65px minmax\(0,1fr\)/);
+  assert.match(reference, /grid-template-columns:45px minmax\(0,1fr\)/);
+  assert.match(reference, /grid-template-columns:53px minmax\(0,1fr\)/);
   assert.match(reference, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(reference, /#screen-create \.pv-art\s*\{[^}]*z-index:0;/s);
   assert.match(reference, /@media\(max-width:385px\)/);
