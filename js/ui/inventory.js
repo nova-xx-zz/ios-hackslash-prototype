@@ -548,7 +548,11 @@ function buildEquipSection(c) {
     load.disabled = !preset || c.team !== null && isTeamLocked(c.team);
     load.addEventListener("click", () => {
       const result = applyEquipmentSet(c, slotIndex);
-      const messages = { missing: "登録した装備が所持品にないか、他の仲間が装備しています",
+      const messages = {
+        missing: "登録した装備が見つかりません。分解・移動の有無を確認してください",
+        taken: "登録した装備は別の仲間が装備中です。外してから呼び出してください",
+        duplicate: "装備IDに重複があります。セットを再登録してください",
+        ambiguous: "旧データで同じ装備IDが重複しています。装備を確認してセットを再登録してください",
         job: "現在のジョブや装備枠では装着できません", locked: "探索中のため変更できません" };
       flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}に切り替えました` :
         messages[result.reason] || "装備マイセットを呼び出せません");

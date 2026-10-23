@@ -102,7 +102,7 @@ test("マイセット: 装備が別キャラの手元なら失敗し、所持品
   inv.equipItem(other, sword, "main");
   const before = state.inventory.slice();
   const result = inv.applyEquipmentSet(c, 0);
-  assert.deepEqual(result, { ok: false, reason: "missing" });
+  assert.deepEqual(result, { ok: false, reason: "taken" });
   assert.deepEqual(state.inventory, before);
   assert.equal(c.equip.main, null);
   assert.equal(other.equip.main, sword);
@@ -123,7 +123,7 @@ test("マイセット: 旧ジョブの装備制約・盗難ID/重複IDを弾い�
   assert.deepEqual(state.inventory, before);
   const duplicate = item("bronze_sword", "dup-sword");
   state.inventory.push(duplicate);
-  assert.deepEqual(inv.applyEquipmentSet(c, 0), { ok: false, reason: "missing" });
+  assert.deepEqual(inv.applyEquipmentSet(c, 0), { ok: false, reason: "duplicate" });
   assert.equal(c.equip.main, null);
 });
 
@@ -140,4 +140,68 @@ test("保存データ: マイセットから未知枠・余分なセット・不
   assert.equal(loaded.c1[1].slots.head, null);
   assert.equal(loaded.c1[2].slots.body, "body1");
   assert.equal(loaded.unknown, undefined);
+});
+
+
+test("旧連番ID衝突: 別々の仲間が同じIDの装備を着けても両マイセットを復旧", () => {
+  const { state, roster } = setup();
+  const a = roster.newCharacter("アレン", "warrior", "human");
+  const b = roster.newCharacter("ノア", "warrior", "human");
+  state.roster.push(a, b);
+  a.equip.main = item("bronze_sword", "item_1", { plus: 10 });
+  b.equip.main = item("bronze_sword", "item_1", { plus: 25 });
+  state.equipmentSets[a.id] = [{ slots: { main: "item_1" } }];
+  state.equipmentSets[b.id] = [{ slots: { main: "item_1" } }];
+  const migrated = save.deserialize(JSON.parse(JSON.stringify(save.serialize(state, {}))), {}).state;
+  const ma = migrated.roster.find((c) => c.id === a.id);
+  const mb = migrated.roster.find((c) => c.id === b.id);
+  assert.notEqual(ma.equip.main.id, mb.equip.main.id);
+  assert.equal(migrated.equipmentSets[a.id][0].slots.main, ma.equip.main.id);
+  assert.equal(migrated.equipmentSets[b.id][0].slots.main, mb.equip.main.id);
+  const inventory = createInventory({ data, state: migrated, roster: createRoster({ data, state: migrated }),
+    rng: createRng(1), isTeamLocked: () => false });
+  assert.deepEqual(inventory.applyEquipmentSet(ma, 0), { ok: true });
+  assert.deepEqual(inventory.applyEquipmentSet(mb, 0), { ok: true });
+  assert.equal(ma.equip.main.plus, 10);
+  assert.equal(mb.equip.main.plus, 25);
+  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize({ ...migrated, autoRepeat: [] }, {}))), {}).state;
+  assert.equal(again.equipmentSets[b.id][0].slots.main, again.roster.find((c) => c.id === b.id).equip.main.id);
+});
+
+test("旧連番ID衝突: 装備中と所持品のIDが重複しても保存時の実物を復元", () => {
+  const { state, roster } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
+  c.equip.main = item("bronze_sword", "item_1", { plus: 9 });
+  state.inventory.push(item("bronze_sword", "item_1", { plus: 20 }));
+  state.equipmentSets[c.id] = [{ slots: { main: "item_1" } }];
+  const loaded = save.deserialize(JSON.parse(JSON.stringify(save.serialize(state, {}))), {}).state;
+  const owner = loaded.roster[0];
+  const presetId = loaded.equipmentSets[c.id][0].slots.main;
+  assert.equal(presetId, owner.equip.main.id);
+  assert.notEqual(presetId, loaded.inventory[0].id);
+  const inv = createInventory({ data, state: loaded, roster: createRoster({ data, state: loaded }),
+    rng: createRng(1), isTeamLocked: () => false });
+  inv.unequipSlot(owner, "main");
+  assert.deepEqual(inv.applyEquipmentSet(owner, 0), { ok: true });
+  assert.equal(owner.equip.main.plus, 9);
+  assert.equal(loaded.inventory[0].plus, 20);
+});
+
+test("旧連番ID衝突: 保存時の装備を特定できなければ誤装備せず再登録を案内", () => {
+  const { state, roster } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
+  state.inventory.push(item("bronze_sword", "item_1", { plus: 9 }),
+    item("bronze_sword", "item_1", { plus: 20 }));
+  state.equipmentSets[c.id] = [{ slots: { main: "item_1" } }];
+  const loaded = save.deserialize(JSON.parse(JSON.stringify(save.serialize(state, {}))), {}).state;
+  const inv = createInventory({ data, state: loaded, roster: createRoster({ data, state: loaded }),
+    rng: createRng(1), isTeamLocked: () => false });
+  assert.equal(new Set(loaded.inventory.map((gear) => gear.id)).size, 2);
+  assert.equal(inv.applyEquipmentSet(loaded.roster[0], 0).reason, "ambiguous");
+  assert.equal(loaded.roster[0].equip.main, null);
+  assert.equal(loaded.inventory.length, 2);
+  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize({ ...loaded, autoRepeat: [] }, {}))), {}).state;
+  assert.equal(again.equipmentSets[c.id][0].slots.main, loaded.equipmentSets[c.id][0].slots.main);
 });

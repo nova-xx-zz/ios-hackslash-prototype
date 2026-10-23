@@ -311,7 +311,7 @@ function rollUniqueDrop(level, opts) {
   const region = regionForLevel(opts.regionLevel || level);
   const pool = UNIQUE_ITEMS.filter((u) => u.region === region);
   const from = RARITIES.findIndex((r) => r.key === UNIQUE_MIN_RARITY);
-  const item = QPCore.rewards.rollItem(pool, RARITIES.slice(from), RNG, () => "item_" + itemSeq++,
+  const item = QPCore.rewards.rollItem(pool, RARITIES.slice(from), RNG, nextItemId,
     { level: level || 1, levelGrowth: ITEM_LEVEL_GROWTH });
   return addItemOptions(item, opts.mode);
 }

@@ -1733,6 +1733,12 @@ const STAT_LABELS = { hp: "HP", mp: "MP", atk: "ATK", mag: "MAG", def: "DEF", sp
 const ITEM_LEVEL_GROWTH = 0.12;
 
 let itemSeq = 1;
+// アイテムIDはセーブをまたいで一意である必要がある。
+// 旧方式 item_1, item_2... は再起動のたびに1へ戻り、装備マイセット等の参照が衝突していた。
+const itemSessionId = typeof globalThis.crypto !== "undefined" && typeof globalThis.crypto.randomUUID === "function"
+  ? globalThis.crypto.randomUUID().replace(/-/g, "")
+  : Date.now().toString(36) + "_" + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(36);
+function nextItemId() { return "item_" + itemSessionId + "_" + itemSeq++; }
 // level: 装備のレベル（拾ったダンジョンの推奨Lv）。minRarity: このレア度以上だけから抽選する（レア敵のドロップ）
 // 落ちる装備の部位の重み（装飾品は1人3枠まで付けるので多め、盾は持てるジョブが少ないので少なめ）
 const ITEM_DROP_SLOT_WEIGHTS = { weapon: 22, shield: 10, head: 15, body: 15, accessory: 38 };
@@ -1752,7 +1758,7 @@ function rollItemDrop(level, minRarity, opts) {
     roll -= ITEM_DROP_SLOT_WEIGHTS[k];
   }
   const bases = ITEM_BASES.filter((b) => b.series === series.key && b.slot === slot);
-  const item = QPCore.rewards.rollItem(bases, RARITIES.slice(Math.max(0, from)), RNG, () => "item_" + itemSeq++,
+  const item = QPCore.rewards.rollItem(bases, RARITIES.slice(Math.max(0, from)), RNG, nextItemId,
     { level: level || 1, levelGrowth: ITEM_LEVEL_GROWTH });
   return addItemOptions(item, opts.mode);
 }

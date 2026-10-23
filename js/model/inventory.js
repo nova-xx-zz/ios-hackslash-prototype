@@ -158,7 +158,15 @@
         const id = set.slots[p];
         if (id == null) continue;
         const item = byId.get(id);
-        if (!item || chosen.has(item)) return { ok: false, reason: "missing" };
+        if (!item || chosen.has(item)) {
+          if (typeof id === "string" && id.startsWith("__ambiguous_equipment_set__")) {
+            return { ok: false, reason: "ambiguous" };
+          }
+          if (byId.has(id) || chosen.has(item)) return { ok: false, reason: "duplicate" };
+          const wornByOther = S.roster.some((other) => other !== c &&
+            Object.values(other.equip || {}).some((gear) => gear && gear.id === id));
+          return { ok: false, reason: wornByOther ? "taken" : "missing" };
+        }
         next[p] = item;
         chosen.add(item);
       }
