@@ -521,6 +521,7 @@ test("マイセット: 初期5枠、5枠パック解放後は20枠まで保存�
   const { createShop } = require("../js/model/shop.js");
   const shop = createShop({ data, state, now: () => 1000 });
   const c = roster.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
   const sword = item("weapon", "atk", 5);
   state.inventory.push(sword);
   assert.equal(inv.equipItem(c, sword), true);
