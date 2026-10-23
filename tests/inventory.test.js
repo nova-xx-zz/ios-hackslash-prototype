@@ -18,6 +18,7 @@ function setup(opts) {
   const mirror = [];
   const inv = createInventory({
     data, state, roster, isFeatureEnabled,
+    isTeamLocked: opts.isTeamLocked || (() => false),
     rng: opts.rng || createRng(1),
     onMaterialChange: (m) => mirror.push(m),
   });
@@ -256,6 +257,83 @@ test("確定強化石: 無償分から消費して必ず+1。足りない／機�
   const off = setup({ flags: { guaranteedStone: false } });
   off.state.guaranteedStones = { free: 999, paid: 0 };
   assert.equal(off.inv.enhanceWithGuaranteed(item("weapon", "atk", 5, "n")), null);
+});
+
+
+test("一括強化: +14を通常石500個以内で狙い、成功時は必要な分だけ消費する", () => {
+  const { state, inv, mirror } = setup({ rng: { chance: () => true } });
+  const it = item("weapon", "atk", 10, "n");
+  state.inventory.push(it);
+  state.material = 2000;
+  state.guaranteedStones = { free: 2, paid: 7 };
+  const res = inv.enhanceToTarget(it, 14, 500);
+  assert.deepEqual([res.reason, res.fromPlus, res.plus], ["target", 0, 14]);
+  assert.deepEqual([res.attempts, res.successes, res.failures, res.spent], [14, 14, 0, 42]);
+  assert.equal(state.material, 1958);
+  assert.equal(mirror.at(-1), state.material);
+  assert.deepEqual(state.guaranteedStones, { free: 2, paid: 7 }, "有償・無償の確定強化石は一切使用しない");
+});
+
+test("一括強化: +14未到達でも500個を絶対に超えず、失敗分の天井を持ち越す", () => {
+  const { state, inv } = setup({ rng: alwaysFail });
+  const it = item("weapon", "atk", 10, "lr");
+  state.inventory.push(it);
+  state.material = 10000;
+  const res = inv.enhanceToTarget(it, 14, 500);
+  assert.equal(res.reason, "budget");
+  assert.equal(res.plus, 0);
+  assert.equal(res.attempts, 3);
+  assert.equal(res.successes, 0);
+  assert.equal(res.failures, 3);
+  assert.equal(res.spent, 450);
+  assert.equal(it.pity, 450);
+  assert.equal(state.material, 9550);
+  assert.ok(res.spent <= 500);
+});
+
+test("一括強化: 強化石不足と消費上限の手前で停止し、余分な抽選をしない", () => {
+  let tries = 0;
+  const { state, inv } = setup({ rng: { chance: () => { tries++; return true; } } });
+  const it = item("weapon", "atk", 10, "n");
+  state.inventory.push(it);
+  state.material = 5;
+  const r1 = inv.enhanceToTarget(it, 14, 500);
+  assert.equal(r1.reason, "material");
+  assert.deepEqual([r1.attempts, r1.spent, it.plus, state.material, tries], [1, 3, 1, 2, 1]);
+
+  const noBudget = inv.enhanceToTarget(it, 14, 2);
+  assert.deepEqual([noBudget.reason, noBudget.attempts, noBudget.spent, it.plus, tries], ["budget", 0, 0, 1, 1]);
+  assert.equal(state.material, 2);
+});
+
+test("一括強化: 不正な目標・上限・未所持品・探索中装備を拒否する", () => {
+  const { state, roster, inv } = setup({ rng: { chance: () => true }, isTeamLocked: () => true });
+  const it = item("weapon", "atk", 10, "n");
+  state.inventory.push(it);
+  state.material = 1000;
+  assert.equal(inv.ENHANCE_BATCH_BUDGET_MAX, 500);
+  for (const [goal, budget] of [[0, 500], [100, 500], [14.5, 500], [14, 0], [14, 501], [14, 1.3], [14, NaN], [14, -1]]) {
+    assert.equal(inv.enhanceToTarget(it, goal, budget), null);
+  }
+  assert.equal(inv.enhanceToTarget(item("weapon", "atk", 10, "n"), 14, 500), null);
+  const owner = roster.newCharacter("アレン", "warrior", "human", { team: 0 });
+  state.roster.push(owner);
+  assert.equal(inv.equipItem(owner, it), true);
+  assert.equal(inv.canBatchEnhance(it), false);
+  assert.equal(inv.enhanceToTarget(it, 14, 500), null);
+  assert.equal(state.material, 1000);
+  assert.equal(it.plus, 0);
+});
+
+test("一括強化: 現在+13から目標+14で停止し、次回は同じ目標を受け付けない", () => {
+  const { state, inv } = setup({ rng: { chance: () => true } });
+  const it = item("weapon", "atk", 10, "n", 13);
+  state.inventory.push(it);
+  state.material = 500;
+  const out = inv.enhanceToTarget(it, 14, 500);
+  assert.deepEqual([out.reason, out.attempts, out.plus], ["target", 1, 14]);
+  assert.equal(inv.enhanceToTarget(it, 14, 500), null);
+  assert.equal(inv.enhanceToTarget(it, 15, 500).reason, "target");
 });
 
 test("ドロップの受け取り: 自動分解の対象は強化石に、それ以外は所持品に入る", () => {

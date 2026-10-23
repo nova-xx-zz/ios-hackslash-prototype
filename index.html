@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=49">
+<link rel="stylesheet" href="css/style.css?v=50">
 </head>
 <body>
 <div id="app">
@@ -462,7 +462,27 @@
       <div class="modal-desc" id="enDesc"></div>
       <div class="modal-stats" id="enStats"></div>
       <div class="enhance-result" id="enResult"></div>
-      <button class="btn primary modal-ok" id="btnEnhanceGo">強化する</button>
+      <button class="btn primary modal-ok" id="btnEnhanceGo">1回強化する</button>
+      <section class="enhance-batch-box" aria-label="一括強化">
+        <div class="enhance-batch-heading">目標まで一括強化 <span>通常の強化石のみ</span></div>
+        <div class="enhance-batch-fields">
+          <label for="enBatchTarget">目標強化値
+            <input id="enBatchTarget" type="number" inputmode="numeric" min="1" max="99" step="1" value="14">
+          </label>
+          <label for="enBatchBudget">消費上限（個）
+            <input id="enBatchBudget" type="number" inputmode="numeric" min="1" max="500" step="1" value="500">
+          </label>
+        </div>
+        <div class="enhance-batch-presets" aria-label="強化目標の候補">
+          <button class="btn small ghost" type="button" id="enBatchPreset5" data-enhance-target="5">+5</button>
+          <button class="btn small ghost" type="button" id="enBatchPreset10" data-enhance-target="10">+10</button>
+          <button class="btn small ghost" type="button" id="enBatchPreset14" data-enhance-target="14">+14</button>
+          <button class="btn small ghost" type="button" id="enBatchPreset20" data-enhance-target="20">+20</button>
+        </div>
+        <p class="enhance-batch-hint" id="enBatchHint">失敗時も強化石を消費。500個を超える前に停止します。</p>
+        <button class="btn primary modal-ok" id="btnEnhanceBatch" type="button">目標まで一括強化</button>
+        <div class="enhance-result" id="enBatchResult" aria-live="polite"></div>
+      </section>
       <button class="btn modal-ok hidden" id="btnEnhanceGuaranteed">確定強化石で強化する</button>
       <button class="btn ghost modal-ok" id="btnEnhanceLock">🔓 ロックする（分解から守る）</button>
       <button class="btn ghost modal-ok" id="btnEnhanceClose">とじる</button>
@@ -505,7 +525,7 @@
 <script src="js/model/shop.js?v=3"></script>
 <script src="js/model/save.js?v=11"></script>
 <script src="js/model/roster.js?v=11"></script>
-<script src="js/model/inventory.js?v=11"></script>
+<script src="js/model/inventory.js?v=12"></script>
 <script src="js/model/run.js?v=16"></script>
 <script src="js/firebase-config.js?v=1"></script>
 <script src="js/cloud.js?v=5"></script>
@@ -516,7 +536,7 @@
 <script src="js/ui/state.js?v=3"></script>
 <script src="js/ui/insignia.js?v=3"></script>
 <script src="js/ui/announcements.js?v=1"></script>
-<script src="js/ui/models.js?v=20"></script>
+<script src="js/ui/models.js?v=21"></script>
 <script src="js/ui/offline.js?v=4"></script>
 <script src="js/ui/title-map.js?v=13"></script>
 <script src="js/contact-config.js?v=1"></script>
@@ -528,7 +548,7 @@
 <script src="js/ui/detail.js?v=4"></script>
 <script src="js/ui/detail-tree.js?v=4"></script>
 <script src="js/ui/detail-tabs.js?v=13"></script>
-<script src="js/ui/inventory.js?v=12"></script>
+<script src="js/ui/inventory.js?v=13"></script>
 <script src="js/ui/battle.js?v=6"></script>
 <script src="js/ui/log.js?v=3"></script>
 <script src="js/ui/dock.js?v=11"></script>

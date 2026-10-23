@@ -169,6 +169,8 @@ const Inventory = QPModel.inventory.createInventory({
   roster: Roster,
   rng: RNG,
   isFeatureEnabled,
+  // 一括強化の実行時も探索中チームの装備は変更させない。
+  isTeamLocked: (team) => isTeamLocked(team),
   onMaterialChange: (material) => store.set(KEYS.material, material), // 旧キーは互換ミラー
 });
 const {

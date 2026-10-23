@@ -1507,6 +1507,30 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .enhance-result.success { background: rgba(77,195,122,0.18); color: #7dffb0; }
 .enhance-result.fail { background: rgba(255,77,94,0.15); color: #ff9aa6; }
 
+/* 一括強化: モバイルでも目標と上限を同時に確認できる。 */
+.enhance-batch-box {
+  margin-top: 14px; padding: 12px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+.enhance-batch-heading { font-size: 13px; font-weight: 700; }
+.enhance-batch-heading span { display: block; margin-top: 3px; color: var(--sub-text); font-size: 11px; font-weight: 400; }
+.enhance-batch-fields { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 12px; }
+.enhance-batch-fields label { min-width: 0; color: var(--sub-text); font-size: 11px; }
+.enhance-batch-fields input {
+  box-sizing: border-box; display: block; width: 100%; min-width: 0;
+  margin-top: 5px; padding: 10px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--panel-bg);
+  color: var(--text); font-size: 16px;
+}
+.enhance-batch-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.enhance-batch-presets .btn { flex: 1 1 45px; margin: 0; }
+.enhance-batch-presets .btn.selected { border-color: var(--accent); color: var(--accent); }
+.enhance-batch-hint { margin: 9px 0 0; font-size: 11px; line-height: 1.6; color: var(--sub-text); }
+.enhance-batch-box .modal-ok { margin-top: 10px; }
+.enhance-batch-box .enhance-result { white-space: pre-line; overflow-wrap: anywhere; }
+@media (max-width: 355px) { .enhance-batch-box { padding: 9px; } }
+
 /* drops */
 .drop-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 8px; background: rgba(255,255,255,0.06); border-radius: 8px; font-size: 11.5px; }
 .drop-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }

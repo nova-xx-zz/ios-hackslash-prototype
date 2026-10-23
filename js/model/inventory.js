@@ -23,6 +23,9 @@
     const sameRaceMult = deps.data.FUSION_SAME_RACE_MULT || 1;
     const isFeatureEnabled = deps.isFeatureEnabled || (() => false);
     const onMaterialChange = deps.onMaterialChange || (() => {});
+    const isTeamLocked = deps.isTeamLocked || (() => false);
+    // 1回の一括強化で消費してよい通常強化石の上限。課金石は対象外。
+    const ENHANCE_BATCH_BUDGET_MAX = 500;
 
     // ---------- 装備 ----------
     function clampVitals(c) {
@@ -133,6 +136,49 @@
       item.plus = result.plus;
       item.pity = result.pity;
       return { success: result.success, plus: result.plus, pityHit: !!result.pityHit, cost: result.cost };
+    }
+
+    // 一括強化は所持中の装備のみ。探索中チームの装備・セーブ外の偽アイテムは除外する。
+    function canBatchEnhance(item) {
+      if (!item || !Number.isSafeInteger(item.plus) || item.plus < 0 || item.plus >= ENHANCE_MAX_PLUS) return false;
+      if (S.inventory.includes(item)) return true;
+      for (const owner of S.roster) {
+        if (!Object.values(owner.equip || {}).includes(item)) continue;
+        return owner.team == null || !isTeamLocked(owner.team);
+      }
+      return false;
+    }
+
+    // 目標まで、通常の1回強化を同じルールで繰り返す。
+    // 各抽選の前に「その1回を払うと消費上限を超えないか」を検証し、超える場合は抽選しない。
+    // 成功率・天井・通常石の消費は enhanceItem に集約し、確定強化石には触れない。
+    function enhanceToTarget(item, targetPlus, maxSpend) {
+      if (!canBatchEnhance(item) ||
+          !Number.isSafeInteger(targetPlus) || targetPlus <= item.plus || targetPlus > ENHANCE_MAX_PLUS ||
+          !Number.isSafeInteger(maxSpend) || maxSpend < 1 || maxSpend > ENHANCE_BATCH_BUDGET_MAX) return null;
+
+      const fromPlus = item.plus;
+      let attempts = 0, successes = 0, failures = 0, pityHits = 0, spent = 0;
+      let reason = "budget";
+      while (item.plus < targetPlus) {
+        const nextCost = enhanceCost(item);
+        if (!Number.isSafeInteger(nextCost) || nextCost <= 0) { reason = "invalid"; break; }
+        if (spent + nextCost > maxSpend) { reason = "budget"; break; }
+        if (S.material < nextCost) { reason = "material"; break; }
+        const result = enhanceItem(item);
+        if (!result) { reason = "invalid"; break; }
+        attempts += 1;
+        spent += result.cost;
+        if (result.success) {
+          successes += 1;
+          if (result.pityHit) pityHits += 1;
+        } else failures += 1;
+      }
+      if (item.plus >= targetPlus) reason = "target";
+      return {
+        fromPlus, targetPlus, plus: item.plus, attempts, successes, failures,
+        pityHits, spent, reason, remainingMaterial: S.material,
+      };
     }
 
     // 確定強化石で必ず+1する（通常の強化石は消費しない。消費は無償分から）。できなければnull。結果: { plus, required }
@@ -264,6 +310,7 @@
       clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
+      ENHANCE_BATCH_BUDGET_MAX, canBatchEnhance, enhanceToTarget,
       setLocked, receiveDrops, disassembleValue, disassembleItems,
       fusionCandidates, materialExp, fusionExpGain, fuse,
     };
