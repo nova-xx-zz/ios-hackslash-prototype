@@ -494,7 +494,7 @@ let enhanceItem = null;
 let enhanceMessage = "";
 let enhanceOnClose = null; // 呼び出し元の画面を再描画するコールバック（未指定ならキャラ詳細を再描画）
 let enhanceGuaranteedConfirm = false; // 確定強化石のボタンを1回押して確認待ちか（有償の石も使うため2回押しで確定）
-let enhanceBatchTarget = 10; // + / - で選ぶ目標値。画面を開く時は+10（現在が高ければ+1上）
+let enhanceBatchTarget = 10; // プルダウンで選ぶ目標値。画面を開く時は+10（現在が高ければ+1上）
 let enhanceBatchConfirm = false;
 let enhanceBatchBusy = false;
 let enhanceBatchMessage = "";
@@ -561,11 +561,23 @@ function renderEnhanceModal() {
   btn.disabled = maxed || S.material < cost;
   btn.textContent = maxed ? "強化値が上限です" : (S.material < cost ? "強化石が足りません" : "1回だけ強化する");
 
-  // 目標の調整だけを見せる。強化石の固定消費上限やプリセットは置かない。
+  // 現在値より上の+段だけをネイティブselectに表示する。
+  // 1回強化・一括強化で現在値が進んだ際は、古い目標を自動で無効化する。
   const minTarget = Math.min(ENHANCE_MAX_PLUS, item.plus + 1);
-  document.getElementById("enBatchTarget").textContent = "+" + enhanceBatchTarget;
-  document.getElementById("enBatchMinus").disabled = maxed || enhanceBatchTarget <= minTarget;
-  document.getElementById("enBatchPlus").disabled = maxed || enhanceBatchTarget >= ENHANCE_MAX_PLUS;
+  if (enhanceBatchTarget < minTarget || enhanceBatchTarget > ENHANCE_MAX_PLUS) {
+    enhanceBatchTarget = minTarget;
+    enhanceBatchConfirm = false;
+  }
+  const targetSelect = document.getElementById("enBatchTarget");
+  targetSelect.innerHTML = Array.from(
+    { length: ENHANCE_MAX_PLUS - minTarget + 1 },
+    (_, index) => {
+      const value = minTarget + index;
+      return `<option value="${value}">+${value}</option>`;
+    },
+  ).join("");
+  targetSelect.value = String(enhanceBatchTarget);
+  targetSelect.disabled = maxed || enhanceBatchBusy;
   const estimate = Inventory.estimateEnhanceToTarget(item, enhanceBatchTarget);
   const costLabel = (n) => n.toLocaleString("ja-JP");
   const estimateBox = document.getElementById("enBatchEstimate");
@@ -635,17 +647,20 @@ document.getElementById("btnEnhanceGo").addEventListener("click", () => {
   scheduleSave();
   renderEnhanceModal();
 });
-// - / + だけで目標値を1段階ずつ調整する。確認中に変更したら確認を取り消す。
-for (const [buttonId, delta] of [["enBatchMinus", -1], ["enBatchPlus", 1]]) {
-  document.getElementById(buttonId).addEventListener("click", () => {
-    if (!enhanceItem || enhanceBatchBusy) return;
-    const minTarget = Math.min(ENHANCE_MAX_PLUS, enhanceItem.plus + 1);
-    enhanceBatchTarget = Math.max(minTarget, Math.min(ENHANCE_MAX_PLUS, enhanceBatchTarget + delta));
-    enhanceBatchConfirm = false;
-    enhanceBatchMessage = "";
-    renderEnhanceModal();
-  });
-}
+// プルダウン変更時は必ず確認を取り消し、天井までの最大必要数を再計算する。
+document.getElementById("enBatchTarget").addEventListener("change", (event) => {
+  if (!enhanceItem || enhanceBatchBusy) return;
+  const value = Number(event.target.value);
+  const minTarget = Math.min(ENHANCE_MAX_PLUS, enhanceItem.plus + 1);
+  if (!Number.isSafeInteger(value) || value < minTarget || value > ENHANCE_MAX_PLUS) {
+    renderEnhanceModal(); // 不正・古い値は採用しない
+    return;
+  }
+  enhanceBatchTarget = value;
+  enhanceBatchConfirm = false;
+  enhanceBatchMessage = "";
+  renderEnhanceModal();
+});
 document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
   if (!enhanceItem || enhanceBatchBusy) return;
   if (!Inventory.canBatchEnhance(enhanceItem) ||
