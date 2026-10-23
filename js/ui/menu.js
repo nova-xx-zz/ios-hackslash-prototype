@@ -110,6 +110,8 @@ function openFarewell() {
 
 function renderFarewell() {
   const body = document.getElementById("farewellBody");
+  // 選択状態が変わっても、長い仲間一覧のスクロール位置を維持する。
+  const scrollTop = body.scrollTop;
   body.innerHTML = "";
   const desc = document.createElement("div");
   desc.className = "sub-ability-row";
@@ -146,8 +148,29 @@ function renderFarewell() {
     list.appendChild(row);
   }
   body.appendChild(list);
+  body.scrollTop = scrollTop;
+  renderFarewellActionBar();
+}
 
+// 一覧とは独立した下部の固定操作エリア。グローバルナビより上に配置される。
+function renderFarewellActionBar() {
+  const footer = document.getElementById("farewellActionBar");
+  footer.replaceChildren();
   const n = farewellSelection.size;
+  const count = document.createElement("div");
+  count.id = "farewellSelectedCount";
+  count.className = "farewell-selected-count";
+  count.textContent = `選択中：${n}人`;
+  footer.appendChild(count);
+
+  // 実行結果やエラーをスクロールなしで確認できるよう、操作ボタンの上に表示する。
+  if (farewellMessage) {
+    const msg = document.createElement("p");
+    msg.className = "settings-message farewell-feedback";
+    msg.textContent = farewellMessage;
+    msg.setAttribute("role", "status");
+    footer.appendChild(msg);
+  }
   const btn = document.createElement("button");
   btn.className = "btn " + (farewellConfirm ? "danger" : "primary") + " farewell-btn";
   btn.textContent = n === 0 ? "別れる仲間を選んでください" : farewellConfirm ? `本当に${n}人と別れる（取り消せません）` : `${n}人と別れる`;
@@ -164,13 +187,8 @@ function renderFarewell() {
     if (r.ok) saveGame(); // 取り消せない操作のため、遅延保存を待たない
     renderFarewell();
   });
-  body.appendChild(btn);
-  if (farewellMessage) {
-    const msg = document.createElement("p");
-    msg.className = "settings-message";
-    msg.textContent = farewellMessage;
-    body.appendChild(msg);
-  }
+  btn.setAttribute("aria-describedby", "farewellSelectedCount");
+  footer.appendChild(btn);
 }
 document.getElementById("btnFarewellBack").addEventListener("click", () => openPartyMenu());
 
