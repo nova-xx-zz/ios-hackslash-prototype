@@ -30,6 +30,7 @@ const SHOP_SECTIONS = [
   { title: "特殊ジョブ（テスト中）", match: isJobProduct },
   { title: "確定強化石", match: (p) => p.kind === "guaranteedStone" },
   { title: "仲間のBOX", match: (p) => p.kind === "rosterBox" },
+  { title: "マイセット登録枠", match: (p) => p.kind === "presetPack" },
 ];
 
 function renderShop() {
@@ -45,6 +46,7 @@ function renderShop() {
   status.innerHTML =
     `確定強化石: ${guaranteedStoneTotal()}個（無償${S.guaranteedStones.free}／有償${S.guaranteedStones.paid}）<br>` +
     `仲間: ${S.roster.length}/${Shop.rosterCapacity()}人<br>` +
+    `マイセット登録枠: ${Shop.presetCapacity()}/20枠（全キャラクター共通）<br>` +
     `戦闘速度: ${Shop.battleSpeeds().map((m) => "x" + m).join("・")}　自動周回: 最大x${Math.max(...Shop.autoRepeatChoices().filter((c) => !c.locked).map((c) => c.n))}`;
   body.appendChild(status);
   // 購入した結果は、一覧の下ではなく見える位置（所持状況のすぐ下）に出す
@@ -80,7 +82,8 @@ function buildShopItem(product) {
   name.textContent = product.name;
   const desc = document.createElement("div");
   desc.className = "shop-item-desc";
-  desc.textContent = product.desc + (product.kind === "rosterBox" ? `（拡張 ${st.count}回・今の上限 ${Shop.rosterCapacity()}人）` : "") +
+  desc.textContent = product.desc + (product.kind === "rosterBox" ? `（拡張 ${st.count}回・今の上限 ${Shop.rosterCapacity()}人）` :
+    product.kind === "presetPack" ? `（解放 ${st.count}/3回・現在 ${st.capacity}/20枠）` : "") +
     (st.locked ? `\n「${st.requires.dungeonName}」を踏破すると購入できます` : "");
   const price = document.createElement("div");
   price.className = "shop-item-price";
@@ -116,6 +119,7 @@ document.getElementById("btnShopBack").addEventListener("click", () => {
   // 強化画面の「確定強化石が足りない→ショップへ」から来た時は、所持数の表示を描き直す
   if (shopReturnScreen === "screen-enhance") renderEnhanceList();
   if (shopReturnScreen === "screen-inventory") renderInventoryScreen();
+  if (shopReturnScreen === "screen-chardetail") renderCharDetail();
   showScreen(shopReturnScreen);
 });
 document.getElementById("btnSettingsShop").addEventListener("click", () => openShop("screen-settings"));
