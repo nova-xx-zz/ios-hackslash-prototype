@@ -1507,7 +1507,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .enhance-result.success { background: rgba(77,195,122,0.18); color: #7dffb0; }
 .enhance-result.fail { background: rgba(255,77,94,0.15); color: #ff9aa6; }
 
-/* 強化目標の±ステッパー。狭いiPhoneでも左右を押しやすくする。 */
+/* 装備の目標強化値。iPhoneのネイティブ選択ピッカーを使う。 */
 .enhance-batch-box {
   margin-top: 12px; padding: 12px;
   border: 1px solid var(--border); border-radius: 10px;
@@ -1515,18 +1515,21 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .enhance-batch-heading { font-size: 13px; font-weight: 700; }
 .enhance-batch-heading span { display: block; margin-top: 3px; color: var(--sub-text); font-size: 11px; font-weight: 400; }
-.enhance-batch-stepper {
-  display: grid; grid-template-columns: 64px minmax(0,1fr) 64px;
-  align-items: stretch; gap: 10px; margin-top: 12px;
+.enhance-batch-select-label {
+  display: block; margin-top: 12px;
+  color: var(--sub-text); font-size: 11px; line-height: 1.5;
 }
-.enhance-batch-step { min-height: 52px; padding: 0; margin: 0; font-size: 25px; font-weight: 700; }
-.enhance-batch-step:disabled { opacity: 0.4; }
-.enhance-batch-value {
-  display: flex; align-items: center; justify-content: center;
+.enhance-batch-select {
+  display: block; box-sizing: border-box; width: 100%;
+  min-height: 52px; margin-top: 5px; padding: 10px 14px;
   border: 1px solid var(--border); border-radius: 9px;
   background: var(--panel-bg); color: var(--accent);
-  font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-family: inherit; font-size: 18px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer; color-scheme: dark;
 }
+.enhance-batch-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.enhance-batch-select:disabled { opacity: 0.5; }
 .enhance-batch-estimate {
   margin: 12px 0 0; padding: 8px 10px; border-radius: 7px;
   color: var(--text); background: rgba(201,164,99,0.09);
@@ -1537,7 +1540,6 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .enhance-batch-box .enhance-result { white-space: pre-line; overflow-wrap: anywhere; }
 @media (max-width: 355px) {
   .enhance-batch-box { padding: 9px; }
-  .enhance-batch-stepper { grid-template-columns: 52px minmax(0,1fr) 52px; gap: 7px; }
 }
 
 /* drops */
