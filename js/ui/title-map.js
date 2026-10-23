@@ -157,6 +157,11 @@ function openMap() {
   const furthest = DUNGEONS.filter((d) => isDungeonOpen(d)).pop();
   mapRegionId = (selected || furthest || DUNGEONS[0]).region;
   renderMap();
+  // ダンジョン情報は前回の画面を使い回さない。編成画面などで表示チームを
+  // 切り替えた直後でも、出発ボタンの表示と実際の出撃チームを一致させる。
+  if (selected && isDungeonOpen(selected)) renderDungeonInfo(selected);
+  else document.getElementById("dungeonInfo").innerHTML =
+    '<p class="sub" style="margin:0">ダンジョンをタップすると詳細が表示されます。</p>';
   showScreen("screen-map");
 }
 function renderRegionTabs() {
