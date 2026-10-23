@@ -242,7 +242,7 @@ test("装備マイセット: 名前検証と旧セーブ互換・スナップシ
   state.inventory.push(sword);
   inv.equipItem(c, sword, "main");
   inv.saveEquipmentSet(c, 0);
-  assert.equal(inv.renameEquipmentSet(c, 0, ""), { ok: false, reason: "invalid" }.ok);
+  assert.deepEqual(inv.renameEquipmentSet(c, 0, ""), { ok: false, reason: "invalid" });
   assert.deepEqual(inv.renameEquipmentSet(c, 0, "a".repeat(21)), { ok: false, reason: "invalid" });
   assert.deepEqual(inv.renameEquipmentSet(c, 2, "空の枠"), { ok: false, reason: "empty" });
   const raw = JSON.parse(JSON.stringify(save.serialize(state, {})));
