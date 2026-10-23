@@ -31,6 +31,7 @@
       nextCharSeq: 1,
       // 自動周回（チームごとに独立して設定・進行する）
       autoRepeat: Array.from({ length: teamCount }, () => ({ active: false, target: opts.autoRepeatTarget || 5, done: 0 })),
+      lastDungeons: Array.from({ length: teamCount }, () => null), // 再起動しても前回の行き先を各チームに保持
       skillBooks: [], // スキルブック機能(未実装)向けの予約フィールド
       material: 0, // 強化石
       // 確定強化石（成功率100%で強化できる有償アイテム）の所持数。入手経路（アプリ内課金・無料配布）は未実装で、
@@ -141,6 +142,7 @@
       roster: state.roster,
       inventory: state.inventory,
       activeTeam: state.activeTeam,
+      lastDungeons: (state.lastDungeons || []).map((d) => d ? { id: d.id, mode: d.mode || "normal" } : null),
       clearedDungeons: [...state.clearedDungeons],
       clearedHard: [...(state.clearedHard || [])],
       clearedExtra: [...(state.clearedExtra || [])],
@@ -195,6 +197,15 @@
       roster,
       inventory: Array.isArray(data.inventory) ? data.inventory.map((it) => normalizeItem(it, limits.maxPlus)).filter(Boolean) : [],
       activeTeam: typeof data.activeTeam === "number" ? Math.min(teamCount - 1, count(data.activeTeam)) : 0,
+      // 旧セーブでは自動周回情報にダンジョンIDが残るため、その情報も移行に利用する。
+      // チームや難易度を共有せず、未踏破ダンジョンでの周回はRunner側が拒否する。
+      lastDungeons: Array.from({ length: teamCount }, (_, i) => {
+        const d = (Array.isArray(data.lastDungeons) && data.lastDungeons[i]) ||
+          (Array.isArray(data.autoRepeat) && data.autoRepeat[i]);
+        return d && typeof d.id === "string" && d.id || d && typeof d.dungeonId === "string" && d.dungeonId
+          ? { id: typeof d.id === "string" ? d.id : d.dungeonId,
+              mode: ["normal", "hard", "extra"].includes(d.mode) ? d.mode : "normal" } : null;
+      }),
       clearedDungeons: new Set(Array.isArray(data.clearedDungeons) ? data.clearedDungeons : []),
       clearedHard: new Set(Array.isArray(data.clearedHard) ? data.clearedHard : []),
       clearedExtra: new Set(Array.isArray(data.clearedExtra) ? data.clearedExtra : []),
