@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=51">
+<link rel="stylesheet" href="css/style.css?v=52">
 </head>
 <body>
 <div id="app">
@@ -464,11 +464,11 @@
       <div class="enhance-result" id="enResult"></div>
       <section class="enhance-batch-box" aria-label="目標まで強化">
         <div class="enhance-batch-heading">どこまで強化する？ <span>目標を選んで一度に強化できます</span></div>
-        <div class="enhance-batch-stepper">
-          <button class="btn ghost enhance-batch-step" type="button" id="enBatchMinus" aria-label="目標を1下げる">−</button>
-          <div class="enhance-batch-value" id="enBatchTarget" aria-live="polite">+10</div>
-          <button class="btn ghost enhance-batch-step" type="button" id="enBatchPlus" aria-label="目標を1上げる">＋</button>
-        </div>
+        <label class="enhance-batch-select-label" for="enBatchTarget">目標強化値
+          <select class="enhance-batch-select" id="enBatchTarget" aria-label="目標強化値を選択">
+            <option value="10">+10</option>
+          </select>
+        </label>
         <p class="enhance-batch-estimate" id="enBatchEstimate"></p>
         <p class="enhance-batch-hint" id="enBatchHint">成功した段階では余分な強化石を消費せず、次の段階へ進みます。</p>
         <button class="btn primary modal-ok" id="btnEnhanceBatch" type="button">強化する</button>
@@ -540,7 +540,7 @@
 <script src="js/ui/detail.js?v=4"></script>
 <script src="js/ui/detail-tree.js?v=4"></script>
 <script src="js/ui/detail-tabs.js?v=13"></script>
-<script src="js/ui/inventory.js?v=14"></script>
+<script src="js/ui/inventory.js?v=15"></script>
 <script src="js/ui/battle.js?v=6"></script>
 <script src="js/ui/log.js?v=3"></script>
 <script src="js/ui/dock.js?v=11"></script>

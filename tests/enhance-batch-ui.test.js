@@ -16,12 +16,15 @@ class Element {
     this.disabled = false;
     this.textContent = "";
     this.className = "";
+    this.value = "";
+    this.innerHTML = "";
     this.style = {};
     this.listeners = {};
     this.classList = { toggle() {}, add() {}, remove() {} };
   }
   addEventListener(name, cb) { this.listeners[name] = cb; }
   click() { if (!this.disabled) this.listeners.click?.({ target: this }); }
+  change(value) { this.value = value; if (!this.disabled) this.listeners.change?.({ target: this }); }
 }
 
 function setup({ locked = false, plus = 0, material = 1000 } = {}) {
@@ -63,62 +66,93 @@ function setup({ locked = false, plus = 0, material = 1000 } = {}) {
     get saved() { return saved; } };
 }
 
-test("強化UI: +10のステッパー・天井最大必要数・強化ボタンが表示され、実消費のみ反映される", () => {
+test("強化UI: +10のプルダウンと天井最大必要数を表示、成功した分だけ消費する", () => {
   const env = setup();
   env.open();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+10");
+  assert.equal(env.nodes.enBatchTarget.value, "10");
+  assert.match(env.nodes.enBatchTarget.innerHTML, /<option value="1">\+1<\/option>/);
+  assert.match(env.nodes.enBatchTarget.innerHTML, /<option value="99">\+99<\/option>/);
+  assert.doesNotMatch(env.nodes.enBatchTarget.innerHTML, /value="0"/);
   assert.match(env.nodes.enBatchEstimate.textContent, /90個/);
-  assert.equal(env.nodes.enBatchBudget, undefined, "不要な500個の入力欄には依存しない");
-  assert.equal(env.nodes.btnEnhanceBatch.disabled, false);
+  assert.equal(env.nodes.enBatchBudget, undefined, "500個固定上限の入力欄はない");
   env.nodes.btnEnhanceBatch.click();
-  assert.equal(env.calls.length, 0, "確認段階では強化石を消費しない");
+  assert.equal(env.calls.length, 0, "確認段階では抽選しない");
   assert.match(env.nodes.btnEnhanceBatch.textContent, /本当に/);
   env.nodes.btnEnhanceBatch.click();
   assert.deepEqual(env.calls, [{ target: 10 }]);
   assert.equal(env.saved, 1);
-  assert.match(env.nodes.enBatchResult.textContent, /目標達成/);
+  assert.equal(env.S.material, 970, "天井90個を先払いせず、実消費30個のみ");
   assert.match(env.nodes.enBatchResult.textContent, /30個消費/);
-  assert.equal(env.S.material, 970, "天井90個を先払いしない");
-  assert.equal(env.nodes.btnEnhanceBatch.disabled, true);
+  assert.equal(env.nodes.enBatchTarget.value, "11", "目標到達後は現在の強化値より上の選択に更新");
+  assert.doesNotMatch(env.nodes.enBatchTarget.innerHTML, /value="10"/);
+  assert.equal(env.calls.length, 1, "目標更新で追加抽選は行わない");
 });
 
-test("強化UI: − / ＋ で目標を1ずつ変更し、確認状態をクリアする", () => {
+test("強化UI: プルダウン選択を変更すると見積もりを再計算し、確認状態を解除する", () => {
   const env = setup();
   env.open();
-  env.nodes.enBatchMinus.click();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+9");
-  env.nodes.enBatchPlus.click();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+10");
+  env.nodes.enBatchTarget.change("20");
+  assert.equal(env.nodes.enBatchTarget.value, "20");
+  assert.match(env.nodes.enBatchEstimate.textContent, /180個/);
   env.nodes.btnEnhanceBatch.click();
   assert.match(env.nodes.btnEnhanceBatch.textContent, /本当に/);
-  env.nodes.enBatchPlus.click();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+11");
+  env.nodes.enBatchTarget.change("14");
+  assert.equal(env.nodes.enBatchTarget.value, "14");
+  assert.match(env.nodes.enBatchEstimate.textContent, /126個/);
   assert.doesNotMatch(env.nodes.btnEnhanceBatch.textContent, /本当に/);
   env.nodes.btnEnhanceBatch.click();
-  assert.equal(env.calls.length, 0, "目標変更後に再確認が必要");
+  assert.equal(env.calls.length, 0, "選択変更直後の押下は確認のみ");
   env.nodes.btnEnhanceBatch.click();
-  assert.deepEqual(env.calls, [{ target: 11 }]);
+  assert.deepEqual(env.calls, [{ target: 14 }]);
 });
 
-test("強化UI: 目標は現在より上で最大+99、+10以上なら最低現在+1", () => {
+test("強化UI: 現在の+値を超える選択肢だけ表示し、最大+99まで選択できる", () => {
   const env = setup({ plus: 9 });
   env.open();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+10");
-  assert.equal(env.nodes.enBatchMinus.disabled, true);
-  for (let n = 10; n < 99; n++) env.nodes.enBatchPlus.click();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+99");
-  assert.equal(env.nodes.enBatchPlus.disabled, true);
-  env.nodes.enBatchMinus.click();
-  assert.equal(env.nodes.enBatchTarget.textContent, "+98");
+  assert.equal(env.nodes.enBatchTarget.value, "10");
+  assert.doesNotMatch(env.nodes.enBatchTarget.innerHTML, /value="9"/);
+  assert.match(env.nodes.enBatchTarget.innerHTML, /<option value="10">\+10<\/option>/);
+  env.nodes.enBatchTarget.change("99");
+  assert.equal(env.nodes.enBatchTarget.value, "99");
 
   const high = setup({ plus: 98 });
   high.open();
-  assert.equal(high.nodes.enBatchTarget.textContent, "+99");
-  assert.equal(high.nodes.enBatchMinus.disabled, true);
-  assert.equal(high.nodes.enBatchPlus.disabled, true);
+  assert.equal(high.nodes.enBatchTarget.value, "99");
+  assert.equal(high.nodes.enBatchTarget.innerHTML, '<option value="99">+99</option>');
+  assert.equal(high.nodes.enBatchTarget.disabled, false);
+
+  const max = setup({ plus: 99 });
+  max.open();
+  assert.equal(max.nodes.enBatchTarget.value, "99");
+  assert.equal(max.nodes.enBatchTarget.disabled, true);
+  assert.equal(max.nodes.btnEnhanceBatch.disabled, true);
 });
 
-test("強化UI: 天井までの必要石が足りなくても、実際に挑戦できる石があれば強化できる", () => {
+test("強化UI: 不正または既に到達済みの目標値を変更イベントから注入しても採用しない", () => {
+  const env = setup({ plus: 9 });
+  env.open();
+  for (const invalid of ["9", "0", "100", "10.5", "NaN", ""]) {
+    env.nodes.enBatchTarget.change(invalid);
+    assert.equal(env.nodes.enBatchTarget.value, "10");
+    assert.equal(env.calls.length, 0);
+  }
+});
+
+test("強化UI: 1回だけ強化して現在値が選択値に追いついたら次の目標に更新する", () => {
+  const env = setup({ plus: 9 });
+  env.open();
+  env.ctx.Inventory.enhanceItem = (it) => {
+    it.plus++;
+    env.S.material -= 3;
+    return { success: true, plus: it.plus, pityHit: false, cost: 3 };
+  };
+  env.nodes.btnEnhanceGo.click();
+  assert.equal(env.item.plus, 10);
+  assert.equal(env.nodes.enBatchTarget.value, "11");
+  assert.doesNotMatch(env.nodes.enBatchTarget.innerHTML, /value="10"/);
+});
+
+test("強化UI: 天井分の最大必要数に所持石が満たなくても1回分の石があれば強化できる", () => {
   const env = setup({ material: 5 });
   env.open();
   assert.equal(env.nodes.btnEnhanceBatch.disabled, false);
