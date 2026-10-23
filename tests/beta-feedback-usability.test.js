@@ -164,7 +164,7 @@ test("旧連番ID衝突: 別々の仲間が同じIDの装備を着けても両�
   assert.deepEqual(inventory.applyEquipmentSet(mb, 0), { ok: true });
   assert.equal(ma.equip.main.plus, 10);
   assert.equal(mb.equip.main.plus, 25);
-  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize(migrated, {}))), {}).state;
+  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize({ ...migrated, autoRepeat: [] }, {}))), {}).state;
   assert.equal(again.equipmentSets[b.id][0].slots.main, again.roster.find((c) => c.id === b.id).equip.main.id);
 });
 
@@ -202,6 +202,6 @@ test("旧連番ID衝突: 保存時の装備を特定できなければ誤装備�
   assert.equal(inv.applyEquipmentSet(loaded.roster[0], 0).reason, "ambiguous");
   assert.equal(loaded.roster[0].equip.main, null);
   assert.equal(loaded.inventory.length, 2);
-  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize(loaded, {}))), {}).state;
+  const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize({ ...loaded, autoRepeat: [] }, {}))), {}).state;
   assert.equal(again.equipmentSets[c.id][0].slots.main, loaded.equipmentSets[c.id][0].slots.main);
 });
