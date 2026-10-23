@@ -205,3 +205,61 @@ test("旧連番ID衝突: 保存時の装備を特定できなければ誤装備�
   const again = save.deserialize(JSON.parse(JSON.stringify(save.serialize({ ...loaded, autoRepeat: [] }, {}))), {}).state;
   assert.equal(again.equipmentSets[c.id][0].slots.main, loaded.equipmentSets[c.id][0].slots.main);
 });
+
+test("装備マイセット: 名前変更と保存時プレビューが装備を外しても保持される", () => {
+  const { state, roster, inv } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
+  const sword = item("bronze_sword", "preview-weapon", { plus: 14, rarity: "sr" });
+  const helm = item("bronze_helm", "preview-helm", { plus: 3, rarity: "r" });
+  state.inventory.push(sword, helm);
+  inv.equipItem(c, sword, "main");
+  inv.equipItem(c, helm, "head");
+  assert.deepEqual(inv.saveEquipmentSet(c, 0), { ok: true });
+  assert.deepEqual(inv.renameEquipmentSet(c, 0, " ボス用  "), { ok: true });
+  assert.equal(inv.savedSet(c, 0).name, "ボス用");
+  assert.deepEqual(inv.equipmentSetPreview(c, 0).find((x) => x.position === "main"),
+    { position: "main", empty: false, name: sword.name, rarity: "sr", plus: 14, status: "equipped" });
+  inv.unequipSlot(c, "main");
+  sword.plus = 16;
+  const preview = inv.equipmentSetPreview(c, 0).find((x) => x.position === "main");
+  assert.equal(preview.plus, 14, "保存時の強化値をプレビューに残す");
+  assert.equal(preview.status, "inventory");
+  inv.saveEquipmentSet(c, 0);
+  assert.equal(inv.savedSet(c, 0).name, "ボス用", "上書き時も名前は保持");
+  assert.equal(inv.savedSet(c, 0).preview.main, undefined, "上書き後に外していた部位はクリア");
+  const loaded = save.deserialize(JSON.parse(JSON.stringify(save.serialize(state, {}))), {}).state;
+  assert.equal(loaded.equipmentSets[c.id][0].name, "ボス用");
+  assert.equal(loaded.equipmentSets[c.id][0].preview.head.name, helm.name);
+  assert.equal(loaded.equipmentSets[c.id][0].preview.head.plus, 3);
+});
+
+test("装備マイセット: 名前検証と旧セーブ互換・スナップショットの正規化", () => {
+  const { state, roster, inv } = setup();
+  const c = roster.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
+  const sword = item("bronze_sword", "old-sword");
+  state.inventory.push(sword);
+  inv.equipItem(c, sword, "main");
+  inv.saveEquipmentSet(c, 0);
+  assert.equal(inv.renameEquipmentSet(c, 0, ""), { ok: false, reason: "invalid" }.ok);
+  assert.deepEqual(inv.renameEquipmentSet(c, 0, "a".repeat(21)), { ok: false, reason: "invalid" });
+  assert.deepEqual(inv.renameEquipmentSet(c, 2, "空の枠"), { ok: false, reason: "empty" });
+  const raw = JSON.parse(JSON.stringify(save.serialize(state, {})));
+  raw.equipmentSets[c.id][0] = { slots: { main: sword.id }, name: "x".repeat(35),
+    preview: { main: { name: "長".repeat(90), rarity: "sr", plus: 999 }, off: { name: "ignored" }, injected: { name: "hack" } } };
+  const restored = save.deserialize(raw, {}).state.equipmentSets[c.id][0];
+  assert.equal(Array.from(restored.name).length, 20);
+  assert.equal(restored.preview.main.name.length, 80);
+  assert.equal(restored.preview.main.plus, 99);
+  assert.equal(restored.preview.off, undefined);
+  assert.equal(restored.preview.injected, undefined);
+  delete raw.equipmentSets[c.id][0].name;
+  delete raw.equipmentSets[c.id][0].preview;
+  const old = save.deserialize(raw, {}).state;
+  const oldInv = createInventory({ data, state: old, roster: createRoster({ data, state: old }),
+    rng: createRng(1), isTeamLocked: () => false });
+  const legacy = oldInv.equipmentSetPreview(old.roster[0], 0).find((x) => x.position === "main");
+  assert.equal(legacy.name, sword.name);
+  assert.equal(legacy.status, "equipped");
+});
