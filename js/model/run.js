@@ -224,7 +224,7 @@
       teamBattles[run.team] = battle;
       if (entry) run.pilotCheckpointPhase = "battle";
       for (const e of battle.enemies) { markDexSeen(e.key); recordsMod.recordEncounter(records(), d.id, e.key); }
-      for (const c of R.teamMembers(run.team)) { c.atb = rng.float(0, 25); c.defending = false; c.actedFlash = 0; }
+      for (const c of R.teamMembers(run.team)) { c.atb = rng.float(0, 25); c.defending = false; }
       return { battle, isBoss };
     }
 
@@ -467,7 +467,7 @@
       }
       const party = R.teamMembers(teamIndex).map((c) => {
         const s = R.computeStats(c);
-        return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true, actedFlash: 0 });
+        return Object.assign({}, c, { hp: s.maxHp, mp: s.maxMp, atb: 0, alive: true });
       });
       const env = Object.assign({}, deps.battleEnv(), { rng });
       const pilot = isPilotDungeon(dungeon) ? createPilotSchedule(dungeon) : null;
@@ -694,7 +694,7 @@
           const max = R.computeStats(c);
           c.hp = clamp(p.hp, 0, max.maxHp); c.mp = clamp(p.mp, 0, max.maxMp);
           c.alive = !!p.alive && c.hp > 0; c.atb = clamp(p.atb, 0, 100);
-          c.defending = !!p.defending; c.actedFlash = p.actedFlash || 0;
+          c.defending = !!p.defending;
         }
         teamRuns[team] = run;
         if (saved.phase === "battle") teamBattles[team] = dungeonCheckpoint.restoreBattle(saved.battle, members);
