@@ -76,8 +76,10 @@ function renderDock() {
   tabs.innerHTML = "";
   TEAM_LABELS.forEach((label, i) => {
     const btn = document.createElement("button");
-    btn.className = "team-tab" + (i === S.activeTeam ? " active" : "") + (isTeamRunActive(i) ? " exploring" : "");
-    btn.innerHTML = `${label}<span class="count">${teamMembers(i).length}人</span>`;
+    btn.className = "team-tab" + (i === S.activeTeam ? " active" : "");
+    // 探索画面では編成人数を表示せず、探索中のチームだけ状態を横並びで知らせる。
+    btn.innerHTML = `<span class="team-tab-label">${label}</span><span class="team-tab-status"></span>`;
+    setTeamTabExploring(btn, i, isTeamRunActive(i));
     btn.addEventListener("click", () => {
       if (i === S.activeTeam) return;
       S.activeTeam = i;
@@ -89,14 +91,24 @@ function renderDock() {
   });
 }
 
-// renderDock()は表示中チームの操作をきっかけにしか呼ばれないため、他チームの探索状況を示す
-// タブのドットが更新されないままになる。毎フレーム軽量にクラスだけ切り替えて追従させる
-function updateTeamTabDots() {
+// 探索状態が変わったときだけ更新し、毎フレームの不要なDOM更新を避ける。
+function setTeamTabExploring(button, teamIndex, exploring) {
+  button.classList.toggle("exploring", exploring);
+  const status = button.querySelector(".team-tab-status");
+  if (status) status.textContent = exploring ? "探索中" : "";
+  button.setAttribute("aria-label", `${TEAM_NAMES[teamIndex]}${exploring ? "・探索中" : ""}`);
+}
+
+// renderDock()が呼ばれない他チームの探索開始・終了にも、タブの文言を追従させる。
+function updateTeamTabStatus() {
   const tabs = document.getElementById("teamTabs");
   if (!tabs) return;
   const buttons = tabs.children;
   for (let i = 0; i < buttons.length; i++) {
-    buttons[i].classList.toggle("exploring", isTeamRunActive(i));
+    const exploring = isTeamRunActive(i);
+    if (buttons[i].classList.contains("exploring") !== exploring) {
+      setTeamTabExploring(buttons[i], i, exploring);
+    }
   }
   // 自動分解のロックも全パーティの状態で決まるため、変わった時だけ描き直す
   if (autoDisassembleLockShown !== null && autoDisassembleLockShown !== isAutoDisassembleLocked()) {

@@ -123,7 +123,7 @@ function tick(dt) {
     const battle = teamBattles[i];
     if (battle && battle.active) tickTeam(i, dt);
   }
-  updateTeamTabDots();
+  updateTeamTabStatus();
 }
 
 function tickTeam(i, dt) {

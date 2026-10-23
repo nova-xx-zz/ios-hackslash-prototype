@@ -1199,11 +1199,6 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .team-tab:last-child { border-right: none; }
-.team-tab .count { display: block; font-size: 9px; font-weight: 400; margin-top: 2px; }
-.team-tab.exploring::after {
-  content: "●"; color: var(--rarity-ur); font-size: 8px;
-  margin-left: 3px; vertical-align: middle;
-}
 .team-tab.active { background: rgba(201, 164, 99, 0.22); color: var(--text); box-shadow: inset 0 2px 0 var(--accent); }
 .team-tab:disabled { opacity: 0.4; cursor: default; }
 
@@ -1290,7 +1285,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 #screen-battle:not(.explore-idle) .explore-backdrop::after { background: rgba(4, 12, 17, 0.64); }
 #screen-battle .explore-wrap { z-index: 1; padding: 12px 12px 0; }
 #screen-battle .explore-header {
-  gap: 8px; padding: 0 2px 10px; margin-bottom: 8px;
+  gap: 8px; padding: 0 2px 8px; margin-bottom: 6px;
   border-bottom: 1px solid var(--border);
   text-shadow: 0 1px 4px #000;
 }
@@ -1400,10 +1395,10 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   border-top: 1px solid #a78950;
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.3), inset 0 3px 0 rgba(201, 164, 99, 0.08);
 }
-#screen-battle .dock-progress { padding: 9px 12px 3px; }
+#screen-battle .dock-progress { padding: 7px 12px 2px; }
 #screen-battle .dock-progress-row { color: #e2c98f; }
 #screen-battle .stat-bar.dungeon .fill { background: linear-gradient(90deg, #a77b3c, #e2c98f); }
-#screen-battle .party-row { gap: 6px; padding: 7px 10px 9px; }
+#screen-battle .party-row { gap: 6px; padding: 5px 10px 6px; }
 #screen-battle .actor-card {
   position: relative; border-radius: 5px; border-color: rgba(201, 164, 99, 0.36);
   background: linear-gradient(180deg, #1c3038, #0c1b22); padding: 5px;
@@ -1415,7 +1410,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 #screen-battle .actor-job { color: #b4c4c8; }
 #screen-battle .actor-card.acted { border-color: #e6cb8a; box-shadow: 0 0 0 1px #e6cb8a; }
 .dock-empty-party { margin: 0; padding: 8px 12px 14px; color: #c1cdd0; font-size: 11px; text-align: center; }
-#screen-battle .auto-repeat-row { padding: 7px 10px; gap: 6px; }
+#screen-battle .auto-repeat-row { padding: 5px 10px; gap: 6px; }
 #screen-battle .auto-repeat-chip { min-height: 32px; padding: 5px 7px; border-radius: 4px; color: #bcc9cb; }
 #screen-battle .auto-repeat-chip.active { color: #f5e5c4; background: #3e402f; border-color: #b99759; }
 #screen-battle .auto-repeat-row .btn { min-height: 34px; padding: 7px 10px; font-size: 11px; border-radius: 4px; }
@@ -1429,15 +1424,20 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .auto-repeat-select:disabled { opacity: 0.4; cursor: default; }
 .auto-repeat-select:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1px; }
-#screen-battle .dock-actions { padding: 2px 10px 8px; gap: 8px; }
+#screen-battle .dock-actions { padding: 2px 10px 5px; gap: 8px; }
 #screen-battle .dock-actions .btn { min-height: 44px; font-family: var(--title-serif-ja); border-radius: 5px; }
 #screen-battle #btnPrepareDeploy { border-color: #e6bf70; background: rgba(162, 110, 31, 0.4); color: #fff0ca; font-weight: 700; }
 #screen-battle #btnDockMap { border-color: #b99b63; color: #f5e6c8; }
-#screen-battle .team-tab { min-height: 44px; padding: 6px 2px; }
+#screen-battle .team-tab {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-height: 44px; padding: 4px 2px; white-space: nowrap;
+}
+#screen-battle .team-tab-status { color: #d8b77a; font-size: 9px; font-weight: 700; }
+#screen-battle .team-tab-status:empty { display: none; }
 #screen-battle .team-tab.active { background: rgba(201, 164, 99, 0.14); color: #f0dba7; box-shadow: inset 0 2px 0 #c9a463; }
-#screen-battle .hub-nav-row { gap: 5px; padding: 6px 9px 8px; }
+#screen-battle .hub-nav-row { gap: 5px; padding: 4px 9px 6px; }
 #screen-battle .hub-nav-btn {
-  min-height: 52px; padding: 6px 4px; border-radius: 5px;
+  min-height: 48px; padding: 5px 4px; border-radius: 5px;
   background: rgba(14, 28, 34, 0.8); color: #b9c6c9; border-color: transparent;
 }
 #screen-battle .hub-nav-btn.active { background: rgba(201, 164, 99, 0.12); color: #ebd3a0; border-color: #a78950; }
