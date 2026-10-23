@@ -400,14 +400,35 @@ let overwriteEquipmentSetConfirm = null;
 let overwriteEquipmentSetUntil = 0;
 let expandedEquipmentSetKey = null;
 let editingEquipmentSetKey = null;
+let openEquipmentSetsCharId = null; // 右上メニューの表示対象。キャラを切り替えた際は閉じる。
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
 
+  const toolbar = document.createElement("div");
+  toolbar.className = "equip-toolbar";
   const head = document.createElement("div");
-  head.className = "sub-ability-row";
+  head.className = "sub-ability-row equip-toolbar-title";
   head.textContent = `装備（所持品 ${S.inventory.length}個）`;
-  wrap.appendChild(head);
+  toolbar.appendChild(head);
+
+  // マイセットを通常の装備一覧から外し、装備欄の右上から開く。
+  // 開いたメニューは浮かせて表示し、装備枠や装備変更の候補を下へ押し出さない。
+  const mysetsAnchor = document.createElement("div");
+  mysetsAnchor.className = "equip-mysets-anchor";
+  const mysetsOpen = openEquipmentSetsCharId === c.id;
+  const mysetsToggle = document.createElement("button");
+  mysetsToggle.className = "equip-choice equip-mysets-toggle";
+  mysetsToggle.textContent = mysetsOpen ? "閉じる ✕" : "マイセット";
+  mysetsToggle.setAttribute("aria-expanded", mysetsOpen ? "true" : "false");
+  mysetsToggle.setAttribute("aria-controls", "equip-mysets-panel");
+  mysetsToggle.addEventListener("click", () => {
+    openEquipmentSetsCharId = mysetsOpen ? null : c.id;
+    renderCharDetail();
+  });
+  mysetsAnchor.appendChild(mysetsToggle);
+  toolbar.appendChild(mysetsAnchor);
+  wrap.appendChild(toolbar);
 
   // このジョブが持てる種類
   const profile = equipProfile(c);
@@ -445,6 +466,11 @@ function buildEquipSection(c) {
     grid.appendChild(btn);
   }
   wrap.appendChild(grid);
+
+  // 装備の候補は装備枠の直後に表示。マイセットより下に押し出さない。
+  const choiceListContainer = document.createElement("div");
+  choiceListContainer.className = "equip-choice-container";
+  wrap.appendChild(choiceListContainer);
 
   // セット効果（同じシリーズを2個以上付けている時）
   for (const set of setBonuses(c).active) {
@@ -509,7 +535,8 @@ function buildEquipSection(c) {
   // マイセットはキャラクターごとに3枠。実物の装備IDを保存するので、
   // 分解・他キャラへ移動した装備は勝手に代替せず、読み込みを中止する。
   const sets = document.createElement("section");
-  sets.className = "equip-mysets";
+  sets.id = "equip-mysets-panel";
+  sets.className = "equip-mysets" + (mysetsOpen ? "" : " hidden");
   const setsLabel = document.createElement("div");
   setsLabel.className = "equip-mysets-title";
   setsLabel.textContent = "装備マイセット";
@@ -560,7 +587,12 @@ function buildEquipSection(c) {
         job: "現在のジョブや装備枠では装着できません", locked: "探索中のため変更できません" };
       flashDetailNotice(result.ok ? `装備マイセット${slotIndex + 1}に切り替えました` :
         messages[result.reason] || "装備マイセットを呼び出せません");
-      if (result.ok) saveGame();
+      if (result.ok) {
+        saveGame();
+        // 呼び出した装備をすぐ見比べられるよう、パネルを閉じて候補表示も解除する。
+        openEquipmentSetsCharId = null;
+        openSlot = null;
+      }
       renderCharDetail();
     });
     row.appendChild(load);
@@ -661,11 +693,15 @@ function buildEquipSection(c) {
     }
     sets.appendChild(row);
   }
-  wrap.appendChild(sets);
+  mysetsAnchor.appendChild(sets);
 
   // 開いている枠の候補一覧（そのキャラが付けられる物だけ）
   const opened = EQUIP_POSITIONS.find((p) => openSlot === `${c.id}:${p.key}`);
   if (opened) {
+    const hint = document.createElement("div");
+    hint.className = "equip-choice-heading";
+    hint.textContent = `${opened.name}の装備を選ぶ`;
+    choiceListContainer.appendChild(hint);
     const list = document.createElement("div");
     list.className = "equip-choice-list";
     const candidates = S.inventory
@@ -702,7 +738,7 @@ function buildEquipSection(c) {
       btn.addEventListener("click", () => { equipItem(c, item, opened.key); openSlot = null; renderCharDetail(); });
       list.appendChild(btn);
     }
-    wrap.appendChild(list);
+    choiceListContainer.appendChild(list);
   }
 
   return wrap;
