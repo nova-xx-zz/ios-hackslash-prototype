@@ -398,6 +398,8 @@ let unequipAllConfirmCharId = null;
 let unequipAllConfirmUntil = 0;
 let overwriteEquipmentSetConfirm = null;
 let overwriteEquipmentSetUntil = 0;
+let expandedEquipmentSetKey = null;
+let editingEquipmentSetKey = null;
 
 function buildEquipSection(c) {
   const wrap = document.createElement("div");
@@ -517,7 +519,9 @@ function buildEquipSection(c) {
     const row = document.createElement("div");
     row.className = "equip-myset-row";
     const label = document.createElement("span");
-    label.textContent = `セット${slotIndex + 1} ${preset ? "登録済み" : "未登録"}`;
+    const presetKey = c.id + ":" + slotIndex;
+    label.className = "equip-myset-name";
+    label.textContent = preset ? (preset.name || `セット${slotIndex + 1}`) : `セット${slotIndex + 1}（未登録）`;
     row.appendChild(label);
     const save = document.createElement("button");
     save.className = "equip-choice";
@@ -561,6 +565,87 @@ function buildEquipSection(c) {
     });
     row.appendChild(load);
     if (preset) {
+      const previewButton = document.createElement("button");
+      previewButton.className = "equip-choice";
+      previewButton.textContent = expandedEquipmentSetKey === presetKey ? "閉じる" : "内容";
+      previewButton.setAttribute("aria-expanded", expandedEquipmentSetKey === presetKey ? "true" : "false");
+      previewButton.addEventListener("click", () => {
+        expandedEquipmentSetKey = expandedEquipmentSetKey === presetKey ? null : presetKey;
+        renderCharDetail();
+      });
+      row.appendChild(previewButton);
+
+      const renameButton = document.createElement("button");
+      renameButton.className = "equip-choice";
+      renameButton.textContent = editingEquipmentSetKey === presetKey ? "編集終了" : "名前変更";
+      renameButton.disabled = c.team !== null && isTeamLocked(c.team);
+      renameButton.addEventListener("click", () => {
+        editingEquipmentSetKey = editingEquipmentSetKey === presetKey ? null : presetKey;
+        renderCharDetail();
+      });
+      row.appendChild(renameButton);
+      if (editingEquipmentSetKey === presetKey) {
+        const editor = document.createElement("div");
+        editor.className = "equip-myset-editor";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.maxLength = 20;
+        input.value = preset.name || `セット${slotIndex + 1}`;
+        input.placeholder = "マイセット名（20文字以内）";
+        input.setAttribute("aria-label", "マイセット名");
+        editor.appendChild(input);
+        const confirm = document.createElement("button");
+        confirm.className = "equip-choice";
+        confirm.textContent = "決定";
+        const commit = () => {
+          const result = renameEquipmentSet(c, slotIndex, input.value);
+          if (result.ok) {
+            editingEquipmentSetKey = null;
+            saveGame();
+            flashDetailNotice("マイセット名を変更しました");
+            renderCharDetail();
+          } else flashDetailNotice("1〜20文字で名前を入力してください");
+        };
+        confirm.addEventListener("click", commit);
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") commit();
+          if (event.key === "Escape") { editingEquipmentSetKey = null; renderCharDetail(); }
+        });
+        editor.appendChild(confirm);
+        row.appendChild(editor);
+      }
+      if (expandedEquipmentSetKey === presetKey) {
+        const preview = document.createElement("div");
+        preview.className = "equip-myset-preview";
+        const hint = document.createElement("div");
+        hint.className = "equip-myset-hint";
+        hint.textContent = "保存した装備構成（状態は現在の所持・装備状況）";
+        preview.appendChild(hint);
+        const statusNames = { equipped: "装備中", inventory: "所持品", other: "他の仲間が装備中",
+          missing: "現在見つからない", empty: "" };
+        for (const gear of equipmentSetPreview(c, slotIndex)) {
+          const itemRow = document.createElement("div");
+          itemRow.className = "equip-myset-item" + (gear.empty ? " empty" : "");
+          const part = document.createElement("span");
+          part.className = "equip-myset-part";
+          const def = EQUIP_POSITIONS.find((p) => p.key === gear.position);
+          part.textContent = def ? def.name : gear.position;
+          itemRow.appendChild(part);
+          const desc = document.createElement("span");
+          desc.className = "equip-myset-gear";
+          desc.textContent = gear.empty ? "未装備" :
+            `${gear.rarity ? "[" + gear.rarity.toUpperCase() + "] " : ""}${gear.name}${gear.plus > 0 ? " +" + gear.plus : ""}`;
+          itemRow.appendChild(desc);
+          if (!gear.empty) {
+            const state = document.createElement("span");
+            state.className = "equip-myset-status";
+            state.textContent = statusNames[gear.status] || "";
+            itemRow.appendChild(state);
+          }
+          preview.appendChild(itemRow);
+        }
+        row.appendChild(preview);
+      }
       const del = document.createElement("button");
       del.className = "equip-choice";
       del.textContent = "削除";

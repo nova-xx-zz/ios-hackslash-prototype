@@ -129,10 +129,66 @@
       if (!Object.prototype.hasOwnProperty.call(S.equipmentSets, c.id)) {
         Object.defineProperty(S.equipmentSets, c.id, { value: [], enumerable: true, writable: true, configurable: true });
       }
-      const slots = {};
-      for (const pos of equipment.POSITIONS) slots[pos] = c.equip[pos] ? c.equip[pos].id : null;
-      S.equipmentSets[c.id][index] = { slots };
+      const previous = savedSet(c, index);
+      const slots = {}, preview = {};
+      for (const pos of equipment.POSITIONS) {
+        const gear = c.equip[pos];
+        slots[pos] = gear ? gear.id : null;
+        if (gear) {
+          preview[pos] = {
+            name: String(gear.name || "名前不明の装備").slice(0, 80),
+            rarity: String(gear.rarity || "").slice(0, 8),
+            plus: Number.isSafeInteger(gear.plus) ? Math.max(0, Math.min(99, gear.plus)) : 0,
+          };
+        }
+      }
+      // 上書きしてもユーザーが付けたマイセット名は維持する。
+      S.equipmentSets[c.id][index] = { slots, name: previous && previous.name || "", preview };
       return { ok: true };
+    }
+    function renameEquipmentSet(c, index, name) {
+      if (!c || (c.team !== null && isTeamLocked(c.team))) return { ok: false, reason: "locked" };
+      const set = savedSet(c, index);
+      if (!set) return { ok: false, reason: "empty" };
+      if (typeof name !== "string") return { ok: false, reason: "invalid" };
+      const trimmed = name.replace(/[\x00-\x1f\x7f]/g, "").trim();
+      if (!trimmed || Array.from(trimmed).length > 20) return { ok: false, reason: "invalid" };
+      set.name = trimmed;
+      return { ok: true };
+    }
+    function equipmentSetPreview(c, index) {
+      const set = savedSet(c, index);
+      if (!set) return [];
+      const equipped = new Map();
+      for (const owner of S.roster) {
+        for (const gear of Object.values(owner.equip || {})) {
+          if (gear && typeof gear.id === "string") equipped.set(gear.id, owner.id);
+        }
+      }
+      const inventory = new Map(S.inventory.filter((gear) => gear && typeof gear.id === "string")
+        .map((gear) => [gear.id, gear]));
+      const equippedItems = new Map();
+      for (const owner of S.roster) {
+        for (const gear of Object.values(owner.equip || {})) {
+          if (gear && typeof gear.id === "string") equippedItems.set(gear.id, gear);
+        }
+      }
+      return equipment.POSITIONS.map((pos) => {
+        const id = set.slots && set.slots[pos];
+        if (!id) return { position: pos, empty: true, status: "empty" };
+        const current = inventory.get(id) || equippedItems.get(id);
+        const snapshot = set.preview && set.preview[pos];
+        return {
+          position: pos, empty: false,
+          name: snapshot && snapshot.name || current && current.name || "装備名を確認できません",
+          rarity: snapshot && snapshot.rarity || current && current.rarity || "",
+          plus: snapshot && Number.isSafeInteger(snapshot.plus) ? snapshot.plus
+            : current && Number.isSafeInteger(current.plus) ? current.plus : 0,
+          status: inventory.has(id) ? "inventory" :
+            equipped.get(id) === c.id ? "equipped" :
+            equipped.has(id) ? "other" : "missing",
+        };
+      });
     }
     function deleteEquipmentSet(c, index) {
       if (c && c.team !== null && isTeamLocked(c.team)) return false;
@@ -397,7 +453,7 @@
     return {
       releaseCandidates, releaseMembers,
       clampVitals, equipItem, unequipSlot, autoEquip, normalizeCharEquip,
-      savedSet, saveEquipmentSet, deleteEquipmentSet, applyEquipmentSet,
+      savedSet, saveEquipmentSet, renameEquipmentSet, equipmentSetPreview, deleteEquipmentSet, applyEquipmentSet,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
       canBatchEnhance, estimateEnhanceToTarget, enhanceToTarget,
