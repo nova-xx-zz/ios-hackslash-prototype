@@ -23,8 +23,8 @@ test("UIはギルド見出し・下部固定ボタン・iOSの16px入力・狭�
   assert.match(css, /#screen-create \.create-footer\s*\{[^}]*flex: 0 0 auto;/s);
   assert.match(css, /#screen-create \.name-input\s*\{[^}]*font-size: 16px;/s);
   assert.match(css, /@media \(max-width: 359px\)/);
-  assert.match(html, /css\/style\.css\?v=60/);
-  assert.match(html, /js\/ui\/create\.js\?v=7/);
+  assert.match(html, /css\/create-ornate\.css\?v=1/);
+  assert.match(html, /js\/ui\/create\.js\?v=8/);
 });
 
 test("種族ジョブの選択カードをクリックでき、表示文言はtextContent", () => {
@@ -44,7 +44,7 @@ test("種族ジョブの選択カードをクリックでき、表示文言はte
   const row = cx.buildCreatePickRow("しゅぞく", "<img src=x>", "説明", () => clicked = true, "race", "human");
   assert.equal(row.tag, "button");
   assert.match(row.className, /create-pick-row/);
-  assert.equal(row.children[1].children[1].textContent, "<img src=x>");
+  assert.equal(row.children[1].children[0].children[1].children[0].textContent, "<img src=x>");
   row.click();
   assert.equal(clicked, true);
 });
@@ -73,4 +73,19 @@ test("登録プレビューは6能力値・特性・習得スキルを表示し�
   assert.equal((box.innerHTML.match(/class="pv-stat"/g)||[]).length,6);
   assert.match(box.innerHTML, /獲得経験値 10%/);
   assert.match(box.innerHTML, /影刃/);
+});
+
+test("v2: 装飾付き選択帯・登録プレビュー・名前入力のスクロール復帰", () => {
+  const ornate = fs.readFileSync(path.join(__dirname,"../css/create-ornate.css"),"utf8");
+  const frame = fs.readFileSync(path.join(__dirname,"../icons/companion-ornate-frame.svg"),"utf8");
+  const art = fs.readFileSync(path.join(__dirname,"../icons/companion-stilllife.svg"),"utf8");
+  assert.match(create, /create-name-input-shell/);
+  assert.match(create, /cr-select-box/);
+  assert.match(create, /create-preview-shell/);
+  assert.match(create, /getElementById\("createBody"\)\.scrollTop = 0/);
+  assert.match(ornate, /border-image-source:url\("\.\.\/icons\/companion-ornate-frame.svg"\)/);
+  assert.match(ornate, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(ornate, /position:absolute; z-index:-1/);
+  assert.match(frame, /<svg/);
+  assert.match(art, /<svg/);
 });

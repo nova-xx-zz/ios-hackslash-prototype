@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" preserveAspectRatio="none">
+<defs><linearGradient id="gold" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f3db9f"/><stop offset=".33" stop-color="#947044"/><stop offset=".68" stop-color="#c7a261"/><stop offset="1" stop-color="#f8deaa"/></linearGradient></defs>
+<rect x="3" y="3" width="354" height="354" rx="4" fill="none" stroke="url(#gold)" stroke-width="4"/>
+<rect x="13" y="13" width="334" height="334" rx="1" fill="none" stroke="#a97d45" stroke-opacity=".6" stroke-width="1.5"/>
+<g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.3">
+<path d="M3 82 17 67 17 42 42 17 67 17 82 3M14 78 29 61 29 43 45 29 61 29 78 14M15 53Q48 57 53 15"/>
+<path d="M3 40 12 48 3 56M40 3 48 12 56 3M22 22l12-5 5 12-12 5Z"/>
+<path d="M3 82Q28 74 32 57Q44 36 82 3"/>
+</g>
+<g transform="translate(360 0) scale(-1 1)" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.3">
+<path d="M3 82 17 67 17 42 42 17 67 17 82 3M14 78 29 61 29 43 45 29 61 29 78 14M15 53Q48 57 53 15"/>
+<path d="M3 40 12 48 3 56M40 3 48 12 56 3M22 22l12-5 5 12-12 5Z"/>
+<path d="M3 82Q28 74 32 57Q44 36 82 3"/>
+</g>
+<g transform="translate(0 360) scale(1 -1)" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.3">
+<path d="M3 82 17 67 17 42 42 17 67 17 82 3M14 78 29 61 29 43 45 29 61 29 78 14M15 53Q48 57 53 15"/>
+<path d="M3 40 12 48 3 56M40 3 48 12 56 3M22 22l12-5 5 12-12 5Z"/>
+<path d="M3 82Q28 74 32 57Q44 36 82 3"/>
+</g>
+<g transform="translate(360 360) scale(-1 -1)" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.3">
+<path d="M3 82 17 67 17 42 42 17 67 17 82 3M14 78 29 61 29 43 45 29 61 29 78 14M15 53Q48 57 53 15"/>
+<path d="M3 40 12 48 3 56M40 3 48 12 56 3M22 22l12-5 5 12-12 5Z"/>
+<path d="M3 82Q28 74 32 57Q44 36 82 3"/>
+</g>
+<g fill="#f2d39a" stroke="#5e452a" stroke-width="2"><path d="m180 0 7 7-7 7-7-7Z"/><path d="m180 360 7-7-7-7-7 7Z"/><path d="M0 180l7-7 7 7-7 7Z"/><path d="m360 180-7-7-7 7 7 7Z"/></g>
+</svg>
