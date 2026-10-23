@@ -241,7 +241,7 @@ function buildFusionTab(c) {
   const footer = document.createElement("div");
   footer.className = "fusion-footer";
   footer.innerHTML = `<span>選択中: ${selectedMonsters.length}体</span><span>獲得EXP: ${isMaxLevel(c) ? "+0（Lv上限）" : "+" + totalExpGain}</span>`;
-  wrap.appendChild(footer);
+  // 合成操作は一覧の末尾ではなく下部の固定アクションバーに表示する。
 
   // レベル上限に達したモンスターはEXPを受け取れないため、素材を無駄にしないよう合成させない。
   // ただし素材が全員同じ種族なら個体値は上がるので、合成できる（EXPは入らないことを書いておく）
@@ -271,7 +271,10 @@ function buildFusionTab(c) {
     saveGame(); // 素材の消滅は取り消せないため、遅延保存を待たずに確定させる
     renderCharDetail();
   });
-  wrap.appendChild(btn);
+  const actionBar = document.getElementById("detailActionBar");
+  actionBar.appendChild(footer);
+  actionBar.appendChild(btn);
+  actionBar.classList.remove("hidden");
 
   if (fusionMessage) {
     const msg = document.createElement("div");
