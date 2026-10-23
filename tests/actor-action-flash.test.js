@@ -52,9 +52,9 @@ test("味方の行動時に発光クラスを付けず、HP・MP・ATBと戦闘�
 });
 
 test("行動時の発光CSS・イベント状態・旧チェックポイント項目を残さない", () => {
-  assert.doesNotMatch(read("css/style.css"), /\\.actor-card\\.acted/);
+  assert.doesNotMatch(read("css/style.css"), /\.actor-card\.acted/);
   assert.doesNotMatch(read("js/ui/explore.js"), /actedFlash|case "acted":/);
-  assert.doesNotMatch(read("js/ui/dock.js"), /classList\\.toggle\\("acted"/);
+  assert.doesNotMatch(read("js/ui/dock.js"), /classList\.toggle\("acted"/);
   assert.doesNotMatch(read("js/model/run.js"), /actedFlash/);
   assert.doesNotMatch(read("js/core/dungeon-checkpoint.js"), /actedFlash/);
 });
