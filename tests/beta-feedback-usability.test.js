@@ -123,7 +123,7 @@ test("マイセット: 旧ジョブの装備制約・盗難ID/重複IDを弾い�
   assert.deepEqual(state.inventory, before);
   const duplicate = item("bronze_sword", "dup-sword");
   state.inventory.push(duplicate);
-  assert.deepEqual(inv.applyEquipmentSet(c, 0), { ok: false, reason: "missing" });
+  assert.deepEqual(inv.applyEquipmentSet(c, 0), { ok: false, reason: "duplicate" });
   assert.equal(c.equip.main, null);
 });
 
