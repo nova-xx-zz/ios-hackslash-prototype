@@ -10,6 +10,8 @@ const start = source.indexOf("// ---------- 仲間と別れる ----------");
 const end = source.indexOf("// ---------- 装備強化", start);
 assert.ok(start >= 0 && end > start, "仲間と別れる画面の実装が存在すること");
 const implementation = source.slice(start, end);
+const listControls = fs.readFileSync(path.join(__dirname, "../js/ui/list-controls.js"), "utf8");
+const RosterOrganize = require("../js/core/roster-organize.js");
 
 class Element {
   constructor(tag = "div") {
@@ -21,6 +23,7 @@ class Element {
     this.disabled = false;
     this.attrs = {};
     this.listeners = {};
+    this.value = "";
   }
   set innerHTML(value) {
     assert.equal(value, "");
@@ -31,6 +34,7 @@ class Element {
   setAttribute(name, value) { this.attrs[name] = String(value); }
   addEventListener(name, callback) { this.listeners[name] = callback; }
   click() { if (!this.disabled) this.listeners.click?.(); }
+  change(value) { this.value = value; this.listeners.change?.({ target: this }); }
 }
 function allDescendants(node) {
   const result = [];
@@ -41,7 +45,7 @@ function allDescendants(node) {
   return result;
 }
 
-function setup(candidateCount = 24) {
+function setup(candidateCount = 24, extra = []) {
   const elements = {};
   const document = {
     getElementById: (id) => elements[id] ||= new Element(),
@@ -50,12 +54,15 @@ function setup(candidateCount = 24) {
   const roster = Array.from({ length: candidateCount }, (_, i) =>
     ({ id: "c" + i, name: "仲間" + (i + 1), race: "human",
       level: i + 1, team: null, favorite: false, equip: {} }));
+  roster.push(...extra);
   // モデルでは全員との別れを禁止する。候補が残り1人でも常に最低1人残す。
   const alive = [{ id: "protected", name: "主役", team: 0, favorite: true, equip: {} }, ...roster];
   const calls = [];
   let saved = 0, armed = 0, ready = true;
   const context = vm.createContext({
-    document, RACES: { human: { name: "人間" } }, jobDef: () => ({ name: "戦士" }),
+    document, RACES: { human: { name: "人間" }, slime: { name: "スライム" }, wolf: { name: "オオカミ" } },
+    jobDef: (c) => ({ name: c.isMonster ? c.race : (c.job || "戦士") }),
+    QPCore: { rosterOrganize: RosterOrganize },
     Inventory: {
       releaseCandidates: () => alive.filter((c) => c.team === null && !c.favorite),
       releaseMembers: (chosen) => {
@@ -70,6 +77,7 @@ function setup(candidateCount = 24) {
     saveGame: () => { saved++; },
     openPartyMenu: () => {}, showScreen: () => {},
   });
+  vm.runInContext(listControls, context);
   vm.runInContext(implementation, context);
   const getButton = () => document.getElementById("farewellActionBar").children
     .find((e) => e.tagName === "button");
@@ -88,7 +96,8 @@ test("仲間が24人いても別れる操作は独立フッター内に常時表
   const x = setup();
   x.open();
   assert.equal(x.rows().length, 24);
-  assert.equal(x.elements.farewellBody.children.length, 2);
+  // 説明・絞り込み・件数と一括選択・「人間」見出し・一覧
+  assert.equal(x.elements.farewellBody.children.length, 5);
   assert.equal(x.getButton().disabled, true);
   assert.equal(x.getButton().textContent, "別れる仲間を選んでください");
   assert.equal(x.elements.farewellActionBar.children[0].textContent, "選択中：0人");
@@ -154,4 +163,44 @@ test("別れられる候補が0人でも固定ボタンは無効のまま、誤�
   x.getButton().click();
   assert.equal(x.calls.length, 0);
   assert.equal(x.saved, 0);
+});
+
+const mon = (id, race, level) => ({ id, name: race + id, race, isMonster: true, level, team: null, favorite: false, equip: {} });
+const find = (root, pred) => allDescendants(root).filter(pred);
+
+test("仲間と別れる: 人間とモンスターを分けて表示し、種類・種族で絞り込める", () => {
+  const x = setup(3, [mon("c90", "slime", 2), mon("c91", "wolf", 7), mon("c92", "slime", 4)]);
+  x.open();
+  const body = x.elements.farewellBody;
+  const sections = find(body, (n) => n.className === "roster-section").map((n) => n.textContent);
+  assert.deepEqual(sections, ["人間（3人）", "モンスター（3人）"]);
+  // 既定は従来どおり仲間にした順。並び順を「Lvが高い順」に変えられる
+  const names = () => x.rows().map((r) => r.children[0].textContent.split("（")[0]);
+  assert.deepEqual(names(), ["仲間1", "仲間2", "仲間3", "slimec90", "wolfc91", "slimec92"]);
+  find(body, (n) => n.tagName === "select")[1].change("level");
+  assert.deepEqual(names(), ["仲間3", "仲間2", "仲間1", "wolfc91", "slimec92", "slimec90"]);
+  const chip = (text) => find(body, (n) => n.tagName === "button" && n.textContent === text)[0];
+  chip("モンスター").click();
+  assert.deepEqual(find(x.elements.farewellBody, (n) => n.className === "roster-section").map((n) => n.textContent), ["モンスター（3人）"]);
+  const select = () => find(x.elements.farewellBody, (n) => n.tagName === "select");
+  select()[0].change("m:slime");
+  assert.deepEqual(names(), ["slimec92", "slimec90"]);
+  select()[1].change("levelAsc");
+  assert.deepEqual(names(), ["slimec90", "slimec92"]);
+});
+
+test("仲間と別れる: 表示中をまとめて選び、絞り込みで隠れた選択は人数に明示する", () => {
+  const x = setup(2, [mon("c90", "slime", 2), mon("c91", "slime", 3)]);
+  x.open();
+  const body = () => x.elements.farewellBody;
+  const chip = (pred) => find(body(), (n) => n.tagName === "button" && pred(n.textContent))[0];
+  chip((t) => t === "モンスター").click();
+  chip((t) => t.startsWith("表示中をすべて選ぶ")).click();
+  assert.equal(x.getButton().textContent, "2人と別れる");
+  chip((t) => t === "人間").click();
+  assert.equal(x.elements.farewellActionBar.children[0].textContent, "選択中：2人（うち表示外2人）");
+  x.getButton().click();
+  x.getButton().click();
+  assert.equal(x.calls.length, 1);
+  assert.equal(x.calls[0].map((c) => c.id).sort().join(","), "c90,c91");
 });

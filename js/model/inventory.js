@@ -277,18 +277,47 @@
       return false;
     }
 
+    // 連続強化で確定強化石も使うか。機能OFFなら常に使わない（opts.useGuaranteed は明示した時だけ）。
+    function batchUsesGuaranteed(opts) {
+      return !!(opts && opts.useGuaranteed) && isFeatureEnabled("guaranteedStone");
+    }
+    function guaranteedRequiredAt(item, plus) {
+      return enhance.guaranteedRequired(ENHANCE_RULES, item.rarity, plus);
+    }
+
     // 目標到達まで各+1の「天井まで失敗し続けた場合」の最大消費を計算する。
     // すでに貯めた天井ゲージは今の段だけに適用。成功後は毎段0から計算。
     // 天井OFFなら必ず成功する上限は無いためnull（実行は所持石がある間だけ）。
-    function estimateEnhanceToTarget(item, targetPlus) {
+    // opts.useGuaranteed: 確定強化石を先に使う。確定強化石は成功率100%のため消費数は確定値で、
+    // 足りる段から順に（必要個数は+値とともに増えるので、手前の段から）使い、足りなくなった段から通常石の最大値を足す。
+    // 結果: { targetPlus, maxStones（通常石の最大値。不明ならnull）, guaranteedSteps, guaranteedUse, guaranteedPaidUse }
+    function estimateEnhanceToTarget(item, targetPlus, opts) {
       if (!item || !Number.isSafeInteger(item.plus) || item.plus < 0 ||
           !Number.isSafeInteger(targetPlus) || targetPlus <= item.plus || targetPlus > ENHANCE_MAX_PLUS) return null;
-      if (!isFeatureEnabled("enhancePity")) return { targetPlus, maxStones: null };
-      let maxStones = 0;
+      const useGuaranteed = batchUsesGuaranteed(opts);
+      const stones = { free: S.guaranteedStones.free, paid: S.guaranteedStones.paid };
+      let guaranteedSteps = 0, guaranteedUse = 0, guaranteedPaidUse = 0;
+      let maxStones = 0, normalSteps = 0;
       for (let plus = item.plus; plus < targetPlus; plus++) {
+        if (useGuaranteed) {
+          const required = guaranteedRequiredAt(item, plus);
+          if (Number.isSafeInteger(required) && required > 0 && stones.free + stones.paid >= required) {
+            const fromFree = Math.min(required, stones.free); // 消費は無償分から（enhance.useGuaranteed と同じ）
+            stones.free -= fromFree;
+            stones.paid -= required - fromFree;
+            guaranteedSteps++;
+            guaranteedUse += required;
+            guaranteedPaidUse += required - fromFree;
+            continue;
+          }
+        }
+        normalSteps++;
+        if (!isFeatureEnabled("enhancePity")) { maxStones = null; continue; }
+        if (maxStones === null) continue;
         const perRoll = enhance.cost(ENHANCE_RULES, item.rarity, plus);
         const ceiling = enhance.pityThreshold(ENHANCE_RULES, item.rarity, plus);
         if (!Number.isSafeInteger(perRoll) || perRoll <= 0 || !Number.isSafeInteger(ceiling) || ceiling < 0) return null;
+        // 確定強化石で上げた段の後は天井ゲージが0になっている
         const previousPity = plus === item.plus && Number.isFinite(item.pity)
           ? Math.max(0, item.pity) : 0;
         // 「天井ゲージに到達するまでの失敗」+「次の確定成功1回」が最悪ケース。
@@ -296,20 +325,41 @@
         maxStones += (failRolls + 1) * perRoll;
         if (!Number.isSafeInteger(maxStones)) return null;
       }
-      return { targetPlus, maxStones };
+      return { targetPlus, maxStones: normalSteps === 0 ? 0 : maxStones, guaranteedSteps, guaranteedUse, guaranteedPaidUse };
+    }
+
+    // 次の1段を始められるか（通常石1回分、または確定強化石を使う設定でその段の必要個数）
+    function canStartBatch(item, opts) {
+      if (!canBatchEnhance(item)) return false;
+      if (S.material >= enhanceCost(item)) return true;
+      return batchUsesGuaranteed(opts) && guaranteedStoneTotal() >= guaranteedRequiredAt(item, item.plus);
     }
 
     // 上記の最大値を先払いしたり、天井分を無条件に消費したりはしない。
     // 通常の1回強化を反復し、成功したら即座に次の+段へ進む。
+    // opts.useGuaranteed のときは、確定強化石がその段の必要個数あれば先にそちらで+1する（有償の石を通常石より優先して使う）。
     // 目標に到達または所持石が次の抽選に足りない場合に止める。
-    function enhanceToTarget(item, targetPlus) {
-      if (!canBatchEnhance(item) || !estimateEnhanceToTarget(item, targetPlus)) return null;
+    function enhanceToTarget(item, targetPlus, opts) {
+      if (!canBatchEnhance(item) || !estimateEnhanceToTarget(item, targetPlus, opts)) return null;
 
+      const useGuaranteed = batchUsesGuaranteed(opts);
       const fromPlus = item.plus;
       let attempts = 0, successes = 0, failures = 0, pityHits = 0, spent = 0;
+      let guaranteedSteps = 0, guaranteedUsed = 0, guaranteedPaidUsed = 0;
       let reason = "material";
       while (item.plus < targetPlus) {
         if (!canBatchEnhance(item)) { reason = "invalid"; break; }
+        if (useGuaranteed && guaranteedStoneTotal() >= guaranteedRequiredAt(item, item.plus)) {
+          const paidBefore = S.guaranteedStones.paid;
+          const g = enhanceWithGuaranteed(item);
+          if (!g) { reason = "invalid"; break; }
+          attempts++;
+          successes++;
+          guaranteedSteps++;
+          guaranteedUsed += g.required;
+          guaranteedPaidUsed += paidBefore - S.guaranteedStones.paid;
+          continue;
+        }
         const nextCost = enhanceCost(item);
         if (!Number.isSafeInteger(nextCost) || nextCost <= 0) { reason = "invalid"; break; }
         if (S.material < nextCost) { reason = "material"; break; }
@@ -324,7 +374,9 @@
       }
       if (item.plus >= targetPlus) reason = "target";
       return { fromPlus, targetPlus, plus: item.plus, attempts, successes, failures,
-        pityHits, spent, reason, remainingMaterial: S.material };
+        pityHits, spent, reason, remainingMaterial: S.material,
+        guaranteedSteps, guaranteedUsed, guaranteedPaidUsed,
+        remainingGuaranteed: { free: S.guaranteedStones.free, paid: S.guaranteedStones.paid } };
     }
 
     // 確定強化石で必ず+1する（通常の強化石は消費しない。消費は無償分から）。できなければnull。結果: { plus, required }
@@ -457,7 +509,7 @@
       savedSet, saveEquipmentSet, renameEquipmentSet, equipmentSetPreview, deleteEquipmentSet, applyEquipmentSet,
       addMaterial, guaranteedStoneTotal,
       enhanceCost, isMaxed, canEnhance, isPityReady, enhanceItem, enhanceWithGuaranteed,
-      canBatchEnhance, estimateEnhanceToTarget, enhanceToTarget,
+      canBatchEnhance, canStartBatch, estimateEnhanceToTarget, enhanceToTarget,
       setLocked, receiveDrops, disassembleValue, disassembleItems,
       fusionCandidates, materialExp, fusionExpGain, fuse,
     };

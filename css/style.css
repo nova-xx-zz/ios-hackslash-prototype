@@ -1227,6 +1227,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .disassemble-chip.active { color: #0b0b12; border-color: transparent; }
+/* 含む／含まないの切り替えと「すべて」は背景色を持たないため、選択中は古金色で示す（レア度チップは色を直接塗る） */
+.disassemble-chip.toggle.active { color: #f1dfb0; background: rgba(201, 164, 99, 0.22); border-color: var(--accent); }
 .disassemble-chip:disabled { opacity: 0.4; cursor: default; }
 .disassemble-chip.confirming { border-color: var(--hp); color: var(--hp); }
 .skill-row.locked { opacity: 0.55; }
@@ -1873,3 +1875,30 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .book-guide-warning{padding:10px 12px;border-left:3px solid #dfb96b;background:rgba(208,138,60,.12);border-radius:4px;font-weight:650;}
 .book-guide-faq{white-space:pre-line;padding-bottom:10px;border-bottom:1px solid var(--border);}
 .book-sub{line-height:1.6;}
+
+/* ---------- 一覧の絞り込み・並び替え（控え・仲間と別れる・装備強化。js/ui/list-controls.js） ---------- */
+.list-filter-bar { padding: 2px 2px 8px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.list-filter-line { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 6px; padding: 2px 0 4px; }
+.list-filter-chips { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.list-filter-select-label {
+  display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 96px;
+  color: var(--sub-text); font-size: 10.5px;
+}
+.list-filter-select {
+  box-sizing: border-box; width: 100%; min-height: 36px; padding: 6px 26px 6px 9px;
+  border: 1px solid var(--border); border-radius: 8px; color: var(--text); font: inherit; font-size: 13px;
+  background: rgba(255,255,255,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23d9b979' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 9px center / 10px 6px;
+  -webkit-appearance: none; appearance: none; cursor: pointer; color-scheme: dark;
+}
+.list-filter-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#enhanceFilterRow { display: block; padding: 2px 2px 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.farewell-tools { align-items: center; justify-content: space-between; }
+/* 連続強化: 確定強化石も使うかのチェック */
+.enhance-batch-guaranteed {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 8px; font-size: 12px; line-height: 1.5; cursor: pointer;
+}
+.enhance-batch-guaranteed.hidden { display: none; }
+.enhance-batch-guaranteed input { width: 18px; height: 18px; margin: 1px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
+.enhance-batch-guaranteed small { display: block; color: var(--sub-text); font-size: 10.5px; }
+.list-filter-fav { min-height: 36px; flex: 0 0 auto; }

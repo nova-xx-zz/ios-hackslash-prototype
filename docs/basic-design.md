@@ -56,10 +56,10 @@ data/*.js           … お知らせ・今後の予定（配信データ）
 | `screen-book` | 冒険者の書（手引き・モンスター／アイテム／種族／ジョブ辞典・冒険の記録） | `renderBook()`（`js/ui/book.js`） |
 | `screen-forge-trial` | 鍛冶屋の試作工房（オプション抽出・継承の試遊。本体の装備・セーブには未接続、正式配信ビルドでは非表示） | `js/ui/forge-trial.js` |
 | `screen-menu` | 編成メニュー（ギルド・鍛冶屋・ショップ） | `renderPartyMenu()`（`js/ui/menu.js`） |
-| `screen-farewell` | 仲間と別れる | `renderFarewell()` |
-| `screen-enhance` | 装備強化（装備中・所持品の一覧） | `renderEnhanceList()` |
+| `screen-farewell` | 仲間と別れる（人間／モンスター別の見出し、種類・ジョブ／種族の絞り込み、並び替え） | `renderFarewell()` |
+| `screen-enhance` | 装備強化（装備中・所持品の一覧。部位・表示・並び順、部位ごと／キャラごとのまとまり、80件ずつ表示） | `renderEnhanceList()` |
 | `screen-shop` | ショップ | `renderShop()`（`js/ui/shop.js`） |
-| `screen-jobs` | パーティ編成（ロスター一覧） | `renderJobsScreen()` |
+| `screen-jobs` | パーティ編成（ロスター一覧。控えは人間・モンスターの2行、絞り込み・並び替えあり） | `renderJobsScreen()` |
 | `screen-inventory` | 所持品一覧（未装備アイテム） | `renderInventoryScreen()` |
 | `screen-create` | キャラ作成 | `renderCreateScreen()` |
 | `screen-chardetail` | キャラ詳細（タブ切替） | `renderCharDetail()` |
@@ -120,6 +120,7 @@ data/*.js           … お知らせ・今後の予定（配信データ）
 | `jobquest_material` | 強化石所持数の**互換ミラー** | schemaVersion 2 以降はメインセーブの `material` が正本。旧セーブ（schemaVersion 2 未満）の移行元としてだけ読む |
 | `jobquest_autodisassemble` / `jobquest_autodisassemble_filter` | 自動分解設定 | プレイヤーの好みの設定であり、ロスターの状態とは独立 |
 | `jobquest_autorepeat_target` | 自動周回の選択回数 | UIの初期選択値の記憶用 |
+| `jobquest_battle_speed` | 戦闘速度（1/2/3/5） | 開き直しても速度を引き継ぐ。起動時に購入記録で確かめ、持っていなければx1 |
 | `jobquest_dex_seen` | モンスター図鑑の発見状況 | 何度書いても同じ結果になる収集要素として独立管理 |
 | `jobquest_read_announcements` / `jobquest_notify_auto_repeat` | お知らせの既読・通知のON/OFF | 端末ごとの設定 |
 

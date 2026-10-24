@@ -5,7 +5,10 @@
 
 // ---------- パーティ一覧（編成画面） ----------
 const expandedTeams = new Set([0]);
-let benchExpanded = true;
+let benchExpanded = true; // 控え（人間）
+let benchMonsterExpanded = true; // 控え（モンスター）
+// 控えの絞り込み・並び替え（js/ui/list-controls.js）。画面内の一時状態でセーブには入れない
+let benchView = newRosterListView();
 const expandedGroups = new Set(); // 開いている未編成グループのid
 let detailCharId = null;
 let detailTab = "stats";
@@ -75,18 +78,41 @@ function renderJobsScreen() {
     wrap.appendChild(add);
   }
 
+  // 控え: 人間とモンスターを別の行に分ける（どちらへドロップしても「控え」に入り、種類に応じた行に並ぶ）
   wrap.appendChild(sectionLabel("未編成"));
   const bench = S.roster.filter((c) => c.team === null && !c.group);
+  if (bench.length > 1 || rosterListViewActive(benchView)) {
+    wrap.appendChild(buildRosterFilterBar(benchView, { chars: bench, showKind: false, onChange: () => renderJobsScreen() }));
+  }
+  const shownBench = applyRosterListView(bench, benchView);
+  const filtered = rosterListViewActive(benchView);
+  const benchMeta = (all, shown) => (filtered ? `${shown.length}/${all.length}人` : `${all.length}人`);
+  const humans = bench.filter((c) => !c.isMonster);
+  const monsters = bench.filter((c) => c.isMonster);
+  const shownHumans = shownBench.filter((c) => !c.isMonster);
+  const shownMonsters = shownBench.filter((c) => c.isMonster);
   wrap.appendChild(buildPartyRow({
     key: "bench",
-    name: "控え",
-    meta: `${bench.length}人`,
+    name: "控え（人間）",
+    meta: benchMeta(humans, shownHumans),
     expanded: benchExpanded,
     onToggle: () => { benchExpanded = !benchExpanded; renderJobsScreen(); },
-    members: bench,
+    members: shownHumans,
     dropKey: "bench",
     grid: true,
     emptyTile: () => openCreateScreen(),
+  }));
+  wrap.appendChild(buildPartyRow({
+    key: "bench-monster",
+    name: "控え（モンスター）",
+    meta: benchMeta(monsters, shownMonsters),
+    expanded: benchMonsterExpanded,
+    onToggle: () => { benchMonsterExpanded = !benchMonsterExpanded; renderJobsScreen(); },
+    members: shownMonsters,
+    dropKey: "bench",
+    grid: true,
+    emptyTile: null,
+    emptyText: monsters.length > 0 ? "（条件に合うモンスターはいません）" : "（テイムしたモンスターはここに入ります）",
   }));
 
   document.getElementById("rosterCount").textContent = rosterMessage ||
@@ -418,7 +444,7 @@ function dropMemberDrag() {
     if (key === "bench") {
       char.team = null;
       char.group = null;
-      benchExpanded = true;
+      if (char.isMonster) benchMonsterExpanded = true; else benchExpanded = true;
     } else if (key.startsWith("g:")) {
       const id = key.slice(2);
       char.team = null;

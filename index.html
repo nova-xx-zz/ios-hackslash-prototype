@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=62">
+<link rel="stylesheet" href="css/style.css?v=64">
 <link rel="stylesheet" href="css/create-unified.css?v=1">
 </head>
 <body>
@@ -475,6 +475,10 @@
             <option value="10">+10</option>
           </select>
         </label>
+        <label class="enhance-batch-guaranteed hidden" id="enBatchGuaranteedRow" for="enBatchUseGuaranteed">
+          <input type="checkbox" id="enBatchUseGuaranteed">
+          <span>確定強化石も使う<small id="enBatchGuaranteedNote">確定強化石が足りる段は先にそちらで強化します（成功率100%）</small></span>
+        </label>
         <p class="enhance-batch-estimate" id="enBatchEstimate"></p>
         <p class="enhance-batch-hint" id="enBatchHint">成功した段階では余分な強化石を消費せず、次の段階へ進みます。</p>
         <button class="btn primary modal-ok" id="btnEnhanceBatch" type="button">強化する</button>
@@ -492,7 +496,7 @@
 <script src="data/announcements.js?v=14"></script>
 <script src="data/roadmap.js?v=2"></script>
 <script src="js/debug-gate.js?v=5"></script>
-<script src="js/core/storage.js?v=8"></script>
+<script src="js/core/storage.js?v=9"></script>
 <script src="js/core/save-diagnostics.js?v=1"></script>
 <script src="js/core/save-mirror.js?v=1"></script>
 <script src="js/core/save-segments.js?v=1"></script>
@@ -512,7 +516,8 @@
 <script src="js/core/option-stack-trial.js?v=1"></script>
 <!-- FORGE-TRIAL-CORE-END -->
 <script src="js/core/rewards.js?v=7"></script>
-<script src="js/core/inventory-organize.js?v=4"></script>
+<script src="js/core/inventory-organize.js?v=5"></script>
+<script src="js/core/roster-organize.js?v=1"></script>
 <script src="js/core/offline.js?v=5"></script>
 <script src="js/core/stats.js?v=2"></script>
 <script src="js/core/battle.js?v=8"></script>
@@ -520,10 +525,10 @@
 <script src="js/core/equipment.js?v=5"></script>
 <script src="js/core/notices.js?v=1"></script>
 <script src="js/model/records.js?v=1"></script>
-<script src="js/model/shop.js?v=4"></script>
+<script src="js/model/shop.js?v=5"></script>
 <script src="js/model/save.js?v=16"></script>
 <script src="js/model/roster.js?v=11"></script>
-<script src="js/model/inventory.js?v=17"></script>
+<script src="js/model/inventory.js?v=18"></script>
 <script src="js/model/run.js?v=16"></script>
 <script src="js/firebase-config.js?v=1"></script>
 <script src="js/cloud.js?v=5"></script>
@@ -541,25 +546,26 @@
 <script src="js/ui/contact.js?v=1"></script>
 <script src="js/ui/settings.js?v=5"></script>
 <script src="js/ui/debug.js?v=9"></script>
-<script src="js/ui/party.js?v=10"></script>
+<script src="js/ui/list-controls.js?v=1"></script>
+<script src="js/ui/party.js?v=11"></script>
 <script src="js/ui/create.js?v=10"></script>
 <script src="js/ui/detail.js?v=5"></script>
 <script src="js/ui/detail-tree.js?v=4"></script>
 <script src="js/ui/detail-tabs.js?v=14"></script>
-<script src="js/ui/inventory.js?v=22"></script>
+<script src="js/ui/inventory.js?v=24"></script>
 <script src="js/ui/battle.js?v=8"></script>
 <script src="js/ui/log.js?v=4"></script>
-<script src="js/ui/dock.js?v=15"></script>
+<script src="js/ui/dock.js?v=16"></script>
 <script src="js/ui/explore.js?v=16"></script>
 <script src="js/ui/book-guide-content.js?v=1"></script>
 <script src="js/ui/book.js?v=10"></script>
 <script src="js/ui/notify.js?v=1"></script>
 <script src="js/ui/shop.js?v=7"></script>
-<script src="js/ui/menu.js?v=4"></script>
+<script src="js/ui/menu.js?v=5"></script>
 <!-- FORGE-TRIAL-UI-START -->
 <script src="js/ui/forge-trial.js?v=8"></script>
 <!-- FORGE-TRIAL-UI-END -->
-<script src="js/game.js?v=33"></script>
+<script src="js/game.js?v=34"></script>
 <script src="js/pwa.js?v=1"></script>
 </body>
 </html>

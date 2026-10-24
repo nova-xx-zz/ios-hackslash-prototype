@@ -13,12 +13,16 @@
  }
  // 明示的な拡張選択でもロック済みは対象にしない。未ロックの貴重品・呪い・UR/LR等は
  // UI側の確認操作を経て初めて一括分解できる。
- function isBulkSelectable(item,includeValuable,includeCursed){
+ // 未ロックの装備は「呪い」「貴重（呪い以外）」「普通（呪いでも貴重でもない）」のどれか1つに入り、
+ // 3つの条件を独立に含める／含めないを選べる（例: 普通と貴重を外し呪いだけ → UR・LRの呪いだけを一括選択）。
+ function isBulkSelectable(item,includeValuable,includeCursed,includeNormal){
    if(!item||item.locked)return false;
-   // 旧2引数の互換は維持。UIは独立した2条件を明示する。
+   // 旧2引数・3引数の互換は維持。UIは独立した3条件を明示する。
    if(includeCursed===undefined)includeCursed=includeValuable;
+   if(includeNormal===undefined)includeNormal=true;
    if(item.cursed)return !!includeCursed;
-   return !!includeValuable||isSafeBulkCandidate(item);
+   if(isValuable(item))return !!includeValuable;
+   return !!includeNormal&&(isSafeBulkCandidate(item)||!!includeValuable);
  }
  function matches(item,view){
    if(view==="all")return true;

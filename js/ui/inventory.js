@@ -21,6 +21,8 @@ let disassembleSelection = new Set(); // 選んだアイテム（オブジェク
 let disassembleConfirming = false;
 let bulkIncludeValuable = false; // 貴重品・強化済み・UR/LRは明示した時だけ一括候補
 let bulkIncludeCursed = false; // 呪いは独立した選択条件
+let bulkIncludeNormal = true; // 普通（呪いでも貴重でもない）。外すと貴重・呪いだけを選べる（例: UR・LRの呪いだけ）
+const bulkSelectable = (item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed, bulkIncludeNormal);
 
 let inventoryReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
 // opts: { disassemble（分解する装備を選ぶ状態で開く）, returnScreen }
@@ -44,6 +46,7 @@ function exitDisassembleMode() {
   disassembleConfirming = false;
   bulkIncludeValuable = false;
   bulkIncludeCursed = false;
+  bulkIncludeNormal = true;
 }
 
 function showInventoryMessage(text) {
@@ -101,38 +104,33 @@ function renderDisassembleControls() {
     label.textContent = "まとめて選ぶ:";
     bulk.appendChild(label);
     const shown = shownInventoryItems();
-    // 初期状態は安全候補のみ。任意で貴重品/呪い/UR/LRも対象にできるが、ロックは常に除外する。
-    const mode = document.createElement("button");
-    mode.className = "disassemble-chip" + (bulkIncludeValuable ? " active" : "");
-    mode.textContent = bulkIncludeValuable ? "貴重を含む" : "貴重を含まない";
-    mode.setAttribute("aria-pressed", bulkIncludeValuable ? "true" : "false");
-    mode.addEventListener("click", () => {
-      bulkIncludeValuable = !bulkIncludeValuable;
-      for (const item of [...disassembleSelection]) {
-        if (!inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed)) disassembleSelection.delete(item);
-      }
-      disassembleConfirming = false;
-      renderInventoryScreen();
-    });
-    bulk.appendChild(mode);
-    const cursedMode = document.createElement("button");
-    cursedMode.className = "disassemble-chip" + (bulkIncludeCursed ? " active" : "");
-    cursedMode.textContent = bulkIncludeCursed ? "呪いを含む" : "呪いを含まない";
-    cursedMode.setAttribute("aria-pressed", bulkIncludeCursed ? "true" : "false");
-    cursedMode.addEventListener("click", () => {
-      bulkIncludeCursed = !bulkIncludeCursed;
-      for (const item of [...disassembleSelection]) {
-        if (!inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed)) disassembleSelection.delete(item);
-      }
-      disassembleConfirming = false;
-      renderInventoryScreen();
-    });
-    bulk.appendChild(cursedMode);
-    const safe = shown.filter((item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed));
+    // 初期状態は安全候補（普通）のみ。普通・貴重・呪いをそれぞれ含める／含めないを選べるが、ロックは常に除外する。
+    const toggles = [
+      ["普通", () => bulkIncludeNormal, (v) => { bulkIncludeNormal = v; }],
+      ["貴重", () => bulkIncludeValuable, (v) => { bulkIncludeValuable = v; }],
+      ["呪い", () => bulkIncludeCursed, (v) => { bulkIncludeCursed = v; }],
+    ];
+    for (const [name, get, set] of toggles) {
+      const on = get();
+      const btn = document.createElement("button");
+      btn.className = "disassemble-chip toggle" + (on ? " active" : "");
+      btn.textContent = on ? `${name}を含む` : `${name}を含まない`;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.addEventListener("click", () => {
+        set(!get());
+        for (const item of [...disassembleSelection]) {
+          if (!bulkSelectable(item)) disassembleSelection.delete(item);
+        }
+        disassembleConfirming = false;
+        renderInventoryScreen();
+      });
+      bulk.appendChild(btn);
+    }
+    const safe = shown.filter(bulkSelectable);
     const safeAll = safe.length > 0 && safe.every(i => disassembleSelection.has(i));
     const safeBtn = document.createElement("button");
-    safeBtn.className = "disassemble-chip" + (safeAll ? " active" : "");
-    safeBtn.textContent = `${bulkIncludeValuable || bulkIncludeCursed ? "条件一致すべて" : "安全候補すべて"} (${safe.length})`;
+    safeBtn.className = "disassemble-chip toggle" + (safeAll ? " active" : "");
+    safeBtn.textContent = `${bulkIncludeValuable || bulkIncludeCursed || !bulkIncludeNormal ? "条件一致すべて" : "安全候補すべて"} (${safe.length})`;
     safeBtn.disabled = safe.length === 0;
     safeBtn.addEventListener("click", () => {
       for (const item of safe) { if (safeAll) disassembleSelection.delete(item); else disassembleSelection.add(item); }
@@ -766,6 +764,9 @@ let enhanceBatchConfirm = false;
 let enhanceBatchBusy = false;
 let enhanceBatchMessage = "";
 let enhanceBatchSucceeded = false;
+// 連続強化で確定強化石も使うか（有償の石を使うため既定はOFF。同じ起動中は最後の選択を保つ。セーブには入れない）
+let enhanceBatchUseGuaranteed = false;
+const enhanceBatchOpts = () => ({ useGuaranteed: enhanceBatchUseGuaranteed && isFeatureEnabled("guaranteedStone") });
 
 function openEnhanceModal(item, onClose) {
   enhanceItem = item;
@@ -845,15 +846,34 @@ function renderEnhanceModal() {
   ).join("");
   targetSelect.value = String(enhanceBatchTarget);
   targetSelect.disabled = maxed || enhanceBatchBusy;
-  const estimate = Inventory.estimateEnhanceToTarget(item, enhanceBatchTarget);
+  const guaranteedOn = isFeatureEnabled("guaranteedStone");
+  const gRow = document.getElementById("enBatchGuaranteedRow");
+  gRow.classList.toggle("hidden", !guaranteedOn || maxed);
+  const gCheck = document.getElementById("enBatchUseGuaranteed");
+  gCheck.checked = enhanceBatchUseGuaranteed;
+  gCheck.disabled = enhanceBatchBusy;
+  if (guaranteedOn) {
+    document.getElementById("enBatchGuaranteedNote").textContent =
+      `所持 ${guaranteedStoneTotal()}個（無償${S.guaranteedStones.free}／有償${S.guaranteedStones.paid}）。足りる段は通常の強化石より先にこちらで強化します（成功率100%）`;
+  }
+  const batchOpts = enhanceBatchOpts();
+  const estimate = Inventory.estimateEnhanceToTarget(item, enhanceBatchTarget, batchOpts);
   const costLabel = (n) => n.toLocaleString("ja-JP");
   const estimateBox = document.getElementById("enBatchEstimate");
+  const normalText = !estimate ? "" : estimate.maxStones === null
+    ? `天井機能なし：通常の強化石の必要総数の上限は計算できません（所持 ${costLabel(S.material)}個）`
+    : `天井までの最大必要数：${costLabel(estimate.maxStones)}個（所持 ${costLabel(S.material)}個）`;
+  const guaranteedText = estimate && batchOpts.useGuaranteed
+    ? estimate.guaranteedSteps > 0
+      ? `確定強化石：${estimate.guaranteedSteps}段ぶん ${costLabel(estimate.guaranteedUse)}個を先に使用` +
+        (estimate.guaranteedPaidUse > 0 ? `（うち有償${costLabel(estimate.guaranteedPaidUse)}個）` : "")
+      : "確定強化石：次の段に必要な個数が足りないため使いません"
+    : "";
   estimateBox.textContent = !estimate ? "すでに最大強化値に達しています。"
-    : estimate.maxStones === null
-      ? `天井機能なし：必要総数の上限は計算できません（所持 ${costLabel(S.material)}個）`
-      : `天井までの最大必要数：${costLabel(estimate.maxStones)}個（所持 ${costLabel(S.material)}個）`;
-  const canBatch = !enhanceBatchBusy && Inventory.canBatchEnhance(item) &&
-    !!estimate && S.material >= cost;
+    : [guaranteedText, estimate.guaranteedSteps > 0 && estimate.guaranteedSteps >= enhanceBatchTarget - item.plus ? "" : normalText]
+      .filter(Boolean).join("\n");
+  const canStart = Inventory.canStartBatch(item, batchOpts);
+  const canBatch = !enhanceBatchBusy && canStart && !!estimate;
   const batchBtn = document.getElementById("btnEnhanceBatch");
   batchBtn.disabled = !canBatch;
   batchBtn.textContent = enhanceBatchConfirm && canBatch
@@ -863,7 +883,9 @@ function renderEnhanceModal() {
   batchHint.textContent = !Inventory.canBatchEnhance(item) && !maxed
     ? "所持していない装備、または探索中のパーティの装備は強化できません。"
     : maxed ? "強化値が上限に達しています。"
-    : S.material < cost ? "次の1回に必要な通常強化石が足りません。"
+    : !canStart ? "次の1回に必要な強化石が足りません。"
+    : enhanceBatchConfirm && estimate && estimate.guaranteedPaidUse > 0
+      ? `有償の確定強化石${costLabel(estimate.guaranteedPaidUse)}個を使います（取り消せません）。もう一度押すと開始します。`
     : enhanceBatchConfirm ? "成功するたび次の段階へ進みます。実際に使用した石だけ消費します。もう一度押すと開始します。"
     : estimate && estimate.maxStones !== null && S.material < estimate.maxStones
       ? "天井までの最大必要数には不足していますが、所持石で試行できます。石不足で途中停止します。"
@@ -930,9 +952,8 @@ document.getElementById("enBatchTarget").addEventListener("change", (event) => {
 });
 document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
   if (!enhanceItem || enhanceBatchBusy) return;
-  if (!Inventory.canBatchEnhance(enhanceItem) ||
-      !Inventory.estimateEnhanceToTarget(enhanceItem, enhanceBatchTarget) ||
-      S.material < enhanceCost(enhanceItem)) {
+  if (!Inventory.canStartBatch(enhanceItem, enhanceBatchOpts()) ||
+      !Inventory.estimateEnhanceToTarget(enhanceItem, enhanceBatchTarget, enhanceBatchOpts())) {
     enhanceBatchConfirm = false;
     renderEnhanceModal();
     return;
@@ -949,7 +970,7 @@ document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
   enhanceBatchConfirm = false;
   enhanceBatchBusy = true;
   try {
-    const result = Inventory.enhanceToTarget(enhanceItem, enhanceBatchTarget);
+    const result = Inventory.enhanceToTarget(enhanceItem, enhanceBatchTarget, enhanceBatchOpts());
     if (!result) return;
     const reason = {
       target: "目標達成",
@@ -960,13 +981,26 @@ document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
     enhanceBatchMessage =
       `${reason}：+${result.fromPlus} → +${result.plus}（目標+${result.targetPlus}）\n` +
       `${result.attempts}回挑戦／成功${result.successes}回・失敗${result.failures}回\n` +
-      `通常強化石 ${result.spent}個消費／残り${result.remainingMaterial}個`;
-    // 結果を同じセーブとして保存。課金・確定強化石は使わない。
+      `通常強化石 ${result.spent}個消費／残り${result.remainingMaterial}個` +
+      (result.guaranteedSteps > 0
+        ? `\n確定強化石 ${result.guaranteedUsed}個使用（${result.guaranteedSteps}段` +
+          (result.guaranteedPaidUsed > 0 ? `・うち有償${result.guaranteedPaidUsed}個` : "") + "）"
+        : "");
+    // 結果を同じセーブとして保存（確定強化石を使った時も、ここで1回だけ保存する）
     if (result.attempts > 0 && !saveGame()) enhanceBatchMessage += "\n端末保存に失敗しました。保存容量を確認してください。";
   } finally {
     enhanceBatchBusy = false;
     renderEnhanceModal();
   }
+});
+
+// 連続強化で確定強化石も使うか。切り替えたら確認をやり直し、見積もりを出し直す
+document.getElementById("enBatchUseGuaranteed").addEventListener("change", (event) => {
+  if (!enhanceItem || enhanceBatchBusy) return;
+  enhanceBatchUseGuaranteed = !!event.target.checked;
+  enhanceBatchConfirm = false;
+  enhanceBatchMessage = "";
+  renderEnhanceModal();
 });
 
 // 確定強化石: その段の期待消費に応じた個数を消費して必ず+1する（通常の強化石は消費しない）。
