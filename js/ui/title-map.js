@@ -30,7 +30,8 @@ function updateGlobalNav(id) {
     const row = document.querySelector("#globalNav .hub-nav-row");
     if (row && row.offsetHeight) document.documentElement.style.setProperty("--global-nav-h", row.offsetHeight + "px");
   }
-  const tab = NAV_TAB_OF_SCREEN[id] || null;
+  // 探索画面の仲間カードから開いたキャラ詳細は「探索」を光らせる（もどるで探索画面へ帰るため）
+  const tab = id === "screen-chardetail" && detailReturnScreen === "screen-battle" ? "explore" : (NAV_TAB_OF_SCREEN[id] || null);
   for (const btn of document.querySelectorAll("#globalNav [data-nav]")) btn.classList.toggle("active", btn.dataset.nav === tab);
 }
 // 共通のナビのボタンは、探索画面のナビと同じ動きをする（同じボタンを押したことにする）

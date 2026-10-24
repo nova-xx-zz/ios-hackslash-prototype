@@ -4,7 +4,10 @@
 "use strict";
 
 // ---------- キャラ詳細 ----------
-function openCharDetail(c) {
+// 開いた元の画面。編成画面（既定）か探索画面（ドックの仲間カードから開いた時）。「もどる」で元の画面へ帰る
+let detailReturnScreen = "screen-jobs";
+function openCharDetail(c, opts) {
+  detailReturnScreen = (opts && opts.returnScreen) || "screen-jobs";
   detailCharId = c.id;
   detailTab = "stats";
   fusionSelection = new Set();
@@ -18,8 +21,13 @@ function openCharDetail(c) {
 
 // ---------- 仲間の切り替え（‹ ›） ----------
 // 詳細を開いたまま、前後の仲間に切り替える（今のタブのまま）。並びはパーティ編成の画面と同じ
-// 第一〜第四のパーティの順、その後に控え（未編成）
+// 第一〜第四のパーティの順、その後に控え（未編成）。
+// 探索画面から開いた時は、表示中のパーティの仲間だけを回る（出撃前にそのパーティの装備・ジョブを順に整えやすくする）
 function detailOrder() {
+  if (detailReturnScreen === "screen-battle") {
+    const party = teamMembers(S.activeTeam);
+    if (party.some((x) => x.id === detailCharId)) return party;
+  }
   const order = [];
   for (let t = 0; t < TEAM_COUNT; t++) order.push(...teamMembers(t));
   for (const c of S.roster) if (!order.includes(c)) order.push(c);
@@ -41,6 +49,19 @@ function switchDetail(delta) {
   renderCharDetail();
   document.getElementById("detailBody").scrollTop = 0;
 }
+// 「もどる」: 開いた元の画面へ帰る。探索画面へは、詳細で変えたジョブ・装備・Lvを仲間カードに反映して戻る
+function closeCharDetail() {
+  detailCharId = null;
+  openSlot = null;
+  if (detailReturnScreen === "screen-battle") {
+    detailReturnScreen = "screen-jobs";
+    openExploreHub();
+    return;
+  }
+  renderJobsScreen();
+  showScreen("screen-jobs");
+}
+
 document.getElementById("btnDetailPrev").addEventListener("click", () => switchDetail(-1));
 document.getElementById("btnDetailNext").addEventListener("click", () => switchDetail(1));
 
@@ -67,7 +88,7 @@ function flashDetailNotice(text) {
 function renderCharDetail() {
   scheduleSave();
   const c = S.roster.find((x) => x.id === detailCharId);
-  if (!c) { showScreen("screen-jobs"); return; }
+  if (!c) { closeCharDetail(); return; }
   document.getElementById("detailName").textContent =
     `${c.name}${c.isMonster ? "（テイム）" : ""}`;
   const order = detailOrder();
