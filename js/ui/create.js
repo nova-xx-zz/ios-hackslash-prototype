@@ -26,9 +26,9 @@ function renderCreateScreen() {
   const wrap = document.getElementById("createBody");
   wrap.innerHTML = "";
 
-  // 名前入力は編集可能なまま、装飾枠と羽ペンを独立したUIとして構成する。
+  // 編成画面と同じ共通カードで名前を入力する。
   const nameField = document.createElement("div");
-  nameField.className = "create-row create-row-name create-ornate";
+  nameField.className = "create-row create-row-name";
   const nameHeading = document.createElement("div");
   nameHeading.className = "cr-heading";
   nameHeading.innerHTML = "<span class=\"cr-name-symbol\"><svg viewBox=\"0 0 44 44\" aria-hidden=\"true\"><path d=\"M8 36C18 29 22 24 34 7c-2 15-10 25-24 29l-4 4\" fill=\"#e8d2a1\" stroke=\"#d2ab64\" stroke-width=\"1.2\"/><path d=\"M13 31 29 13M19 26l-6-1M24 21l-1-6\" fill=\"none\" stroke=\"#573b1c\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg></span><label class=\"cr-label\" for=\"createName\">なまえ</label>";
@@ -50,11 +50,6 @@ function renderCreateScreen() {
     updateCreatePreview();
   });
   inputShell.appendChild(input);
-  const nameDice = document.createElement("span");
-  nameDice.className = "create-name-dice";
-  nameDice.setAttribute("aria-hidden", "true");
-  nameDice.innerHTML = "<svg viewBox=\"0 0 34 34\" aria-hidden=\"true\"><path d=\"m17 2 13 7v16l-13 7-13-7V9Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"m17 17 13-8M17 17 4 9M17 17v15\" stroke=\"currentColor\" stroke-width=\"1.4\"/><circle cx=\"10\" cy=\"12\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"22\" cy=\"12\" r=\"1.5\" fill=\"currentColor\"/><circle cx=\"24\" cy=\"23\" r=\"1.4\" fill=\"currentColor\"/><circle cx=\"11\" cy=\"23\" r=\"1.4\" fill=\"currentColor\"/></svg>";
-  inputShell.appendChild(nameDice);
   nameRow.appendChild(inputShell);
   const reroll = document.createElement("button");
   reroll.type = "button";
@@ -68,13 +63,13 @@ function renderCreateScreen() {
   nameField.appendChild(nameRow);
   wrap.appendChild(nameField);
 
-  // 種族・ジョブの情報は変えず、紋章と金縁の選択帯で表現する。
+  // 種族・ジョブも編成画面の共通カードで表示する。
   wrap.appendChild(buildCreatePickRow("しゅぞく", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race"), "race", draft.race));
   const jobSub = JOBS[draft.job].abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
   wrap.appendChild(buildCreatePickRow("ジョブ", JOBS[draft.job].name, jobSub, () => openCreatePick("job"), "job", draft.job));
 
   const previewShell = document.createElement("div");
-  previewShell.className = "create-preview-shell create-ornate";
+  previewShell.className = "create-preview-shell";
   const previewLabel = document.createElement("div");
   previewLabel.className = "create-section-label";
   previewLabel.textContent = "プレビュー";
@@ -110,7 +105,7 @@ function createJobInsignia(id) {
 function buildCreatePickRow(label, value, sub, onClick, kind, id) {
   const row = document.createElement("button");
   row.type = "button";
-  row.className = "create-row create-pick-row create-ornate";
+  row.className = "create-row create-pick-row";
   row.setAttribute("aria-label", `${label}：${value}。変更する`);
   const symbol = document.createElement("span");
   symbol.className = "cr-symbol cr-" + kind;
@@ -258,7 +253,6 @@ function updateCreatePreview() {
   const abilities = availableAbilities(preview).map((a) => a.name);
   const stats = [["HP", s.maxHp], ["MP", s.maxMp], ["ATK", s.atk], ["MAG", s.mag], ["DEF", s.def], ["SPD", Math.round(s.spd * 10) / 10]];
   box.innerHTML = `
-    <div class="pv-art" aria-hidden="true"></div>
     <div class="pv-profile">
       <div class="pv-name">${escapeHtml(draft.name || "ななし")} <span class="pv-role">— ${escapeHtml(race.name)}・${escapeHtml(JOBS[draft.job].name)}</span></div>
       <span class="pv-level">Lv.${preview.level}</span>

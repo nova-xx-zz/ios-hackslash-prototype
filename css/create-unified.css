@@ -1,0 +1,156 @@
+
+/* 仲間作成：編成画面を基準にした共通トーン。
+   css/style.css と同じボーダー・透明度・フォント・ボタンを使用。 */
+#screen-create .create-wrap { padding:10px 12px 8px; }
+#screen-create .create-header {
+  flex:0 0 auto; gap:8px; padding:2px 2px 8px; margin-bottom:7px;
+  border:0; background:transparent;
+}
+#screen-create .create-heading { min-width:0; }
+#screen-create .create-page-title {
+  margin:0; color:var(--text); font:700 18px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  letter-spacing:0; text-shadow:none;
+}
+#screen-create #btnCreateBack {
+  margin:0; min-height:42px; padding:9px 13px; font:700 13px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  border:1px solid var(--border); border-radius:10px;
+  color:var(--text); background:rgba(255,255,255,.08); box-shadow:none;
+}
+#screen-create #createBody {
+  flex:1 1 0; min-height:0; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain;
+  padding:1px 1px 12px; scrollbar-width:none;
+}
+#screen-create #createBody::-webkit-scrollbar {display:none;}
+#screen-create .create-row, #screen-create .create-preview-shell {
+  position:relative; display:block; width:100%; height:auto; min-height:0;
+  margin:0 0 10px; padding:12px; color:var(--text);
+  border:1px solid var(--border); border-radius:12px;
+  background:rgba(255,255,255,.045); box-shadow:none; text-align:left;
+}
+#screen-create .create-row::before, #screen-create .create-row::after,
+#screen-create .create-preview-shell::before, #screen-create .create-preview-shell::after,
+#screen-create #btnCreateBack::after, #screen-create .create-footer .btn::after {
+  content:none; display:none; border:0; border-image:none;
+}
+#screen-create .create-row-name {cursor:default;}
+#screen-create .cr-heading { display:flex; align-items:center; gap:6px; margin:0 0 7px; }
+#screen-create .cr-name-symbol, #screen-create .create-pick-row .cr-symbol {
+  flex:0 0 22px; display:flex; align-items:center; justify-content:center;
+  width:22px; height:22px; padding:0; margin:0; border:0; border-radius:0;
+  color:var(--accent); background:none; box-shadow:none;
+}
+#screen-create .cr-name-symbol svg, #screen-create .create-pick-row .create-insignia-svg,
+#screen-create .create-pick-row .job-insignia {
+  display:block; width:20px; height:20px; color:var(--accent); filter:none;
+}
+#screen-create .create-row .cr-label {
+  display:block; margin:0; font:700 11px/1.45 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  letter-spacing:0; color:var(--sub-text);
+}
+#screen-create .name-row {display:flex; gap:8px; align-items:stretch;}
+#screen-create .create-name-input-shell {flex:1 1 auto; min-width:0;}
+#screen-create .name-input {
+  width:100%; min-width:0; min-height:44px; padding:9px 11px;
+  font:600 16px/1.35 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  color:var(--text); border:1px solid var(--border); border-radius:8px;
+  background:rgba(255,255,255,.06); box-shadow:none;
+}
+#screen-create .name-input:focus-visible {border-color:var(--accent); outline:2px solid rgba(201,164,99,.35); outline-offset:1px;}
+#screen-create .create-name-reroll {
+  flex:0 0 auto; min-height:44px; margin:0; padding:9px 11px;
+  border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,.08);
+  color:var(--text); font:700 12px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  white-space:nowrap; box-shadow:none;
+}
+/* 種族・ジョブは二重枠・大型の円紋章なしで、カード全体を選択ボタンにする。 */
+#screen-create .create-pick-row {
+  display:flex; align-items:flex-start; gap:10px; cursor:pointer;
+}
+#screen-create .create-pick-row .cr-main {display:block; flex:1 1 auto; min-width:0; padding:0;}
+#screen-create .create-pick-row .cr-top {display:flex; flex-direction:column; gap:2px; min-width:0;}
+#screen-create .create-pick-row .cr-select-box {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  min-width:0; min-height:25px; padding:0; border:0; border-radius:0;
+  background:transparent; box-shadow:none;
+}
+#screen-create .create-pick-row .cr-value {
+  display:block; min-width:0; font:700 16px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  color:var(--text); overflow-wrap:anywhere;
+}
+#screen-create .create-pick-row .cr-chev {flex:0 0 auto; font-size:22px; line-height:1; color:var(--sub-text);}
+#screen-create .create-pick-row .cr-sub {
+  display:block; margin-top:5px; font:400 11px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  color:var(--sub-text); white-space:normal; overflow-wrap:anywhere;
+}
+/* プレビューも編成画面の半透明カード。種族特性・習得済みを維持する。 */
+#screen-create .create-preview-shell {margin-top:1px; padding:12px;}
+#screen-create .create-section-label {
+  position:static; display:block; width:auto; min-height:0; margin:0 0 10px; padding:0;
+  border:0; border-radius:0; color:var(--sub-text); background:none; box-shadow:none;
+  font:700 12px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif; letter-spacing:0;
+}
+#screen-create .create-section-label::before, #screen-create .create-section-label::after {content:none; display:none;}
+#screen-create .preview-box {
+  position:static; display:block; min-height:0; padding:0; border:0; border-radius:0;
+  color:var(--text); background:none; box-shadow:none; overflow:visible;
+}
+#screen-create .preview-box::before, #screen-create .preview-box::after {content:none; display:none;}
+#screen-create .pv-profile {display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:0 0 8px; border-bottom:1px solid var(--border);}
+#screen-create .pv-name {
+  flex:1 1 auto; min-width:0; color:var(--text); font:700 14px/1.45 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  text-shadow:none; overflow-wrap:anywhere;
+}
+#screen-create .pv-role {color:var(--sub-text); font:400 12px/1.45 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;}
+#screen-create .pv-level {flex:0 0 auto; color:var(--sub-text); font:700 12px/1.45 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif; white-space:nowrap;}
+#screen-create .pv-stats {
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px 8px; width:100%; margin:10px 0;
+}
+#screen-create .pv-stat {display:flex; gap:5px; align-items:baseline; min-width:0; line-height:1.4;}
+#screen-create .pv-stat-key {flex:0 0 auto; color:var(--sub-text); font:700 10px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;}
+#screen-create .pv-stat strong {color:var(--text); font:700 13px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;}
+#screen-create .pv-details {border-top:1px solid var(--border); padding-top:6px; background:none;}
+#screen-create .pv-note {
+  display:flex; flex-wrap:wrap; gap:3px 8px; align-items:baseline; max-width:none;
+  margin:5px 0 0; color:var(--sub-text); font:400 11px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  text-shadow:none;
+}
+#screen-create .pv-note-label {flex:0 0 60px; color:var(--sub-text); font-size:11px; font-weight:700;}
+#screen-create .pv-note > span:last-child {flex:1 1 150px; min-width:0; overflow-wrap:anywhere;}
+/* 操作ボタンも既存の編成画面と同じ .btn を使用。 */
+#screen-create .create-footer {
+  display:flex; flex:0 0 auto; align-items:stretch; gap:8px;
+  padding:9px 1px 4px; margin:0; border-top:1px solid var(--border);
+  background:rgba(7,16,21,.75); box-shadow:none;
+}
+#screen-create .create-footer::before, #screen-create .create-footer::after {content:none; display:none;}
+#screen-create .create-footer .btn {
+  display:inline-flex; flex:1 1 50%; align-items:center; justify-content:center;
+  min-width:0; min-height:46px; margin:0; padding:10px 8px;
+  border-radius:10px; font:700 14px/1.4 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;
+  box-shadow:none;
+}
+#screen-create .create-footer #btnCreateRandom {
+  flex:1 1 38%; color:var(--text); background:rgba(255,255,255,.08); border:1px solid var(--border);
+}
+#screen-create .create-footer #btnCreateConfirm {
+  flex:1.4 1 62%; color:var(--on-accent);
+  background:linear-gradient(180deg,#dbc28a,#b38b4b); border:0;
+}
+#screen-create button:focus-visible {outline:2px solid var(--accent); outline-offset:2px;}
+#pickModal .modal-card {background:var(--panel-bg); border:1px solid var(--border); border-radius:16px; box-shadow:0 12px 32px rgba(0,0,0,.5);}
+#pickModal .modal-name {color:var(--text); font-family:inherit;}
+@media(max-width:359px) {
+  #screen-create .create-wrap {padding-left:8px; padding-right:8px;}
+  #screen-create .create-row,#screen-create .create-preview-shell {padding:10px;}
+  #screen-create .create-pick-row {gap:7px;}
+  #screen-create .cr-name-symbol,#screen-create .create-pick-row .cr-symbol {flex-basis:19px; width:19px; height:19px;}
+  #screen-create .cr-name-symbol svg,#screen-create .create-pick-row .create-insignia-svg {width:18px; height:18px;}
+  #screen-create .pv-stats {column-gap:4px;}
+  #screen-create .pv-stat {gap:3px;}
+  #screen-create .pv-note-label {flex-basis:52px;}
+}
+@media(max-height:700px) {
+  #screen-create .create-header {margin-bottom:3px;}
+  #screen-create .create-row,#screen-create .create-preview-shell {margin-bottom:7px; padding-top:9px; padding-bottom:9px;}
+}
