@@ -156,7 +156,16 @@ function buildShopItem(product) {
   symbol.textContent = shopItemSymbol(product);
   const name = document.createElement("div");
   name.className = "shop-item-name";
-  name.textContent = product.name;
+  // 「確定強化石 50個＋5個」のような数量付きの名前は、数量の途中で折り返さない
+  const space = product.kind === "guaranteedStone" ? product.name.lastIndexOf(" ") : -1;
+  if (space > 0) {
+    const qty = document.createElement("span");
+    qty.className = "shop-item-qty";
+    qty.textContent = product.name.slice(space + 1);
+    name.append(product.name.slice(0, space + 1), qty);
+  } else {
+    name.textContent = product.name;
+  }
   top.append(symbol, name);
 
   const meta = document.createElement("div");

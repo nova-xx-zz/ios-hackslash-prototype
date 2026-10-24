@@ -47,6 +47,11 @@ const SHOP_PRODUCTS = [
     desc: "装備の強化を成功率100%で行える。必要な個数は強化の段階で変わる（LR+98→+99は10個）" },
   { id: "guaranteed_stone_11", kind: "guaranteedStone", amount: 11, name: "確定強化石 10個＋1個", price: 1600,
     desc: "確定強化石10個に、おまけ1個付き" },
+  // まとめ買い（2026-10-24 追加）。おまけは11個パックと同じ1割で、1個あたりの価格が11個パックより割高にならないようにする
+  { id: "guaranteed_stone_55", kind: "guaranteedStone", amount: 55, name: "確定強化石 50個＋5個", price: 8000,
+    desc: "確定強化石50個に、おまけ5個付き" },
+  { id: "guaranteed_stone_110", kind: "guaranteedStone", amount: 110, name: "確定強化石 100個＋10個", price: 16000,
+    desc: "確定強化石100個に、おまけ10個付き" },
   { id: "roster_box_50", kind: "rosterBox", name: "仲間のBOX +50", price: 250,
     desc: "所持できる仲間の上限を50人増やす（何回でも、上限1000人まで）" },
   { id: "preset_slots_5", kind: "presetPack", name: "マイセット登録枠 +5", price: 480,

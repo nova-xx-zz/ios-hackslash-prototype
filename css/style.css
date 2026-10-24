@@ -436,6 +436,8 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
   font-size: 18px;
 }
 .shop-item-name { font-size: 12px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; }
+/* 商品名の中の数量（「50個＋5個」など）は途中で折り返さない（js/ui/shop.js の .shop-item-qty） */
+.shop-item-qty { white-space: nowrap; }
 .shop-item-meta { min-height: 15px; margin-top: 5px; font-size: 10px; color: #d4bc88; }
 .shop-item-details-toggle {
   display: inline-flex; align-items: center; gap: 4px; align-self: flex-start;
