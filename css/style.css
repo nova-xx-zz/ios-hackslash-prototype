@@ -14,6 +14,7 @@
   --hp: #ff4d5e;
   --mp: #4dc3ff;
   --atb: #ffd24d;
+  --exp: #5fd68f;
   --text: #f3eee2;
   --sub-text: #bac4c6;
   --border: rgba(201, 164, 99, 0.22);
@@ -1374,6 +1375,10 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .stat-bar.hp .fill { background: var(--hp); }
 .stat-bar.mp .fill { background: var(--mp); }
 .stat-bar.atb .fill { background: var(--atb); }
+/* EXP: Lv表示のすぐ下の細い線。黄色の行動ゲージと見分けられるよう緑にする。最大レベルは古金色で満タン */
+.stat-bar.exp { height: 3px; margin: -1px 0 3px; background: rgba(0,0,0,0.45); }
+.stat-bar.exp .fill { background: var(--exp); transition: width 0.3s ease-out; }
+.stat-bar.exp.max .fill { background: var(--accent); }
 .stat-num { font-size: 8px; color: var(--sub-text); text-align: right; }
 
 /* 探索画面: タイトルと共通の青緑・古金色。HP/MP/レア度の意味色は保持する。 */
