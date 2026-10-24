@@ -26,7 +26,7 @@ test("編成画面の共通フォント・背景・枠線に統一し、旧装�
 test("コンパクトなプレビューとiPhone幅/高さに対応",()=>{
   assert.match(html,/class="roster-header create-header"/);assert.match(html,/class="roster-footer create-footer"/);
   assert.match(ui,/#screen-create #createBody\s*\{[^}]*overflow-y:auto;/s);
-  assert.match(ui,/#screen-create \.name-input\s*\{[^}]*16px;/s);
+  assert.match(ui,/#screen-create \.name-input\s*\{[^}]*font:600 16px\/1\.35/s);
   assert.match(ui,/#screen-create \.create-pick-row \.cr-sub\s*\{[^}]*overflow-wrap:anywhere;/s);
   assert.match(ui,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(ui,/\.create-footer\s*\{[^}]*flex:0 0 auto;/s);
