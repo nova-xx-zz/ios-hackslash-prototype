@@ -1,0 +1,32 @@
+name: Beta Firestore permission tests
+
+on:
+  pull_request:
+    paths:
+      - 'infra/beta/**'
+      - 'infra/firebase/firestore.beta.rules'
+      - '.github/workflows/beta-firestore-emulator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-beta-firestore-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 21 for Firestore Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install only the isolated beta operator/test dependencies
+        run: npm install --prefix infra/beta --no-audit --no-fund
+      - name: Test real Firestore Rules against local Emulator (no credentials)
+        run: npm run test:firestore --prefix infra/beta

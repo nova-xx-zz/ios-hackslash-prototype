@@ -1,0 +1,3 @@
+# Generated only for the local Firebase Emulator; canonical copy is infra/firebase/firestore.beta.rules
+firestore.beta.rules
+node_modules/
