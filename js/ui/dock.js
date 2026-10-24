@@ -4,6 +4,17 @@
 "use strict";
 
 // ---------- Dock ----------
+// 仲間カードのバー: 赤=HP、青=MP、黄=行動ゲージ（SPDが高いほど早くたまり、満タンで行動）、
+// 緑=EXP（今のLvから次のLvまでの進み具合。Lv表示のすぐ下に置き、Lvアップで0に戻る）。2026-10-24 フィードバック#11
+function expProgress(c) {
+  const max = typeof isMaxLevel === "function" && isMaxLevel(c);
+  if (max) return { pct: 100, max: true, label: `Lv.${c.level}（最大レベル）` };
+  const need = Number(c.expToNext) || 0;
+  const have = Math.max(0, Number(c.exp) || 0);
+  const pct = need > 0 ? clamp((have / need) * 100, 0, 100) : 0;
+  return { pct, max: false, label: `EXP ${Math.floor(have)}/${need}（次のLvまで あと${Math.max(0, Math.ceil(need - have))}）` };
+}
+
 function buildPartyDock() {
   const partyRow = document.getElementById("partyRow");
   partyRow.innerHTML = "";
@@ -15,11 +26,12 @@ function buildPartyDock() {
       <div class="actor-insignia">${jobInsignia(c.isMonster ? null : jobDef(c).id)}</div>
       <div class="actor-name">${escapeHtml(c.name)}</div>
       <div class="actor-job"><span class="actor-job-name">${escapeHtml(jobDef(c).name)}</span><span class="actor-job-level">Lv.${c.level}</span></div>
+      <div class="stat-bar exp" role="img" aria-label="EXP"><div class="fill" style="width:0%"></div></div>
       <div class="stat-bar hp"><div class="fill" style="width:100%"></div></div>
       <div class="stat-num hpnum"></div>
       <div class="stat-bar mp"><div class="fill" style="width:100%"></div></div>
       <div class="stat-num mpnum"></div>
-      <div class="stat-bar atb"><div class="fill" style="width:0%"></div></div>`;
+      <div class="stat-bar atb" title="行動ゲージ（SPDが高いほど早くたまる）"><div class="fill" style="width:0%"></div></div>`;
     partyRow.appendChild(card);
     partyEls[c.id] = card;
   }
@@ -221,6 +233,15 @@ function updateBattleDOM() {
     el.querySelector(".stat-bar.mp .fill").style.width = clamp((c.mp / s.maxMp) * 100, 0, 100) + "%";
     el.querySelector(".mpnum").textContent = `MP ${Math.max(0, Math.round(c.mp))}/${s.maxMp}`;
     el.querySelector(".stat-bar.atb .fill").style.width = clamp(c.atb, 0, 100) + "%";
+    // EXPとLvは勝利時に変わるので、毎回の描画で追従させる（文字は変わった時だけ書き換える）
+    const exp = expProgress(c);
+    const expBar = el.querySelector(".stat-bar.exp");
+    expBar.querySelector(".fill").style.width = exp.pct + "%";
+    expBar.classList.toggle("max", exp.max);
+    if (expBar.title !== exp.label) { expBar.title = exp.label; expBar.setAttribute("aria-label", exp.label); }
+    const lv = el.querySelector(".actor-job-level");
+    const lvText = `Lv.${c.level}`;
+    if (lv.textContent !== lvText) lv.textContent = lvText;
   }
 }
 
