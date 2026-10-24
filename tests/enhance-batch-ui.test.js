@@ -27,7 +27,7 @@ class Element {
   change(value) { this.value = value; if (!this.disabled) this.listeners.change?.({ target: this }); }
 }
 
-function setup({ locked = false, plus = 0, material = 1000 } = {}) {
+function setup({ locked = false, plus = 0, material = 1000, guaranteed = false } = {}) {
   const item = { id: "sword-1", name: "ミスリルソード", slot: "weapon", rarity: "n", plus };
   const S = { material, guaranteedStones: { free: 2, paid: 3 }, inventory: [item], roster: [] };
   const nodes = {};
@@ -36,10 +36,16 @@ function setup({ locked = false, plus = 0, material = 1000 } = {}) {
   const calls = [];
   const Inventory = {
     canBatchEnhance: (it) => !locked && S.inventory.includes(it) && it.plus < 99,
-    estimateEnhanceToTarget: (it, target) => target <= it.plus ? null : ({ targetPlus: target, maxStones: (target - it.plus) * 9 }),
+    canStartBatch: (it) => !locked && S.inventory.includes(it) && it.plus < 99 && S.material >= 3,
+    estimateEnhanceToTarget: (it, target, opts) => {
+      if (target <= it.plus) return null;
+      const g = opts && opts.useGuaranteed ? Math.min(target - it.plus, S.guaranteedStones.free + S.guaranteedStones.paid) : 0;
+      return { targetPlus: target, maxStones: (target - it.plus - g) * 9, guaranteedSteps: g, guaranteedUse: g,
+        guaranteedPaidUse: Math.max(0, g - S.guaranteedStones.free) };
+    },
     isMaxed: (it) => it.plus >= 99,
-    enhanceToTarget: (it, target) => {
-      calls.push({ target });
+    enhanceToTarget: (it, target, opts) => {
+      calls.push(opts && opts.useGuaranteed ? { target, useGuaranteed: true } : { target });
       const fromPlus = it.plus;
       const successes = target - it.plus;
       it.plus = target;
@@ -56,7 +62,7 @@ function setup({ locked = false, plus = 0, material = 1000 } = {}) {
     itemStatsText: () => "攻撃力10", itemMark: () => "", rarityColor: () => "#fff",
     itemOptionsText: () => "", getUniqueItem: () => null, itemEffectText: () => "",
     enhanceSuccessRate: () => 0.9, enhanceCost: () => 3,
-    isFeatureEnabled: () => false, guaranteedStoneTotal: () => 5, guaranteedStonesRequired: () => 1,
+    isFeatureEnabled: (k) => guaranteed && k === "guaranteedStone", guaranteedStoneTotal: () => 5, guaranteedStonesRequired: () => 1,
     renderCharDetail: () => {}, scheduleSave: () => {},
     saveGame: () => { saved++; return true; },
     armConfirm: () => {}, confirmReady: () => true,
@@ -166,4 +172,20 @@ test("強化UI: 探索ロック中の装備は目標まで強化できない", (
   assert.match(env.nodes.enBatchHint.textContent, /探索中/);
   env.nodes.btnEnhanceBatch.click();
   assert.equal(env.calls.length, 0);
+});
+
+test("強化UI: 確定強化石も使うを選ぶと、使用数（うち有償）を見積もりに出し、確認をやり直してから実行する", () => {
+  const env = setup({ guaranteed: true });
+  env.open();
+  assert.equal(env.nodes.enBatchUseGuaranteed.checked, false, "有償の石を使うため既定はOFF");
+  env.nodes.btnEnhanceBatch.click(); // 確認待ち
+  env.nodes.enBatchUseGuaranteed.checked = true;
+  env.nodes.enBatchUseGuaranteed.listeners.change({ target: env.nodes.enBatchUseGuaranteed });
+  assert.doesNotMatch(env.nodes.btnEnhanceBatch.textContent, /本当に/, "切り替えたら確認をやり直す");
+  assert.match(env.nodes.enBatchEstimate.textContent, /確定強化石：5段ぶん 5個を先に使用（うち有償3個）/);
+  assert.match(env.nodes.enBatchEstimate.textContent, /45個/);
+  env.nodes.btnEnhanceBatch.click();
+  assert.match(env.nodes.enBatchHint.textContent, /有償の確定強化石3個を使います/);
+  env.nodes.btnEnhanceBatch.click();
+  assert.deepEqual(env.calls, [{ target: 10, useGuaranteed: true }]);
 });

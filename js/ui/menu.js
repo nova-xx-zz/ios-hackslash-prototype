@@ -95,10 +95,13 @@ document.getElementById("btnMenuBack").addEventListener("click", () => openExplo
 
 // ---------- 仲間と別れる ----------
 // どのチームにも編成していない、お気に入り（★）でない仲間を選んで別れる（js/model/inventory.js の releaseMembers）。
-// 別れた仲間は戻らないため2回押しで確定する。装備していたアイテムは所持品に戻る
+// 別れた仲間は戻らないため2回押しで確定する。装備していたアイテムは所持品に戻る。
+// 一覧は人間・モンスターに分けて表示し、種類・ジョブ／種族で絞り込み、Lv・ジョブ・仲間にした順で並び替えられる
+// （js/core/roster-organize.js。条件は画面内の一時状態でセーブには入れない）
 let farewellSelection = new Set();
 let farewellConfirm = false;
 let farewellMessage = "";
+let farewellView = newRosterListView();
 
 function openFarewell() {
   farewellSelection = new Set();
@@ -106,6 +109,33 @@ function openFarewell() {
   farewellMessage = "";
   renderFarewell();
   showScreen("screen-farewell");
+}
+
+function farewellSectionLabel(text) {
+  const el = document.createElement("div");
+  el.className = "roster-section";
+  el.textContent = text;
+  return el;
+}
+
+function buildFarewellRow(c) {
+  const row = document.createElement("div");
+  row.className = "skill-row selectable" + (farewellSelection.has(c) ? " selected" : "");
+  const name = document.createElement("div");
+  name.className = "skill-row-name";
+  const equipped = Object.values(c.equip || {}).filter(Boolean).length;
+  name.textContent = `${c.name}（${RACES[c.race].name}・${jobDef(c).name}） Lv.${c.level}` + (equipped ? `　装備${equipped}個` : "");
+  row.appendChild(name);
+  const mark = document.createElement("div");
+  mark.className = "skill-toggle-circle static" + (farewellSelection.has(c) ? " on" : "");
+  row.appendChild(mark);
+  row.addEventListener("click", () => {
+    if (farewellSelection.has(c)) farewellSelection.delete(c); else farewellSelection.add(c);
+    farewellConfirm = false;
+    farewellMessage = "";
+    renderFarewell();
+  });
+  return row;
 }
 
 function renderFarewell() {
@@ -125,42 +155,68 @@ function renderFarewell() {
     none.className = "sub-ability-row";
     none.textContent = "別れられる仲間がいません（パーティの外にいる仲間だけ選べます）";
     body.appendChild(none);
+  } else {
+    // お気に入りは候補にいないので「★のみ」は出さない
+    body.appendChild(buildRosterFilterBar(farewellView, {
+      chars: candidates, showKind: true, showFavorite: false,
+      onChange: () => { farewellConfirm = false; body.scrollTop = 0; renderFarewell(); },
+    }));
   }
-  const list = document.createElement("div");
-  list.className = "skill-row-list";
-  for (const c of candidates) {
-    const row = document.createElement("div");
-    row.className = "skill-row selectable" + (farewellSelection.has(c) ? " selected" : "");
-    const name = document.createElement("div");
-    name.className = "skill-row-name";
-    const equipped = Object.values(c.equip || {}).filter(Boolean).length;
-    name.textContent = `${c.name}（${RACES[c.race].name}・${jobDef(c).name}） Lv.${c.level}` + (equipped ? `　装備${equipped}個` : "");
-    row.appendChild(name);
-    const mark = document.createElement("div");
-    mark.className = "skill-toggle-circle static" + (farewellSelection.has(c) ? " on" : "");
-    row.appendChild(mark);
-    row.addEventListener("click", () => {
-      if (farewellSelection.has(c)) farewellSelection.delete(c); else farewellSelection.add(c);
+  const shown = applyRosterListView(candidates, farewellView);
+  if (candidates.length > 0) {
+    const tools = document.createElement("div");
+    tools.className = "list-filter-line farewell-tools";
+    const count = document.createElement("span");
+    count.className = "disassemble-filter-label";
+    count.textContent = rosterListViewActive(farewellView) ? `条件一致 ${shown.length}人／候補 ${candidates.length}人` : `候補 ${candidates.length}人`;
+    tools.appendChild(count);
+    // 表示中の仲間をまとめて選ぶ（全員選ばれていれば外す）。確定は従来どおり2回押し
+    const allShown = shown.length > 0 && shown.every((c) => farewellSelection.has(c));
+    const pick = document.createElement("button");
+    pick.className = "disassemble-chip" + (allShown ? " active" : "");
+    pick.textContent = allShown ? "表示中の選択を外す" : `表示中をすべて選ぶ（${shown.length}人）`;
+    pick.disabled = shown.length === 0;
+    pick.addEventListener("click", () => {
+      for (const c of shown) { if (allShown) farewellSelection.delete(c); else farewellSelection.add(c); }
       farewellConfirm = false;
       farewellMessage = "";
       renderFarewell();
     });
-    list.appendChild(row);
+    tools.appendChild(pick);
+    body.appendChild(tools);
+    if (shown.length === 0) {
+      const none = document.createElement("div");
+      none.className = "sub-ability-row";
+      none.textContent = "条件に合う仲間がいません";
+      body.appendChild(none);
+    }
   }
-  body.appendChild(list);
+  // 人間・モンスターに分けて並べる（種類で絞り込んでいる時は1つだけ）
+  const sections = [["human", "人間"], ["monster", "モンスター"]];
+  for (const [kind, label] of sections) {
+    const members = shown.filter((c) => QPCore.rosterOrganize.kindOf(c) === kind);
+    if (members.length === 0) continue;
+    body.appendChild(farewellSectionLabel(`${label}（${members.length}人）`));
+    const list = document.createElement("div");
+    list.className = "skill-row-list";
+    for (const c of members) list.appendChild(buildFarewellRow(c));
+    body.appendChild(list);
+  }
   body.scrollTop = scrollTop;
-  renderFarewellActionBar();
+  renderFarewellActionBar(shown);
 }
 
 // 一覧とは独立した下部の固定操作エリア。グローバルナビより上に配置される。
-function renderFarewellActionBar() {
+function renderFarewellActionBar(shown) {
   const footer = document.getElementById("farewellActionBar");
   footer.replaceChildren();
   const n = farewellSelection.size;
   const count = document.createElement("div");
   count.id = "farewellSelectedCount";
   count.className = "farewell-selected-count";
-  count.textContent = `選択中：${n}人`;
+  // 絞り込みで見えなくなった選択も、別れる対象に含まれることを示す
+  const hidden = shown ? [...farewellSelection].filter((c) => !shown.includes(c)).length : 0;
+  count.textContent = `選択中：${n}人` + (hidden ? `（うち表示外${hidden}人）` : "");
   footer.appendChild(count);
 
   // 実行結果やエラーをスクロールなしで確認できるよう、操作ボタンの上に表示する。
@@ -193,29 +249,54 @@ function renderFarewellActionBar() {
 document.getElementById("btnFarewellBack").addEventListener("click", () => openPartyMenu());
 
 // ---------- 装備強化（装備中・所持品の装備をまとめて選ぶ） ----------
-// 探索中・自動周回中のチームのキャラが付けている装備は、戦闘中の能力値が変わらないよう強化できない
-let enhanceListFilter = "equipped";
+// 探索中・自動周回中のチームのキャラが付けている装備は、戦闘中の能力値が変わらないよう強化できない。
+// 装備分解（js/ui/inventory.js）と同じく、部位の絞り込み・価値の表示・並び替え・部位ごとのまとまりを持つ。
+// 装備中は「キャラごと」にもまとめられる。条件は画面内の一時状態で、セーブには入れない
+const ENHANCE_LIST_PAGE = 80; // 大量の所持品でも一度に全行を作らない（所持品の数は制限しない）
+let enhanceListFilter = "equipped"; // equipped | inventory
+let enhanceListSlot = "all"; // all | SLOTS[].key
+let enhanceListView = "all"; // all | valuable | enhanced | unenhanced | locked
+let enhanceListSort = "rarity"; // rarity | plus | power
+let enhanceListGroup = "slot"; // slot | owner（装備中のみ）
+let enhanceListLimit = ENHANCE_LIST_PAGE;
+const ENHANCE_LIST_VIEWS = [
+  ["all", "すべて"], ["valuable", "保護・貴重"], ["enhanced", "強化済み"], ["unenhanced", "未強化"], ["locked", "ロック"],
+];
+const ENHANCE_LIST_SORTS = [["rarity", "レア度"], ["plus", "強化値"], ["power", "能力"]];
+
 function openEnhanceList() {
+  enhanceListLimit = ENHANCE_LIST_PAGE;
   renderEnhanceList();
   showScreen("screen-enhance");
 }
-function renderEnhanceList() {
-  const filterRow = document.getElementById("enhanceFilterRow");
-  filterRow.innerHTML = "";
-  for (const f of [{ key: "equipped", name: "装備中" }, { key: "inventory", name: "所持品" }]) {
-    const chip = document.createElement("button");
-    chip.className = "priority-chip inv-filter" + (enhanceListFilter === f.key ? " tier-3" : "");
-    chip.textContent = f.name;
-    chip.addEventListener("click", () => { enhanceListFilter = f.key; renderEnhanceList(); });
-    filterRow.appendChild(chip);
-  }
-  const body = document.getElementById("enhanceListBody");
-  body.innerHTML = "";
-  const head = document.createElement("div");
-  head.className = "sub-ability-row";
-  head.textContent = `強化石 ${S.material}個` + (isFeatureEnabled("guaranteedStone") ? `／確定強化石 ${guaranteedStoneTotal()}個` : "");
-  body.appendChild(head);
 
+function enhanceListMatchesView(item) {
+  if (enhanceListView === "valuable") return QPCore.inventoryOrganize.isValuable(item);
+  if (enhanceListView === "enhanced") return (item.plus || 0) > 0;
+  if (enhanceListView === "unenhanced") return !(item.plus > 0);
+  if (enhanceListView === "locked") return !!item.locked;
+  return true;
+}
+
+// 並び替え: 元の配列は変えず、能力値は1件につき1回だけ計算する
+function sortEnhanceRows(rows) {
+  const rank = new Map(RARITIES.map((r, i) => [r.key, i]));
+  const metrics = rows.map((row, index) => ({
+    row, index,
+    rarity: rank.has(row.item.rarity) ? rank.get(row.item.rarity) : -1,
+    plus: row.item.plus || 0,
+    power: enhanceListSort === "power" ? (Number(itemEffectiveValue(row.item)) || 0) : 0,
+  }));
+  metrics.sort((a, b) => {
+    const primary = enhanceListSort === "plus" ? b.plus - a.plus
+      : enhanceListSort === "power" ? b.power - a.power
+      : b.rarity - a.rarity;
+    return primary || b.rarity - a.rarity || b.plus - a.plus || a.index - b.index;
+  });
+  return metrics.map((m) => m.row);
+}
+
+function enhanceListRows() {
   const rows = [];
   if (enhanceListFilter === "equipped") {
     for (const c of S.roster) {
@@ -227,47 +308,138 @@ function renderEnhanceList() {
   } else {
     for (const item of S.inventory) rows.push({ item, owner: null, locked: false });
   }
-  const rank = (it) => RARITIES.findIndex((r) => r.key === it.rarity);
-  rows.sort((a, b) => rank(b.item) - rank(a.item) || (b.item.plus || 0) - (a.item.plus || 0));
+  return rows.filter(({ item }) =>
+    (enhanceListSlot === "all" || item.slot === enhanceListSlot) && enhanceListMatchesView(item));
+}
+
+// まとまり: 部位ごと（装備分解と同じ）、または装備しているキャラごと（パーティ順、その後に控え）
+function groupEnhanceRows(rows) {
+  if (enhanceListFilter === "equipped" && enhanceListGroup === "owner") {
+    const order = (c) => (c.team === null || c.team === undefined ? 99 : c.team);
+    const owners = [...new Set(rows.map((r) => r.owner))]
+      .sort((a, b) => order(a) - order(b) || S.roster.indexOf(a) - S.roster.indexOf(b));
+    return owners.map((c) => ({
+      label: `${c.name}（${c.team === null || c.team === undefined ? "控え" : TEAM_NAMES[c.team]}）`,
+      rows: sortEnhanceRows(rows.filter((r) => r.owner === c)),
+    }));
+  }
+  return SLOTS.map((slot) => ({ label: slot.name, rows: sortEnhanceRows(rows.filter((r) => r.item.slot === slot.key)) }))
+    .filter((g) => g.rows.length > 0);
+}
+
+function renderEnhanceListControls() {
+  const filterRow = document.getElementById("enhanceFilterRow");
+  filterRow.innerHTML = "";
+  const change = (fn) => (value) => {
+    fn(value);
+    enhanceListLimit = ENHANCE_LIST_PAGE;
+    document.getElementById("enhanceListBody").scrollTop = 0;
+    renderEnhanceList();
+  };
+  const chips = document.createElement("div");
+  chips.className = "list-filter-line";
+  chips.appendChild(buildFilterChips("", [["equipped", "装備中"], ["inventory", "所持品"]], enhanceListFilter,
+    change((v) => { enhanceListFilter = v; })));
+  if (enhanceListFilter === "equipped") {
+    chips.appendChild(buildFilterChips("まとめ", [["slot", "部位ごと"], ["owner", "キャラごと"]], enhanceListGroup,
+      change((v) => { enhanceListGroup = v; })));
+  }
+  filterRow.appendChild(chips);
+  const selects = document.createElement("div");
+  selects.className = "list-filter-line";
+  selects.appendChild(buildFilterSelect("部位", [["all", "すべて"], ...SLOTS.map((sl) => [sl.key, sl.name])], enhanceListSlot,
+    change((v) => { enhanceListSlot = v; })));
+  selects.appendChild(buildFilterSelect("表示", ENHANCE_LIST_VIEWS, enhanceListView, change((v) => { enhanceListView = v; })));
+  selects.appendChild(buildFilterSelect("並び順", ENHANCE_LIST_SORTS, enhanceListSort, change((v) => { enhanceListSort = v; })));
+  filterRow.appendChild(selects);
+}
+
+function renderEnhanceList() {
+  renderEnhanceListControls();
+  const body = document.getElementById("enhanceListBody");
+  body.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "sub-ability-row";
+  const rows = enhanceListRows();
+  head.textContent = `強化石 ${S.material}個` + (isFeatureEnabled("guaranteedStone") ? `／確定強化石 ${guaranteedStoneTotal()}個` : "") +
+    `／条件一致 ${rows.length}個`;
+  body.appendChild(head);
+
   if (rows.length === 0) {
     const none = document.createElement("div");
     none.className = "sub-ability-row";
-    none.textContent = enhanceListFilter === "equipped" ? "装備中のアイテムがありません" : "未装備の所持品がありません";
+    const narrowed = enhanceListSlot !== "all" || enhanceListView !== "all";
+    none.textContent = narrowed ? "条件に合う装備がありません"
+      : enhanceListFilter === "equipped" ? "装備中のアイテムがありません" : "未装備の所持品がありません";
     body.appendChild(none);
     return;
   }
-  const list = document.createElement("div");
-  list.className = "skill-row-list";
-  for (const { item, owner, locked } of rows) {
-    const row = document.createElement("div");
-    row.className = "skill-row";
-    row.style.borderColor = rarityColor(item.rarity);
-    const icon = document.createElement("div");
-    icon.className = "skill-row-icon";
-    icon.textContent = SLOT_ICONS[item.slot] || "❓";
-    row.appendChild(icon);
-    const name = document.createElement("div");
-    name.className = "skill-row-name";
-    name.textContent = itemLabel(item);
-    name.style.color = rarityColor(item.rarity);
-    if (owner) {
-      const who = document.createElement("span");
-      who.className = "item-options";
-      who.textContent = `${owner.name}が装備中` + (locked ? "（探索中のため強化できません）" : "");
-      name.appendChild(who);
-    }
-    row.appendChild(name);
-    const btn = document.createElement("button");
-    btn.className = "priority-chip";
-    btn.textContent = "強化する";
-    btn.disabled = locked;
-    btn.addEventListener("click", () => openEnhanceModal(item, () => {
-      if (owner) clampVitals(owner); // 強化で最大HP/MPが変わった時のため
-      renderEnhanceList();
-    }));
-    row.appendChild(btn);
-    list.appendChild(row);
+  let remaining = enhanceListLimit;
+  for (const group of groupEnhanceRows(rows)) {
+    if (remaining <= 0) break;
+    const showing = group.rows.slice(0, remaining);
+    remaining -= showing.length;
+    body.appendChild(sectionLabel(`${group.label}（${group.rows.length}個${showing.length < group.rows.length ? `中${showing.length}個` : ""}）`));
+    const list = document.createElement("div");
+    list.className = "skill-row-list";
+    for (const row of showing) list.appendChild(buildEnhanceListRow(row));
+    body.appendChild(list);
   }
-  body.appendChild(list);
+  if (rows.length > enhanceListLimit) {
+    const more = document.createElement("button");
+    more.className = "btn small ghost inventory-more";
+    more.textContent = `さらに表示（残り${rows.length - enhanceListLimit}個）`;
+    more.addEventListener("click", () => {
+      const previousScrollTop = body.scrollTop;
+      enhanceListLimit += ENHANCE_LIST_PAGE;
+      renderEnhanceList();
+      document.getElementById("enhanceListBody").scrollTop = previousScrollTop;
+    });
+    body.appendChild(more);
+  }
+}
+
+function buildEnhanceListRow({ item, owner, locked }) {
+  const row = document.createElement("div");
+  row.className = "skill-row";
+  row.style.borderColor = rarityColor(item.rarity);
+  const icon = document.createElement("div");
+  icon.className = "skill-row-icon";
+  icon.textContent = SLOT_ICONS[item.slot] || "❓";
+  row.appendChild(icon);
+  const name = document.createElement("div");
+  name.className = "skill-row-name";
+  name.textContent = (item.locked ? "🔒" : "") + itemLabel(item);
+  name.style.color = rarityColor(item.rarity);
+  if (QPCore.rewards.hasProtectedOption(item)) {
+    const badge = document.createElement("span");
+    badge.className = "inv-valuable-tag";
+    badge.textContent = "★ 高品質OP";
+    name.appendChild(badge);
+  }
+  if (owner && !(enhanceListFilter === "equipped" && enhanceListGroup === "owner")) {
+    const who = document.createElement("span");
+    who.className = "item-options";
+    who.textContent = `${owner.name}が装備中` + (locked ? "（探索中のため強化できません）" : "");
+    name.appendChild(who);
+  } else if (locked) {
+    const who = document.createElement("span");
+    who.className = "item-options";
+    who.textContent = "探索中のため強化できません";
+    name.appendChild(who);
+  }
+  row.appendChild(name);
+  const btn = document.createElement("button");
+  btn.className = "priority-chip";
+  btn.textContent = "強化する";
+  btn.disabled = locked;
+  btn.addEventListener("click", () => openEnhanceModal(item, () => {
+    if (owner) clampVitals(owner); // 強化で最大HP/MPが変わった時のため
+    const scrollTop = document.getElementById("enhanceListBody").scrollTop;
+    renderEnhanceList();
+    document.getElementById("enhanceListBody").scrollTop = scrollTop; // 強化後も一覧の位置を保つ
+  }));
+  row.appendChild(btn);
+  return row;
 }
 document.getElementById("btnEnhanceListBack").addEventListener("click", () => openPartyMenu());

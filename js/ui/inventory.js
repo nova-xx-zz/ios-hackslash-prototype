@@ -766,6 +766,9 @@ let enhanceBatchConfirm = false;
 let enhanceBatchBusy = false;
 let enhanceBatchMessage = "";
 let enhanceBatchSucceeded = false;
+// 連続強化で確定強化石も使うか（有償の石を使うため既定はOFF。同じ起動中は最後の選択を保つ。セーブには入れない）
+let enhanceBatchUseGuaranteed = false;
+const enhanceBatchOpts = () => ({ useGuaranteed: enhanceBatchUseGuaranteed && isFeatureEnabled("guaranteedStone") });
 
 function openEnhanceModal(item, onClose) {
   enhanceItem = item;
@@ -845,15 +848,34 @@ function renderEnhanceModal() {
   ).join("");
   targetSelect.value = String(enhanceBatchTarget);
   targetSelect.disabled = maxed || enhanceBatchBusy;
-  const estimate = Inventory.estimateEnhanceToTarget(item, enhanceBatchTarget);
+  const guaranteedOn = isFeatureEnabled("guaranteedStone");
+  const gRow = document.getElementById("enBatchGuaranteedRow");
+  gRow.classList.toggle("hidden", !guaranteedOn || maxed);
+  const gCheck = document.getElementById("enBatchUseGuaranteed");
+  gCheck.checked = enhanceBatchUseGuaranteed;
+  gCheck.disabled = enhanceBatchBusy;
+  if (guaranteedOn) {
+    document.getElementById("enBatchGuaranteedNote").textContent =
+      `所持 ${guaranteedStoneTotal()}個（無償${S.guaranteedStones.free}／有償${S.guaranteedStones.paid}）。足りる段は通常の強化石より先にこちらで強化します（成功率100%）`;
+  }
+  const batchOpts = enhanceBatchOpts();
+  const estimate = Inventory.estimateEnhanceToTarget(item, enhanceBatchTarget, batchOpts);
   const costLabel = (n) => n.toLocaleString("ja-JP");
   const estimateBox = document.getElementById("enBatchEstimate");
+  const normalText = !estimate ? "" : estimate.maxStones === null
+    ? `天井機能なし：通常の強化石の必要総数の上限は計算できません（所持 ${costLabel(S.material)}個）`
+    : `天井までの最大必要数：${costLabel(estimate.maxStones)}個（所持 ${costLabel(S.material)}個）`;
+  const guaranteedText = estimate && batchOpts.useGuaranteed
+    ? estimate.guaranteedSteps > 0
+      ? `確定強化石：${estimate.guaranteedSteps}段ぶん ${costLabel(estimate.guaranteedUse)}個を先に使用` +
+        (estimate.guaranteedPaidUse > 0 ? `（うち有償${costLabel(estimate.guaranteedPaidUse)}個）` : "")
+      : "確定強化石：次の段に必要な個数が足りないため使いません"
+    : "";
   estimateBox.textContent = !estimate ? "すでに最大強化値に達しています。"
-    : estimate.maxStones === null
-      ? `天井機能なし：必要総数の上限は計算できません（所持 ${costLabel(S.material)}個）`
-      : `天井までの最大必要数：${costLabel(estimate.maxStones)}個（所持 ${costLabel(S.material)}個）`;
-  const canBatch = !enhanceBatchBusy && Inventory.canBatchEnhance(item) &&
-    !!estimate && S.material >= cost;
+    : [guaranteedText, estimate.guaranteedSteps > 0 && estimate.guaranteedSteps >= enhanceBatchTarget - item.plus ? "" : normalText]
+      .filter(Boolean).join("\n");
+  const canStart = Inventory.canStartBatch(item, batchOpts);
+  const canBatch = !enhanceBatchBusy && canStart && !!estimate;
   const batchBtn = document.getElementById("btnEnhanceBatch");
   batchBtn.disabled = !canBatch;
   batchBtn.textContent = enhanceBatchConfirm && canBatch
@@ -863,7 +885,9 @@ function renderEnhanceModal() {
   batchHint.textContent = !Inventory.canBatchEnhance(item) && !maxed
     ? "所持していない装備、または探索中のパーティの装備は強化できません。"
     : maxed ? "強化値が上限に達しています。"
-    : S.material < cost ? "次の1回に必要な通常強化石が足りません。"
+    : !canStart ? "次の1回に必要な強化石が足りません。"
+    : enhanceBatchConfirm && estimate && estimate.guaranteedPaidUse > 0
+      ? `有償の確定強化石${costLabel(estimate.guaranteedPaidUse)}個を使います（取り消せません）。もう一度押すと開始します。`
     : enhanceBatchConfirm ? "成功するたび次の段階へ進みます。実際に使用した石だけ消費します。もう一度押すと開始します。"
     : estimate && estimate.maxStones !== null && S.material < estimate.maxStones
       ? "天井までの最大必要数には不足していますが、所持石で試行できます。石不足で途中停止します。"
@@ -930,9 +954,8 @@ document.getElementById("enBatchTarget").addEventListener("change", (event) => {
 });
 document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
   if (!enhanceItem || enhanceBatchBusy) return;
-  if (!Inventory.canBatchEnhance(enhanceItem) ||
-      !Inventory.estimateEnhanceToTarget(enhanceItem, enhanceBatchTarget) ||
-      S.material < enhanceCost(enhanceItem)) {
+  if (!Inventory.canStartBatch(enhanceItem, enhanceBatchOpts()) ||
+      !Inventory.estimateEnhanceToTarget(enhanceItem, enhanceBatchTarget, enhanceBatchOpts())) {
     enhanceBatchConfirm = false;
     renderEnhanceModal();
     return;
@@ -949,7 +972,7 @@ document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
   enhanceBatchConfirm = false;
   enhanceBatchBusy = true;
   try {
-    const result = Inventory.enhanceToTarget(enhanceItem, enhanceBatchTarget);
+    const result = Inventory.enhanceToTarget(enhanceItem, enhanceBatchTarget, enhanceBatchOpts());
     if (!result) return;
     const reason = {
       target: "目標達成",
@@ -960,13 +983,26 @@ document.getElementById("btnEnhanceBatch").addEventListener("click", () => {
     enhanceBatchMessage =
       `${reason}：+${result.fromPlus} → +${result.plus}（目標+${result.targetPlus}）\n` +
       `${result.attempts}回挑戦／成功${result.successes}回・失敗${result.failures}回\n` +
-      `通常強化石 ${result.spent}個消費／残り${result.remainingMaterial}個`;
-    // 結果を同じセーブとして保存。課金・確定強化石は使わない。
+      `通常強化石 ${result.spent}個消費／残り${result.remainingMaterial}個` +
+      (result.guaranteedSteps > 0
+        ? `\n確定強化石 ${result.guaranteedUsed}個使用（${result.guaranteedSteps}段` +
+          (result.guaranteedPaidUsed > 0 ? `・うち有償${result.guaranteedPaidUsed}個` : "") + "）"
+        : "");
+    // 結果を同じセーブとして保存（確定強化石を使った時も、ここで1回だけ保存する）
     if (result.attempts > 0 && !saveGame()) enhanceBatchMessage += "\n端末保存に失敗しました。保存容量を確認してください。";
   } finally {
     enhanceBatchBusy = false;
     renderEnhanceModal();
   }
+});
+
+// 連続強化で確定強化石も使うか。切り替えたら確認をやり直し、見積もりを出し直す
+document.getElementById("enBatchUseGuaranteed").addEventListener("change", (event) => {
+  if (!enhanceItem || enhanceBatchBusy) return;
+  enhanceBatchUseGuaranteed = !!event.target.checked;
+  enhanceBatchConfirm = false;
+  enhanceBatchMessage = "";
+  renderEnhanceModal();
 });
 
 // 確定強化石: その段の期待消費に応じた個数を消費して必ず+1する（通常の強化石は消費しない）。

@@ -546,3 +546,50 @@ test("マイセット: 初期5枠、5枠パック解放後は20枠まで保存�
   assert.equal(restored.equipmentSets[c.id][19].name, "ボス周回");
   assert.equal(restored.purchases.presetPacks, 3);
 });
+
+// ---------- 連続強化で確定強化石も使う（2026-10-24 フィードバック#14） ----------
+test("目標強化+確定強化石: 足りる段は確定強化石を先に使い（無償→有償の順）、残りは通常石で強化", () => {
+  const { state, inv } = setup({ rng: alwaysFail });
+  const it = item("weapon", "atk", 10, "n");
+  state.inventory.push(it);
+  state.material = 2000;
+  state.guaranteedStones = { free: 2, paid: 3 };
+  const opts = { useGuaranteed: true };
+  const estimate = inv.estimateEnhanceToTarget(it, 10, opts);
+  assert.deepEqual([estimate.guaranteedSteps, estimate.guaranteedUse, estimate.guaranteedPaidUse], [5, 5, 3]);
+  assert.equal(estimate.maxStones, 45, "確定強化石で上げる5段を除いた通常石の天井最悪ケース");
+  const result = inv.enhanceToTarget(it, 10, opts);
+  assert.equal(result.reason, "target");
+  assert.equal(it.plus, 10);
+  assert.deepEqual([result.guaranteedSteps, result.guaranteedUsed, result.guaranteedPaidUsed], [5, 5, 3]);
+  assert.deepEqual(state.guaranteedStones, { free: 0, paid: 0 });
+  assert.equal(result.spent, 45, "常に失敗する乱数では、残り5段がすべて天井で成功する");
+  assert.equal(state.material, 2000 - 45);
+});
+
+test("目標強化+確定強化石: 通常石が0でも確定強化石だけで目標まで上げられ、足りなくなれば止まる", () => {
+  const { state, inv } = setup({ rng: alwaysFail });
+  const it = item("weapon", "atk", 10, "n");
+  state.inventory.push(it);
+  state.material = 0;
+  state.guaranteedStones = { free: 0, paid: 3 };
+  assert.equal(inv.canStartBatch(it), false, "既定（使わない）では通常石が必要");
+  assert.equal(inv.canStartBatch(it, { useGuaranteed: true }), true);
+  const done = inv.enhanceToTarget(it, 2, { useGuaranteed: true });
+  assert.deepEqual([done.reason, done.plus, done.spent, done.guaranteedUsed], ["target", 2, 0, 2]);
+  assert.equal(inv.estimateEnhanceToTarget(it, 3, { useGuaranteed: true }).maxStones, 0, "全段を確定強化石で上げる");
+  const stopped = inv.enhanceToTarget(it, 5, { useGuaranteed: true });
+  assert.deepEqual([stopped.reason, stopped.plus, stopped.guaranteedUsed], ["material", 3, 1]);
+  assert.deepEqual(state.guaranteedStones, { free: 0, paid: 0 });
+});
+
+test("目標強化+確定強化石: 確定強化石の機能がOFFなら指定しても使わない", () => {
+  const { state, inv } = setup({ rng: { chance: () => true }, flags: { guaranteedStone: false } });
+  const it = item("weapon", "atk", 10, "n");
+  state.inventory.push(it);
+  state.material = 100;
+  state.guaranteedStones = { free: 5, paid: 5 };
+  const result = inv.enhanceToTarget(it, 3, { useGuaranteed: true });
+  assert.deepEqual([result.reason, result.guaranteedSteps, result.spent], ["target", 0, 9]);
+  assert.deepEqual(state.guaranteedStones, { free: 5, paid: 5 });
+});
