@@ -20,8 +20,11 @@ function buildPartyDock() {
   partyRow.innerHTML = "";
   partyEls = {};
   for (const c of activeParty()) {
-    const card = document.createElement("div");
+    // タップでキャラ詳細を開く（装備・ジョブ・スキルを探索画面から直接整える）。探索中のパーティは詳細が表示のみになる
+    const card = document.createElement("button");
+    card.type = "button";
     card.className = "actor-card";
+    card.setAttribute("aria-label", `${c.name}の詳細を開く`);
     card.innerHTML = `
       <div class="actor-insignia">${jobInsignia(c.isMonster ? null : jobDef(c).id)}</div>
       <div class="actor-name">${escapeHtml(c.name)}</div>
@@ -32,11 +35,20 @@ function buildPartyDock() {
       <div class="stat-bar mp"><div class="fill" style="width:100%"></div></div>
       <div class="stat-num mpnum"></div>
       <div class="stat-bar atb" title="行動ゲージ（SPDが高いほど早くたまる）"><div class="fill" style="width:0%"></div></div>`;
+    card.addEventListener("click", () => openDockCharDetail(c.id));
     partyRow.appendChild(card);
     partyEls[c.id] = card;
   }
   document.getElementById("dockEmptyParty").classList.toggle("hidden", activeParty().length > 0);
   updateBattleDOM();
+}
+
+// 探索画面の仲間カードからキャラ詳細へ。もどるで探索画面に帰り、‹ › は表示中のパーティの仲間だけを回る
+function openDockCharDetail(charId) {
+  const c = S.roster.find((x) => x.id === charId);
+  if (!c) return;
+  if (isDisassemblePopoverOpen()) setDisassemblePopover(false);
+  openCharDetail(c, { returnScreen: "screen-battle" });
 }
 
 function renderDock() {

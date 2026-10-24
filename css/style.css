@@ -1368,6 +1368,15 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   padding: 6px 5px;
 }
 .actor-card.down { opacity: 0.35; }
+/* 仲間カードはボタン（タップでキャラ詳細）。ボタン既定の見た目を消し、押した手応えだけ付ける */
+button.actor-card {
+  display: block; margin: 0; font: inherit; color: inherit; text-align: left;
+  cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  transition: transform 0.08s ease, border-color 0.12s ease;
+}
+button.actor-card:active { transform: scale(0.96); }
+button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1px; }
+@media (hover: hover) { button.actor-card:hover { border-color: rgba(241, 212, 154, 0.7); } }
 .actor-name { font-size: 10.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .actor-job { display: flex; align-items: center; gap: 2px; min-width: 0; font-size: 9px; color: var(--sub-text); margin-bottom: 3px; white-space: nowrap; }
 .actor-job-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

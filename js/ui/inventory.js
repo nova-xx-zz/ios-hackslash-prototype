@@ -1047,9 +1047,4 @@ document.getElementById("btnMapJobs").addEventListener("click", () => {
   renderJobsScreen();
   showScreen("screen-jobs");
 });
-document.getElementById("btnDetailBack").addEventListener("click", () => {
-  detailCharId = null;
-  openSlot = null;
-  renderJobsScreen();
-  showScreen("screen-jobs");
-});
+document.getElementById("btnDetailBack").addEventListener("click", () => closeCharDetail());
