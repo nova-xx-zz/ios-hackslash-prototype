@@ -159,3 +159,17 @@ test("マイセット: 旧セーブは5枠、改ざんや不正な購入回数�
   assert.equal(forbidden.purchase("preset_slots_5").reason, "disabled");
   assert.equal(forbidden.presetCapacity(), 5);
 });
+
+test("ショップ: 確定強化石の50個＋5個・100個＋10個は有償分に入り、1個あたりは11個パックより割高にならない（2026-10-24）", () => {
+  const { state, shop } = setup();
+  assert.equal(shop.purchase("guaranteed_stone_55").ok, true);
+  assert.deepEqual(state.guaranteedStones, { free: 0, paid: 55 });
+  assert.equal(shop.purchase("guaranteed_stone_110").ok, true);
+  assert.equal(shop.purchase("guaranteed_stone_110").ok, true, "消費アイテムは何回でも買える");
+  assert.deepEqual(state.guaranteedStones, { free: 0, paid: 275 });
+  const perStone = (id) => { const p = shop.getProduct(id); return p.price / p.amount; };
+  assert.ok(perStone("guaranteed_stone_55") <= perStone("guaranteed_stone_11"));
+  assert.ok(perStone("guaranteed_stone_110") <= perStone("guaranteed_stone_55"));
+  const ids = shop.products().filter((p) => p.kind === "guaranteedStone").map((p) => p.id);
+  assert.equal(ids.join(","), "guaranteed_stone_1,guaranteed_stone_11,guaranteed_stone_55,guaranteed_stone_110");
+});
