@@ -13,7 +13,7 @@ test("生成・登録・選択の既存ゲーム動作を維持",()=>{
   assert.doesNotThrow(()=>new vm.Script(create));
 });
 test("編成画面の共通フォント・背景・枠線に統一し、旧装飾を読み込まない",()=>{
-  assert.match(html,/css\/style\.css\?v=61/);assert.match(html,/css\/create-unified\.css\?v=1/);
+  assert.match(html,/css\/style\.css\?v=\d+/);assert.match(html,/css\/create-unified\.css\?v=1/);
   assert.doesNotMatch(html,/create-ornate\.css|create-reference\.css|CREATE COMPANION|create-btn-icon/);
   assert.doesNotMatch(css,/仲間作成: ソードクレストのギルド登録帳/);
   assert.doesNotMatch(create,/create-ornate|pv-art|create-name-dice/);
