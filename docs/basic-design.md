@@ -120,6 +120,7 @@ data/*.js           … お知らせ・今後の予定（配信データ）
 | `jobquest_material` | 強化石所持数の**互換ミラー** | schemaVersion 2 以降はメインセーブの `material` が正本。旧セーブ（schemaVersion 2 未満）の移行元としてだけ読む |
 | `jobquest_autodisassemble` / `jobquest_autodisassemble_filter` | 自動分解設定 | プレイヤーの好みの設定であり、ロスターの状態とは独立 |
 | `jobquest_autorepeat_target` | 自動周回の選択回数 | UIの初期選択値の記憶用 |
+| `jobquest_battle_speed` | 戦闘速度（1/2/3/5） | 開き直しても速度を引き継ぐ。起動時に購入記録で確かめ、持っていなければx1 |
 | `jobquest_dex_seen` | モンスター図鑑の発見状況 | 何度書いても同じ結果になる収集要素として独立管理 |
 | `jobquest_read_announcements` / `jobquest_notify_auto_repeat` | お知らせの既読・通知のON/OFF | 端末ごとの設定 |
 

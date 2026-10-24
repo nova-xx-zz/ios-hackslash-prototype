@@ -143,3 +143,31 @@ test("10,000件でも初回の所持品DOMは80行、絞り込みと一括選択
   inventory:state.inventory.length,firstRenderMs:+elapsed.toFixed(2),renderedRows:80,bulkSelection:10005
  }));
 });
+test("分解まとめて選ぶ: 普通・貴重を外して呪いだけにし、UR・LRの呪いだけを一括選択できる（10/24 #8）",()=>{
+ const {c,ids,state}=setup(10);
+ state.inventory.push({id:"ur-curse",name:"ur-curse",slot:"weapon",rarity:"ur",plus:0,cursed:true,materialValue:350,stats:{atk:1},options:[]},
+  {id:"r-curse",name:"r-curse",slot:"weapon",rarity:"r",plus:0,cursed:true,materialValue:20,stats:{atk:1},options:[]},
+  {id:"lr-curse-locked",name:"lr-curse-locked",slot:"weapon",rarity:"lr",plus:0,cursed:true,locked:true,materialValue:1500,stats:{atk:1},options:[]});
+ c.renderInventoryScreen();
+ ids.btnInventoryDisassemble.click();
+ const chip=t=>ids.inventoryBulkRow.children.find(e=>e.textContent===t||e.textContent.startsWith(t));
+ assert.ok(chip("普通を含む")&&chip("貴重を含まない")&&chip("呪いを含まない"));
+ chip("呪いを含まない").click();
+ chip("普通を含む").click();
+ assert.ok(chip("普通を含まない"));
+ assert.equal(chip("条件一致すべて").textContent,"条件一致すべて (2)","ロック中の呪いは含めない");
+ chip("UR").click();
+ assert.equal(ids.inventoryDisassembleSummary.textContent.startsWith("1個を選択中"),true);
+ ids.btnDisassembleConfirm.click();ids.btnDisassembleConfirm.click();
+ assert.deepEqual(state.inventory.filter(i=>i.cursed).map(i=>i.id).join(","),"r-curse,lr-curse-locked");
+});
+test("分解まとめて選ぶ: 普通を外すと、一度選んだ普通の装備は選択から外れる",()=>{
+ const {c,ids}=setup(5);
+ c.renderInventoryScreen();
+ ids.btnInventoryDisassemble.click();
+ const chip=t=>ids.inventoryBulkRow.children.find(e=>e.textContent.startsWith(t));
+ chip("安全候補すべて").click();
+ assert.ok(ids.inventoryDisassembleSummary.textContent.startsWith("10個を選択中"));
+ chip("普通を含む").click();
+ assert.equal(ids.inventoryDisassembleSummary.textContent,"分解するアイテムをタップして選んでください");
+});

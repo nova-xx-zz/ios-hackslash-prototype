@@ -57,6 +57,11 @@
     // ---------- 選べる回数・速さ ----------
     function autoRepeatChoices() { return AUTO_REPEAT_CHOICES.map((c) => ({ n: c.n, locked: !hasUnlock(c.unlock), unlock: c.unlock || null })); }
     function battleSpeeds() { return BATTLE_SPEEDS.filter((s) => hasUnlock(s.unlock)).map((s) => s.mult); }
+    // 端末に保存していた速さを使えるか確かめる。持っていない（購入記録が無い・壊れた値）なら x1 に戻す
+    function normalizeBattleSpeed(mult) {
+      const n = Number(mult);
+      return battleSpeeds().includes(n) ? n : 1;
+    }
     // 今の速さの次の速さ（持っている速さだけを x1→x2→x3→x5→x1 の順に回る）
     function nextBattleSpeed(current) {
       const list = battleSpeeds();
@@ -115,7 +120,7 @@
 
     return {
       hasUnlock, getProduct, products, rosterCapacity, canAddToRoster, maxRosterBoxes, presetCapacity,
-      autoRepeatChoices, battleSpeeds, nextBattleSpeed, productStatus, purchase,
+      autoRepeatChoices, battleSpeeds, normalizeBattleSpeed, nextBattleSpeed, productStatus, purchase,
     };
   }
 

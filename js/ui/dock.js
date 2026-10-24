@@ -224,10 +224,19 @@ function updateBattleDOM() {
   }
 }
 
-// 戦闘の速さ: 持っている速さだけを x1→x2→x3→x5→x1 の順に回る（x3・x5はショップで買うと選べる）
-document.getElementById("btnSpeedToggle").addEventListener("click", () => {
-  speedMult = Shop.nextBattleSpeed(speedMult);
+// 戦闘の速さ: 持っている速さだけを x1→x2→x3→x5→x1 の順に回る（x3・x5はショップで買うと選べる）。
+// 選んだ速さは端末に保存し、アプリを落として開き直しても引き継ぐ（2026-10-24 フィードバック#10）
+function setBattleSpeed(mult) {
+  speedMult = Shop.normalizeBattleSpeed(mult);
   document.getElementById("btnSpeedToggle").textContent = `x${speedMult}`;
+}
+// 起動時（セーブの購入記録を読み込んだ後）に呼ぶ。持っていない速さが保存されていたら x1 に戻す
+function restoreBattleSpeed() {
+  setBattleSpeed(store.getInt(KEYS.battleSpeed, 1));
+}
+document.getElementById("btnSpeedToggle").addEventListener("click", () => {
+  setBattleSpeed(Shop.nextBattleSpeed(speedMult));
+  store.set(KEYS.battleSpeed, speedMult);
 });
 // 自動分解のON/OFF・フィルターは全パーティ共通の設定で、出発のたび（自動周回の各周も）にrunへ
 // スナップショットされる。どこかのパーティが探索中・自動周回中の間は、途中で設定が変わらないよう変更できなくする

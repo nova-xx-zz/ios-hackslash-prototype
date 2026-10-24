@@ -14,6 +14,7 @@
     autoDisassemble: "jobquest_autodisassemble",
     autoDisassembleFilter: "jobquest_autodisassemble_filter",
     autoRepeatTarget: "jobquest_autorepeat_target",
+    battleSpeed: "jobquest_battle_speed", // 戦闘速度（x1/x2/x3/x5）。端末ごとの設定でメインセーブには入れない
     dexSeen: "jobquest_dex_seen",
     readAnnouncements: "jobquest_read_announcements",
     // 旧版でオフライン精算の前に書いていた「精算済み」の印。今は使わず、起動時に消すだけ（精算済みかどうかはメインセーブで判定）

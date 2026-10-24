@@ -1227,6 +1227,8 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   cursor: pointer;
 }
 .disassemble-chip.active { color: #0b0b12; border-color: transparent; }
+/* 含む／含まないの切り替えと「すべて」は背景色を持たないため、選択中は古金色で示す（レア度チップは色を直接塗る） */
+.disassemble-chip.toggle.active { color: #f1dfb0; background: rgba(201, 164, 99, 0.22); border-color: var(--accent); }
 .disassemble-chip:disabled { opacity: 0.4; cursor: default; }
 .disassemble-chip.confirming { border-color: var(--hp); color: var(--hp); }
 .skill-row.locked { opacity: 0.55; }

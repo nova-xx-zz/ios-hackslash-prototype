@@ -62,6 +62,7 @@ window.addEventListener("pagehide", saveGame);
 setInterval(() => { if (!document.hidden) saveGame(); }, 20000);
 
 loadGame();
+restoreBattleSpeed(); // 購入記録（x3・x5）を読み込んだ後で、端末に保存した戦闘速度を戻す
 renderTitle();
 showScreen("screen-title");
 if (pilotRestoredTeams.length) resumePilotExplorations();

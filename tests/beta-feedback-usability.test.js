@@ -58,6 +58,11 @@ test("分解: 拡張対象には貴重・呪い・URを含めるがロック品�
     ["plain", "rare", "unique", "enhanced"]);
   assert.deepEqual(items.filter((i) => InventoryOrganize.isBulkSelectable(i, false, true)).map((i) => i.id),
     ["plain", "curse"]);
+  // 普通（呪いでも貴重でもない）を外す第4引数。呪いだけ／貴重だけを選べる
+  assert.deepEqual(items.filter((i) => InventoryOrganize.isBulkSelectable(i, false, true, false)).map((i) => i.id), ["curse"]);
+  assert.deepEqual(items.filter((i) => InventoryOrganize.isBulkSelectable(i, true, false, false)).map((i) => i.id),
+    ["rare", "unique", "enhanced"]);
+  assert.deepEqual(items.filter((i) => InventoryOrganize.isBulkSelectable(i, false, false, false)).map((i) => i.id), []);
 });
 
 test("装備マイセット: 3枠保存、実物IDで一括復元、既存装備は所持品へ戻る", () => {

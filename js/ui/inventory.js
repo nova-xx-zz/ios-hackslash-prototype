@@ -21,6 +21,8 @@ let disassembleSelection = new Set(); // 選んだアイテム（オブジェク
 let disassembleConfirming = false;
 let bulkIncludeValuable = false; // 貴重品・強化済み・UR/LRは明示した時だけ一括候補
 let bulkIncludeCursed = false; // 呪いは独立した選択条件
+let bulkIncludeNormal = true; // 普通（呪いでも貴重でもない）。外すと貴重・呪いだけを選べる（例: UR・LRの呪いだけ）
+const bulkSelectable = (item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed, bulkIncludeNormal);
 
 let inventoryReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
 // opts: { disassemble（分解する装備を選ぶ状態で開く）, returnScreen }
@@ -44,6 +46,7 @@ function exitDisassembleMode() {
   disassembleConfirming = false;
   bulkIncludeValuable = false;
   bulkIncludeCursed = false;
+  bulkIncludeNormal = true;
 }
 
 function showInventoryMessage(text) {
@@ -101,38 +104,33 @@ function renderDisassembleControls() {
     label.textContent = "まとめて選ぶ:";
     bulk.appendChild(label);
     const shown = shownInventoryItems();
-    // 初期状態は安全候補のみ。任意で貴重品/呪い/UR/LRも対象にできるが、ロックは常に除外する。
-    const mode = document.createElement("button");
-    mode.className = "disassemble-chip" + (bulkIncludeValuable ? " active" : "");
-    mode.textContent = bulkIncludeValuable ? "貴重を含む" : "貴重を含まない";
-    mode.setAttribute("aria-pressed", bulkIncludeValuable ? "true" : "false");
-    mode.addEventListener("click", () => {
-      bulkIncludeValuable = !bulkIncludeValuable;
-      for (const item of [...disassembleSelection]) {
-        if (!inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed)) disassembleSelection.delete(item);
-      }
-      disassembleConfirming = false;
-      renderInventoryScreen();
-    });
-    bulk.appendChild(mode);
-    const cursedMode = document.createElement("button");
-    cursedMode.className = "disassemble-chip" + (bulkIncludeCursed ? " active" : "");
-    cursedMode.textContent = bulkIncludeCursed ? "呪いを含む" : "呪いを含まない";
-    cursedMode.setAttribute("aria-pressed", bulkIncludeCursed ? "true" : "false");
-    cursedMode.addEventListener("click", () => {
-      bulkIncludeCursed = !bulkIncludeCursed;
-      for (const item of [...disassembleSelection]) {
-        if (!inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed)) disassembleSelection.delete(item);
-      }
-      disassembleConfirming = false;
-      renderInventoryScreen();
-    });
-    bulk.appendChild(cursedMode);
-    const safe = shown.filter((item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed));
+    // 初期状態は安全候補（普通）のみ。普通・貴重・呪いをそれぞれ含める／含めないを選べるが、ロックは常に除外する。
+    const toggles = [
+      ["普通", () => bulkIncludeNormal, (v) => { bulkIncludeNormal = v; }],
+      ["貴重", () => bulkIncludeValuable, (v) => { bulkIncludeValuable = v; }],
+      ["呪い", () => bulkIncludeCursed, (v) => { bulkIncludeCursed = v; }],
+    ];
+    for (const [name, get, set] of toggles) {
+      const on = get();
+      const btn = document.createElement("button");
+      btn.className = "disassemble-chip toggle" + (on ? " active" : "");
+      btn.textContent = on ? `${name}を含む` : `${name}を含まない`;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.addEventListener("click", () => {
+        set(!get());
+        for (const item of [...disassembleSelection]) {
+          if (!bulkSelectable(item)) disassembleSelection.delete(item);
+        }
+        disassembleConfirming = false;
+        renderInventoryScreen();
+      });
+      bulk.appendChild(btn);
+    }
+    const safe = shown.filter(bulkSelectable);
     const safeAll = safe.length > 0 && safe.every(i => disassembleSelection.has(i));
     const safeBtn = document.createElement("button");
-    safeBtn.className = "disassemble-chip" + (safeAll ? " active" : "");
-    safeBtn.textContent = `${bulkIncludeValuable || bulkIncludeCursed ? "条件一致すべて" : "安全候補すべて"} (${safe.length})`;
+    safeBtn.className = "disassemble-chip toggle" + (safeAll ? " active" : "");
+    safeBtn.textContent = `${bulkIncludeValuable || bulkIncludeCursed || !bulkIncludeNormal ? "条件一致すべて" : "安全候補すべて"} (${safe.length})`;
     safeBtn.disabled = safe.length === 0;
     safeBtn.addEventListener("click", () => {
       for (const item of safe) { if (safeAll) disassembleSelection.delete(item); else disassembleSelection.add(item); }
