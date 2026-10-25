@@ -24,7 +24,7 @@ class Element {
     };
   }
   appendChild(child) { this.children.push(child); return child; }
-  setAttribute(key, val) { this.attrs[key] = String(val); }
+  setAttribute(key, val) { this.attrs[key] = String(val); if (key === "class") this.className = String(val); }
   addEventListener(type, fn) { this.listeners[type] = fn; }
   getBoundingClientRect() { return { left: 0, top: 0, width: 320, height: 320 }; }
   click() { this.listeners.click?.(); }
