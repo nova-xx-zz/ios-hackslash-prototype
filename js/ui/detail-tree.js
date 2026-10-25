@@ -236,6 +236,44 @@ const WARRIOR_WEB_LAYOUT = {
   w4a: [4, 0, "守"], w7a: [4, 1, "鉄"], w10a: [4, 2, "闘"],
   w_acc1: [5, 0, "装"], w_acc2: [5, 1, "極"],
 };
+// CSS色が継承される軽量ベクター紋章。画像や外部フォントへの依存なし。
+function createWarriorCrestGlyph(kind) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.classList.add("tree-web-glyph");
+  svg.setAttribute("viewBox", "0 0 32 32");
+  svg.setAttribute("aria-hidden", "true");
+  const draw = (tag, attrs) => {
+    const item = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) item.setAttribute(k, String(v));
+    svg.appendChild(item);
+  };
+  const path = (d) => draw("path", { d });
+  if (kind === "core") {
+    path("M16 2 L19 8 L19 22 L16 27 L13 22 L13 8 Z M16 2 L16 26");
+    path("M7 14 L25 14 L22 17 L10 17 Z M11 27 L21 27 M16 27 L16 30");
+  } else if (kind === "lock") {
+    draw("rect", { x: 9, y: 15, width: 14, height: 11, rx: 2 });
+    path("M12 15 L12 11 A4 4 0 0 1 20 11 L20 15 M16 19 L16 22");
+  } else if (kind === "shield") {
+    path("M16 3 L27 8 L25 19 Q23 26 16 29 Q9 26 7 19 L5 8 Z M16 7 L16 25 M11 15 L16 19 L22 11");
+  } else if (kind === "ultimate") {
+    path("M5 22 L7 9 L13 15 L16 5 L19 15 L25 9 L27 22 Z M6 25 L26 25 L23 28 L9 28 Z");
+    draw("circle", { cx: 16, cy: 16, r: 2 });
+  } else if (kind === "gem") {
+    path("M16 3 L27 14 L16 29 L5 14 Z M5 14 L27 14 M16 3 L16 29 M10 10 L22 10");
+  } else if (kind === "impact") {
+    path("M17 2 L9 16 L16 15 L12 30 L25 12 L18 13 Z M4 8 L9 11 M25 23 L29 26");
+  } else if (kind === "standard") {
+    path("M11 4 L11 27 M11 6 Q22 3 25 11 Q20 16 11 14 M7 27 L15 27");
+  } else if (kind === "sword") {
+    path("M18 3 L23 3 L22 13 L13 23 L9 19 L18 10 Z M7 17 L15 25 M6 24 L10 28 M4 27 L8 29");
+  } else {
+    path("M16 3 L19 8 L19 22 L16 27 L13 22 L13 8 Z M8 19 L24 19 M11 27 L21 27");
+  }
+  return svg;
+}
+
 // 表示範囲の平行移動・ズームはセーブ対象にしない（詳細画面の再描画で視点だけ保持）。
 const warriorWebView = { scale: 1, x: 0, y: 0 };
 function warriorWebPoint(lane, ring) {
@@ -304,6 +342,20 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
     parent.appendChild(el);
     return el;
   };
+  // 外周の魔導刻印・時計盤状の目盛は装飾のみ。前提ノードは別線で描画する。
+  for (const radius of [10.5, 23.5, 35.8, 47.2]) {
+    addSvg("circle", { cx: 50, cy: 50, r: radius, class: "tree-web-orbit" }, svg);
+  }
+  for (let i = 0; i < 36; i++) {
+    const angle = i * Math.PI / 18;
+    const outer = i % 3 === 0 ? 48.6 : 47.9;
+    const inner = i % 3 === 0 ? 45.8 : 47;
+    addSvg("line", {
+      x1: 50 + Math.cos(angle) * inner, y1: 50 + Math.sin(angle) * inner,
+      x2: 50 + Math.cos(angle) * outer, y2: 50 + Math.sin(angle) * outer,
+      class: "tree-web-tick",
+    }, svg);
+  }
   // 六角の環と放射線で蜘蛛の巣を表現。取得条件として扱うのは下の実データの前提線だけ。
   for (let ring = 0; ring < 3; ring++) {
     const points = Array.from({ length: 6 }, (_, lane) => {
@@ -333,7 +385,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   scene.appendChild(svg);
   const core = document.createElement("div");
   core.className = "tree-web-core";
-  core.textContent = "⚔";
+  core.appendChild(createWarriorCrestGlyph("core"));
   core.setAttribute("aria-label", "せんし・中心");
   scene.appendChild(core);
   const laneNames = ["基礎", "猛攻", "破砕", "覇道", "鉄壁", "装備"];
@@ -354,14 +406,27 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
     const levelLocked = node.reqLevel > c.level;
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "tree-web-node" + (node.kind === "active" ? " active-kind" : " passive-kind")
-      + (acquired ? " acquired" : canGet ? " available" : " locked")
-      + (levelLocked ? " level-locked" : "")
-      + (treeSelectedNode && treeSelectedNode.scope === scopeKey &&
+    const choiceSealed = !!(node.exclusiveGroup && !acquired &&
+      treeDef.nodes.some((other) => other.id !== node.id &&
+        other.exclusiveGroup === node.exclusiveGroup && (ranks[other.id] || 0) > 0));
+    btn.className = "tree-web-node tree-web-node--lane-" + lane +
+      (node.kind === "active" ? " active-kind" : " passive-kind") +
+      (node.id === "w12" ? " ultimate-kind" : "") +
+      (acquired ? " acquired" : canGet ? " available" : " locked") +
+      (choiceSealed ? " choice-sealed" : "") +
+      (levelLocked ? " level-locked" : "") +
+      (treeSelectedNode && treeSelectedNode.scope === scopeKey &&
         treeSelectedNode.nodeId === node.id ? " selected" : "");
     btn.style.left = p.x + "%";
     btn.style.top = p.y + "%";
-    btn.textContent = levelLocked ? "🔒" : mark;
+    btn.appendChild(createWarriorCrestGlyph(levelLocked || choiceSealed ? "lock" :
+      node.id === "w12" ? "ultimate" : node.kind === "active" ? "sword" :
+        ["blade", "blade", "impact", "standard", "shield", "gem"][lane]));
+    // SVGが表示できない環境でもノードを見分けられるよう略字を持つ。
+    const fallback = document.createElement("span");
+    fallback.className = "tree-web-node-mark";
+    fallback.textContent = mark;
+    btn.appendChild(fallback);
     btn.title = node.name;
     btn.setAttribute("aria-label", node.name + "、必要Lv" + node.reqLevel);
     btn.setAttribute("aria-pressed", String(!!(treeSelectedNode &&
@@ -375,7 +440,9 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   }
   const legend = document.createElement("div");
   legend.className = "tree-web-legend";
-  legend.textContent = "● 習得済み　● 習得可能　● 未解放・条件不足";
+  legend.innerHTML = '<span class="tree-web-key learned">● 習得済み</span>' +
+    '<span class="tree-web-key ready">● 習得可能</span>' +
+    '<span class="tree-web-key sealed">● 未解放・封印</span>';
   wrap.appendChild(legend);
 
   // iOS Safari: touch-action:none上の移動を自前で処理。タップはブラウザ標準clickのまま。
