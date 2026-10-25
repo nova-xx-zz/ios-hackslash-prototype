@@ -1,0 +1,35 @@
+/* 共通: ゲーム設定・ショップ内の法務リンク。既存UIの余白やレイアウトを壊さない。 */
+.settings-legal { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border, #5c4d36); border-radius: 9px; background: rgba(140,125,90,.06); }
+.settings-legal .settings-row { padding: 0; }
+.legal-links { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 14px; padding: 9px 0 3px; }
+.legal-links a { color: #dec68c; font-size: 12px; line-height: 1.6; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.legal-links a:hover { color: #ffdfa5; }
+.legal-links a:focus-visible { outline: 2px solid #dec68c; outline-offset: 3px; border-radius: 2px; }
+.shop-legal { margin-top: 16px; padding: 10px 12px; border-top: 1px solid var(--border, #5c4d36); }
+.shop-legal .legal-links { padding-bottom: 8px; }
+.shop-legal p { margin: 4px 0; font-size: 12px; line-height: 1.65; color: var(--sub-text, #b9b2a4); }
+
+/* ゲームのJavaScriptやセーブ機構から独立した静的な法務ページ。 */
+body.legal-page { margin: 0; min-height: 100vh; box-sizing: border-box; color: #efe7d5; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; font-size: 15px; line-height: 1.85; background: radial-gradient(ellipse at top, #27332e 0%, #151b1b 42%, #0e0c16 100%); }
+.legal-page *, .legal-page *::before, .legal-page *::after { box-sizing: border-box; }
+.legal-container { width: min(100% - 30px, 760px); margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 0 max(38px, env(safe-area-inset-bottom)); }
+.legal-header { border-bottom: 1px solid #695b40; padding-bottom: 20px; margin-bottom: 22px; }
+.legal-home { display: inline-block; margin-bottom: 20px; font-size: 13px; }
+.legal-kicker { margin: 0 0 4px; font-size: 11px; letter-spacing: .18em; color: #b69f68; }
+.legal-header h1 { margin: 0; color: #f2d797; font-size: clamp(23px, 5.2vw, 32px); line-height: 1.4; }
+.legal-updated { margin: 8px 0 0; font-size: 12px; color: #ada89d; }
+.legal-page a { color: #e5c785; text-underline-offset: 3px; }
+.legal-page a:focus-visible { outline: 2px solid #f2d797; outline-offset: 3px; }
+.legal-page section { margin: 24px 0; }
+.legal-page section h2 { margin: 0 0 9px; padding-left: 10px; border-left: 3px solid #b89b5f; font-size: 17px; color: #f5e1b3; line-height: 1.5; }
+.legal-page p { margin: 9px 0; }
+.legal-page ul { padding-left: 1.4em; margin: 10px 0; }
+.legal-page li { margin: 7px 0; }
+.legal-attention { padding: 13px 14px; border: 1px solid #8d6b3d; background: rgba(169,110,46,.13); border-radius: 9px; color: #f5e4c1; }
+.legal-facts { display: grid; grid-template-columns: minmax(112px, 32%) 1fr; border-top: 1px solid #514936; margin: 10px 0; }
+.legal-facts dt, .legal-facts dd { margin: 0; padding: 10px 8px; border-bottom: 1px solid #514936; overflow-wrap: anywhere; }
+.legal-facts dt { color: #d1b875; }
+.legal-page-nav { display: flex; flex-wrap: wrap; gap: 8px 15px; border-top: 1px solid #695b40; margin-top: 32px; padding: 18px 0; font-size: 13px; }
+.legal-page-nav a[aria-current="page"] { color: #fff1cc; font-weight: 700; }
+.legal-footer { text-align: center; font-size: 11px; color: #a49e90; margin-top: 24px; }
+@media (max-width: 440px) { .legal-facts { grid-template-columns: 1fr; } .legal-facts dt { border-bottom: 0; padding-bottom: 0; font-weight: 700; } .legal-facts dd { padding-top: 2px; } }
