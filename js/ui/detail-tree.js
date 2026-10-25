@@ -118,8 +118,21 @@ function buildTreeSection(c, opts) {
   section.appendChild(headRow);
 
   // 剣士系の固有ツリーのみ新しい蜘蛛の巣型。汎用3枠や他職は既存レイアウトを保持する。
-  const warriorWeb = scopeKey === "exclusive" && treeDef.id === "warrior" &&
-    treeDef.nodes.every((node) => WARRIOR_WEB_LAYOUT[node.id]);
+  const warriorWeb = isWarriorCrestWeb(c, scopeKey, treeDef);
+  if (warriorWeb) {
+    section.classList.add("warrior-crest-section");
+    const intro = document.createElement("div");
+    intro.className = "tree-web-intro";
+    const job = document.createElement("span");
+    job.className = "tree-web-intro-job";
+    job.textContent = "せんし　/　WARRIOR";
+    const subtitle = document.createElement("span");
+    subtitle.className = "tree-web-intro-sub";
+    subtitle.textContent = "剛勇の心得 ― 力を刻む紋章";
+    intro.appendChild(job);
+    intro.appendChild(subtitle);
+    section.appendChild(intro);
+  }
   section.appendChild(warriorWeb ? buildWarriorWebGraph(c, scopeKey, treeDef, ranks) : buildTreeGraph(c, scopeKey, treeDef, ranks));
 
   // 選んだマスの詳細は、スクロールしなくても押せるように画面の下（タブの上）に固定して出す
@@ -207,7 +220,12 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
   return graph;
 }
 
-// 剣士系（せんし/けんごう）固有ツリー: 描画座標だけを定義する。
+// せんし専用の装飾。けんごうはツリーを共有するが従来レイアウトを維持する。
+function isWarriorCrestWeb(c, scopeKey, treeDef) {
+  return c.job === "warrior" && scopeKey === "exclusive" &&
+    treeDef.id === "warrior" && treeDef.nodes.every((node) => WARRIOR_WEB_LAYOUT[node.id]);
+}
+// ノード描画座標だけを定義する。
 // ID・前提・必要SP・排他・Lv・効果はすべてEXCLUSIVE_TREESの正本を使う。
 // 6方向×3リング。装備の枝は2段、その他は3段。新ノード追加時は既存分岐図にフォールバック。
 const WARRIOR_WEB_LAYOUT = {
@@ -227,11 +245,11 @@ function warriorWebPoint(lane, ring) {
 }
 function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   const wrap = document.createElement("div");
-  wrap.className = "tree-web";
+  wrap.className = "tree-web tree-web--crest";
   const toolbar = document.createElement("div");
   toolbar.className = "tree-web-toolbar";
   const info = document.createElement("span");
-  info.textContent = "剣士の技脈・6方向 × 3層";
+  info.textContent = "✦  剛勇の刻印  ✦";
   toolbar.appendChild(info);
   const controls = document.createElement("div");
   controls.className = "tree-web-controls";
@@ -318,11 +336,11 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   core.textContent = "⚔";
   core.setAttribute("aria-label", "せんし・中心");
   scene.appendChild(core);
-  const laneNames = ["基礎", "火力", "突破", "終盤", "耐久", "装備"];
+  const laneNames = ["基礎", "猛攻", "破砕", "覇道", "鉄壁", "装備"];
   for (let i = 0; i < laneNames.length; i++) {
     const p = warriorWebPoint(i, 2);
     const label = document.createElement("span");
-    label.className = "tree-web-lane";
+    label.className = "tree-web-lane tree-web-lane--" + i;
     label.style.left = 50 + (p.x - 50) * 1.12 + "%";
     label.style.top = 50 + (p.y - 50) * 1.12 + "%";
     label.textContent = laneNames[i];
@@ -430,7 +448,8 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
 // 選択中ノードの詳細（説明・コスト・習得状況・習得ボタン）を分岐図の下に表示する
 function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
   const panel = document.createElement("div");
-  panel.className = "tree-node-detail";
+  const isWarrior = c.job === "warrior" && treeDef.id === "warrior";
+  panel.className = "tree-node-detail" + (isWarrior ? " warrior-crest-detail" : "");
   const rank = ranks[node.id] || 0;
   const acquired = rank > 0;
 
@@ -458,6 +477,25 @@ function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
   desc.className = "tree-node-detail-desc";
   desc.textContent = node.desc || "";
   panel.appendChild(desc);
+  if (isWarrior) {
+    const facts = document.createElement("div");
+    facts.className = "warrior-crest-facts";
+    const prereqs = (node.prerequisites || []).map((pre) => {
+      const parent = treeDef.nodes.find((other) => other.id === pre.nodeId);
+      return parent ? parent.name : pre.nodeId;
+    });
+    for (const text of [
+      node.kind === "active" ? "⚔ アクティブ" : "✦ パッシブ",
+      "必要SP " + (acquired ? "習得済" : node.costByRank[rank]),
+      "必要Lv " + node.reqLevel,
+      "前提 " + (prereqs.length ? prereqs.join("・") : "なし"),
+    ]) {
+      const chip = document.createElement("span");
+      chip.textContent = text;
+      facts.appendChild(chip);
+    }
+    panel.appendChild(facts);
+  }
   if (!acquired && node.reqLevel > c.level) {
     const lock = document.createElement("div");
     lock.className = "tree-node-detail-lock";
