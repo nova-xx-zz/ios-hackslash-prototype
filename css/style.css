@@ -2014,6 +2014,242 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) {
   .crest-inline-detail .crest-detail-icon { width: 54px; height: 54px; }
 }
 
+/* せんし固有ツリー2026-10-26: 参考画面に寄せた1画面完結レイアウト。
+   上下に縦積みするのではなく、残り高さを正方形の紋章盤に割り当てる。
+   他ジョブ/汎用データ/共通の背景には影響させない。 */
+#screen-chardetail.warrior-crest-view .roster-wrap {
+  padding: 4px 9px 7px;
+}
+#screen-chardetail.warrior-crest-view #detailBody {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  min-height: 0;
+}
+#screen-chardetail.warrior-crest-view .job-char-card:has(> .tree-tab--crest) {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+#screen-chardetail.warrior-crest-view .tree-tab--crest {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#screen-chardetail.warrior-crest-view .crest-focus-navigation {
+  min-height: 30px;
+  margin: 0 0 3px;
+  gap: 5px;
+}
+#screen-chardetail.warrior-crest-view .crest-focus-back,
+#screen-chardetail.warrior-crest-view .crest-focus-person-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 19px;
+}
+#screen-chardetail.warrior-crest-view .crest-screen-head {
+  flex: 0 0 auto;
+  margin: 0 0 4px;
+}
+#screen-chardetail.warrior-crest-view .crest-screen-bar {
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 1px 0 5px;
+}
+#screen-chardetail.warrior-crest-view .crest-screen-name {
+  font-size: clamp(22px, 5.8vw, 28px);
+}
+#screen-chardetail.warrior-crest-view .crest-sp {
+  padding: 5px 8px;
+  gap: 4px;
+}
+#screen-chardetail.warrior-crest-view .crest-sp-value { font-size: 20px; }
+#screen-chardetail.warrior-crest-view .crest-reset-row .tree-swap-btn {
+  min-width: 66px;
+  padding: 3px 6px;
+}
+#screen-chardetail.warrior-crest-view .crest-focus-tabs {
+  flex: 0 0 auto;
+  margin: 0 0 4px;
+}
+#screen-chardetail.warrior-crest-view .crest-focus-tab {
+  padding: 8px 1px;
+  line-height: 1.1;
+  font-size: 12.5px;
+  min-height: 35px;
+}
+#screen-chardetail.warrior-crest-view .warrior-crest-section {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#screen-chardetail.warrior-crest-view .tree-web--crest {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+/* ジョブ名とズームは円盤の左右上端の空白へ重ねる。
+   以前の60px幅見出しの縦積みを廃止し、盤面に高さを返す。 */
+#screen-chardetail.warrior-crest-view .crest-banner {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  z-index: 7;
+  width: auto;
+  max-width: 52%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  gap: 5px;
+  background: transparent;
+}
+#screen-chardetail.warrior-crest-view .crest-banner::before {
+  inset: -6px -12px -8px -4px;
+}
+#screen-chardetail.warrior-crest-view .crest-banner-emblem {
+  width: 39px;
+  height: 39px;
+}
+#screen-chardetail.warrior-crest-view .crest-banner-job {
+  font-size: 20px;
+  line-height: 1.06;
+}
+#screen-chardetail.warrior-crest-view .crest-banner-tree {
+  font-size: 10px;
+  line-height: 1.2;
+}
+#screen-chardetail.warrior-crest-view .crest-banner-rule { height: 3px; margin-top: 1px; }
+#screen-chardetail.warrior-crest-view .tree-web-controls {
+  top: 3px;
+  right: 0;
+  z-index: 8;
+}
+#screen-chardetail.warrior-crest-view .tree-web-control {
+  min-width: 28px;
+  height: 29px;
+}
+/* Flexで残り高さを受け、幅/高さが同じ円盤にする。
+   portrait iPhoneの幅いっぱい固定ではなく、詳細パネルの高さを先に確保。 */
+#screen-chardetail.warrior-crest-view .tree-web-viewport {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
+  max-height: calc(100vw - 22px);
+  aspect-ratio: 1 / 1;
+  align-self: center;
+  margin: 0;
+}
+#screen-chardetail.warrior-crest-view .tree-web-legend {
+  flex: 0 0 auto;
+  justify-content: center;
+  gap: 9px;
+  margin: 0;
+  padding: 2px 0 1px;
+  font-size: 9.5px;
+  line-height: 1.15;
+}
+#screen-chardetail.warrior-crest-view .tree-web-key { gap: 3px; }
+#screen-chardetail.warrior-crest-view .tree-web-key i { width: 7px; height: 7px; }
+#screen-chardetail.warrior-crest-view .crest-inline-detail {
+  flex: 0 0 auto;
+  margin: 4px 1px 0;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .warrior-crest-detail {
+  margin: 0;
+  padding: 8px 10px 7px;
+  box-shadow: inset 0 0 0 2px rgba(6,14,18,.95),
+    inset 0 0 0 3px rgba(216,182,115,.25), 0 2px 10px rgba(2,8,11,.45);
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-main {
+  gap: 9px;
+  align-items: center;
+  padding-right: 17px;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-icon {
+  width: 59px;
+  height: 59px;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .tree-node-detail-name {
+  font-size: 17px;
+  margin: 0 0 3px;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-tag {
+  padding: 2px 5px 3px;
+  font-size: 9.5px;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-tags {
+  gap: 3px;
+  margin-bottom: 3px;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .warrior-crest-facts {
+  gap: 1px 8px;
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .tree-node-detail-desc {
+  margin: 5px 0 0;
+  padding-top: 5px;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-flavor,
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-ability {
+  display: none; /* UI装飾用テキストのみ省略。効果/前提/消費SPはすべて表示 */
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-learn-btn {
+  min-height: 42px;
+  margin: 6px 0 0;
+  padding: 5px 8px;
+  gap: 0;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-learn-main {
+  font-size: 16px;
+  line-height: 1.2;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-learn-sub {
+  font-size: 9px;
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-learned {
+  margin: 5px 0 0;
+  padding: 6px;
+}
+@media (max-height: 760px) {
+  /* 低い画面だけ補助情報をさらに詰める。スキル効果や習得条件は省略しない。 */
+  #screen-chardetail.warrior-crest-view .crest-focus-navigation { min-height: 27px; margin-bottom: 2px; }
+  #screen-chardetail.warrior-crest-view .crest-focus-tabs { margin-bottom: 2px; }
+  #screen-chardetail.warrior-crest-view .crest-focus-tab { min-height: 31px; padding: 5px 1px; }
+  #screen-chardetail.warrior-crest-view .crest-banner-emblem { width: 33px; height: 33px; }
+  #screen-chardetail.warrior-crest-view .crest-banner-job { font-size: 17px; }
+  #screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-icon { width: 48px; height: 48px; }
+  #screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-main { gap: 7px; }
+  #screen-chardetail.warrior-crest-view .crest-inline-detail .tree-node-detail-name { font-size: 15px; }
+}
+@media (max-height: 650px) {
+  /* 極端に低い端末は情報を切り捨てず、従来どおり必要部分のスクロールを許す。 */
+  #screen-chardetail.warrior-crest-view #detailBody { overflow-y: auto; }
+  #screen-chardetail.warrior-crest-view .job-char-card:has(> .tree-tab--crest),
+  #screen-chardetail.warrior-crest-view .tree-tab--crest,
+  #screen-chardetail.warrior-crest-view .warrior-crest-section,
+  #screen-chardetail.warrior-crest-view .tree-web--crest { flex: 0 0 auto; }
+  #screen-chardetail.warrior-crest-view .tree-web-viewport {
+    flex: 0 0 auto;
+    width: min(100%, 275px);
+    height: auto;
+    min-height: 275px;
+  }
+}
+
 /* map */
 .map-wrap {
   position: absolute; inset: 0;
