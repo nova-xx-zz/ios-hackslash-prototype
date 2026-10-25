@@ -1107,113 +1107,225 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .tree-node-detail-desc { font-size: 11.5px; color: var(--sub-text); margin-bottom: 8px; }
 .tree-node-detail-state { font-size: 11.5px; color: #7dffb0; font-weight: 700; }
 
-/* せんし専用: ギルドの既存背景を残したまま、古金の六芒刻印盤を重ねる */
-.warrior-crest-section {
-  background: rgba(8, 21, 28, 0.54);
-  border-color: rgba(201,164,99,.4);
-  box-shadow: inset 0 1px 0 rgba(234,204,143,.12), 0 4px 18px rgba(1,10,15,.12);
+/* ===== せんし専用: 剛勇の紋章盤（スキルツリー専用画面）=====
+   既存のギルド背景はそのまま透かし、盤面・見出し・詳細パネルだけを専用の意匠にする。
+   すべて .tree-tab--crest / .tree-web--crest / .warrior-crest-detail の内側に限定し、
+   けんごう・他職・汎用ツリー3枠の見た目は変えない。設計: docs/剣士スキルツリーUI改修.md */
+.tree-web--crest, .warrior-crest-detail {
+  --l0: #82b9ee; /* 基礎: 青 */
+  --l1: #e56c5d; /* 猛攻: 赤 */
+  --l2: #e9a84f; /* 破砕: 金・橙 */
+  --l3: #b88aea; /* 覇道: 紫 */
+  --l4: #9aafbf; /* 鉄壁: 青灰 */
+  --l5: #82cd93; /* 装備: 緑 */
+  --crest-gold: #d8b673;
+  --crest-gold-hi: #f6e2ad;
+  --crest-gold-lo: #8d6833;
+  --crest-ink: #f4e8cf;
 }
-.warrior-crest-section .tree-section-title {
+.tree-web-node--lane-0, .tree-web-lane--0, .tree-web-sector--0, .tree-web-link.lane-0, .warrior-crest-detail.lane-0 { --lane: var(--l0); }
+.tree-web-node--lane-1, .tree-web-lane--1, .tree-web-sector--1, .tree-web-link.lane-1, .warrior-crest-detail.lane-1 { --lane: var(--l1); }
+.tree-web-node--lane-2, .tree-web-lane--2, .tree-web-sector--2, .tree-web-link.lane-2, .warrior-crest-detail.lane-2 { --lane: var(--l2); }
+.tree-web-node--lane-3, .tree-web-lane--3, .tree-web-sector--3, .tree-web-link.lane-3, .warrior-crest-detail.lane-3 { --lane: var(--l3); }
+.tree-web-node--lane-4, .tree-web-lane--4, .tree-web-sector--4, .tree-web-link.lane-4, .warrior-crest-detail.lane-4 { --lane: var(--l4); }
+.tree-web-node--lane-5, .tree-web-lane--5, .tree-web-sector--5, .tree-web-link.lane-5, .warrior-crest-detail.lane-5 { --lane: var(--l5); }
+
+/* --- 画面の器: 「カードの中のUI」感を消し、ギルド背景の上に直接盤面を載せる --- */
+.job-char-card:has(> .tree-tab--crest) {
+  background: transparent;
+  border-color: transparent;
+  padding: 2px 0 6px;
+}
+.tree-tab--crest .crest-screen-head {
+  display: block;
+  margin: 0 0 6px;
+  padding: 0;
+  background: none;
+  border: none;
+}
+.crest-screen-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 2px 8px;
+  border-bottom: 1px solid rgba(216,182,115,.28);
+  background:
+    linear-gradient(90deg, transparent, rgba(216,182,115,.55) 18%, rgba(216,182,115,.55) 82%, transparent)
+    bottom / 100% 1px no-repeat;
+}
+.crest-screen-title { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.crest-screen-kicker {
+  font-family: "Cinzel", var(--title-serif-ja);
+  font-size: 10px;
+  letter-spacing: .24em;
+  color: #c9aa6d;
+  white-space: nowrap;
+}
+.crest-screen-name {
   font-family: var(--title-serif-ja);
-  font-size: 14px;
-  color: #f0dec0;
-  letter-spacing: .05em;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1.15;
+  color: var(--crest-ink);
+  text-shadow: 0 2px 10px rgba(0,0,0,.75), 0 0 18px rgba(216,182,115,.18);
+  white-space: nowrap;
 }
-.tree-web-intro {
+.crest-sp {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid rgba(216,182,115,.62);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(20,38,44,.92), rgba(6,16,21,.94));
+  box-shadow: inset 0 0 0 2px rgba(5,12,16,.85), inset 0 1px 0 rgba(246,226,173,.18), 0 3px 10px rgba(0,0,0,.45);
+  color: var(--crest-ink);
+}
+.crest-sp .tree-web-glyph {
+  width: 15px;
+  height: 15px;
+  align-self: center;
+  fill: rgba(140,220,245,.25);
+  stroke: #bfeefc;
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 3px rgba(110,215,250,.8));
+}
+.crest-sp-label { font-size: 11px; color: #c7b48d; letter-spacing: .08em; }
+.crest-sp-value { font-family: "Cinzel", var(--title-serif-ja); font-size: 21px; font-weight: 700; line-height: 1; color: #fff3d6; }
+.crest-sp-total { font-size: 11px; color: #a8b3b2; }
+.crest-screen-actions { display: flex; align-items: stretch; gap: 6px; flex: 0 0 auto; }
+.tree-tab--crest .crest-reset-row { margin: 0; display: flex; }
+.tree-tab--crest .crest-reset-row .tree-swap-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 9px 6px 10px;
-  margin: 7px 0 1px;
-  border-top: 1px solid rgba(201,164,99,.26);
-  text-align: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 64px;
+  border: 1px solid rgba(216,182,115,.55);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(28,42,46,.92), rgba(8,18,23,.94));
+  color: #eadcbc;
+  padding: 4px 9px;
+  box-shadow: inset 0 0 0 2px rgba(5,12,16,.85), 0 3px 10px rgba(0,0,0,.45);
+  touch-action: manipulation;
 }
-.tree-web-intro-job {
-  font-family: "Cinzel", var(--title-serif-ja);
-  font-size: 11px;
-  letter-spacing: .17em;
-  color: #dbb977;
-}
-.tree-web-intro-sub {
-  font-family: var(--title-serif-ja);
-  font-size: 12px;
-  color: #f1e7d5;
-  text-shadow: 0 1px 5px rgba(0,0,0,.5);
+.crest-reset-main { font-family: var(--title-serif-ja); font-size: 13px; font-weight: 700; letter-spacing: .12em; line-height: 1.2; }
+.crest-reset-sub { font-size: 9.5px; color: #b3ab98; line-height: 1.1; white-space: nowrap; }
+.tree-tab--crest .crest-reset-row .tree-swap-btn.confirming { border-color: #e2796a; color: #ffc7bd; background: rgba(90,24,20,.7); }
+.tree-tab--crest .crest-reset-row .tree-swap-btn:disabled { opacity: .55; }
+
+.warrior-crest-section {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 18px;
+  box-shadow: none;
 }
 
-.tree-web--crest {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: 7px 6px 9px;
-  border: 1px solid rgba(201,164,99,.6);
-  border-radius: 10px;
-  background:
-    radial-gradient(circle at 50% 48%, rgba(33,70,78,.28), transparent 47%),
-    linear-gradient(165deg, rgba(6,17,25,.48), rgba(2,12,19,.68) 55%, rgba(6,21,26,.42));
-  box-shadow: inset 0 0 0 2px rgba(5,13,19,.48), inset 0 0 30px rgba(3,12,17,.36);
-}
-.tree-web--crest::before {
-  content: "";
+/* --- 見出し: 剣紋章＋せんし／剛勇の心得 --- */
+.tree-web--crest { position: relative; }
+.crest-banner {
   position: absolute;
-  inset: 4px;
-  border: 1px solid rgba(218,182,111,.23);
-  border-radius: 7px;
-  pointer-events: none;
-  z-index: 1;
-}
-.tree-web-toolbar {
-  position: relative;
-  z-index: 2;
+  left: 0;
+  top: 0;
+  z-index: 6;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  padding: 2px 7px 6px;
-  color: #dfbd80;
-  font-family: var(--title-serif-ja);
-  font-size: 11px;
-  letter-spacing: .07em;
+  gap: 7px;
+  max-width: 44%;
+  pointer-events: none;
 }
-.tree-web-controls { display: flex; gap: 4px; flex: 0 0 auto; }
+.crest-banner::before {
+  content: "";
+  position: absolute;
+  inset: -10px -26px -12px -10px;
+  z-index: -1;
+  background: radial-gradient(ellipse at 35% 45%, rgba(3,9,13,.82) 0%, rgba(3,9,13,.55) 45%, rgba(3,9,13,0) 72%);
+}
+.crest-banner-emblem {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.6));
+}
+.crest-banner-emblem .crest-emblem { width: 100%; height: 100%; }
+.crest-banner-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.crest-banner-job {
+  font-family: var(--title-serif-ja);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  line-height: 1.2;
+  color: var(--crest-ink);
+  text-shadow: 0 2px 8px rgba(0,0,0,.8);
+}
+.crest-banner-tree {
+  font-family: var(--title-serif-ja);
+  font-size: 12.5px;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  color: #dcc79b;
+  text-shadow: 0 1px 6px rgba(0,0,0,.8);
+}
+.crest-banner-rule {
+  position: relative;
+  display: block;
+  width: min(96px, 100%);
+  height: 9px;
+  margin-top: 3px;
+  background: linear-gradient(90deg, rgba(216,182,115,.85), rgba(216,182,115,0)) 8px 50% / calc(100% - 8px) 1px no-repeat;
+}
+.crest-banner-rule::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 1.5px;
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  border: 1px solid var(--crest-gold);
+}
+.tree-web-controls { position: absolute; top: 0; right: 0; z-index: 6; display: flex; gap: 4px; }
 .tree-web-control {
-  border: 1px solid rgba(201,164,99,.56);
-  background: linear-gradient(180deg, rgba(34,49,50,.92), rgba(9,24,29,.95));
+  border: 1px solid rgba(216,182,115,.55);
+  background: linear-gradient(180deg, rgba(28,44,48,.92), rgba(8,19,24,.95));
   color: #f1dfbb;
   border-radius: 5px;
-  min-width: 29px;
-  height: 29px;
-  padding: 3px 7px;
-  font-size: 12px;
+  min-width: 28px;
+  height: 28px;
+  padding: 2px 6px;
+  font-size: 11.5px;
+  font-family: var(--title-serif-ja);
+  box-shadow: inset 0 0 0 1px rgba(5,12,16,.85);
   cursor: pointer;
+  touch-action: manipulation;
 }
 .tree-web-control:active { background: rgba(115,96,63,.58); }
 .tree-web-control:focus-visible, .tree-web-node:focus-visible {
   outline: 2px solid #f5dc99;
   outline-offset: 2px;
 }
+
+/* --- 盤面 --- */
 .tree-web-viewport {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
+  margin-top: 2px;
   overflow: hidden;
-  touch-action: none;
+  overflow: clip; /* 選択時の scrollIntoView で盤面自体がスクロールしないように */
+  touch-action: pan-y; /* 等倍時は縦スクロールを許可 */
   user-select: none;
   -webkit-user-select: none;
-  border-radius: 7px;
-  background:
-    radial-gradient(circle, rgba(38,93,105,.16) 0%, rgba(15,35,43,.08) 35%, transparent 65%),
-    repeating-radial-gradient(circle, rgba(197,168,103,.035) 0 1px, transparent 1px 17px);
+  -webkit-touch-callout: none;
 }
-.tree-web-viewport::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  box-shadow: inset 0 0 24px rgba(3,12,18,.7);
-  z-index: 4;
-}
+.tree-web-viewport.is-zoomed { touch-action: none; }
 .tree-web-scene {
   position: absolute;
   inset: 0;
@@ -1225,244 +1337,498 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   inset: 0;
   width: 100%;
   height: 100%;
+  overflow: visible;
   pointer-events: none;
+}
+.tree-web-disc { filter: drop-shadow(0 0 1.2px rgba(0,0,0,.7)); }
+.tree-web-sector { fill: var(--lane); opacity: .085; }
+.tree-web-halo { pointer-events: none; }
+.tree-web-frame-line {
+  fill: none;
+  stroke: url(#wcGoldStroke);
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-frame-line.thin { stroke-width: .8px; opacity: .72; }
+.tree-web-tick { stroke: rgba(226,195,128,.58); stroke-width: .9px; vector-effect: non-scaling-stroke; }
+.tree-web-runes {
+  fill: none;
+  stroke: rgba(221,190,126,.5);
+  stroke-width: .85px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+/* 背景ガイド（同心円・放射線）は細い点線。前提線は太い実線なので見分けられる */
+.tree-web-ring {
+  fill: none;
+  stroke: rgba(216,182,115,.2);
+  stroke-width: .8px;
+  stroke-dasharray: 1.5 3;
+  vector-effect: non-scaling-stroke;
 }
 .tree-web-orbit {
   fill: none;
-  stroke: rgba(211,177,104,.28);
-  stroke-width: .8;
-  vector-effect: non-scaling-stroke;
-}
-.tree-web-orbit:nth-child(2n) { stroke-dasharray: 1.7 1.8; }
-.tree-web-tick {
-  stroke: rgba(227,192,126,.6);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.tree-web-ring {
-  fill: none;
-  stroke: rgba(201,164,99,.44);
-  stroke-width: 1.2;
+  stroke: rgba(110,185,200,.11);
+  stroke-width: .7px;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-spoke {
-  stroke: rgba(90,170,182,.29);
-  stroke-width: .75;
+  stroke: rgba(216,182,115,.2);
+  stroke-width: .8px;
+  stroke-dasharray: 4 3;
   vector-effect: non-scaling-stroke;
 }
-.tree-web-link {
-  stroke: rgba(185,173,145,.58);
-  stroke-width: 1.75;
+.tree-web-spoke-minor {
+  stroke: rgba(110,185,200,.1);
+  stroke-width: .7px;
   vector-effect: non-scaling-stroke;
 }
-.tree-web-link.acquired {
-  stroke: #64d8ef;
-  stroke-width: 2.6;
-  filter: drop-shadow(0 0 3px rgba(87,211,240,.75));
+.tree-web-sigil {
+  fill: none;
+  stroke: rgba(226,195,128,.42);
+  stroke-width: .8px;
+  vector-effect: non-scaling-stroke;
 }
+.tree-web-sigil-ring {
+  fill: none;
+  stroke: rgba(226,195,128,.55);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-sigil-ring.faint { stroke: rgba(120,210,235,.22); stroke-dasharray: 1.5 2; }
+
+/* 実際の前提線: 暗い溝の上に線を引き、習得済みは青白い魔力が流れる */
+.tree-web-link-bed, .tree-web-link, .tree-web-link-glow, .tree-web-link-flow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-link-bed { stroke: rgba(2,8,11,.6); stroke-width: 4px; }
+.tree-web-link { stroke: rgba(176,166,138,.42); stroke-width: 1.4px; }
+.tree-web-link.sealed { stroke: rgba(130,84,74,.5); stroke-dasharray: 2 4; }
+.tree-web-link.ready { stroke: rgba(240,201,122,.72); stroke-width: 2.2px; }
+.tree-web-link.acquired { stroke: #aeeeff; stroke-width: 2.8px; }
+.tree-web-link-glow { stroke: rgba(96,214,245,.32); stroke-width: 8px; }
+.tree-web-link-flow { stroke-width: 1.5px; stroke-dasharray: 2 10; animation: crest-flow 1.5s linear infinite; }
+.tree-web-link-flow.acquired { stroke: #ffffff; opacity: .95; }
+.tree-web-link-flow.ready { stroke: #ffe8b0; opacity: .75; animation-duration: 2.6s; }
+
+/* 中央の剣紋章（盤面の主役） */
 .tree-web-core {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: 22%;
+  height: 22%;
   transform: translate(-50%, -50%);
-  width: 56px;
-  height: 56px;
-  border: 3px double #e1bd75;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #efd39b;
-  background:
-    radial-gradient(circle, rgba(49,102,126,.77) 0%, rgba(15,45,61,.9) 51%, #07151c 76%);
-  box-shadow: 0 0 0 4px rgba(13,22,30,.88), 0 0 0 6px rgba(211,174,101,.57),
-    inset 0 0 16px rgba(82,196,219,.3), 0 0 22px rgba(58,155,186,.35);
+  background: radial-gradient(circle, rgba(44,128,156,.62) 0%, rgba(11,33,43,.96) 58%, #061118 70%);
+  box-shadow:
+    0 0 0 2px #08141a,
+    0 0 0 3.5px var(--crest-gold),
+    0 0 0 6px rgba(9,20,26,.92),
+    0 0 0 7px rgba(216,182,115,.55),
+    inset 0 0 16px rgba(95,212,242,.35),
+    0 0 24px rgba(70,190,230,.32);
   pointer-events: none;
   z-index: 2;
 }
-.tree-web-core::after {
-  content: "";
-  position: absolute;
-  inset: -13px;
-  border: 1px dashed rgba(213,175,108,.58);
-  border-radius: 50%;
-  animation: crest-idle-pulse 7s ease-in-out infinite;
-}
-.tree-web-glyph {
-  width: 23px;
-  height: 23px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  pointer-events: none;
-  filter: drop-shadow(0 0 3px currentColor);
-}
-.tree-web-core .tree-web-glyph { width: 37px; height: 37px; stroke-width: 1.25; }
-.tree-web-node {
-  --lane-light: #9bd5e8;
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 2px solid rgba(126,144,157,.75);
-  border-radius: 50%;
-  color: #ced9d7;
-  background: radial-gradient(circle at 36% 25%, #314a52, #0d1d29 72%);
-  box-shadow: inset 0 0 0 2px rgba(6,17,21,.73), 0 2px 6px rgba(0,0,0,.55);
-  cursor: pointer;
-  touch-action: manipulation;
-  z-index: 3;
-}
-.tree-web-node::before {
-  content: "";
-  position: absolute;
-  inset: -5px;
-  border-radius: inherit;
-  border: 1px solid rgba(207,174,106,.56);
-  opacity: .72;
-  pointer-events: none;
-}
-.tree-web-node.active-kind { border-radius: 11px; border-style: double; }
-.tree-web-node.ultimate-kind {
-  width: 43px; height: 43px;
-  border-color: #d6ad67;
-  color: #efd6a5;
-  background: radial-gradient(circle at 50% 28%, #594b56, #20172a 75%);
-  box-shadow: 0 0 0 3px rgba(201,164,99,.18), 0 0 14px rgba(132,92,173,.35);
-}
-.tree-web-node--lane-1 { --lane-light: #f4a083; }
-.tree-web-node--lane-2 { --lane-light: #edc080; }
-.tree-web-node--lane-3 { --lane-light: #d4b4eb; }
-.tree-web-node--lane-4 { --lane-light: #88c6e5; }
-.tree-web-node--lane-5 { --lane-light: #a9d2ae; }
-.tree-web-node.acquired {
-  border-color: #c5ad77;
-  color: #a4edff;
-  background: radial-gradient(circle at 35% 25%, #367c91, #0d3447 75%);
-  box-shadow: inset 0 0 10px rgba(59,178,208,.55), 0 0 9px rgba(82,184,224,.56);
-}
-.tree-web-node.available {
-  border-color: #f3d493;
-  color: #ffe5ab;
-  background: radial-gradient(circle at 35% 25%, #84653e, #36251c 75%);
-  box-shadow: inset 0 0 12px rgba(249,195,108,.2), 0 0 10px rgba(236,178,83,.48);
-  animation: crest-ready-pulse 3.5s ease-in-out infinite;
-}
-.tree-web-node.locked {
-  border-color: rgba(107,122,126,.6);
-  background: radial-gradient(circle at 35% 25%, #344044, #131c23 75%);
-  color: #839298;
-}
-.tree-web-node.choice-sealed {
-  color: #9c8180;
-  border-color: rgba(132,83,78,.75);
-  background: radial-gradient(circle, #312629, #13191e 75%);
-}
-.tree-web-node.selected {
-  outline: 2px solid #f7d49c;
-  outline-offset: 4px;
-  box-shadow: 0 0 0 3px rgba(205,164,89,.34), 0 0 17px rgba(239,206,124,.66);
-  z-index: 4;
-}
-.tree-web-node-mark { display: none; }
+.tree-web-core .crest-emblem { width: 96%; height: 96%; filter: drop-shadow(0 0 4px rgba(120,220,255,.55)); }
+.tree-web-core.lit { animation: crest-core-pulse 5s ease-in-out infinite; }
+.tree-web-core.lit .crest-emblem { filter: drop-shadow(0 0 6px rgba(130,228,255,.9)); }
+.crest-emblem .e-star { fill: rgba(226,195,128,.14); stroke: rgba(226,195,128,.75); stroke-width: .7; }
+.crest-emblem .e-star--minor { fill: none; stroke: rgba(226,195,128,.4); stroke-width: .8; }
+.crest-emblem .e-ring { fill: none; stroke: var(--crest-gold); stroke-width: 1.5; }
+.crest-emblem .e-ring--dash { stroke-dasharray: 2 2.6; stroke-width: .9; opacity: .75; }
+.crest-emblem .e-blade { fill: #cdeefa; stroke: #f6fdff; stroke-width: .8; }
+.crest-emblem .e-fuller { fill: none; stroke: #4ea9c9; stroke-width: 1.4; }
+.crest-emblem .e-guard { fill: #d9b46c; stroke: #fff0c6; stroke-width: .6; }
+.crest-emblem .e-grip { fill: #3a281a; stroke: #c9a463; stroke-width: .9; }
+.crest-emblem .e-pommel { fill: #d9b46c; stroke: #fff0c6; stroke-width: .6; }
+.crest-emblem .e-gem { fill: #74e2ff; stroke: #e9fbff; stroke-width: .5; }
+.crest-emblem--banner .e-blade { fill: #e3d2ab; stroke: #fff2cf; }
+.crest-emblem--banner .e-fuller { stroke: #9a7640; }
+.crest-emblem--banner .e-star { fill: rgba(226,195,128,.08); }
+
+/* 方向の飾り札 */
 .tree-web-lane {
   position: absolute;
   transform: translate(-50%, -50%);
+  z-index: 4;
   pointer-events: none;
-  padding: 2px 7px 3px;
-  border: 1px solid rgba(195,157,90,.5);
-  border-radius: 4px;
-  background: rgba(8,24,28,.92);
-  color: #f1e4cc;
+  padding: 4px 15px 5px 17px;
   font-family: var(--title-serif-ja);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
+  letter-spacing: .2em;
+  line-height: 1.2;
   white-space: nowrap;
-  text-shadow: 0 1px 4px #071219;
-  box-shadow: 0 2px 7px rgba(0,0,0,.55);
-  z-index: 2;
+  color: #f6ead0;
+  text-shadow: 0 1px 2px #000, 0 0 7px var(--lane);
+  background: linear-gradient(180deg, var(--crest-gold-hi), var(--crest-gold-lo) 55%, var(--crest-gold));
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%, 0 50%);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.7));
 }
-.tree-web-lane--1 { border-color: rgba(192,112,74,.65); }
-.tree-web-lane--2 { border-color: rgba(206,165,95,.65); }
-.tree-web-lane--3 { border-color: rgba(162,124,174,.6); }
-.tree-web-lane--4 { border-color: rgba(108,167,187,.6); }
-.tree-web-lane--5 { border-color: rgba(131,171,142,.6); }
+.tree-web-lane::before {
+  content: "";
+  position: absolute;
+  inset: 1.5px;
+  z-index: -1;
+  background: linear-gradient(180deg, #1c3034, #08141a);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
+}
+.tree-web-lane::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 3px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lane), transparent);
+  opacity: .95;
+}
+
+/* ノード: 形で種別、色で状態、内側の細線で枝を示す */
+.tree-web-node {
+  --rim: #5c686e;
+  --rim-fill: #19232a;
+  --core-fill: #10181e;
+  --lane-o: .38;
+  --ink: #82929a;
+  --glow: rgba(0,0,0,0);
+  --aura-o: 0;
+  position: absolute;
+  width: 10%;
+  height: 10%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 3;
+}
+.tree-web-node.ultimate-kind { width: 11.6%; height: 11.6%; }
+.tree-web-node > *, .crest-detail-icon > * { grid-area: 1 / 1; }
+.tree-web-frame {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 1.5px 2px rgba(0,0,0,.75));
+}
+.tree-web-frame .f-rim { fill: var(--rim-fill); stroke: var(--rim); stroke-width: 1.9; }
+.tree-web-frame .f-core { fill: var(--core-fill); stroke: var(--lane); stroke-width: 1.2; stroke-opacity: var(--lane-o); }
+.tree-web-frame .f-ring { fill: none; stroke: var(--rim); stroke-width: .8; stroke-dasharray: 2 2; opacity: .8; }
+.tree-web-frame .f-shine { fill: #fff; opacity: .1; }
+.tree-web-node-aura {
+  width: 170%;
+  height: 170%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow) 0%, rgba(0,0,0,0) 62%);
+  opacity: var(--aura-o);
+  pointer-events: none;
+}
+.tree-web-node .tree-web-glyph, .crest-detail-icon .tree-web-glyph {
+  width: 50%;
+  height: 50%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+  position: relative;
+}
+.tree-web-node.ultimate-kind .tree-web-glyph { width: 46%; height: 46%; }
+.tree-web-node-mark { display: none; }
+/* 習得済み: 青白い魔力光 */
+.tree-web-node.acquired, .crest-detail-icon.acquired {
+  --rim: #c8eef8;
+  --rim-fill: #174a5d;
+  --core-fill: #0b2c3a;
+  --lane-o: .85;
+  --ink: #e2fbff;
+  --glow: rgba(105,218,250,.75);
+  --aura-o: .62;
+}
+.tree-web-node.acquired .tree-web-glyph, .crest-detail-icon.acquired .tree-web-glyph { filter: drop-shadow(0 0 2.5px rgba(140,230,255,.95)); }
+/* 習得可能: 金色に発光 */
+.tree-web-node.available, .crest-detail-icon.available {
+  --rim: #f7d993;
+  --rim-fill: #4e3818;
+  --core-fill: #2c1e0f;
+  --lane-o: .8;
+  --ink: #ffe5a8;
+  --glow: rgba(255,192,92,.85);
+  --aura-o: .7;
+}
+.tree-web-node.available .tree-web-glyph, .crest-detail-icon.available .tree-web-glyph { filter: drop-shadow(0 0 2.5px rgba(255,205,120,.9)); }
+.tree-web-node.available .tree-web-node-aura { animation: crest-ready-pulse 2.8s ease-in-out infinite; }
+/* 未解放（レベル不足）: 封印石 */
+.tree-web-node.level-locked {
+  --rim: #59636a;
+  --rim-fill: #232a2f;
+  --core-fill: #171d21;
+  --ink: #9aa5aa;
+  --lane-o: .22;
+}
+.tree-web-node.level-locked .f-core { stroke-dasharray: 2.2 2; }
+/* 二択で取れない側: 赤錆の封印 */
+.tree-web-node.choice-sealed, .crest-detail-icon.choice-sealed {
+  --rim: #86554a;
+  --rim-fill: #2b1d1c;
+  --core-fill: #1a1213;
+  --ink: #c08e80;
+  --lane-o: .15;
+  --aura-o: 0;
+}
+.tree-web-node.choice-sealed .tree-web-frame { opacity: .82; }
+.tree-web-node.ultimate-kind:not(.acquired):not(.available) { --rim: #8c7a5a; --ink: #c6b591; }
+.tree-web-node.ultimate-kind.available { --glow: rgba(255,200,110,.95); }
+.tree-web-node.selected { z-index: 5; }
+.tree-web-node.selected::after {
+  content: "";
+  position: absolute;
+  inset: -14%;
+  border: 1.5px dashed #f7d9a0;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(247,217,160,.55);
+  animation: crest-spin 14s linear infinite;
+  pointer-events: none;
+}
+.tree-web-node:active .tree-web-frame { transform: scale(.94); }
+
 .tree-web-legend {
   display: flex;
   justify-content: center;
-  gap: 11px;
+  gap: 12px;
   flex-wrap: wrap;
-  color: #b6c7c6;
-  font-size: 10px;
-  margin-top: 8px;
-  padding-bottom: 2px;
+  color: #c2cdcb;
+  font-size: 10.5px;
+  margin-top: 4px;
+  text-shadow: 0 1px 3px #000;
 }
-.tree-web-key.learned { color: #8adcf1; }
-.tree-web-key.ready { color: #edd097; }
-.tree-web-key.sealed { color: #b2b4b0; }
-/* 下部固定詳細はせんしの時だけ装飾。全職共通の詳細ロジックは維持 */
+.tree-web-key { display: inline-flex; align-items: center; gap: 4px; }
+.tree-web-key i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: #10191e;
+}
+.tree-web-key.learned i { color: #a9ecff; background: #1a5266; box-shadow: 0 0 5px rgba(105,218,250,.9); }
+.tree-web-key.ready i { color: #f7d993; background: #5a4019; box-shadow: 0 0 5px rgba(255,192,92,.9); }
+.tree-web-key.dormant i { color: #6f7c82; }
+.tree-web-key.sealed i { color: #9a6457; border-radius: 2px; transform: rotate(45deg); }
+
+/* --- 下部の専用詳細パネル --- */
 .detail-sheet .warrior-crest-detail {
+  position: relative;
+  padding: 12px 12px 10px;
+  border: 1px solid rgba(216,182,115,.78);
+  border-radius: 4px;
   background:
-    linear-gradient(135deg, rgba(16,44,48,.98), rgba(8,22,29,.99) 70%);
-  border: 1px solid rgba(214,178,106,.72);
-  box-shadow: inset 0 0 0 2px rgba(8,20,24,.9), 0 -6px 18px rgba(3,10,14,.56);
-  border-radius: 9px;
-  padding: 13px 12px;
+    radial-gradient(120% 90% at 0% 0%, rgba(40,86,96,.35), transparent 55%),
+    linear-gradient(160deg, rgba(14,30,36,.98), rgba(5,13,18,.99) 70%);
+  box-shadow:
+    inset 0 0 0 3px rgba(6,14,18,.95),
+    inset 0 0 0 4px rgba(216,182,115,.32),
+    0 -8px 22px rgba(2,8,11,.62);
 }
+/* 四隅の古金飾り */
+.detail-sheet .warrior-crest-detail::before,
+.detail-sheet .warrior-crest-detail::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border: 1.5px solid var(--crest-gold);
+}
+.detail-sheet .warrior-crest-detail::before { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+.detail-sheet .warrior-crest-detail::after { top: 6px; right: 6px; border-left: none; border-bottom: none; }
+.crest-detail-card { position: relative; }
+.warrior-crest-detail .tree-node-detail-close {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #cdbf9f;
+  z-index: 2;
+}
+.crest-detail-main { display: flex; gap: 12px; align-items: center; padding-right: 22px; }
+.crest-detail-icon {
+  --rim: #5c686e;
+  --rim-fill: #19232a;
+  --core-fill: #10181e;
+  --lane-o: .45;
+  --ink: #9aa8ad;
+  --glow: rgba(0,0,0,0);
+  --aura-o: 0;
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+.crest-detail-icon::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid rgba(216,182,115,.45);
+  background: repeating-conic-gradient(from 0deg, rgba(216,182,115,.55) 0 1.2deg, transparent 1.2deg 15deg);
+  -webkit-mask: radial-gradient(circle, transparent 60%, #000 61%, #000 66%, transparent 67%);
+  mask: radial-gradient(circle, transparent 60%, #000 61%, #000 66%, transparent 67%);
+}
+.crest-detail-icon .tree-web-frame { width: 92%; height: 92%; }
+.crest-detail-icon .tree-web-glyph { width: 46%; height: 46%; stroke-width: 1.8; }
+.crest-detail-info { flex: 1 1 auto; min-width: 0; }
 .warrior-crest-detail .tree-node-detail-name {
   font-family: var(--title-serif-ja);
-  color: #f5e1b7;
-  font-size: 16px;
-  letter-spacing: .03em;
+  color: var(--crest-ink);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  line-height: 1.25;
+  margin: 0 0 4px;
+  text-shadow: 0 1px 6px rgba(0,0,0,.8);
 }
-.warrior-crest-detail .tree-node-detail-desc {
-  font-size: 12px;
-  line-height: 1.6;
-  color: #e6e7df;
-}
-.warrior-crest-facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 8px;
-  padding: 8px 0;
-  border-top: 1px solid rgba(201,164,99,.25);
-  margin-top: 8px;
-}
-.warrior-crest-facts span {
-  color: #e3d0ae;
+.crest-detail-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 5px; }
+.crest-tag {
   font-size: 10.5px;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
+  line-height: 1;
+  padding: 3px 7px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(216,182,115,.5);
+  color: #e9dcbf;
+  background: rgba(216,182,115,.08);
 }
-.warrior-crest-detail .btn.primary {
-  background: linear-gradient(180deg, #e3c68a, #a98347);
-  border: 1px solid #efd79b;
-  border-radius: 7px;
+.crest-tag.lane { border-color: var(--lane); color: var(--lane); background: rgba(0,0,0,.25); }
+.warrior-crest-detail.acquired .crest-tag.state { border-color: #8edcf2; color: #bff0ff; }
+.warrior-crest-detail.available .crest-tag.state { border-color: #f2cf86; color: #ffe2a3; }
+.warrior-crest-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  color: #d8c8a6;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.warrior-crest-facts .crest-fact.sp { color: #fff0cc; font-weight: 700; }
+.warrior-crest-facts .crest-fact.rival { color: #d9a597; }
+.warrior-crest-detail .tree-node-detail-desc {
+  margin: 9px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(216,182,115,.22);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #eef0ea;
+}
+.crest-detail-ability { font-size: 11.5px; line-height: 1.5; color: #b9cdd0; margin-top: 2px; }
+.crest-detail-flavor {
+  margin-top: 6px;
+  font-family: var(--title-serif-ja);
+  font-size: 12px;
+  color: #b8a985;
+  letter-spacing: .04em;
+}
+.warrior-crest-detail .tree-node-detail-lock { margin: 8px 0 0; font-size: 11.5px; color: #e9a296; }
+.detail-sheet .warrior-crest-detail .crest-learn-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 9px 12px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--crest-gold-hi);
+  background: linear-gradient(180deg, #e9cf92, #b48a48 60%, #8f6a33);
+  box-shadow: inset 0 0 0 2px rgba(80,55,22,.55), inset 0 1px 0 rgba(255,246,214,.7), 0 0 14px rgba(236,190,100,.35);
+  color: #26180a;
   font-family: var(--title-serif-ja);
 }
-@keyframes crest-ready-pulse {
-  0%,100% { box-shadow: inset 0 0 12px rgba(249,195,108,.2), 0 0 8px rgba(236,178,83,.35); }
-  50% { box-shadow: inset 0 0 13px rgba(249,195,108,.3), 0 0 15px rgba(236,178,83,.7); }
+.crest-learn-main { font-size: 17px; font-weight: 700; letter-spacing: .3em; padding-left: .3em; line-height: 1.2; }
+.crest-learn-sub { font-family: system-ui, sans-serif; font-size: 10.5px; font-weight: 600; opacity: .8; }
+.detail-sheet .warrior-crest-detail .crest-learn-btn:disabled {
+  opacity: 1;
+  border-color: rgba(150,140,118,.5);
+  background: linear-gradient(180deg, #2a3236, #161d21);
+  box-shadow: inset 0 0 0 2px rgba(5,10,13,.8);
+  color: #9aa3a3;
 }
-@keyframes crest-idle-pulse {
-  0%,100% { opacity: .48; }
-  50% { opacity: .87; }
+.warrior-crest-detail .crest-learned {
+  margin-top: 10px;
+  padding: 9px;
+  text-align: center;
+  border: 1px solid rgba(150,226,248,.6);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(23,72,92,.75), rgba(8,32,42,.85));
+  color: #c8f4ff;
+  font-family: var(--title-serif-ja);
+  font-size: 15px;
+  letter-spacing: .3em;
+  text-shadow: 0 0 8px rgba(105,218,250,.8);
+}
+
+@keyframes crest-flow { to { stroke-dashoffset: -24; } }
+@keyframes crest-ready-pulse {
+  0%, 100% { opacity: .45; transform: scale(.92); }
+  50% { opacity: .85; transform: scale(1.04); }
+}
+@keyframes crest-core-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #08141a, 0 0 0 3.5px var(--crest-gold), 0 0 0 6px rgba(9,20,26,.92), 0 0 0 7px rgba(216,182,115,.55), inset 0 0 16px rgba(95,212,242,.35), 0 0 22px rgba(70,190,230,.32); }
+  50% { box-shadow: 0 0 0 2px #08141a, 0 0 0 3.5px var(--crest-gold), 0 0 0 6px rgba(9,20,26,.92), 0 0 0 7px rgba(216,182,115,.55), inset 0 0 22px rgba(110,222,250,.5), 0 0 34px rgba(80,200,240,.55); }
+}
+@keyframes crest-spin { to { transform: rotate(360deg); } }
+@media (max-width: 390px) {
+  .crest-screen-name { font-size: 21px; letter-spacing: .02em; }
+  .crest-screen-bar { gap: 6px; }
+  .crest-sp { padding: 5px 8px 5px 7px; gap: 4px; }
+  .crest-sp-value { font-size: 18px; }
+  .tree-tab--crest .crest-reset-row .tree-swap-btn { min-width: 56px; padding: 4px 7px; }
 }
 @media (max-width: 360px) {
-  .tree-web-toolbar { font-size: 9.5px; letter-spacing: 0; }
-  .tree-web-node { width: 33px; height: 33px; }
-  .tree-web-node.ultimate-kind { width: 38px; height: 38px; }
-  .tree-web-glyph { width: 20px; height: 20px; }
-  .tree-web-core { width: 49px; height: 49px; }
-  .tree-web-core .tree-web-glyph { width: 33px; height: 33px; }
-  .tree-web-lane { font-size: 10px; padding: 2px 5px; }
+  .crest-screen-name { font-size: 19px; }
+  .crest-banner-job { font-size: 18px; }
+  .crest-banner-emblem { width: 38px; height: 38px; }
+  .crest-sp-value { font-size: 18px; }
+  .tree-web-lane { font-size: 11px; padding: 3px 12px 4px 13px; letter-spacing: .12em; }
+  .crest-detail-icon { width: 62px; height: 62px; }
+  .warrior-crest-detail .tree-node-detail-name { font-size: 17px; }
+}
+/* 縦が短いiPhone（SE等）は詳細パネルを詰めて盤面を広く残す */
+@media (max-width: 340px) {
+  .crest-screen-bar { flex-wrap: wrap; }
+  .crest-screen-actions { margin-left: auto; }
+}
+@media (max-height: 720px) {
+  .detail-sheet .warrior-crest-detail { padding: 9px 10px 8px; }
+  .crest-detail-icon { width: 54px; height: 54px; }
+  .warrior-crest-detail .tree-node-detail-name { font-size: 16px; }
+  .warrior-crest-detail .tree-node-detail-desc { margin-top: 6px; padding-top: 6px; font-size: 12px; line-height: 1.5; }
+  .crest-detail-flavor, .crest-detail-ability { display: none; }
+  .detail-sheet .warrior-crest-detail .crest-learn-btn { margin-top: 7px; padding: 6px 10px; }
+  .crest-learn-main { font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tree-web-node.available, .tree-web-core::after { animation: none; }
+  .tree-web-link-flow, .tree-web-node.available .tree-web-node-aura,
+  .tree-web-core.lit, .tree-web-node.selected::after { animation: none; }
+  .tree-web-link-flow { stroke-dasharray: none; opacity: .35; }
 }
 
 /* map */
