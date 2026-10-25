@@ -81,7 +81,8 @@ test("剣士の蜘蛛の巣: 正本17ノードが全表示され、3リング・
 });
 
 test("剣士の蜘蛛の巣: ノード選択・習得済み色・ズーム/全体表示・ピンチが動作", () => {
-  const { context, rerenders } = renderContext();
+  const env = renderContext();
+  const context = env.context;
   const root = context.buildWarriorWebGraph({ level: 99 }, "exclusive",
     data.EXCLUSIVE_TREES.warrior, { w1: 1, w2: 1, w3: 1 });
   assert.equal(byClass(root, "tree-web-node").length, 17);
@@ -90,7 +91,7 @@ test("剣士の蜘蛛の巣: ノード選択・習得済み色・ズーム/全�
   node.click();
   assert.equal(context.treeSelectedNode.nodeId, "w3");
   assert.equal(context.treeSelectedNode.scope, "exclusive");
-  assert.equal(rerenders + 1, 1 + 1); // 1回の描画呼び出し
+  assert.equal(env.rerenders, 1); // 1回の再描画
   const controls = byClass(root, "tree-web-control");
   assert.equal(controls.length, 3);
   const scene = byClass(root, "tree-web-scene")[0];
