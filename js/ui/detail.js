@@ -89,6 +89,10 @@ function renderCharDetail() {
   scheduleSave();
   const c = S.roster.find((x) => x.id === detailCharId);
   if (!c) { closeCharDetail(); return; }
+  // 基本職せんしのツリー画面だけ専用レイアウトにする（他ジョブ・他タブはそのまま）。
+  const focus = detailTab === "tree" && c.job === "warrior" &&
+    isWarriorCrestWeb(c, "exclusive", getExclusiveTree(c));
+  document.getElementById("screen-chardetail").classList.toggle("warrior-crest-view", focus);
   document.getElementById("detailName").textContent =
     `${c.name}${c.isMonster ? "（テイム）" : ""}`;
   const order = detailOrder();

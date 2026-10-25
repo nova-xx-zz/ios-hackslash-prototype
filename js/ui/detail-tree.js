@@ -19,7 +19,43 @@ function buildTreeTab(c) {
   const spent = totalSpentSp(c);
   // せんしだけはスキルツリー専用画面の見た目にする（見出し・SP表示も装飾版）。計算と操作は全職共通のまま。
   const crest = isWarriorCrestWeb(c, "exclusive", exclusiveTree);
-  if (crest) wrap.className = "tree-tab tree-tab--crest";
+  if (crest) {
+    wrap.className = "tree-tab tree-tab--crest";
+    // ページャーで仲間が変わったら前の仲間の表示枠・選択ノードを引き継がない。
+    if (warriorFocusCharId !== c.id) {
+      warriorFocusCharId = c.id;
+      warriorFocusScope = "exclusive";
+      treeSelectedNode = null;
+    }
+    const nav = document.createElement("div");
+    nav.className = "crest-focus-navigation";
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "crest-focus-back";
+    back.textContent = "‹";
+    back.setAttribute("aria-label", "仲間詳細に戻る");
+    back.addEventListener("click", () => { detailTab = "stats"; renderCharDetail(); });
+    const brand = document.createElement("span");
+    brand.className = "crest-focus-brand";
+    brand.textContent = "SWORD CREST  ✦";
+    const person = document.createElement("span");
+    person.className = "crest-focus-person";
+    person.textContent = c.name || "せんし";
+    const prev = document.createElement("button");
+    prev.type = "button";
+    prev.className = "crest-focus-person-btn";
+    prev.textContent = "‹";
+    prev.setAttribute("aria-label", "前の仲間");
+    prev.addEventListener("click", () => switchDetail(-1));
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "crest-focus-person-btn";
+    next.textContent = "›";
+    next.setAttribute("aria-label", "次の仲間");
+    next.addEventListener("click", () => switchDetail(1));
+    for (const item of [back, brand, prev, person, next]) nav.appendChild(item);
+    wrap.appendChild(nav);
+  }
 
   const head = document.createElement("div");
   head.className = "detail-section-head";
@@ -81,6 +117,55 @@ function buildTreeTab(c) {
     (crestActions || wrap).appendChild(resetRow);
   }
 
+  if (crest) {
+    // 参考画面の横並び4タブ。従来の「汎用3本を縦に全表示」はしない。
+    const entries = [{
+      scopeKey: "exclusive", label: "せんし", title: exclusiveTree.name + "（固有）",
+      treeDef: exclusiveTree, ranks: st.exclusiveRanks, slotDef: null,
+    }];
+    for (const slot of GENERAL_SLOTS) {
+      const slotState = st.general[slot.key];
+      entries.push({
+        scopeKey: slot.key, label: slot.label, title: slot.label + ": " + getGeneralTree(slotState.treeId).name,
+        treeDef: getGeneralTree(slotState.treeId), ranks: slotState.ranks, slotDef: slot,
+      });
+    }
+    const active = entries.find((entry) => entry.scopeKey === warriorFocusScope) || entries[0];
+    warriorFocusScope = active.scopeKey;
+    const tabs = document.createElement("div");
+    tabs.className = "crest-focus-tabs";
+    tabs.setAttribute("role", "tablist");
+    for (const entry of entries) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "crest-focus-tab" + (entry.scopeKey === warriorFocusScope ? " active" : "");
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(entry.scopeKey === warriorFocusScope));
+      button.textContent = entry.label;
+      button.addEventListener("click", () => {
+        if (warriorFocusScope === entry.scopeKey) return;
+        warriorFocusScope = entry.scopeKey;
+        treeSelectedNode = null;
+        treeSwapConfirm = null;
+        renderCharDetail();
+        const body = document.getElementById("detailBody");
+        if (body) body.scrollTop = 0;
+      });
+      tabs.appendChild(button);
+    }
+    // HTMLの見た目順は「タイトル/SP → 4タブ → ジョブ情報と巨大な紋章盤 → 詳細」
+    wrap.appendChild(tabs);
+    if (!treeSelectedNode || treeSelectedNode.scope !== active.scopeKey ||
+        !active.treeDef.nodes.some((node) => node.id === treeSelectedNode.nodeId)) {
+      const initial = active.scopeKey === "exclusive"
+        ? active.treeDef.nodes.find((node) => node.id === "w3")
+        : active.treeDef.nodes[0];
+      treeSelectedNode = initial ? { scope: active.scopeKey, nodeId: initial.id } : null;
+    }
+    wrap.appendChild(buildTreeSection(c, { ...active, inlineDetail: true }));
+    return wrap;
+  }
+
   wrap.appendChild(buildTreeSection(c, {
     scopeKey: "exclusive",
     title: `${exclusiveTree.name}（固有）`,
@@ -105,7 +190,7 @@ function buildTreeTab(c) {
 
 // 1本ぶんのツリーを「見出し(＋交換ボタン)／分岐図／選択中ノードの詳細パネル」として組み立てる
 function buildTreeSection(c, opts) {
-  const { scopeKey, title, treeDef, ranks, slotDef } = opts;
+  const { scopeKey, title, treeDef, ranks, slotDef, inlineDetail = false } = opts;
   const locked = c.team !== null && isTeamLocked(c.team);
   const section = document.createElement("div");
   section.className = "tree-section";
@@ -153,10 +238,12 @@ function buildTreeSection(c, opts) {
   // 選んだマスの詳細は、スクロールしなくても押せるように画面の下（タブの上）に固定して出す
   if (treeSelectedNode && treeSelectedNode.scope === scopeKey) {
     const selNode = treeDef.nodes.find((n) => n.id === treeSelectedNode.nodeId);
-    const sheet = document.getElementById("detailSheet");
+    const sheet = inlineDetail ? document.createElement("div") : document.getElementById("detailSheet");
     if (selNode && sheet) {
+      if (inlineDetail) sheet.className = "crest-inline-detail";
       sheet.appendChild(buildTreeNodeDetail(c, treeDef, ranks, selNode, title));
-      sheet.classList.remove("hidden");
+      if (inlineDetail) section.appendChild(sheet);
+      else sheet.classList.remove("hidden");
     } else treeSelectedNode = null;
   }
   return section;
@@ -239,6 +326,10 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
 // 見た目だけを受け持つ。ノードID・前提・排他・必要SP/Lv・効果・保存形式・習得処理はすべて
 // EXCLUSIVE_TREES.warrior（js/data.js）と既存関数 canAcquireNode / acquireNode をそのまま使う。
 // 設計: docs/剣士スキルツリーUI改修.md
+
+// 専用の4タブ表示状態は一時的なUI値。セーブせず、仲間変更時は固有に戻す。
+let warriorFocusScope = "exclusive";
+let warriorFocusCharId = null;
 
 // せんしだけに適用。同じ固有ツリーを使う「けんごう」・他職・汎用3枠は従来の縦分岐図のまま。
 function isWarriorCrestWeb(c, scopeKey, treeDef) {
@@ -614,7 +705,8 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   const scene = document.createElement("div");
   scene.className = "tree-web-scene";
   viewport.appendChild(scene);
-  viewport.appendChild(banner);
+  // 職業情報を盤面の上へ出し、画像見本のように外周と重ならないようにする。
+  wrap.appendChild(banner);
   viewport.appendChild(controls);
   wrap.appendChild(viewport);
 
