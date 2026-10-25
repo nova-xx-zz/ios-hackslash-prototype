@@ -668,7 +668,12 @@ function drawWarriorWebBoard(addSvg, svg) {
 }
 
 // 表示範囲の平行移動・ズームはセーブ対象にしない（詳細画面の再描画で視点だけ保持）。
-const warriorWebView = { scale: 1, x: 0, y: 0 };
+// 全体表示は少し余白を持たせ、さらに「−」1回で見渡せる縮小段階を用意する。
+const WARRIOR_WEB_MIN_SCALE = 0.8;
+const WARRIOR_WEB_DEFAULT_SCALE = 0.92;
+const WARRIOR_WEB_MAX_SCALE = 2.5;
+const WARRIOR_WEB_ZOOM_STEP = 0.12;
+const warriorWebView = { scale: WARRIOR_WEB_DEFAULT_SCALE, x: 0, y: 0 };
 let warriorWebRevealId = null;
 function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   const wrap = document.createElement("div");
@@ -713,23 +718,26 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   const applyView = () => {
     const width = viewport.clientWidth || 320;
     const height = viewport.clientHeight || width;
-    const maxX = (warriorWebView.scale - 1) * width / 2;
-    const maxY = (warriorWebView.scale - 1) * height / 2;
+    // 1倍未満の時は盤面を中央固定。負の移動上限で中心がずれるのを防ぐ。
+    const maxX = Math.max(0, (warriorWebView.scale - 1) * width / 2);
+    const maxY = Math.max(0, (warriorWebView.scale - 1) * height / 2);
     warriorWebView.x = Math.max(-maxX, Math.min(maxX, warriorWebView.x));
     warriorWebView.y = Math.max(-maxY, Math.min(maxY, warriorWebView.y));
     scene.style.transform = "translate(" + warriorWebView.x + "px, " +
       warriorWebView.y + "px) scale(" + warriorWebView.scale + ")";
     // 拡大中だけ盤面がドラッグを専有する（等倍時は縦スクロール可）
-    viewport.className = "tree-web-viewport" + (warriorWebView.scale > 1 ? " is-zoomed" : "");
+    viewport.className = "tree-web-viewport" + (warriorWebView.scale > 1.001 ? " is-zoomed" : "");
   };
   const changeScale = (value) => {
-    warriorWebView.scale = Math.max(1, Math.min(2.5, value));
+    warriorWebView.scale = Math.max(WARRIOR_WEB_MIN_SCALE,
+      Math.min(WARRIOR_WEB_MAX_SCALE, Math.round(value * 100) / 100));
     applyView();
   };
   for (const [label, action, hint] of [
-    ["−", () => changeScale(warriorWebView.scale - 0.25), "縮小"],
-    ["＋", () => changeScale(warriorWebView.scale + 0.25), "拡大"],
-    ["全体", () => { warriorWebView.scale = 1; warriorWebView.x = warriorWebView.y = 0; applyView(); }, "全体表示"],
+    ["−", () => changeScale(warriorWebView.scale - WARRIOR_WEB_ZOOM_STEP), "縮小"],
+    ["＋", () => changeScale(warriorWebView.scale + WARRIOR_WEB_ZOOM_STEP), "拡大"],
+    ["全体", () => { warriorWebView.scale = WARRIOR_WEB_DEFAULT_SCALE;
+      warriorWebView.x = warriorWebView.y = 0; applyView(); }, "全体表示"],
   ]) {
     const button = document.createElement("button");
     button.type = "button";
@@ -903,7 +911,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
     if ((pinch && gesture.mode !== "pinch") || (!pinch && gesture.mode !== "pan")) {
       startGesture(event.touches); return;
     }
-    // 全体表示（等倍）の1本指は、画面の縦スクロールに任せる（盤面が大きくても下の汎用ツリーへ進める）
+    // 1倍以下の1本指は縦スクロールに任せ、詳細パネルへ進める。
     if (!pinch && warriorWebView.scale <= 1) return;
     if (event.cancelable) event.preventDefault();
     if (!pinch) {
@@ -914,7 +922,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
       const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       const rect = viewport.getBoundingClientRect();
       const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-      const scale = Math.max(1, Math.min(2.5,
+      const scale = Math.max(WARRIOR_WEB_MIN_SCALE, Math.min(WARRIOR_WEB_MAX_SCALE,
         gesture.scale * touchDistance(a, b) / gesture.distance));
       const factor = scale / gesture.scale;
       warriorWebView.x = midpoint.x - cx - (gesture.start.x - cx - gesture.x) * factor;
