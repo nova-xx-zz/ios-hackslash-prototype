@@ -216,76 +216,86 @@ test("ノード選択で詳細が出る / 拡大・縮小・全体表示・ピ�
   assert.deepEqual(controls.map(b => b.attrs["aria-label"]), ["縮小", "拡大", "全体表示"]);
   const scene = byClass(root, "tree-web-scene")[0];
   const viewport = byClass(root, "tree-web-viewport")[0];
-  assert.match(scene.style.transform, /scale\(0\.92\)/, "初期表示は92%");
+  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(1\)$/, "初期表示は盤面全体がちょうど収まる等倍");
   controls[0].click();
-  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(0\.8\)/, "−で80%まで縮小できる");
+  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(0\.8\)/, "−で80%まで縮小（中央寄せ）");
   controls[0].click();
   assert.match(scene.style.transform, /scale\(0\.8\)/, "最小80%で止まる");
-  assert.ok(!viewport.className.includes("is-zoomed"), "縮小時は縦スクロール可能");
-  controls[1].click();
-  assert.match(scene.style.transform, /scale\(0\.92\)/, "＋で元の大きさに戻せる");
-  controls[1].click();
-  assert.match(scene.style.transform, /scale\(1\.04\)/);
-  assert.ok(viewport.className.includes("is-zoomed"), "1倍超の時だけドラッグを専有");
-  controls[0].click();
-  assert.match(scene.style.transform, /scale\(0\.92\)/);
   assert.ok(!viewport.className.includes("is-zoomed"));
+  controls[1].click();
+  assert.match(scene.style.transform, /scale\(1\)$/, "＋で等倍に戻る");
+  controls[1].click();
+  assert.match(scene.style.transform, /scale\(1\.25\)/);
+  assert.ok(viewport.className.includes("is-zoomed"));
+  controls[0].click();
+  assert.match(scene.style.transform, /scale\(1\)$/);
 
   const touch = (x, y) => ({ clientX: x, clientY: y });
-  // 等倍の1本指は縦スクロールに任せる（preventDefaultしない）
-  let prevented = false;
+  // 等倍の1本指は盤面を動かさない（全体が見えている）
   viewport.listeners.touchstart({ touches: [touch(100, 100)] });
-  viewport.listeners.touchmove({ touches: [touch(100, 160)], cancelable: true, preventDefault() { prevented = true; } });
-  assert.equal(prevented, false);
-  // ピンチで拡大
+  viewport.listeners.touchmove({ touches: [touch(100, 160)], cancelable: true, preventDefault() {} });
+  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(1\)$/);
+  // ピンチで拡大: 指の間の点（中点）が指に付いてくる
   viewport.listeners.touchstart({ touches: [touch(100, 100), touch(200, 100)] });
   viewport.listeners.touchmove({ touches: [touch(85, 100), touch(215, 100)], cancelable: true, preventDefault() {} });
-  const pinchScale = Number(scene.style.transform.match(/scale\(([^)]+)\)/)[1]);
-  assert.ok(Math.abs(pinchScale - 1.196) < 0.000001, "ピンチで元の92%から正しく1.3倍");
-  // 拡大中の1本指ドラッグは盤面を動かす（移動量は範囲内に収める）
-  const before = scene.style.transform.match(/translate\((-?[\d.]+)px, (-?[\d.]+)px\)/).slice(1).map(Number);
+  assert.match(scene.style.transform, /translate\(3px, 18px\) scale\(1\.3\)/);
+  // 拡大中の1本指ドラッグは盤面を動かす
+  let prevented = false;
   viewport.listeners.touchstart({ touches: [touch(100, 100)] });
   viewport.listeners.touchmove({ touches: [touch(95, 95)], cancelable: true, preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
-  const after = scene.style.transform.match(/translate\((-?[\d.]+)px, (-?[\d.]+)px\)/).slice(1).map(Number);
-  assert.deepEqual([after[0] - before[0], after[1] - before[1]], [-5, -5]);
+  assert.match(scene.style.transform, /translate\(-2px, 13px\) scale\(1\.3\)/);
+  // 移動範囲は盤面が枠からはみ出す分まで（1.3倍・320px → ±48px）
+  viewport.listeners.touchstart({ touches: [touch(100, 100)] });
+  viewport.listeners.touchmove({ touches: [touch(400, 400)], cancelable: true, preventDefault() {} });
+  assert.match(scene.style.transform, /translate\(48px, 48px\) scale\(1\.3\)/);
   controls[2].click();
-  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(0\.92\)/);
+  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(1\)$/);
 });
 
-test("剣士の線は16本維持しながら補助線と光量を抑える（ほかの職業には影響しない）", () => {
+test("指を動かした直後のタップ（click）は捨て、ノードを誤選択しない", () => {
+  const { context } = renderContext();
+  const root = context.buildWarriorWebGraph({ job: "warrior", level: 99 }, "exclusive", data.EXCLUSIVE_TREES.warrior, {});
+  const viewport = byClass(root, "tree-web-viewport")[0];
+  const touch = (x, y) => ({ clientX: x, clientY: y });
+  let stopped = 0;
+  const click = () => viewport.listeners.click({ stopPropagation() { stopped++; }, preventDefault() {} });
+  viewport.listeners.touchstart({ touches: [touch(100, 100)] });
+  viewport.listeners.touchmove({ touches: [touch(103, 102)], cancelable: true, preventDefault() {} });
+  click();
+  assert.equal(stopped, 0, "数pxのぶれはタップのまま");
+  viewport.listeners.touchstart({ touches: [touch(100, 100)] });
+  viewport.listeners.touchmove({ touches: [touch(140, 100)], cancelable: true, preventDefault() {} });
+  click();
+  assert.equal(stopped, 1, "動かした後の click は捨てる");
+});
+
+test("剣士の線は16本、枝の色で状態を描き分ける（ほかの職業には影響しない）", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.match(css, /\.tree-web-spoke-minor\s*\{[^}]*rgba\(110,185,200,\.035\)/);
-  assert.match(css, /\.tree-web-link\.acquired\s*\{[^}]*stroke-width: 2\.05px/);
-  assert.match(css, /\.tree-web-link-glow\s*\{[^}]*stroke-width: 4px/);
-  assert.match(css, /\.tree-web-link-flow\.acquired\s*\{[^}]*opacity: \.42/);
+  assert.match(css, /\.tree-web-link \{ stroke: var\(--lane\);/);
+  assert.match(css, /\.tree-web-link\.acquired \{ stroke-opacity: \.95; stroke-width: 2\.3px; \}/);
+  assert.match(css, /\.tree-web-link\.ready \{ stroke: #f0c878;/);
+  assert.match(css, /\.tree-web-node\.acquired, \.crest-detail-icon\.acquired \{[^}]*--rim: var\(--lane\);/);
   const { context } = renderContext();
   const root = context.buildWarriorWebGraph({ job: "warrior", level: 99 },
     "exclusive", data.EXCLUSIVE_TREES.warrior, { w1: 1, w2: 1, w3: 1 });
-  assert.equal(byClass(root, "tree-web-link").length, 16, "線の透明度だけ変更し全前提関係を残す");
+  assert.equal(byClass(root, "tree-web-link").length, 16, "全前提関係を残す");
+  assert.ok(byClass(root, "tree-web-link").every(l => /lane-\d/.test(l.className)));
 });
 
-test("縮小後にズームしてドラッグしても、全体表示で原点へ戻り、ピンチ縮小も80%で止まる", () => {
+test("ピンチ縮小は80%で止まり中央に固定、拡大は2.6倍で止まる", () => {
   const { context } = renderContext();
   const root = context.buildWarriorWebGraph({ job: "warrior", level: 99 },
     "exclusive", data.EXCLUSIVE_TREES.warrior, {});
   const scene = byClass(root, "tree-web-scene")[0];
-  const controls = byClass(root, "tree-web-control");
   const viewport = byClass(root, "tree-web-viewport")[0];
   const touch = (x, y) => ({ clientX: x, clientY: y });
   viewport.listeners.touchstart({ touches: [touch(100, 100), touch(200, 100)] });
   viewport.listeners.touchmove({ touches: [touch(130, 100), touch(170, 100)], cancelable: true, preventDefault() {} });
-  assert.match(scene.style.transform, /scale\(0\.8\)/);
-  assert.match(scene.style.transform, /translate\(0px, 0px\)/, "縮小時は中央に固定");
-  controls[1].click();
-  controls[1].click();
-  controls[1].click();
-  assert.match(scene.style.transform, /scale\(1\.16\)/);
-  viewport.listeners.touchstart({ touches: [touch(100, 100)] });
-  viewport.listeners.touchmove({ touches: [touch(95, 95)], cancelable: true, preventDefault() {} });
-  assert.ok(!scene.style.transform.startsWith("translate(0px, 0px)"));
-  controls[2].click();
-  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(0\.92\)/);
+  assert.match(scene.style.transform, /translate\(0px, 0px\) scale\(0\.8\)/);
+  viewport.listeners.touchstart({ touches: [touch(150, 160), touch(170, 160)] });
+  viewport.listeners.touchmove({ touches: [touch(10, 160), touch(310, 160)], cancelable: true, preventDefault() {} });
+  assert.match(scene.style.transform, /scale\(2\.6\)/);
 });
 
 test("専用詳細パネル: アイコン・種別・必要SP/Lv・説明・フレーバー・大きな習得ボタン", () => {
