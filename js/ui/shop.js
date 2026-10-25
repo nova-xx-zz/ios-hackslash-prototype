@@ -116,6 +116,29 @@ function renderShop() {
     group.append(header, grid);
     body.appendChild(group);
   }
+
+  const legal = document.createElement("nav");
+  legal.className = "shop-legal";
+  legal.setAttribute("aria-label", "規約・運営情報");
+  const links = document.createElement("div");
+  links.className = "legal-links";
+  for (const [title, href] of [
+    ["プライバシーポリシー", "legal/privacy.html"],
+    ["利用規約", "legal/terms.html"],
+    ["特商法に基づく表記", "legal/commercial.html"],
+    ["テスト版の注意事項", "legal/beta.html"]
+  ]) {
+    const a = document.createElement("a");
+    a.textContent = title;
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    links.appendChild(a);
+  }
+  const detail = document.createElement("p");
+  detail.textContent = "このショップは無料テスト用です。実際の決済・請求はありません。";
+  legal.append(links, detail);
+  body.appendChild(legal);
   body.scrollTop = previousScrollTop;
 }
 
