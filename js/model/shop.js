@@ -113,9 +113,12 @@
       else if (product.kind === "presetPack") p.presetPacks = Math.min(PRESET_MAX_PACKS, (p.presetPacks || 0) + 1);
       else if (product.kind === "guaranteedStone") S.guaranteedStones.paid += product.amount;
       else return { ok: false, product, reason: "unknown" };
+      // プロトタイプの育成パスは購入した瞬間にロスター全員へ適用する。
+      const appliedCharacters = product.unlock === "basicJobMaxPass" && deps.roster
+        ? deps.roster.applyBasicJobMaxPassToRoster() : 0;
       p.history.push({ id: product.id, at: now() });
       if (p.history.length > HISTORY_MAX) p.history.splice(0, p.history.length - HISTORY_MAX);
-      return { ok: true, product };
+      return { ok: true, product, appliedCharacters };
     }
 
     return {
