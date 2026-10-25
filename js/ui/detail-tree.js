@@ -53,7 +53,7 @@ function buildTreeTab(c) {
     next.textContent = "›";
     next.setAttribute("aria-label", "次の仲間");
     next.addEventListener("click", () => switchDetail(1));
-    nav.append(back, brand, prev, person, next);
+    for (const item of [back, brand, prev, person, next]) nav.appendChild(item);
     wrap.appendChild(nav);
   }
 
