@@ -2094,6 +2094,7 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end; /* 余りの高さは職業情報と円盤の間に入れる */
   position: relative;
   width: 100%;
 }
