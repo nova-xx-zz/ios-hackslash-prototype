@@ -1167,7 +1167,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .tree-web-ring {
   fill: none;
   stroke: rgba(126,153,180,0.33);
-  stroke-width: 0.25;
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-spoke {
@@ -1177,12 +1177,12 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 }
 .tree-web-link {
   stroke: rgba(182,193,207,0.58);
-  stroke-width: 0.55;
+  stroke-width: 1.8;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-link.acquired {
   stroke: #70d7a2;
-  stroke-width: 0.9;
+  stroke-width: 2.6;
 }
 .tree-web-core {
   position: absolute;
@@ -1221,8 +1221,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   touch-action: manipulation;
   z-index: 1;
 }
-.tree-web-node.active-kind { border-radius: 11px; transform: translate(-50%,-50%) rotate(45deg); }
-.tree-web-node.active-kind::first-letter { transform: rotate(-45deg); }
+.tree-web-node.active-kind { border-radius: 10px; border-style: double; }
 .tree-web-node.acquired { background: #1e4a37; border-color: #76d9a5; color: #dbffe9; }
 .tree-web-node.available { background: #594629; border-color: #f3c975; color: #fff3d1; }
 .tree-web-node.locked { opacity: 0.72; border-color: #586579; color: #bec9d5; }
