@@ -384,6 +384,73 @@ function buildJobTab(c) {
   for (const jobId of BASIC_JOB_IDS) basicGrid.appendChild(buildJobCard(c, jobId, true));
   wrap.appendChild(basicGrid);
 
+  // 育成パスは権利を購入しただけでは自動適用しない。対象の仲間・基本職を選び、確認後にLv.99へ。
+  if (isFeatureEnabled("shop")) {
+    const passBox = document.createElement("div");
+    passBox.className = "sub-ability-row";
+    const owned = Shop.hasUnlock("basicJobMaxPass");
+    const passTitle = document.createElement("div");
+    passTitle.textContent = "基本職育成パス：" + (owned ? "購入済み" : "未購入");
+    passBox.appendChild(passTitle);
+    if (!owned) {
+      const link = document.createElement("button");
+      link.type = "button";
+      link.className = "btn small ghost";
+      link.textContent = "ショップで確認";
+      link.addEventListener("click", () => openShop("screen-chardetail", "basic_job_max_pass"));
+      passBox.appendChild(link);
+    } else {
+      const targets = BASIC_JOB_IDS.filter((id) =>
+        (c.job === id ? c.level : ((c.jobLevels[id] && c.jobLevels[id].level) || 1)) < CHAR_MAX_LEVEL);
+      if (!targets.length) {
+        const done = document.createElement("div");
+        done.textContent = "この仲間の基本職はすべてLv.99です";
+        passBox.appendChild(done);
+      } else {
+        const controls = document.createElement("div");
+        controls.className = "job-pick-row";
+        const choice = document.createElement("select");
+        choice.className = "job-pick";
+        choice.setAttribute("aria-label", "レベルMAXにする基本職");
+        for (const id of targets) {
+          const option = document.createElement("option");
+          option.value = id;
+          option.textContent = JOBS[id].name + "（Lv." +
+            (c.job === id ? c.level : ((c.jobLevels[id] && c.jobLevels[id].level) || 1)) + " → 99）";
+          choice.appendChild(option);
+        }
+        if (targets.includes(c.job)) choice.value = c.job;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn small primary";
+        btn.textContent = "選んだ基本職をLv.99にする";
+        btn.disabled = c.team != null && isTeamLocked(c.team);
+        btn.addEventListener("click", () => {
+          const id = choice.value;
+          if (!targets.includes(id)) return;
+          if (!window.confirm(c.name + "の「" + JOBS[id].name + "」をLv.99にしますか？（元に戻せません）")) return;
+          const previous = c.jobLevels[id];
+          const active = { level: c.level, exp: c.exp, expToNext: c.expToNext, hp: c.hp, mp: c.mp };
+          const result = Roster.maxBasicJob(c, id);
+          if (!result.ok) {
+            flashDetailNotice(result.reason === "exploring" ? "探索中の仲間には適用できません" : "適用できませんでした");
+          } else if (!saveGame()) {
+            if (previous) c.jobLevels[id] = previous;
+            else delete c.jobLevels[id];
+            Object.assign(c, active);
+            flashDetailNotice("保存できなかったため育成を取り消しました");
+          } else {
+            flashDetailNotice(c.name + "の「" + JOBS[id].name + "」がLv.99になりました");
+          }
+          renderCharDetail();
+        });
+        controls.append(choice, btn);
+        passBox.appendChild(controls);
+      }
+    }
+    wrap.appendChild(passBox);
+  }
+
   const advHead = document.createElement("div");
   advHead.className = "detail-section-head";
   const advCaption = isFeatureEnabled("jobTrialSwordmaster")
