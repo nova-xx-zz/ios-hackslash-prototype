@@ -71,7 +71,9 @@ function buildTreeTab(c) {
   wrap.appendChild(head);
 
   // 振り直し（4本ぶんのSPを全部戻す。費用は強化石）
-  if (spent > 0) {
+  // せんし専用画面では参考画像と同じ位置に常時リセット札を表示する。
+  // SP未使用時は操作不可にし、振り直し・確認の既存処理は変更しない。
+  if (spent > 0 || crest) {
     const cost = treeResetCost(c);
     const confirming = treeSwapConfirm === "reset";
     const resetRow = document.createElement("div");
@@ -89,11 +91,11 @@ function buildTreeTab(c) {
       resetMain.textContent = confirming ? "本当に？" : "リセット";
       const resetSub = document.createElement("span");
       resetSub.className = "crest-reset-sub";
-      resetSub.textContent = `強化石${cost.toLocaleString()}` + (shortOfStone ? `（所持${(S.material || 0).toLocaleString()}）` : "");
+      resetSub.textContent = spent === 0 ? "SP未使用" : `強化石${cost.toLocaleString()}` + (shortOfStone ? `（所持${(S.material || 0).toLocaleString()}）` : "");
       resetBtn.appendChild(resetMain);
       resetBtn.appendChild(resetSub);
     }
-    resetBtn.disabled = !canResetTree(c);
+    resetBtn.disabled = spent === 0 || !canResetTree(c);
     resetBtn.addEventListener("click", () => {
       if (confirming) {
         if (!confirmReady()) return;
