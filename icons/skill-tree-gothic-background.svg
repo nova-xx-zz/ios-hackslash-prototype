@@ -1,1 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 900" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#09111b"/><stop offset=".35" stop-color="#163149"/><stop offset="1" stop-color="#03090e"/></linearGradient><linearGradient id="stone"><stop stop-color="#0a0b0c"/><stop offset=".5" stop-color="#30302b"/><stop offset="1" stop-color="#080c10"/></linearGradient><radialGradient id="torch"><stop stop-color="#ffd28b" stop-opacity=".9"/><stop offset=".18" stop-color="#e89437" stop-opacity=".65"/><stop offset="1" stop-color="#dc781e" stop-opacity="0"/></radialGradient><pattern id="brick" width="38" height="23" patternUnits="userSpaceOnUse"><path d="M0 0H38M0 12H38M19 0V12M0 12V23M38 12V23" stroke="#c7a66a" stroke-opacity=".11" fill="none"/></pattern></defs><path fill="url(#sky)" d="M0 0h430v900H0z"/><path d="M218 0 302 42 355 123 383 230 430 290V0ZM0 0h213L117 52 56 140 0 310Z" fill="#05090c"/><path d="M0 0h430v900H0z" fill="url(#brick)" opacity=".3"/><g fill="#03090e"><path d="M275 440V268h18v-57l9-16 10 16v34h13v-67l10-19 10 19v87h12v-39l10-18 8 18v214z"/><path d="M30 590 88 525 120 540 166 490 196 550 235 518 286 571 340 490 430 560v340H0z"/></g><g fill="url(#stone)" stroke="#9b7c4d" stroke-opacity=".25" stroke-width="2"><path d="M0 0h35v900H0zM395 0h35v900h-35z"/><path d="M0 0h430v28H0z"/><path d="M0 0h430v15H0z"/></g><path d="M12 900V220Q12 12 215 10Q418 12 418 220V900" stroke="#c49a59" stroke-opacity=".24" stroke-width="20" fill="none"/><path d="M22 900V220Q22 25 215 22Q408 25 408 220V900" stroke="#060b0e" stroke-width="11" fill="none"/><g fill="none" stroke="#c59d60" stroke-opacity=".22"><path d="M38 0v900M392 0v900M0 720h430M0 800h430M0 875h430"/><path d="M0 680 215 630 430 680M0 750 215 715 430 750"/></g><g><circle cx="31" cy="305" r="93" fill="url(#torch)"/><circle cx="399" cy="305" r="93" fill="url(#torch)"/><path d="M21 262h20v49H21zM389 262h20v49h-20z" stroke="#d7ad66" fill="#151d1c"/><path d="M31 266q-14 25 0 36 14-16 0-36M399 266q-14 25 0 36 14-16 0-36" fill="#ffce78"/></g><path d="M0 0h430v900H0z" fill="#01070a" opacity=".24"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 900" preserveAspectRatio="xMidYMid slice"><defs>
+<linearGradient id="night" x2=".3" y2="1"><stop stop-color="#030810"/><stop offset=".4" stop-color="#173146"/><stop offset=".8" stop-color="#08131d"/><stop offset="1" stop-color="#02070c"/></linearGradient>
+<linearGradient id="pillar"><stop stop-color="#05090c"/><stop offset=".22" stop-color="#323a39"/><stop offset=".42" stop-color="#121e22"/><stop offset=".73" stop-color="#27302e"/><stop offset="1" stop-color="#050a0d"/></linearGradient>
+<radialGradient id="flame"><stop stop-color="#ffe2a2" stop-opacity=".9"/><stop offset=".2" stop-color="#e7a24b" stop-opacity=".48"/><stop offset="1" stop-color="#db741b" stop-opacity="0"/></radialGradient>
+<radialGradient id="moon"><stop stop-color="#b8d5d8" stop-opacity=".32"/><stop offset="1" stop-color="#8cb8cb" stop-opacity="0"/></radialGradient>
+<pattern id="masonry" width="52" height="34" patternUnits="userSpaceOnUse"><path d="M0 0H52M0 17H52M26 0V17M0 17V34M52 17V34" stroke="#c3a477" stroke-opacity=".11" fill="none"/></pattern>
+<pattern id="engraving" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M13 0 26 13 13 26 0 13Z" fill="none" stroke="#b58a4c" stroke-opacity=".13"/></pattern>
+</defs>
+<rect width="430" height="900" fill="url(#night)"/>
+<ellipse cx="220" cy="300" rx="185" ry="260" fill="url(#moon)"/>
+<g fill="#a7c8d2" opacity=".36"><circle cx="88" cy="92" r="1"/><circle cx="132" cy="171" r="1"/><circle cx="322" cy="117" r="1.2"/><circle cx="347" cy="200" r=".8"/><circle cx="240" cy="90" r="1"/><circle cx="302" cy="266" r=".8"/><circle cx="76" cy="245" r="1"/></g>
+<g fill="#07111a" stroke="#203542" stroke-width="1"><path d="M90 540V360h20v-45l11-18 11 18v53h19v-87l14-23 14 23v78h17v-122l18-34 18 34v130h18v-90l12-24 12 24v80h19v-54l13-24 13 24v240z"/><path d="M111 373h18v80h-18zm43-65h20v80h-20zm56-75h17v92h-17zm48 57h16v60h-16z" fill="#162a35"/></g>
+<path d="M0 615Q70 565 120 605T240 592T430 600V900H0Z" fill="#030a0e" opacity=".82"/>
+<g stroke="#0c1215" stroke-width="3" fill="url(#pillar)">
+<path d="M0 0H55V900H0zM375 0H430V900H375z"/>
+<path d="M0 0H430V44H0z"/>
+<path d="M0 0H430V17H0z"/>
+</g>
+<path d="M0 0H55V900H0zM375 0H430V900H375zM0 0H430V44H0z" fill="url(#masonry)"/>
+<path d="M0 0H55V900H0zM375 0H430V900H375z" fill="url(#engraving)"/>
+<g fill="none" stroke-linecap="round">
+<path d="M24 900V245Q24 37 215 35Q406 37 406 245V900" stroke="#04090b" stroke-width="42"/>
+<path d="M24 900V245Q24 37 215 35Q406 37 406 245V900" stroke="#625a46" stroke-width="17"/>
+<path d="M24 900V245Q24 37 215 35Q406 37 406 245V900" stroke="#c3a477" stroke-opacity=".42" stroke-width="2"/>
+<path d="M37 900V245Q37 55 215 48Q393 55 393 245V900" stroke="#141c20" stroke-width="9"/>
+<path d="M44 900V245Q44 64 215 58Q386 64 386 245V900" stroke="#ad8b55" stroke-opacity=".35" stroke-width="2"/>
+<path d="M13 0V900M417 0V900M0 60H430M0 850H430" stroke="#c5a66e" stroke-opacity=".3" stroke-width="3"/>
+</g>
+<g stroke="#b39561" stroke-opacity=".28" fill="none"><path d="M5 130H55M375 130H425M5 480H55M375 480H425M5 735H55M375 735H425"/><path d="M6 144h48M376 144h48M6 494h48M376 494h48"/><path d="M16 170l24-20 24 20-24 20zM366 170l24-20 24 20-24 20z"/><path d="M16 540l24-20 24 20-24 20zM366 540l24-20 24 20-24 20z"/></g>
+<g fill="none" stroke="#c3a46d" stroke-opacity=".24" stroke-width="1.5"><path d="M75 79Q215 1 355 79M86 94Q215 27 344 94"/><path d="M185 51l30-24 30 24-30 24z"/><circle cx="215" cy="50" r="10"/><path d="M211 50h8m-4-4v8"/><path d="M0 705Q215 650 430 705M0 720Q215 665 430 720"/></g>
+<g><circle cx="44" cy="295" r="105" fill="url(#flame)"/><circle cx="386" cy="295" r="105" fill="url(#flame)"/>
+<g fill="#101719" stroke="#c9a266" stroke-width="2"><path d="M30 264h28l-5 53H35zM372 264h28l-5 53h-18z"/><path d="M34 264l10-15 10 15M376 264l10-15 10 15" fill="none"/><path d="M27 318h34M369 318h34"/></g>
+<g fill="#fbd78a"><path d="M44 263Q26 287 44 304Q61 285 44 263zM386 263Q368 287 386 304Q403 285 386 263z"/></g>
+<g fill="#fff3b9" opacity=".7"><circle cx="44" cy="286" r="4"/><circle cx="386" cy="286" r="4"/></g></g>
+<path d="M0 0H430V900H0Z" fill="#00080d" opacity=".17"/>
+</svg>
