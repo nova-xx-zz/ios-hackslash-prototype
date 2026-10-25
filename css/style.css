@@ -1341,7 +1341,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   pointer-events: none;
 }
 .tree-web-disc { filter: drop-shadow(0 0 1.2px rgba(0,0,0,.7)); }
-.tree-web-sector { fill: var(--lane); opacity: .085; }
+.tree-web-sector { fill: var(--lane); opacity: .05; }
 .tree-web-halo { pointer-events: none; }
 .tree-web-frame-line {
   fill: none;
@@ -1349,38 +1349,38 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   stroke-width: 1.6px;
   vector-effect: non-scaling-stroke;
 }
-.tree-web-frame-line.thin { stroke-width: .8px; opacity: .72; }
+.tree-web-frame-line.thin { stroke-width: .7px; opacity: .46; }
 .tree-web-tick { stroke: rgba(226,195,128,.58); stroke-width: .9px; vector-effect: non-scaling-stroke; }
 .tree-web-runes {
   fill: none;
-  stroke: rgba(221,190,126,.5);
-  stroke-width: .85px;
+  stroke: rgba(221,190,126,.32);
+  stroke-width: .7px;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
 /* 背景ガイド（同心円・放射線）は細い点線。前提線は太い実線なので見分けられる */
 .tree-web-ring {
   fill: none;
-  stroke: rgba(216,182,115,.2);
-  stroke-width: .8px;
-  stroke-dasharray: 1.5 3;
+  stroke: rgba(216,182,115,.12);
+  stroke-width: .65px;
+  stroke-dasharray: 1.5 4;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-orbit {
   fill: none;
-  stroke: rgba(110,185,200,.11);
-  stroke-width: .7px;
+  stroke: rgba(110,185,200,.06);
+  stroke-width: .55px;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-spoke {
-  stroke: rgba(216,182,115,.2);
-  stroke-width: .8px;
-  stroke-dasharray: 4 3;
+  stroke: rgba(216,182,115,.11);
+  stroke-width: .6px;
+  stroke-dasharray: 3 5;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-spoke-minor {
-  stroke: rgba(110,185,200,.1);
-  stroke-width: .7px;
+  stroke: rgba(110,185,200,.035);
+  stroke-width: .55px;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-sigil {
@@ -1404,15 +1404,15 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.tree-web-link-bed { stroke: rgba(2,8,11,.6); stroke-width: 4px; }
-.tree-web-link { stroke: rgba(176,166,138,.42); stroke-width: 1.4px; }
-.tree-web-link.sealed { stroke: rgba(130,84,74,.5); stroke-dasharray: 2 4; }
-.tree-web-link.ready { stroke: rgba(240,201,122,.72); stroke-width: 2.2px; }
-.tree-web-link.acquired { stroke: #aeeeff; stroke-width: 2.8px; }
-.tree-web-link-glow { stroke: rgba(96,214,245,.32); stroke-width: 8px; }
-.tree-web-link-flow { stroke-width: 1.5px; stroke-dasharray: 2 10; animation: crest-flow 1.5s linear infinite; }
-.tree-web-link-flow.acquired { stroke: #ffffff; opacity: .95; }
-.tree-web-link-flow.ready { stroke: #ffe8b0; opacity: .75; animation-duration: 2.6s; }
+.tree-web-link-bed { stroke: rgba(2,8,11,.34); stroke-width: 2.8px; }
+.tree-web-link { stroke: rgba(176,166,138,.24); stroke-width: 1.1px; }
+.tree-web-link.sealed { stroke: rgba(130,84,74,.28); stroke-dasharray: 2 5; }
+.tree-web-link.ready { stroke: rgba(240,201,122,.56); stroke-width: 1.7px; }
+.tree-web-link.acquired { stroke: rgba(174,238,255,.82); stroke-width: 2.05px; }
+.tree-web-link-glow { stroke: rgba(96,214,245,.14); stroke-width: 4px; }
+.tree-web-link-flow { stroke-width: 1px; stroke-dasharray: 2 16; animation: crest-flow 2.4s linear infinite; }
+.tree-web-link-flow.acquired { stroke: #e3faff; opacity: .42; }
+.tree-web-link-flow.ready { stroke: #ffe8b0; opacity: .3; animation-duration: 3.2s; }
 
 /* 中央の剣紋章（盤面の主役） */
 .tree-web-core {
