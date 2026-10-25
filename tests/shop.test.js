@@ -173,3 +173,15 @@ test("ショップ: 確定強化石の50個＋5個・100個＋10個は有償分�
   const ids = shop.products().filter((p) => p.kind === "guaranteedStone").map((p) => p.id);
   assert.equal(ids.join(","), "guaranteed_stone_1,guaranteed_stone_11,guaranteed_stone_55,guaranteed_stone_110");
 });
+
+test("基本職育成パス: プロトタイプで無料テスト購入し、買い切り権利をセーブに保持できる", () => {
+  const { state, shop } = setup();
+  const product = shop.getProduct("basic_job_max_pass");
+  assert.equal(product.kind, "unlock");
+  assert.equal(shop.hasUnlock("basicJobMaxPass"), false);
+  assert.equal(shop.purchase(product.id).ok, true);
+  assert.equal(shop.hasUnlock("basicJobMaxPass"), true);
+  assert.equal(shop.purchase(product.id).reason, "soldOut");
+  const loaded = deserialize(serialize(state, {}), {});
+  assert.equal(loaded.state.purchases.unlocks.basicJobMaxPass, true);
+});

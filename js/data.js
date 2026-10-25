@@ -37,6 +37,9 @@ function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 // price は表示用の仮の価格（円）。requiresCleared: このダンジョンを（ノーマルで）踏破するまで買えない
 // （自動周回x100は稼ぐ量が大きく増えるため、ゲームの後半に入ってから。docs/production-plan.md §5.7）
 const SHOP_PRODUCTS = [
+  // 基本職の育成短縮のみ。覚醒・スキルツリー・上級職・特殊職の仕様は変更しない。
+  { id: "basic_job_max_pass", kind: "unlock", unlock: "basicJobMaxPass", name: "基本職育成パス", price: 980,
+    desc: "買い切り。仲間ごとに選んだ基本職だけをLv.99へ育成できる。上級職・特殊職・モンスター・覚醒は対象外。キャラクターの他ジョブのレベルは変わらない。" },
   { id: "auto_repeat_100", kind: "unlock", unlock: "autoRepeat100", name: "自動周回x100", price: 480, requiresCleared: "inferno_peak",
     desc: "自動周回の回数に「x100」を追加する（買い切り）" },
   { id: "battle_speed_3", kind: "unlock", unlock: "speed3", name: "戦闘速度x3", price: 370,

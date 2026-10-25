@@ -388,3 +388,55 @@ test("特殊職: 機能フラグを無効にすると、巡礼剣士のキャラ
   assert.deepEqual(m.subAbilityIds, [null, null]);
   assert.equal(on.normalizeJob(p), false); // 有効なら何もしない
 });
+
+test("基本職育成パス: 選んだ職だけLv.99にし、現在職の能力値とセーブ進行を更新する", () => {
+  const { state, R } = setup();
+  const c = R.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
+  assert.equal(R.maxBasicJob(c, "warrior").reason, "unavailable"); // 未購入
+  state.purchases.unlocks.basicJobMaxPass = true;
+  c.jobLevels.warrior.skillTree = { nodeRanks: { w1: 1 } };
+  assert.equal(R.maxBasicJob(c, "warrior").ok, true);
+  assert.equal(c.level, data.CHAR_MAX_LEVEL);
+  assert.equal(c.exp, 0);
+  assert.equal(c.jobLevels.warrior.expToNext, data.expForLevel(data.CHAR_MAX_LEVEL));
+  assert.equal(c.jobLevels.warrior.skillTree.nodeRanks.w1, 1);
+  assert.equal(c.hp, R.computeStats(c).maxHp);
+  assert.equal(c.mp, R.computeStats(c).maxMp);
+  assert.equal(R.maxBasicJob(c, "warrior").reason, "maxed");
+  assert.equal(c.jobLevels.mage, undefined); // 他ジョブを勝手に育成しない
+});
+
+test("基本職育成パス: 未経験職を育成しても現在職は変わらず、転職後も進行が残る", () => {
+  const { state, R } = setup();
+  const c = R.newCharacter("アレン", "warrior", "human");
+  state.roster.push(c);
+  state.purchases.unlocks.basicJobMaxPass = true;
+  const beforeHp = c.hp;
+  assert.equal(R.maxBasicJob(c, "mage").ok, true);
+  assert.equal(c.job, "warrior");
+  assert.equal(c.level, 1);
+  assert.equal(c.hp, beforeHp);
+  assert.equal(c.jobLevels.mage.level, data.CHAR_MAX_LEVEL);
+  R.switchJob(c, "mage");
+  assert.equal(c.level, data.CHAR_MAX_LEVEL);
+  R.switchJob(c, "warrior");
+  assert.equal(c.level, 1);
+  assert.equal(c.jobLevels.mage.level, data.CHAR_MAX_LEVEL);
+});
+
+test("基本職育成パス: 探索中・モンスター・上級/特殊職・所属外キャラは変更できない", () => {
+  const { state, R } = setup({ locked: [true] });
+  const c = R.newCharacter("アレン", "warrior", "human", { team: 0 });
+  state.roster.push(c);
+  state.purchases.unlocks.basicJobMaxPass = true;
+  assert.equal(R.maxBasicJob(c, "warrior").reason, "exploring");
+  assert.equal(c.level, 1);
+  assert.equal(R.maxBasicJob(c, "swordmaster").reason, "unavailable");
+  assert.equal(R.maxBasicJob(c, "pilgrim").reason, "unavailable");
+  const stranger = R.newCharacter("別の仲間", "warrior", "human");
+  assert.equal(R.maxBasicJob(stranger, "warrior").reason, "unavailable");
+  const m = R.newCharacter("モンスター", "warrior", "slime", { isMonster: true });
+  state.roster.push(m);
+  assert.equal(R.maxBasicJob(m, "warrior").reason, "unavailable");
+});

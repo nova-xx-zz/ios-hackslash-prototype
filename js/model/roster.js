@@ -37,6 +37,32 @@
       if (!c.isMonster) for (const rec of Object.values(c.jobLevels || {})) clampRec(rec);
     }
 
+    // 基本職育成パス（プロトタイプのテスト付与）。購入権利とキャラごとの育成操作は分離する。
+    // 既存のskillTreeなどのジョブ固有データは残し、選んだ基本職のレベル進行だけ更新する。
+    // 覚醒・スキルツリー構成・上級職/特殊職のレベルには手を加えない。
+    function maxBasicJob(c, jobId) {
+      const entitled = isFeatureEnabled("shop") && !!(S.purchases && S.purchases.unlocks && S.purchases.unlocks.basicJobMaxPass);
+      if (!entitled || !c || c.isMonster || !S.roster.includes(c) ||
+          !JOBS[jobId] || JOBS[jobId].tier !== "basic") return { ok: false, reason: "unavailable" };
+      if (c.team != null && isTeamLocked(c.team)) return { ok: false, reason: "exploring" };
+      const level = Math.min(99, CHAR_MAX_LEVEL);
+      const isCurrent = c.job === jobId;
+      const previous = c.jobLevels && c.jobLevels[jobId];
+      const currentLevel = isCurrent ? c.level : (previous && previous.level) || 1;
+      if (currentLevel >= level) return { ok: false, reason: "maxed" };
+      if (!c.jobLevels) c.jobLevels = {};
+      c.jobLevels[jobId] = Object.assign({}, previous, { level, exp: 0, expToNext: expForLevel(level) });
+      if (isCurrent) {
+        c.level = level;
+        c.exp = 0;
+        c.expToNext = expForLevel(level);
+        const s = computeStats(c);
+        c.hp = s.maxHp;
+        c.mp = s.maxMp;
+      }
+      return { ok: true, jobId, level };
+    }
+
     // EXPを加算し、レベルアップ・アビリティ習得をまとめて処理する（戦闘勝利時・モンスター合成時で共用）。
     // レベル上限に達したら、それ以上のEXPは捨てる
     function gainExp(c, amount) {
@@ -473,7 +499,7 @@
     function currentMaxLevel() { return S.roster.reduce((m, c) => Math.max(m, c.level), 1); }
 
     return {
-      gainExp, levelCap, isMaxLevel, clampLevel, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
+      gainExp, levelCap, isMaxLevel, clampLevel, maxBasicJob, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
       equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, explorationSkills, explorationSkillChance, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
