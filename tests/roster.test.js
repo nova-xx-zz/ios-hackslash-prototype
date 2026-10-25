@@ -400,7 +400,7 @@ test("基本職育成パス: 選んだ職だけLv.99にし、現在職の能力�
   assert.equal(c.level, data.CHAR_MAX_LEVEL);
   assert.equal(c.exp, 0);
   assert.equal(c.jobLevels.warrior.expToNext, data.expForLevel(data.CHAR_MAX_LEVEL));
-  assert.equal(c.jobLevels.warrior.skillTree.nodeRanks.w1, 1);
+  assert.equal(c.jobLevels.warrior.skillTree.exclusiveRanks.w1, 1); // 旧nodeRanksはcomputeStats時に正規化される
   assert.equal(c.hp, R.computeStats(c).maxHp);
   assert.equal(c.mp, R.computeStats(c).maxMp);
   assert.equal(R.maxBasicJob(c, "warrior").reason, "maxed");
