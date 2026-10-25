@@ -3042,3 +3042,51 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
   #screen-chardetail.warrior-crest-view .tree-web-lane { min-width: 45px; padding: 4px 8px; }
   #screen-chardetail.warrior-crest-view .crest-inline-detail .crest-detail-icon { width: 64px; height: 64px; }
 }
+
+/* 参考画像の画面構成を優先した最終表示レイヤー。
+   操作ノードと前提線は画像化せず、既存JSの実データ描画を利用する。 */
+#app:has(#screen-chardetail.warrior-crest-view:not(.hidden)) {
+  background: linear-gradient(180deg,rgba(1,7,11,.12),rgba(1,7,11,.35) 60%,rgba(1,7,11,.65)),
+    url("../icons/skill-tree-gothic-background.svg") center top / 100% 100% no-repeat,
+    #050d13;
+}
+#screen-chardetail.warrior-crest-view .roster-wrap { background:transparent; }
+#screen-chardetail.warrior-crest-view .tree-web--crest { background: transparent; border: 0; box-shadow: none; }
+#screen-chardetail.warrior-crest-view .crest-tree-stage {
+  margin-top: 10px;
+  margin-bottom: 12px;
+  background: radial-gradient(circle at center,rgba(12,32,45,.24),transparent 72%);
+}
+#screen-chardetail.warrior-crest-view .tree-web-disc {
+  background: radial-gradient(circle,rgba(3,13,20,.18),rgba(3,13,20,.08) 64%,transparent 80%);
+}
+#screen-chardetail.warrior-crest-view .tree-web-lane {
+  border: 1px solid #b58d54;
+  background: linear-gradient(155deg,#29302a,#0c191d 65%,#070e12);
+  color:#f2dfb6;
+  text-shadow:0 1px 3px #000;
+}
+#screen-chardetail.warrior-crest-view .tree-web-node {
+  filter: drop-shadow(0 1px 3px #000) drop-shadow(0 0 3px rgba(230,192,119,.25));
+}
+#screen-chardetail.warrior-crest-view .tree-web-core {
+  filter: drop-shadow(0 0 9px rgba(72,172,225,.4));
+}
+#screen-chardetail.warrior-crest-view .tree-web-ring {
+  stroke:rgba(209,171,101,.34);
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .warrior-crest-detail {
+  border: 1px solid #b99a66;
+  background: linear-gradient(135deg,rgba(8,25,33,.96),rgba(3,13,20,.98));
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail .crest-learn-btn {
+  width:min(72%,320px);
+  margin-inline:auto;
+  font-family:var(--title-serif-ja);
+  font-size:clamp(16px,4.2vw,21px);
+  letter-spacing:.12em;
+}
+@media (max-width:430px) {
+  #screen-chardetail.warrior-crest-view .crest-tree-stage { width:100%; }
+  #screen-chardetail.warrior-crest-view .tree-web-lane { font-size:11px; }
+}
