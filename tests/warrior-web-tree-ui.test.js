@@ -466,3 +466,31 @@ test("参考画像に沿った全高レイアウトはせんしのツリー画�
   assert.equal(context.detailTab, "stats");
   assert.equal(calls.rerenders, 1);
 });
+
+
+test("せんしの1画面レイアウト: 上部・盤面・詳細・習得ボタンを縦幅に合わせて配置", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const root = "#screen-chardetail.warrior-crest-view";
+  assert.ok(css.includes(root + " #detailBody {\n  display: flex;"), "専用ビューは可変の縦Flex");
+  assert.ok(css.includes(root + " .tree-tab--crest {\n  flex: 1 1 0;"), "ツリーが残り高さを受け持つ");
+  assert.ok(css.includes(root + " .tree-web-viewport {\n  flex: 1 1 0;"), "円盤が残り高さを受け持つ");
+  assert.ok(css.includes("aspect-ratio: 1 / 1;"), "盤面が楕円に潰れない");
+  assert.ok(css.includes(root + " .crest-inline-detail {\n  flex: 0 0 auto;"), "スキル詳細の高さを確保");
+  assert.ok(css.includes(root + " .crest-inline-detail .crest-learn-btn {\n  min-height: 42px;"), "習得する操作を画面内で確保");
+  assert.ok(css.includes("@media (max-height: 650px)"), "極端に低い端末では情報を隠さずスクロール可能");
+});
+
+test("せんしのリセット札はSP未使用時も表示されるが実行できない", () => {
+  const { context, calls } = renderContext({
+    totalSp: () => 98,
+    totalSpentSp: () => 0,
+  });
+  const tab = context.buildTreeTab({ id: "warrior-reset0", name: "ガイ", job: "warrior", level: 99, team: null });
+  const row = byClass(tab, "crest-reset-row");
+  assert.equal(row.length, 1, "理想画像と同じく常設");
+  const button = byClass(tab, "tree-swap-btn").find(b => b.children.some(c => c.textContent === "リセット"));
+  assert.ok(button, "リセット札");
+  assert.equal(button.disabled, true);
+  assert.ok(allText(button).includes("SP未使用"));
+  assert.equal(calls.resets, 0);
+});
