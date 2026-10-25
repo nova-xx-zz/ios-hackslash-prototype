@@ -97,6 +97,8 @@ function loadGame() {
     });
     if (!loaded) return false;
     Object.assign(S, loaded.state);
+    // 購入済みの旧セーブが手動適用のままなら不足している基本職を自動補正。
+    const passRepaired = Roster.applyBasicJobMaxPassToRoster();
     store.set(KEYS.material, S.material);
     // 保存時に戦闘中だった場合に備え、HP/MP/行動ゲージは全員リセットしておく。
     // ジョブの装備制限・装飾品の枠数に合わない装備（旧セーブから移した装備など）は所持品に戻す
@@ -130,7 +132,7 @@ function loadGame() {
     }
     if (pendingOfflineSummaries) saveAfterOfflineSettlement();
     // 旧形式からの移行はその場で保存し直し、schemaVersion付きの内容が次回起動を待たず反映されるようにする
-    else if (loaded.isLegacy) saveGame();
+    else if (loaded.isLegacy || passRepaired > 0) saveGame();
     return true;
   } catch (e) {
     return false;
@@ -187,6 +189,7 @@ const {
 const Shop = QPModel.shop.createShop({
   data: { SHOP_PRODUCTS, ROSTER_CAPACITY, AUTO_REPEAT_CHOICES, BATTLE_SPEEDS, getDungeon, isFeatureEnabled },
   state: S,
+  roster: Roster,
   allowTestPurchases: !(globalThis.QPRuntime && globalThis.QPRuntime.channel === "production"),
 });
 

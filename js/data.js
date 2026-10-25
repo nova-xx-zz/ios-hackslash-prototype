@@ -39,7 +39,7 @@ function isFeatureEnabled(key) { return !!FEATURE_FLAGS[key]; }
 const SHOP_PRODUCTS = [
   // 基本職の育成短縮のみ。覚醒・スキルツリー・上級職・特殊職の仕様は変更しない。
   { id: "basic_job_max_pass", kind: "unlock", unlock: "basicJobMaxPass", name: "基本職育成パス", price: 980,
-    desc: "買い切り。仲間ごとに選んだ基本職だけをLv.99へ育成できる。上級職・特殊職・モンスター・覚醒は対象外。キャラクターの他ジョブのレベルは変わらない。" },
+    desc: "買い切り。購入時に今いる人間の仲間全員の全基本職をLv.99にし、今後作成する仲間にも自動適用。上級職・特殊職・モンスター・覚醒は対象外。" },
   { id: "auto_repeat_100", kind: "unlock", unlock: "autoRepeat100", name: "自動周回x100", price: 480, requiresCleared: "inferno_peak",
     desc: "自動周回の回数に「x100」を追加する（買い切り）" },
   { id: "battle_speed_3", kind: "unlock", unlock: "speed3", name: "戦闘速度x3", price: 370,

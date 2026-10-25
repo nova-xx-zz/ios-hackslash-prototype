@@ -227,7 +227,11 @@ function buildShopItem(product) {
     if (!confirmReady()) return;
     shopConfirmId = null;
     const result = Shop.purchase(product.id);
-    shopMessage = result.ok ? "「" + product.name + "」を受け取りました" : "購入できませんでした";
+    shopMessage = result.ok
+      ? (product.unlock === "basicJobMaxPass"
+        ? "「基本職育成パス」を受け取りました。現在の仲間" + result.appliedCharacters + "人の全基本職をLv.99にしました。今後作成する仲間にも自動適用されます。"
+        : "「" + product.name + "」を受け取りました")
+      : "購入できませんでした";
     // テスト購入も即時保存する。購入ロジックと付与仕様は変更しない。
     if (result.ok) saveGame();
     renderShop();
