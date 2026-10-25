@@ -21,7 +21,7 @@ function firebaseForRelease(){
 // 設定異常の場合、既存のビルド出力を削除せずに失敗する。
 const firebase=release?firebaseForRelease():null;
 fs.rmSync(out,{recursive:true,force:true});fs.mkdirSync(out,{recursive:true});
-for(const name of ["index.html","manifest.webmanifest","sw.js","css","js","data","icons","fonts"]){
+for(const name of ["index.html","manifest.webmanifest","sw.js","css","js","data","icons","fonts","legal"]){
   fs.cpSync(path.join(ROOT,name),path.join(out,name),{recursive:true});
 }
 fs.writeFileSync(path.join(out,"js","runtime-env.js"),
