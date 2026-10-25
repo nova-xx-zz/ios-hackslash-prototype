@@ -38,22 +38,9 @@ function buildTreeTab(c) {
     const brand = document.createElement("span");
     brand.className = "crest-focus-brand";
     brand.textContent = "SWORD CREST  ✦";
-    const person = document.createElement("span");
-    person.className = "crest-focus-person";
-    person.textContent = c.name || "せんし";
-    const prev = document.createElement("button");
-    prev.type = "button";
-    prev.className = "crest-focus-person-btn";
-    prev.textContent = "‹";
-    prev.setAttribute("aria-label", "前の仲間");
-    prev.addEventListener("click", () => switchDetail(-1));
-    const next = document.createElement("button");
-    next.type = "button";
-    next.className = "crest-focus-person-btn";
-    next.textContent = "›";
-    next.setAttribute("aria-label", "次の仲間");
-    next.addEventListener("click", () => switchDetail(1));
-    for (const item of [back, brand, prev, person, next]) nav.appendChild(item);
+    // 参考画像と同じ最上段: 戻る矢印＋作品名。仲間の切替は戻った詳細画面から行う。
+    nav.appendChild(back);
+    nav.appendChild(brand);
     wrap.appendChild(nav);
   }
 
@@ -361,7 +348,7 @@ const WARRIOR_WEB_LAYOUT = {
   w3: { lane: 0, ring: 0, mark: "剣", glyph: "thrust" },
   w4b: { lane: 1, ring: 0, mark: "猛", glyph: "crossed", via: "core" },
   w7b: { lane: 1, ring: 1, mark: "豪", glyph: "claws" },
-  w10b: { lane: 1, ring: 2, mark: "覇", glyph: "aura" },
+  w10b: { lane: 1, ring: 2, mark: "覇", glyph: "aura", via: 44.4 },
   w5: { lane: 2, ring: 0, mark: "鎧", glyph: "armorBreak", via: "core" },
   w6: { lane: 2, ring: 1, mark: "力", glyph: "might" },
   w11: { lane: 2, ring: 2, mark: "頂", glyph: "summit", offset: 6 },
@@ -703,17 +690,27 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   const controls = document.createElement("div");
   controls.className = "tree-web-controls";
 
-  // 見出しと拡大ボタンは、円盤の外側に空く四隅へ重ねて盤面を最大化する（拡大しても動かない）
+  // 盤面と6系統の札を別レイヤーに分離。拡大時も方向札は位置固定。
+  const stage = document.createElement("div");
+  stage.className = "crest-tree-stage";
   const viewport = document.createElement("div");
   viewport.className = "tree-web-viewport";
   viewport.setAttribute("aria-label", "せんしのスキルツリー（剛勇の紋章盤）。ピンチで拡大、指で移動");
   const scene = document.createElement("div");
   scene.className = "tree-web-scene";
   viewport.appendChild(scene);
-  // 職業情報を盤面の上へ出し、画像見本のように外周と重ならないようにする。
   wrap.appendChild(banner);
-  viewport.appendChild(controls);
-  wrap.appendChild(viewport);
+  stage.appendChild(viewport);
+  wrap.appendChild(stage);
+  // 2枚目の見本にない「−／＋／全体」3連ボタンは常時重ねない。
+  // ピンチ操作とズーム機能は維持し、必要時だけ「表示調整」から操作する。
+  const zoomPanel = document.createElement("details");
+  zoomPanel.className = "crest-zoom-options";
+  const zoomTitle = document.createElement("summary");
+  zoomTitle.textContent = "表示調整";
+  zoomPanel.appendChild(zoomTitle);
+  zoomPanel.appendChild(controls);
+  wrap.appendChild(zoomPanel);
 
   const applyView = () => {
     const width = viewport.clientWidth || 320;
@@ -807,18 +804,17 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   core.setAttribute("aria-hidden", "true");
   scene.appendChild(core);
 
-  // 方向の飾り札（斜めの4方向は外周ノードと重ならないよう、上下へ少しずらして外枠に掛ける）
+  // 六方向の札は盤の外側へ。画面の縮小・拡大やノード線と一緒に動かない。
+  const labelAnchors = [
+    [50, 0], [86, 17], [86, 83], [50, 99], [14, 83], [14, 17],
+  ];
   WARRIOR_WEB_LANES.forEach((lane, i) => {
-    const sin = Math.sin(lane.angle * Math.PI / 180);
-    const vertical = Math.abs(sin) > 0.99;
-    const p = warriorWebPolar(vertical ? lane.angle : lane.angle + (sin < 0 ? -1 : 1) * (Math.cos(lane.angle * Math.PI / 180) > 0 ? 9 : -9),
-      vertical ? 46.6 : 47);
     const label = document.createElement("span");
     label.className = "tree-web-lane tree-web-lane--" + i;
-    label.style.left = Math.max(8.5, Math.min(91.5, p.x)) + "%";
-    label.style.top = p.y + "%";
+    label.style.left = labelAnchors[i][0] + "%";
+    label.style.top = labelAnchors[i][1] + "%";
     label.textContent = lane.name;
-    scene.appendChild(label);
+    stage.appendChild(label);
   });
 
   for (const node of treeDef.nodes) {
