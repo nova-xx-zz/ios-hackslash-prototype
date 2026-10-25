@@ -1841,6 +1841,11 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) {
   padding: 6px 12px 12px;
   background: linear-gradient(180deg, rgba(3,13,18,.12), rgba(3,13,18,.4) 80%);
 }
+/* 探索中も戻る・タブ切替・閲覧は可能。習得/リセットの禁止は既存ロジックが担う。 */
+#screen-chardetail.warrior-crest-view .job-char-card.readonly {
+  pointer-events: auto;
+  opacity: 1;
+}
 #screen-chardetail.warrior-crest-view .roster-header,
 #screen-chardetail.warrior-crest-view #detailTabs,
 #screen-chardetail.warrior-crest-view #detailSheet { display: none; }
