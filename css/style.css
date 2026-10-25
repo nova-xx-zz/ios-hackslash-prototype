@@ -3090,3 +3090,39 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
   #screen-chardetail.warrior-crest-view .crest-tree-stage { width:100%; }
   #screen-chardetail.warrior-crest-view .tree-web-lane { font-size:11px; }
 }
+
+/* ゴシック背景の視認性と操作性の最終調整。装飾はタップ判定を持たない。 */
+#screen-chardetail.warrior-crest-view .tree-web--crest {
+  isolation: isolate;
+}
+#screen-chardetail.warrior-crest-view .crest-tree-stage::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:50%;
+  background:radial-gradient(circle,transparent 48%,rgba(200,156,79,.10) 65%,transparent 74%);
+  box-shadow:inset 0 0 22px rgba(185,137,66,.10);
+}
+#screen-chardetail.warrior-crest-view .crest-banner {
+  background:linear-gradient(90deg,rgba(4,14,20,.93),rgba(13,32,40,.87),rgba(4,14,20,.93));
+  border-bottom:1px solid rgba(195,153,85,.6);
+}
+#screen-chardetail.warrior-crest-view .crest-inline-detail {
+  position:relative;
+  z-index:2;
+}
+#screen-chardetail.warrior-crest-view .crest-zoom-options summary:focus-visible,
+#screen-chardetail.warrior-crest-view .tree-web-node:focus-visible,
+#screen-chardetail.warrior-crest-view .crest-learn-btn:focus-visible {
+  outline:2px solid #f0d493;
+  outline-offset:3px;
+}
+@media (prefers-reduced-motion:reduce) {
+  #screen-chardetail.warrior-crest-view .tree-web--crest *,
+  #screen-chardetail.warrior-crest-view .tree-web--crest *::before,
+  #screen-chardetail.warrior-crest-view .tree-web--crest *::after {
+    animation:none !important;
+    transition:none !important;
+  }
+}
