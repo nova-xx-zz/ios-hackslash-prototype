@@ -37,6 +37,6 @@ test("参照画像版の表示だけを変更し、他職・汎用やセーブ�
   assert.match(js, /c\.job === "warrior" && scopeKey === "exclusive"/);
   assert.match(js, /canAcquireNode\(c, treeDef, ranks, node\)/);
   assert.match(js, /acquireNode\(c, treeDef, ranks, node\)/);
-  assert.match(html, /css\/style\.css\?v=74/);
+  assert.match(html, /css\/style\.css\?v=75/);
   assert.match(html, /js\/ui\/detail-tree\.js\?v=10/);
 });
