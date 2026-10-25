@@ -57,6 +57,7 @@ function renderContext() {
     renderCharDetail: () => { rerenders++; },
     canAcquireNode: (_c, _tree, _ranks, node) => node.reqLevel <= 99,
     isTeamLocked: () => false,
+    availableSp: () => 98,
     scheduleSave: () => { saved++; },
   });
   const js = fs.readFileSync(path.join(__dirname, "../js/ui/detail-tree.js"), "utf8");
@@ -127,4 +128,44 @@ test("描画のみの刷新: 剣士固有ノードの効果/前提/必要SPの�
   assert.equal(nodes.find(n => n.id === "w4a").exclusiveGroup, "w_style");
   assert.equal(nodes.find(n => n.id === "w4b").exclusiveGroup, "w_style");
   assert.equal(nodes.find(n => n.id === "w12").ability.id, "tree_w12");
+});
+
+test("金色紋章UIはせんし専用。けんごうと汎用ツリーは従来表示", () => {
+  const { context } = renderContext();
+  const tree = data.EXCLUSIVE_TREES.warrior;
+  assert.equal(context.isWarriorCrestWeb({ job: "warrior" }, "exclusive", tree), true);
+  assert.equal(context.isWarriorCrestWeb({ job: "swordmaster" }, "exclusive", tree), false);
+  assert.equal(context.isWarriorCrestWeb({ job: "warrior" }, "general", tree), false);
+  assert.equal(context.isWarriorCrestWeb({ job: "mage" }, "exclusive", data.EXCLUSIVE_TREES.magic), false);
+});
+
+test("古金と魔力の紋章: 実データの17ノードをSVG刻印として描き、封印分岐を表示", () => {
+  const { context } = renderContext();
+  const tree = data.EXCLUSIVE_TREES.warrior;
+  const nodeRanks = { w4a: 1 };
+  const root = context.buildWarriorWebGraph({ job: "warrior", level: 99 }, "exclusive", tree, nodeRanks);
+  assert.equal(byClass(root, "tree-web--crest").length, 1);
+  assert.equal(byClass(root, "tree-web-orbit").length, 4);
+  assert.equal(byClass(root, "tree-web-tick").length, 36);
+  assert.equal(byClass(root, "tree-web-node").length, 17);
+  assert.equal(byClass(root, "tree-web-glyph").length, 18, "中央1・ノード17個のSVGを描く");
+  const sealed = byClass(root, "tree-web-node").find(n => n.title === "猛攻の構え");
+  assert.ok(sealed.className.includes("choice-sealed"), "二択済みの反対側を封印表示する");
+  assert.deepEqual([...byClass(root, "tree-web-lane")].map(n => n.textContent),
+    ["基礎", "猛攻", "破砕", "覇道", "鉄壁", "装備"]);
+  assert.ok(byClass(root, "tree-web-core")[0].children.length > 0, "剣の中心紋章は画像でなくSVG");
+});
+
+test("せんしの詳細だけ装飾用SP/必要Lv/前提を表示し、ほかの職は従来UIを使用", () => {
+  const { context } = renderContext();
+  const tree = data.EXCLUSIVE_TREES.warrior;
+  const node = tree.nodes.find(n => n.id === "w3");
+  const a = context.buildTreeNodeDetail({ job: "warrior", level: 99 }, tree, {}, node, "剛勇の心得");
+  assert.equal(byClass(a, "warrior-crest-detail").length, 1);
+  const chips = byClass(a, "warrior-crest-facts")[0].children.map(n => n.textContent);
+  assert.ok(chips.includes("必要SP 2"));
+  assert.ok(chips.includes("必要Lv 1"));
+  assert.ok(chips.includes("前提 戦いの勘"));
+  const b = context.buildTreeNodeDetail({ job: "swordmaster", level: 99 }, tree, {}, node, "剛勇の心得");
+  assert.equal(byClass(b, "warrior-crest-detail").length, 0);
 });
