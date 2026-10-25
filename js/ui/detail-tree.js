@@ -168,7 +168,7 @@ function buildTreeTab(c) {
 
   wrap.appendChild(buildTreeSection(c, {
     scopeKey: "exclusive",
-    title: \`\${exclusiveTree.name}（固有）\`,
+    title: `${exclusiveTree.name}（固有）`,
     treeDef: exclusiveTree,
     ranks: st.exclusiveRanks,
     slotDef: null,
