@@ -240,7 +240,8 @@ test("ノード選択で詳細が出る / 拡大・縮小・全体表示・ピ�
   // ピンチで拡大
   viewport.listeners.touchstart({ touches: [touch(100, 100), touch(200, 100)] });
   viewport.listeners.touchmove({ touches: [touch(85, 100), touch(215, 100)], cancelable: true, preventDefault() {} });
-  assert.match(scene.style.transform, /scale\(1\.196\)/);
+  const pinchScale = Number(scene.style.transform.match(/scale\\(([^)]+)\\)/)[1]);
+  assert.ok(Math.abs(pinchScale - 1.196) < 0.000001, "ピンチで元の92%から正しく1.3倍");
   // 拡大中の1本指ドラッグは盤面を動かす（移動量は範囲内に収める）
   const before = scene.style.transform.match(/translate\((-?[\d.]+)px, (-?[\d.]+)px\)/).slice(1).map(Number);
   viewport.listeners.touchstart({ touches: [touch(100, 100)] });
