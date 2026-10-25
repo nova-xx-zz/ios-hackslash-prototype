@@ -18,6 +18,7 @@
 <link rel="preload" as="image" href="icons/title-guild.jpg">
 <link rel="stylesheet" href="css/style.css?v=67">
 <link rel="stylesheet" href="css/create-unified.css?v=1">
+<link rel="stylesheet" href="css/legal.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -116,6 +117,17 @@
           <a class="btn small ghost hidden" id="contactSettingsLink" target="_blank" rel="noopener noreferrer">Googleフォームを開く ↗</a>
           <p class="settings-note">フォームは外部ページで開きます。セーブデータや個人情報は送信しないでください。</p>
         </div>
+
+        <section class="settings-legal" aria-label="規約・運営情報">
+          <div class="settings-row"><span class="settings-label">規約・運営情報</span></div>
+          <nav class="legal-links" aria-label="法務情報">
+            <a href="legal/privacy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
+            <a href="legal/terms.html" target="_blank" rel="noopener noreferrer">利用規約</a>
+            <a href="legal/commercial.html" target="_blank" rel="noopener noreferrer">特商法に基づく表記</a>
+            <a href="legal/beta.html" target="_blank" rel="noopener noreferrer">テスト版の注意事項</a>
+          </nav>
+          <p class="settings-note">テスト版のショップは無料付与のみです。法務文書には正式公開前に確定する項目があります。</p>
+        </section>
         <button class="btn small ghost" id="btnSettingsAnnounce" style="margin-top:12px;">冒険者ギルドからのお知らせ</button>
         <button class="btn small ghost settings-dev-btn" id="btnDevEnter">開発者用</button>
         <div class="settings-debug hidden" id="settingsDebug">
@@ -560,7 +572,7 @@
 <script src="js/ui/book-guide-content.js?v=1"></script>
 <script src="js/ui/book.js?v=10"></script>
 <script src="js/ui/notify.js?v=1"></script>
-<script src="js/ui/shop.js?v=8"></script>
+<script src="js/ui/shop.js?v=9"></script>
 <script src="js/ui/menu.js?v=5"></script>
 <!-- FORGE-TRIAL-UI-START -->
 <script src="js/ui/forge-trial.js?v=8"></script>
