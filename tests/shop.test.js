@@ -175,7 +175,7 @@ test("ショップ: 確定強化石の50個＋5個・100個＋10個は有償分�
 });
 
 test("基本職育成パス: プロトタイプで無料テスト購入し、買い切り権利をセーブに保持できる", () => {
-  const { state, shop } = setup();
+  const { state, shop } = setup(1); // 空ロスターのセーブは既存仕様上ロードできない
   const product = shop.getProduct("basic_job_max_pass");
   assert.equal(product.kind, "unlock");
   assert.equal(shop.hasUnlock("basicJobMaxPass"), false);
