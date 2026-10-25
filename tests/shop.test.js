@@ -185,3 +185,20 @@ test("基本職育成パス: プロトタイプで無料テスト購入し、買
   const loaded = deserialize(serialize(state, {}), {});
   assert.equal(loaded.state.purchases.unlocks.basicJobMaxPass, true);
 });
+
+test("育成パス: ショップ購入だけで既存全員と今後作る仲間へ自動適用", () => {
+  const { createRoster } = require("../js/model/roster.js");
+  const state = createState({ teamCount: 4 });
+  const roster = createRoster({ data, state });
+  const a = roster.newCharacter("A", "warrior", "human");
+  const b = roster.newCharacter("B", "mage", "human");
+  state.roster.push(a, b);
+  const shop = createShop({ data, state, now: () => 1000, roster });
+  const r = shop.purchase("basic_job_max_pass");
+  assert.equal(r.ok, true);
+  assert.equal(r.appliedCharacters, 2);
+  assert.equal(a.jobLevels.mage.level, data.CHAR_MAX_LEVEL);
+  assert.equal(b.jobLevels.warrior.level, data.CHAR_MAX_LEVEL);
+  assert.equal(roster.newCharacter("C", "thief", "human").jobLevels.mage.level, data.CHAR_MAX_LEVEL);
+  assert.equal(shop.purchase("basic_job_max_pass").reason, "soldOut");
+});
