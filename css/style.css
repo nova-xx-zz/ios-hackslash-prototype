@@ -1107,6 +1107,155 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .tree-node-detail-desc { font-size: 11.5px; color: var(--sub-text); margin-bottom: 8px; }
 .tree-node-detail-state { font-size: 11.5px; color: #7dffb0; font-weight: 700; }
 
+/* 剣士系固有ツリー: スマホ向け蜘蛛の巣（描画上のみ。習得ロジックとは独立） */
+.tree-web {
+  border: 1px solid rgba(201,164,99,0.24);
+  border-radius: 12px;
+  padding: 6px;
+  background: radial-gradient(circle at 50% 48%, #263345 0%, #151c29 66%, #101720 100%);
+  overflow: hidden;
+}
+.tree-web-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin: 2px 4px 6px;
+  color: var(--sub-text);
+  font-size: 10px;
+}
+.tree-web-controls { display: flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+.tree-web-control {
+  border: 1px solid rgba(201,164,99,0.4);
+  border-radius: 6px;
+  background: rgba(15,20,29,0.75);
+  color: #e9d4a7;
+  font-size: 12px;
+  min-width: 29px;
+  height: 29px;
+  padding: 3px 7px;
+  cursor: pointer;
+}
+.tree-web-control:focus-visible, .tree-web-node:focus-visible {
+  outline: 2px solid #ffe7a5;
+  outline-offset: 2px;
+}
+.tree-web-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  border-radius: 8px;
+  background: radial-gradient(circle at center, rgba(185,147,84,0.09), transparent 47%);
+}
+.tree-web-scene {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+.tree-web-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.tree-web-ring {
+  fill: none;
+  stroke: rgba(126,153,180,0.33);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-spoke {
+  stroke: rgba(126,153,180,0.28);
+  stroke-width: 0.25;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-link {
+  stroke: rgba(182,193,207,0.58);
+  stroke-width: 1.8;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-link.acquired {
+  stroke: #70d7a2;
+  stroke-width: 2.6;
+}
+.tree-web-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #202c3c;
+  color: #f4d28e;
+  border: 2px solid #b7a076;
+  box-shadow: 0 0 22px rgba(196,165,106,0.2);
+  font-size: 20px;
+  pointer-events: none;
+}
+.tree-web-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  line-height: 1;
+  text-align: center;
+  border-radius: 50%;
+  border: 2px solid #617488;
+  background: #232c39;
+  color: #ecf0ef;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  z-index: 1;
+}
+.tree-web-node.active-kind { border-radius: 10px; border-style: double; }
+.tree-web-node.acquired { background: #1e4a37; border-color: #76d9a5; color: #dbffe9; }
+.tree-web-node.available { background: #594629; border-color: #f3c975; color: #fff3d1; }
+.tree-web-node.locked { opacity: 0.72; border-color: #586579; color: #bec9d5; }
+.tree-web-node.level-locked { font-size: 13px; }
+.tree-web-node.selected {
+  outline: 3px solid rgba(248,216,143,0.95);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(251,212,114,0.2);
+  z-index: 2;
+}
+.tree-web-lane {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  color: #b6c2d1;
+  font-size: 10px;
+  text-shadow: 0 1px 3px #111720;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tree-web-legend {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  margin: 4px 0 3px;
+  color: var(--sub-text);
+  font-size: 10px;
+  line-height: 1.4;
+}
+@media (max-width: 360px) {
+  .tree-web-toolbar { font-size: 9px; }
+  .tree-web-node { width: 33px; height: 33px; font-size: 12px; }
+  .tree-web-lane { font-size: 9px; }
+}
+
 /* map */
 .map-wrap {
   position: absolute; inset: 0;
