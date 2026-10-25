@@ -1107,49 +1107,112 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .tree-node-detail-desc { font-size: 11.5px; color: var(--sub-text); margin-bottom: 8px; }
 .tree-node-detail-state { font-size: 11.5px; color: #7dffb0; font-weight: 700; }
 
-/* 剣士系固有ツリー: スマホ向け蜘蛛の巣（描画上のみ。習得ロジックとは独立） */
-.tree-web {
-  border: 1px solid rgba(201,164,99,0.24);
-  border-radius: 12px;
-  padding: 6px;
-  background: radial-gradient(circle at 50% 48%, #263345 0%, #151c29 66%, #101720 100%);
+/* せんし専用: ギルドの既存背景を残したまま、古金の六芒刻印盤を重ねる */
+.warrior-crest-section {
+  background: rgba(8, 21, 28, 0.54);
+  border-color: rgba(201,164,99,.4);
+  box-shadow: inset 0 1px 0 rgba(234,204,143,.12), 0 4px 18px rgba(1,10,15,.12);
+}
+.warrior-crest-section .tree-section-title {
+  font-family: var(--title-serif-ja);
+  font-size: 14px;
+  color: #f0dec0;
+  letter-spacing: .05em;
+}
+.tree-web-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 6px 10px;
+  margin: 7px 0 1px;
+  border-top: 1px solid rgba(201,164,99,.26);
+  text-align: center;
+}
+.tree-web-intro-job {
+  font-family: "Cinzel", var(--title-serif-ja);
+  font-size: 11px;
+  letter-spacing: .17em;
+  color: #dbb977;
+}
+.tree-web-intro-sub {
+  font-family: var(--title-serif-ja);
+  font-size: 12px;
+  color: #f1e7d5;
+  text-shadow: 0 1px 5px rgba(0,0,0,.5);
+}
+
+.tree-web--crest {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
+  padding: 7px 6px 9px;
+  border: 1px solid rgba(201,164,99,.6);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(33,70,78,.28), transparent 47%),
+    linear-gradient(165deg, rgba(6,17,25,.48), rgba(2,12,19,.68) 55%, rgba(6,21,26,.42));
+  box-shadow: inset 0 0 0 2px rgba(5,13,19,.48), inset 0 0 30px rgba(3,12,17,.36);
+}
+.tree-web--crest::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(218,182,111,.23);
+  border-radius: 7px;
+  pointer-events: none;
+  z-index: 1;
 }
 .tree-web-toolbar {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 5px;
-  margin: 2px 4px 6px;
-  color: var(--sub-text);
-  font-size: 10px;
+  padding: 2px 7px 6px;
+  color: #dfbd80;
+  font-family: var(--title-serif-ja);
+  font-size: 11px;
+  letter-spacing: .07em;
 }
-.tree-web-controls { display: flex; align-items: center; gap: 3px; flex: 0 0 auto; }
+.tree-web-controls { display: flex; gap: 4px; flex: 0 0 auto; }
 .tree-web-control {
-  border: 1px solid rgba(201,164,99,0.4);
-  border-radius: 6px;
-  background: rgba(15,20,29,0.75);
-  color: #e9d4a7;
-  font-size: 12px;
+  border: 1px solid rgba(201,164,99,.56);
+  background: linear-gradient(180deg, rgba(34,49,50,.92), rgba(9,24,29,.95));
+  color: #f1dfbb;
+  border-radius: 5px;
   min-width: 29px;
   height: 29px;
   padding: 3px 7px;
+  font-size: 12px;
   cursor: pointer;
 }
+.tree-web-control:active { background: rgba(115,96,63,.58); }
 .tree-web-control:focus-visible, .tree-web-node:focus-visible {
-  outline: 2px solid #ffe7a5;
+  outline: 2px solid #f5dc99;
   outline-offset: 2px;
 }
 .tree-web-viewport {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1;
   overflow: hidden;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  border-radius: 8px;
-  background: radial-gradient(circle at center, rgba(185,147,84,0.09), transparent 47%);
+  border-radius: 7px;
+  background:
+    radial-gradient(circle, rgba(38,93,105,.16) 0%, rgba(15,35,43,.08) 35%, transparent 65%),
+    repeating-radial-gradient(circle, rgba(197,168,103,.035) 0 1px, transparent 1px 17px);
+}
+.tree-web-viewport::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 24px rgba(3,12,18,.7);
+  z-index: 4;
 }
 .tree-web-scene {
   position: absolute;
@@ -1164,96 +1227,242 @@ body.dragging-member { overflow: hidden; touch-action: none; }
   height: 100%;
   pointer-events: none;
 }
-.tree-web-ring {
+.tree-web-orbit {
   fill: none;
-  stroke: rgba(126,153,180,0.33);
+  stroke: rgba(211,177,104,.28);
+  stroke-width: .8;
+  vector-effect: non-scaling-stroke;
+}
+.tree-web-orbit:nth-child(2n) { stroke-dasharray: 1.7 1.8; }
+.tree-web-tick {
+  stroke: rgba(227,192,126,.6);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
+.tree-web-ring {
+  fill: none;
+  stroke: rgba(201,164,99,.44);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
 .tree-web-spoke {
-  stroke: rgba(126,153,180,0.28);
-  stroke-width: 0.25;
+  stroke: rgba(90,170,182,.29);
+  stroke-width: .75;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-link {
-  stroke: rgba(182,193,207,0.58);
-  stroke-width: 1.8;
+  stroke: rgba(185,173,145,.58);
+  stroke-width: 1.75;
   vector-effect: non-scaling-stroke;
 }
 .tree-web-link.acquired {
-  stroke: #70d7a2;
+  stroke: #64d8ef;
   stroke-width: 2.6;
+  filter: drop-shadow(0 0 3px rgba(87,211,240,.75));
 }
 .tree-web-core {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 37px;
-  height: 37px;
+  width: 56px;
+  height: 56px;
+  border: 3px double #e1bd75;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #202c3c;
-  color: #f4d28e;
-  border: 2px solid #b7a076;
-  box-shadow: 0 0 22px rgba(196,165,106,0.2);
-  font-size: 20px;
+  color: #efd39b;
+  background:
+    radial-gradient(circle, rgba(49,102,126,.77) 0%, rgba(15,45,61,.9) 51%, #07151c 76%);
+  box-shadow: 0 0 0 4px rgba(13,22,30,.88), 0 0 0 6px rgba(211,174,101,.57),
+    inset 0 0 16px rgba(82,196,219,.3), 0 0 22px rgba(58,155,186,.35);
   pointer-events: none;
-}
-.tree-web-node {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  line-height: 1;
-  text-align: center;
-  border-radius: 50%;
-  border: 2px solid #617488;
-  background: #232c39;
-  color: #ecf0ef;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  touch-action: manipulation;
-  z-index: 1;
-}
-.tree-web-node.active-kind { border-radius: 10px; border-style: double; }
-.tree-web-node.acquired { background: #1e4a37; border-color: #76d9a5; color: #dbffe9; }
-.tree-web-node.available { background: #594629; border-color: #f3c975; color: #fff3d1; }
-.tree-web-node.locked { opacity: 0.72; border-color: #586579; color: #bec9d5; }
-.tree-web-node.level-locked { font-size: 13px; }
-.tree-web-node.selected {
-  outline: 3px solid rgba(248,216,143,0.95);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 5px rgba(251,212,114,0.2);
   z-index: 2;
 }
+.tree-web-core::after {
+  content: "";
+  position: absolute;
+  inset: -13px;
+  border: 1px dashed rgba(213,175,108,.58);
+  border-radius: 50%;
+  animation: crest-idle-pulse 7s ease-in-out infinite;
+}
+.tree-web-glyph {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+.tree-web-core .tree-web-glyph { width: 37px; height: 37px; stroke-width: 1.25; }
+.tree-web-node {
+  --lane-light: #9bd5e8;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid rgba(126,144,157,.75);
+  border-radius: 50%;
+  color: #ced9d7;
+  background: radial-gradient(circle at 36% 25%, #314a52, #0d1d29 72%);
+  box-shadow: inset 0 0 0 2px rgba(6,17,21,.73), 0 2px 6px rgba(0,0,0,.55);
+  cursor: pointer;
+  touch-action: manipulation;
+  z-index: 3;
+}
+.tree-web-node::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: inherit;
+  border: 1px solid rgba(207,174,106,.56);
+  opacity: .72;
+  pointer-events: none;
+}
+.tree-web-node.active-kind { border-radius: 11px; border-style: double; }
+.tree-web-node.ultimate-kind {
+  width: 43px; height: 43px;
+  border-color: #d6ad67;
+  color: #efd6a5;
+  background: radial-gradient(circle at 50% 28%, #594b56, #20172a 75%);
+  box-shadow: 0 0 0 3px rgba(201,164,99,.18), 0 0 14px rgba(132,92,173,.35);
+}
+.tree-web-node--lane-1 { --lane-light: #f4a083; }
+.tree-web-node--lane-2 { --lane-light: #edc080; }
+.tree-web-node--lane-3 { --lane-light: #d4b4eb; }
+.tree-web-node--lane-4 { --lane-light: #88c6e5; }
+.tree-web-node--lane-5 { --lane-light: #a9d2ae; }
+.tree-web-node.acquired {
+  border-color: #c5ad77;
+  color: #a4edff;
+  background: radial-gradient(circle at 35% 25%, #367c91, #0d3447 75%);
+  box-shadow: inset 0 0 10px rgba(59,178,208,.55), 0 0 9px rgba(82,184,224,.56);
+}
+.tree-web-node.available {
+  border-color: #f3d493;
+  color: #ffe5ab;
+  background: radial-gradient(circle at 35% 25%, #84653e, #36251c 75%);
+  box-shadow: inset 0 0 12px rgba(249,195,108,.2), 0 0 10px rgba(236,178,83,.48);
+  animation: crest-ready-pulse 3.5s ease-in-out infinite;
+}
+.tree-web-node.locked {
+  border-color: rgba(107,122,126,.6);
+  background: radial-gradient(circle at 35% 25%, #344044, #131c23 75%);
+  color: #839298;
+}
+.tree-web-node.choice-sealed {
+  color: #9c8180;
+  border-color: rgba(132,83,78,.75);
+  background: radial-gradient(circle, #312629, #13191e 75%);
+}
+.tree-web-node.selected {
+  outline: 2px solid #f7d49c;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 3px rgba(205,164,89,.34), 0 0 17px rgba(239,206,124,.66);
+  z-index: 4;
+}
+.tree-web-node-mark { display: none; }
 .tree-web-lane {
   position: absolute;
   transform: translate(-50%, -50%);
-  color: #b6c2d1;
-  font-size: 10px;
-  text-shadow: 0 1px 3px #111720;
   pointer-events: none;
+  padding: 2px 7px 3px;
+  border: 1px solid rgba(195,157,90,.5);
+  border-radius: 4px;
+  background: rgba(8,24,28,.92);
+  color: #f1e4cc;
+  font-family: var(--title-serif-ja);
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
+  text-shadow: 0 1px 4px #071219;
+  box-shadow: 0 2px 7px rgba(0,0,0,.55);
+  z-index: 2;
 }
+.tree-web-lane--1 { border-color: rgba(192,112,74,.65); }
+.tree-web-lane--2 { border-color: rgba(206,165,95,.65); }
+.tree-web-lane--3 { border-color: rgba(162,124,174,.6); }
+.tree-web-lane--4 { border-color: rgba(108,167,187,.6); }
+.tree-web-lane--5 { border-color: rgba(131,171,142,.6); }
 .tree-web-legend {
   display: flex;
   justify-content: center;
-  text-align: center;
-  margin: 4px 0 3px;
-  color: var(--sub-text);
+  gap: 11px;
+  flex-wrap: wrap;
+  color: #b6c7c6;
   font-size: 10px;
-  line-height: 1.4;
+  margin-top: 8px;
+  padding-bottom: 2px;
+}
+.tree-web-key.learned { color: #8adcf1; }
+.tree-web-key.ready { color: #edd097; }
+.tree-web-key.sealed { color: #b2b4b0; }
+/* 下部固定詳細はせんしの時だけ装飾。全職共通の詳細ロジックは維持 */
+.detail-sheet .warrior-crest-detail {
+  background:
+    linear-gradient(135deg, rgba(16,44,48,.98), rgba(8,22,29,.99) 70%);
+  border: 1px solid rgba(214,178,106,.72);
+  box-shadow: inset 0 0 0 2px rgba(8,20,24,.9), 0 -6px 18px rgba(3,10,14,.56);
+  border-radius: 9px;
+  padding: 13px 12px;
+}
+.warrior-crest-detail .tree-node-detail-name {
+  font-family: var(--title-serif-ja);
+  color: #f5e1b7;
+  font-size: 16px;
+  letter-spacing: .03em;
+}
+.warrior-crest-detail .tree-node-detail-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #e6e7df;
+}
+.warrior-crest-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 8px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(201,164,99,.25);
+  margin-top: 8px;
+}
+.warrior-crest-facts span {
+  color: #e3d0ae;
+  font-size: 10.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.warrior-crest-detail .btn.primary {
+  background: linear-gradient(180deg, #e3c68a, #a98347);
+  border: 1px solid #efd79b;
+  border-radius: 7px;
+  font-family: var(--title-serif-ja);
+}
+@keyframes crest-ready-pulse {
+  0%,100% { box-shadow: inset 0 0 12px rgba(249,195,108,.2), 0 0 8px rgba(236,178,83,.35); }
+  50% { box-shadow: inset 0 0 13px rgba(249,195,108,.3), 0 0 15px rgba(236,178,83,.7); }
+}
+@keyframes crest-idle-pulse {
+  0%,100% { opacity: .48; }
+  50% { opacity: .87; }
 }
 @media (max-width: 360px) {
-  .tree-web-toolbar { font-size: 9px; }
-  .tree-web-node { width: 33px; height: 33px; font-size: 12px; }
-  .tree-web-lane { font-size: 9px; }
+  .tree-web-toolbar { font-size: 9.5px; letter-spacing: 0; }
+  .tree-web-node { width: 33px; height: 33px; }
+  .tree-web-node.ultimate-kind { width: 38px; height: 38px; }
+  .tree-web-glyph { width: 20px; height: 20px; }
+  .tree-web-core { width: 49px; height: 49px; }
+  .tree-web-core .tree-web-glyph { width: 33px; height: 33px; }
+  .tree-web-lane { font-size: 10px; padding: 2px 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tree-web-node.available, .tree-web-core::after { animation: none; }
 }
 
 /* map */
