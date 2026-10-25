@@ -117,7 +117,10 @@ function buildTreeSection(c, opts) {
   }
   section.appendChild(headRow);
 
-  section.appendChild(buildTreeGraph(c, scopeKey, treeDef, ranks));
+  // 剣士系の固有ツリーのみ新しい蜘蛛の巣型。汎用3枠や他職は既存レイアウトを保持する。
+  const warriorWeb = scopeKey === "exclusive" && treeDef.id === "warrior" &&
+    treeDef.nodes.every((node) => WARRIOR_WEB_LAYOUT[node.id]);
+  section.appendChild(warriorWeb ? buildWarriorWebGraph(c, scopeKey, treeDef, ranks) : buildTreeGraph(c, scopeKey, treeDef, ranks));
 
   // 選んだマスの詳細は、スクロールしなくても押せるように画面の下（タブの上）に固定して出す
   if (treeSelectedNode && treeSelectedNode.scope === scopeKey) {
@@ -202,6 +205,226 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
     graph.appendChild(label);
   }
   return graph;
+}
+
+// 剣士系（せんし/けんごう）固有ツリー: 描画座標だけを定義する。
+// ID・前提・必要SP・排他・Lv・効果はすべてEXCLUSIVE_TREESの正本を使う。
+// 6方向×3リング。装備の枝は2段、その他は3段。新ノード追加時は既存分岐図にフォールバック。
+const WARRIOR_WEB_LAYOUT = {
+  w1: [0, 0, "腕"], w2: [0, 1, "勘"], w3: [0, 2, "剣"],
+  w4b: [1, 0, "猛"], w7b: [1, 1, "豪"], w10b: [1, 2, "覇"],
+  w5: [2, 0, "鎧"], w6: [2, 1, "力"], w11: [2, 2, "頂"],
+  w8: [3, 0, "鬨"], w9: [3, 1, "歴"], w12: [3, 2, "奥"],
+  w4a: [4, 0, "守"], w7a: [4, 1, "鉄"], w10a: [4, 2, "闘"],
+  w_acc1: [5, 0, "装"], w_acc2: [5, 1, "極"],
+};
+// 表示範囲の平行移動・ズームはセーブ対象にしない（詳細画面の再描画で視点だけ保持）。
+const warriorWebView = { scale: 1, x: 0, y: 0 };
+function warriorWebPoint(lane, ring) {
+  const angle = (-90 + lane * 60) * Math.PI / 180;
+  const radius = [16, 29, 42][ring];
+  return { x: 50 + radius * Math.cos(angle), y: 50 + radius * Math.sin(angle) };
+}
+function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
+  const wrap = document.createElement("div");
+  wrap.className = "tree-web";
+  const toolbar = document.createElement("div");
+  toolbar.className = "tree-web-toolbar";
+  const info = document.createElement("span");
+  info.textContent = "剣士の技脈・6方向 × 3層";
+  toolbar.appendChild(info);
+  const controls = document.createElement("div");
+  controls.className = "tree-web-controls";
+  toolbar.appendChild(controls);
+  wrap.appendChild(toolbar);
+
+  const viewport = document.createElement("div");
+  viewport.className = "tree-web-viewport";
+  viewport.setAttribute("aria-label", "剣士の蜘蛛の巣型スキルツリー。ピンチで拡大、指で移動");
+  const scene = document.createElement("div");
+  scene.className = "tree-web-scene";
+  viewport.appendChild(scene);
+  wrap.appendChild(viewport);
+
+  const applyView = () => {
+    const width = viewport.clientWidth || 320;
+    const height = viewport.clientHeight || width;
+    const maxX = (warriorWebView.scale - 1) * width / 2;
+    const maxY = (warriorWebView.scale - 1) * height / 2;
+    warriorWebView.x = Math.max(-maxX, Math.min(maxX, warriorWebView.x));
+    warriorWebView.y = Math.max(-maxY, Math.min(maxY, warriorWebView.y));
+    scene.style.transform = "translate(" + warriorWebView.x + "px, " +
+      warriorWebView.y + "px) scale(" + warriorWebView.scale + ")";
+  };
+  const changeScale = (value) => {
+    warriorWebView.scale = Math.max(1, Math.min(2.5, value));
+    applyView();
+  };
+  for (const [label, action, hint] of [
+    ["−", () => changeScale(warriorWebView.scale - 0.25), "縮小"],
+    ["＋", () => changeScale(warriorWebView.scale + 0.25), "拡大"],
+    ["全体", () => { warriorWebView.scale = 1; warriorWebView.x = warriorWebView.y = 0; applyView(); }, "全体表示"],
+  ]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tree-web-control";
+    button.textContent = label;
+    button.setAttribute("aria-label", hint);
+    button.addEventListener("click", action);
+    controls.appendChild(button);
+  }
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.classList.add("tree-web-lines");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("aria-hidden", "true");
+  const addSvg = (tag, attrs, parent) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, String(value));
+    parent.appendChild(el);
+    return el;
+  };
+  // 六角の環と放射線で蜘蛛の巣を表現。取得条件として扱うのは下の実データの前提線だけ。
+  for (let ring = 0; ring < 3; ring++) {
+    const points = Array.from({ length: 6 }, (_, lane) => {
+      const p = warriorWebPoint(lane, ring);
+      return p.x + "," + p.y;
+    }).join(" ");
+    addSvg("polygon", { points, class: "tree-web-ring" }, svg);
+  }
+  for (let lane = 0; lane < 6; lane++) {
+    const p = warriorWebPoint(lane, 2);
+    addSvg("line", { x1: 50, y1: 50, x2: p.x, y2: p.y, class: "tree-web-spoke" }, svg);
+  }
+  const byId = Object.fromEntries(treeDef.nodes.map((node) => [node.id, node]));
+  for (const node of treeDef.nodes) {
+    const [lane, ring] = WARRIOR_WEB_LAYOUT[node.id];
+    const to = warriorWebPoint(lane, ring);
+    for (const pre of node.prerequisites) {
+      if (!byId[pre.nodeId]) continue;
+      const [preLane, preRing] = WARRIOR_WEB_LAYOUT[pre.nodeId];
+      const from = warriorWebPoint(preLane, preRing);
+      const acquired = (ranks[node.id] || 0) >= pre.minRank &&
+        (ranks[pre.nodeId] || 0) >= pre.minRank;
+      addSvg("line", { x1: from.x, y1: from.y, x2: to.x, y2: to.y,
+        class: acquired ? "tree-web-link acquired" : "tree-web-link" }, svg);
+    }
+  }
+  scene.appendChild(svg);
+  const core = document.createElement("div");
+  core.className = "tree-web-core";
+  core.textContent = "⚔";
+  core.setAttribute("aria-label", "せんし・中心");
+  scene.appendChild(core);
+  const laneNames = ["基礎", "火力", "突破", "終盤", "耐久", "装備"];
+  for (let i = 0; i < laneNames.length; i++) {
+    const p = warriorWebPoint(i, 2);
+    const label = document.createElement("span");
+    label.className = "tree-web-lane";
+    label.style.left = 50 + (p.x - 50) * 1.12 + "%";
+    label.style.top = 50 + (p.y - 50) * 1.12 + "%";
+    label.textContent = laneNames[i];
+    scene.appendChild(label);
+  }
+  for (const node of treeDef.nodes) {
+    const [lane, ring, mark] = WARRIOR_WEB_LAYOUT[node.id];
+    const p = warriorWebPoint(lane, ring);
+    const acquired = (ranks[node.id] || 0) > 0;
+    const canGet = canAcquireNode(c, treeDef, ranks, node);
+    const levelLocked = node.reqLevel > c.level;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tree-web-node" + (node.kind === "active" ? " active-kind" : " passive-kind")
+      + (acquired ? " acquired" : canGet ? " available" : " locked")
+      + (levelLocked ? " level-locked" : "")
+      + (treeSelectedNode && treeSelectedNode.scope === scopeKey &&
+        treeSelectedNode.nodeId === node.id ? " selected" : "");
+    btn.style.left = p.x + "%";
+    btn.style.top = p.y + "%";
+    btn.textContent = levelLocked ? "🔒" : mark;
+    btn.title = node.name;
+    btn.setAttribute("aria-label", node.name + "、必要Lv" + node.reqLevel);
+    btn.setAttribute("aria-pressed", String(!!(treeSelectedNode &&
+      treeSelectedNode.scope === scopeKey && treeSelectedNode.nodeId === node.id)));
+    btn.addEventListener("click", () => {
+      treeSelectedNode = { scope: scopeKey, nodeId: node.id };
+      treeSwapConfirm = null;
+      renderCharDetail();
+    });
+    scene.appendChild(btn);
+  }
+  const legend = document.createElement("div");
+  legend.className = "tree-web-legend";
+  legend.textContent = "● 習得済み　● 習得可能　● 未解放・条件不足";
+  wrap.appendChild(legend);
+
+  // iOS Safari: touch-action:none上の移動を自前で処理。タップはブラウザ標準clickのまま。
+  let gesture = null;
+  const touchPoint = (touch) => ({ x: touch.clientX, y: touch.clientY });
+  const touchDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const startGesture = (touches) => {
+    if (!touches.length) { gesture = null; return; }
+    const a = touchPoint(touches[0]);
+    if (touches.length === 1) {
+      gesture = { mode: "pan", start: a, x: warriorWebView.x, y: warriorWebView.y };
+    } else {
+      const b = touchPoint(touches[1]);
+      gesture = { mode: "pinch", start: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        distance: Math.max(1, touchDistance(a, b)), scale: warriorWebView.scale,
+        x: warriorWebView.x, y: warriorWebView.y };
+    }
+  };
+  viewport.addEventListener("touchstart", (event) => startGesture(event.touches), { passive: true });
+  viewport.addEventListener("touchmove", (event) => {
+    if (!gesture || !event.touches.length) return;
+    const a = touchPoint(event.touches[0]);
+    const pinch = event.touches.length > 1;
+    if ((pinch && gesture.mode !== "pinch") || (!pinch && gesture.mode !== "pan")) {
+      startGesture(event.touches); return;
+    }
+    if (event.cancelable) event.preventDefault();
+    if (!pinch) {
+      warriorWebView.x = gesture.x + a.x - gesture.start.x;
+      warriorWebView.y = gesture.y + a.y - gesture.start.y;
+    } else {
+      const b = touchPoint(event.touches[1]);
+      const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const rect = viewport.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+      const scale = Math.max(1, Math.min(2.5,
+        gesture.scale * touchDistance(a, b) / gesture.distance));
+      const factor = scale / gesture.scale;
+      warriorWebView.x = midpoint.x - cx - (gesture.start.x - cx - gesture.x) * factor;
+      warriorWebView.y = midpoint.y - cy - (gesture.start.y - cy - gesture.y) * factor;
+      warriorWebView.scale = scale;
+    }
+    applyView();
+  }, { passive: false });
+  viewport.addEventListener("touchend", (event) => startGesture(event.touches));
+  viewport.addEventListener("touchcancel", () => { gesture = null; });
+
+  // PC・トラックパッド検証時は空白をドラッグして視点を移動する。
+  let mouse = null;
+  viewport.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch" || event.button !== 0 ||
+        (event.target.closest && event.target.closest(".tree-web-node"))) return;
+    mouse = { id: event.pointerId, x: event.clientX, y: event.clientY,
+      left: warriorWebView.x, top: warriorWebView.y };
+    if (viewport.setPointerCapture) viewport.setPointerCapture(event.pointerId);
+  });
+  viewport.addEventListener("pointermove", (event) => {
+    if (!mouse || mouse.id !== event.pointerId) return;
+    warriorWebView.x = mouse.left + event.clientX - mouse.x;
+    warriorWebView.y = mouse.top + event.clientY - mouse.y;
+    applyView();
+  });
+  const endMouse = () => { mouse = null; };
+  viewport.addEventListener("pointerup", endMouse);
+  viewport.addEventListener("pointercancel", endMouse);
+  applyView();
+  return wrap;
 }
 
 // 選択中ノードの詳細（説明・コスト・習得状況・習得ボタン）を分岐図の下に表示する
