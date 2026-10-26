@@ -116,10 +116,10 @@ test("SVGとHTMLは同じ0〜100の盤面座標: 正方形の scene を枠の中
   assert.equal(lanes[3].style.left, "50.00%");
   assert.ok(parseFloat(lanes[0].style.top) < 6 && parseFloat(lanes[3].style.top) > 94);
   assert.match(css, /\.tree-web-lane \{[^}]*font: 700 max\(3\.2em, 10px\)/, "札の文字は盤面単位");
-  assert.match(css, /\.tree-web-node \{[^}]*width: 9\.4%;/, "ノードは scene に対する%");
+  assert.match(css, /\.tree-web-node \{[^}]*width: 8\.6%;/, "ノードは scene に対する%");
 });
 
-test("前提線は無関係なノードの上を通らない（中心から4.5単位以上離す）", () => {
+test("前提線は無関係なノードの上を通らない（中心から4.4単位以上離す）", () => {
   const { ctx } = context();
   const tree = data.EXCLUSIVE_TREES.warrior;
   const pos = Object.fromEntries(tree.nodes.map((n) => { const p = ctx.warriorWebPlace(n.id); return [n.id, ctx.warriorWebPolar(p.angle, p.radius)]; }));
@@ -132,11 +132,39 @@ test("前提線は無関係なノードの上を通らない（中心から4.5�
           const y = pts[i].y + (pts[i + 1].y - pts[i].y) * t / 10;
           for (const other of tree.nodes) {
             if (other.id === node.id || other.id === pre.nodeId) continue;
-            assert.ok(Math.hypot(pos[other.id].x - x, pos[other.id].y - y) >= 4.5, `${pre.nodeId}→${node.id} が ${other.id} に近い`);
+            assert.ok(Math.hypot(pos[other.id].x - x, pos[other.id].y - y) >= 4.4, `${pre.nodeId}→${node.id} が ${other.id} に近い`);
           }
         }
       }
     }
+  }
+});
+
+test("習得は中から外へ: 基礎は剣紋章を囲む環、どの前提線も子は親と同じ環かより外側", () => {
+  const { ctx } = context();
+  const tree = data.EXCLUSIVE_TREES.warrior;
+  const radius = (id) => ctx.warriorWebPlace(id).radius;
+  // 基礎の3つ（鍛えた腕→戦いの勘→剣撃突き）がいちばん内側の環
+  const inner = Math.min(...tree.nodes.map((n) => radius(n.id)));
+  for (const id of ["w1", "w2", "w3"]) assert.equal(radius(id), inner, id + " は基礎の環");
+  assert.ok(tree.nodes.filter((n) => radius(n.id) === inner).length === 3, "基礎の環は3つだけ");
+  // 前提のない最初のスキルは基礎の環にある
+  for (const n of tree.nodes.filter((n) => !n.prerequisites.length)) assert.equal(radius(n.id), inner);
+  for (const node of tree.nodes) {
+    for (const pre of node.prerequisites) {
+      assert.ok(radius(node.id) >= radius(pre.nodeId), `${pre.nodeId}→${node.id} が内側へ戻っている`);
+    }
+  }
+  // 基礎以外の5方向はそれぞれ内→外の順（中心寄りの環ほど前提に近い）
+  const lanes = {};
+  for (const n of tree.nodes) {
+    const lane = vm.runInContext(`WARRIOR_WEB_LAYOUT[${JSON.stringify(n.id)}].lane`, ctx);
+    if (lane !== 0) (lanes[lane] = lanes[lane] || []).push(n);
+  }
+  assert.equal(Object.keys(lanes).length, 5);
+  for (const nodes of Object.values(lanes)) {
+    const byRadius = nodes.slice().sort((a, b) => radius(a.id) - radius(b.id));
+    for (let i = 1; i < byRadius.length; i++) assert.ok(byRadius[i].reqLevel >= byRadius[i - 1].reqLevel, "外ほど後で解放");
   }
 });
 
@@ -191,7 +219,7 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=76/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=11/);
+  assert.match(html, /css\/style\.css\?v=77/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=12/);
   assert.match(html, /js\/ui\/detail\.js\?v=8/);
 });

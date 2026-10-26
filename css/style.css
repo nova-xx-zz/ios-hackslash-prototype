@@ -1417,8 +1417,8 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   border: 1px solid var(--gold);
 }
 
-/* ズーム操作（画面固定。盤面の右下） */
-.tree-web--crest .tree-web-controls { position: absolute; right: 12px; bottom: 4px; z-index: 4; display: flex; gap: 4px; }
+/* ズーム操作（画面固定。盤面の左下。右下は奥義が外枠に掛かるため空ける） */
+.tree-web--crest .tree-web-controls { position: absolute; left: 12px; bottom: 4px; z-index: 4; display: flex; gap: 4px; }
 .tree-web-control {
   min-width: 28px;
   height: 28px;
@@ -1455,7 +1455,8 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
 .tree-web-ring { fill: none; stroke: rgba(216,182,115,.2); stroke-width: .7px; stroke-dasharray: 1.5 4; vector-effect: non-scaling-stroke; }
 .tree-web-orbit { fill: none; stroke: rgba(130,190,210,.07); stroke-width: .6px; vector-effect: non-scaling-stroke; }
 .tree-web-spoke { stroke: var(--lane); stroke-opacity: .16; stroke-width: .8px; stroke-dasharray: 3 5; vector-effect: non-scaling-stroke; }
-.tree-web-sigil { fill: none; stroke: rgba(226,195,128,.4); stroke-width: .8px; vector-effect: non-scaling-stroke; }
+/* 基礎の環（剣紋章を囲む最初の3ノードの環）。基礎の色の二重線で、外へ伸びる5方向の起点だと分かるようにする */
+.tree-web-trunk-ring { fill: none; stroke: var(--l0); stroke-opacity: .5; stroke-width: 1.4px; stroke-dasharray: 3 2.5; vector-effect: non-scaling-stroke; }
 .tree-web-sigil-ring { fill: none; stroke: rgba(226,195,128,.55); stroke-width: 1px; vector-effect: non-scaling-stroke; }
 .tree-web-sigil-ring.faint { stroke: rgba(120,210,235,.22); stroke-dasharray: 1.5 2; }
 
@@ -1481,16 +1482,16 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 21%;
-  height: 21%;
+  width: 15%;
+  height: 15%;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(44,128,156,.62) 0%, rgba(11,33,43,.96) 58%, #061118 70%);
   box-shadow:
-    0 0 0 .2em #08141a, 0 0 0 .45em var(--gold), 0 0 0 .9em rgba(9,20,26,.92),
-    0 0 0 1.05em rgba(216,182,115,.55), inset 0 0 1.6em rgba(95,212,242,.35), 0 0 2.6em rgba(70,190,230,.35);
+    0 0 0 .15em #08141a, 0 0 0 .38em var(--gold), 0 0 0 .7em rgba(9,20,26,.92),
+    0 0 0 .82em rgba(216,182,115,.55), inset 0 0 1.2em rgba(95,212,242,.35), 0 0 2em rgba(70,190,230,.35);
   pointer-events: none;
   z-index: 1;
 }
@@ -1558,8 +1559,8 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   --aura-o: 0;
   position: absolute;
   z-index: 3;
-  width: 9.4%;
-  height: 9.4%;
+  width: 8.6%;
+  height: 8.6%;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
@@ -1573,10 +1574,10 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   -webkit-tap-highlight-color: transparent;
 }
 @supports not (color: color-mix(in srgb, red 50%, blue)) { .tree-web-node { --ink: #8e9ca3; } }
-.tree-web-node.ultimate-kind { width: 11%; height: 11%; }
+.tree-web-node.ultimate-kind { width: 10.2%; height: 10.2%; }
 .tree-web-node > *, .crest-detail-icon > * { grid-area: 1 / 1; }
-.tree-web-node .tree-web-frame { width: 86%; height: 86%; }
-.tree-web-node.ultimate-kind .tree-web-frame { width: 92%; height: 92%; }
+.tree-web-node .tree-web-frame { width: 82%; height: 82%; }
+.tree-web-node.ultimate-kind .tree-web-frame { width: 90%; height: 90%; }
 .tree-web-frame { overflow: visible; filter: drop-shadow(0 1px 2px rgba(0,0,0,.8)); }
 .tree-web-frame .f-rim { fill: var(--rim-fill); stroke: var(--rim); stroke-width: 2; }
 .tree-web-frame .f-core { fill: var(--core-fill); stroke: var(--core-line); stroke-width: 1.3; stroke-opacity: var(--core-o); }
@@ -1591,7 +1592,7 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   pointer-events: none;
 }
 .tree-web-glyph { position: relative; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
-.tree-web-node .tree-web-glyph { width: 44%; height: 44%; }
+.tree-web-node .tree-web-glyph { width: 42%; height: 42%; }
 .tree-web-node.ultimate-kind .tree-web-glyph { width: 42%; height: 42%; }
 .tree-web-node-mark { display: none; }
 /* 習得済み: 枝の色に灯る */
@@ -1637,7 +1638,7 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
 .tree-web-node.selected::after {
   content: "";
   position: absolute;
-  inset: -8%;
+  inset: -2%;
   border: 1.5px dashed #f7d9a0;
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(247,217,160,.55);

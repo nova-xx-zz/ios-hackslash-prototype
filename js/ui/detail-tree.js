@@ -245,6 +245,7 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
 // 画面は「画面に固定する層」と「拡大縮小・移動する盤面（scene）」の2層に分ける。
 //   固定: 背景の城郭・戻る/キャラ送り・タイトル・SP・タブ・職業見出し・ズームボタン・下部の詳細と習得ボタン
 //   盤面: 魔法陣・ルーン・剣の紋章・前提線・ノード・6方向の札（すべて同じ0〜100の盤面座標）
+// 習得は中から外へ: 剣紋章を囲む「基礎の環」（鍛えた腕→戦いの勘→剣撃突き）から、5方向がそれぞれ外周へ伸びる。
 // 盤面は正方形1枚（.tree-web-scene）で、SVG（viewBox 0 0 100 100）とHTML（left/top の%）が同じ座標を共有する。
 // transform は scene にだけ掛ける。scene の font-size を「盤面1単位」にするので、札の文字やノードの大きさも em で盤面と一緒に変わる。
 
@@ -258,49 +259,47 @@ function isWarriorCrestWeb(c, scopeKey, treeDef) {
     treeDef.id === "warrior" && treeDef.nodes.every((node) => WARRIOR_WEB_LAYOUT[node.id]);
 }
 
-// 6方向の枝（盤面上の角度。-90°が真上で時計回り）。参考画像と同じ並び。
+// 方向（-90°が真上で時計回り）。基礎は剣紋章を囲む中心の環で、ほかの5方向はそこから外へ伸びる。
+// label=札の位置（盤面座標）。外周ノードと重ならない位置に置く。
 const WARRIOR_WEB_LANES = [
-  { name: "基礎", angle: -90 },
-  { name: "猛攻", angle: -30 },
-  { name: "破砕", angle: 30 },
-  { name: "覇道", angle: 90 },
-  { name: "鉄壁", angle: 150 },
-  { name: "装備", angle: 210 },
+  { name: "基礎", angle: -90, label: [50, 3.4] },
+  { name: "猛攻", angle: -54, label: [86, 22.5] },
+  { name: "破砕", angle: 18, label: [91, 73] },
+  { name: "覇道", angle: 90, label: [50, 97.8] },
+  { name: "鉄壁", angle: 162, label: [9, 73] },
+  { name: "装備", angle: 234, label: [14, 22.5] },
 ];
-// 盤面は0〜100の座標（中心50,50）。ノードを置く3つの環（中心寄り→外周）。
-const WARRIOR_WEB_RINGS = [18, 28.25, 38.5];
+// 盤面は0〜100の座標（中心50,50）。中心から外へ: 剣紋章 → 基礎の環 → 5方向の3つの環。
+const WARRIOR_WEB_TRUNK_RING = 13;
+const WARRIOR_WEB_RINGS = [22, 31, 40];
 // 環と環の間を通る導線の半径（ノードを避けて別の方向へ回り込む線が通る）
-const WARRIOR_WEB_CHANNELS = { inner: 23.1, outer: 33.4 };
-// 「剣撃突き」から紋章を経由して各方向へ魔力が流れる、中心の導線リング
-const WARRIOR_WEB_CORE_BUS = 12.6;
-// 6方向の札の位置（盤面に属し、盤面と一緒に拡大縮小する）。斜めの札は外周ノードと重ならないよう上下へ逃がす。
-const WARRIOR_WEB_LABEL_RADIUS = 46.6;
-const WARRIOR_WEB_LABEL_SHIFT = [0, -4.4, 4.4, 0, 4.4, -4.4];
+//   core = 基礎の環のすぐ外（剣撃突きから4方向へ魔力を配る）、inner = 1つ目と2つ目の環の間、outer = 2つ目と3つ目の環の間
+const WARRIOR_WEB_CHANNELS = { core: 17.5, inner: 26.5, outer: 35.5 };
+const WARRIOR_WEB_CORE_BUS = WARRIOR_WEB_CHANNELS.core;
 // ノードの描画位置と、前提線の通り道だけを定義する（正本のツリー構造は変えない）。
-// lane=方向、ring=0中心寄り〜2外周、glyph=刻印、mark=SVGが出ない環境の略字。
-// route=親からの線の通り方: 省略=同じ方向の直線、"ring"=同じ環に沿う弧、"core"=中心の導線を経由、
-//   "inner"/"outer"=環の間の導線へ斜めに入り、弧で回り込んでから子へ入る。
+// lane=方向、ring="trunk"（基礎の環）または0中心寄り〜2外周、angle/radius=方向・環以外に置く時の位置、glyph=刻印、mark=SVGが出ない環境の略字。
+// route=親からの線の通り方: 省略=そのまま（同じ方向は直線、同じ環は弧）、
+//   { via: 導線, dir: 1時計回り/-1反時計回り, ease: 導線へ斜めに入る角度 } = 導線を回り込んでから子へ入る。
 const WARRIOR_WEB_LAYOUT = {
-  w1: { lane: 0, ring: 2, mark: "腕", glyph: "power" },
-  w2: { lane: 0, ring: 1, mark: "勘", glyph: "insight" },
-  w3: { lane: 0, ring: 0, mark: "剣", glyph: "thrust" },
-  w4b: { lane: 1, ring: 0, mark: "猛", glyph: "crossed", route: "core" },
-  w7b: { lane: 1, ring: 1, mark: "豪", glyph: "claws", route: "ring" },
-  w10b: { lane: 1, ring: 2, mark: "覇", glyph: "aura", route: "outer" },
-  w5: { lane: 2, ring: 0, mark: "鎧", glyph: "armorBreak", route: "core" },
+  w1: { lane: 0, ring: "trunk", angle: -90, mark: "腕", glyph: "power" },
+  w2: { lane: 0, ring: "trunk", angle: -128, mark: "勘", glyph: "insight" },
+  w3: { lane: 0, ring: "trunk", angle: -166, mark: "剣", glyph: "thrust" },
+  w4b: { lane: 1, ring: 0, mark: "猛", glyph: "crossed", route: { via: "core", dir: -1, ease: 0 } },
+  w7b: { lane: 1, ring: 1, mark: "豪", glyph: "claws" },
+  w10b: { lane: 1, ring: 2, mark: "覇", glyph: "aura", route: { via: "outer", dir: -1, ease: 12 } },
+  w5: { lane: 2, ring: 0, mark: "鎧", glyph: "armorBreak", route: { via: "core", dir: -1, ease: 0 } },
   w6: { lane: 2, ring: 1, mark: "力", glyph: "might" },
-  w11: { lane: 2, ring: 2, mark: "頂", glyph: "summit", route: "outer" },
-  w8: { lane: 3, ring: 0, mark: "鬨", glyph: "banner", route: "inner" },
-  w9: { lane: 3, ring: 1, mark: "歴", glyph: "heart" },
-  w12: { lane: 3, ring: 2, mark: "奥", glyph: "ultimate", route: "ring" },
-  w4a: { lane: 4, ring: 0, mark: "守", glyph: "rooted", route: "core" },
-  w7a: { lane: 4, ring: 1, mark: "鉄", glyph: "tower", route: "inner" },
-  w10a: { lane: 4, ring: 2, mark: "闘", glyph: "flame", route: "outer" },
-  w_acc2: { lane: 5, ring: 0, mark: "極", glyph: "amulet", route: "core" },
-  w_acc1: { lane: 5, ring: 1, mark: "装", glyph: "ring", route: "ring" },
+  w11: { lane: 2, ring: 2, mark: "頂", glyph: "summit", route: { via: "outer", dir: -1, ease: 12 } },
+  w8: { lane: 3, ring: 1, mark: "鬨", glyph: "banner" },
+  w9: { lane: 3, ring: 2, mark: "歴", glyph: "heart" },
+  // 奥義は外枠に掛かる最外周の封印。親の剣の頂（破砕）と覇道の間に置く
+  w12: { lane: 3, ring: 2, angle: 68, radius: 44.5, mark: "奥", glyph: "ultimate" },
+  w4a: { lane: 4, ring: 0, mark: "守", glyph: "rooted", route: { via: "core", dir: -1, ease: 0 } },
+  w7a: { lane: 4, ring: 1, mark: "鉄", glyph: "tower", route: { via: "inner", dir: 1, ease: 12 } },
+  w10a: { lane: 4, ring: 2, mark: "闘", glyph: "flame" },
+  w_acc1: { lane: 5, ring: 0, mark: "装", glyph: "ring" },
+  w_acc2: { lane: 5, ring: 1, mark: "極", glyph: "amulet", route: { via: "inner", dir: 1, ease: 12 } },
 };
-// 環の間の導線へ入る／出る時の角度の幅（ノードの真横を通らないよう斜めに入る）
-const WARRIOR_WEB_CHANNEL_EASE = 15;
 // 詳細パネルの短いフレーバー文（表示専用。効果説明は正本の desc を使う）
 const WARRIOR_CREST_FLAVOR = {
   w1: "振るい続けた腕こそ、最初の剣。",
@@ -328,7 +327,9 @@ function warriorWebPolar(angle, radius) {
 }
 function warriorWebPlace(nodeId) {
   const layout = WARRIOR_WEB_LAYOUT[nodeId];
-  return { angle: WARRIOR_WEB_LANES[layout.lane].angle, radius: WARRIOR_WEB_RINGS[layout.ring] };
+  const angle = layout.angle !== undefined ? layout.angle : WARRIOR_WEB_LANES[layout.lane].angle;
+  if (layout.radius !== undefined) return { angle, radius: layout.radius };
+  return { angle, radius: layout.ring === "trunk" ? WARRIOR_WEB_TRUNK_RING : WARRIOR_WEB_RINGS[layout.ring] };
 }
 // 方向とリングから座標を得る（外部の検証用）
 function warriorWebPoint(lane, ring) {
@@ -336,13 +337,14 @@ function warriorWebPoint(lane, ring) {
 }
 // 角度の差（-180〜180）。正なら時計回り
 function warriorWebTurn(from, to) { return ((to - from + 540) % 360) - 180; }
-// 角度と半径を同時に補間する（中心を突っ切らず、紋章盤の円に沿って曲がる線）
-function warriorWebSpiral(a1, r1, a2, r2) {
-  const delta = warriorWebTurn(a1, a2);
-  const steps = Math.max(1, Math.ceil(Math.abs(delta) / 3));
+// 角度と半径を同時に補間する（中心を突っ切らず、紋章盤の円に沿って曲がる線）。
+// delta を渡すとその角度だけ回る（遠回りの指定用）。省略時は近い向き。
+function warriorWebSpiral(a1, r1, a2, r2, delta) {
+  const d = delta === undefined ? warriorWebTurn(a1, a2) : delta;
+  const steps = Math.max(1, Math.ceil(Math.abs(d) / 3));
   const points = [];
   for (let i = 0; i <= steps; i++) {
-    points.push(warriorWebPolar(a1 + delta * i / steps, r1 + (r2 - r1) * i / steps));
+    points.push(warriorWebPolar(a1 + d * i / steps, r1 + (r2 - r1) * i / steps));
   }
   return points;
 }
@@ -351,22 +353,17 @@ function warriorWebLinkPoints(parentId, childId) {
   const a = warriorWebPlace(parentId);
   const b = warriorWebPlace(childId);
   const route = WARRIOR_WEB_LAYOUT[childId].route;
-  if (route === "core") {
-    // 親から中心の導線へ入り、導線に沿って回ってから子の方向へ出る
-    return [warriorWebPolar(a.angle, a.radius)]
-      .concat(warriorWebSpiral(a.angle, WARRIOR_WEB_CORE_BUS, b.angle, WARRIOR_WEB_CORE_BUS),
-        [warriorWebPolar(b.angle, b.radius)]);
-  }
-  if (route === "inner" || route === "outer") {
-    const r = WARRIOR_WEB_CHANNELS[route];
-    const dir = warriorWebTurn(a.angle, b.angle) < 0 ? -1 : 1;
-    const a2 = a.angle + dir * WARRIOR_WEB_CHANNEL_EASE;
-    const b2 = b.angle - dir * WARRIOR_WEB_CHANNEL_EASE;
-    return warriorWebSpiral(a.angle, a.radius, a2, r)
-      .concat(warriorWebSpiral(a2, r, b2, r).slice(1), warriorWebSpiral(b2, r, b.angle, b.radius).slice(1));
-  }
-  // 同じ方向なら直線、"ring"なら同じ環に沿った弧
-  return warriorWebSpiral(a.angle, a.radius, b.angle, b.radius);
+  if (!route) return warriorWebSpiral(a.angle, a.radius, b.angle, b.radius);
+  // 導線を指定の向きに回る。ease>0 なら導線へ斜めに入り、斜めに出る
+  const r = WARRIOR_WEB_CHANNELS[route.via];
+  let turn = warriorWebTurn(a.angle, b.angle);
+  if (turn !== 0 && Math.sign(turn) !== route.dir) turn += route.dir * 360;
+  const ease = route.ease || 0;
+  const a2 = a.angle + route.dir * ease;
+  const b2 = a.angle + turn - route.dir * ease;
+  return warriorWebSpiral(a.angle, a.radius, a2, r, route.dir * ease)
+    .concat(warriorWebSpiral(a2, r, b2, r, b2 - a2).slice(1),
+      warriorWebSpiral(b2, r, a.angle + turn, b.radius, route.dir * ease).slice(1));
 }
 function warriorWebLinkPath(parentId, childId) {
   return "M" + warriorWebLinkPoints(parentId, childId).map((p) => p.x.toFixed(2) + " " + p.y.toFixed(2)).join("L");
@@ -653,18 +650,19 @@ function drawWarriorWebBoard(addSvg, svg) {
   addSvg("stop", { offset: "100%", "stop-color": "#1f6f86", "stop-opacity": "0" }, core);
 
   addSvg("circle", { cx: 50, cy: 50, r: 47.4, class: "tree-web-disc", fill: "url(#wcBoardGrad)" }, svg);
-  // 枝ごとの淡い色の扇（方向の気配だけ）
+  // 外へ伸びる5方向の淡い色の扇（方向の気配だけ）。基礎は中心の環なので扇を持たない
   WARRIOR_WEB_LANES.forEach((lane, i) => {
-    const a1 = lane.angle - 24, a2 = lane.angle + 24;
+    if (i === 0) return;
+    const a1 = lane.angle - 22, a2 = lane.angle + 22;
     const p1 = warriorWebPolar(a1, 42.5), p2 = warriorWebPolar(a2, 42.5);
-    const q1 = warriorWebPolar(a2, 14), q2 = warriorWebPolar(a1, 14);
+    const q1 = warriorWebPolar(a2, 19), q2 = warriorWebPolar(a1, 19);
     addSvg("path", {
       d: "M" + p1.x.toFixed(2) + " " + p1.y.toFixed(2) + "A42.5 42.5 0 0 1 " + p2.x.toFixed(2) + " " + p2.y.toFixed(2) +
-        "L" + q1.x.toFixed(2) + " " + q1.y.toFixed(2) + "A14 14 0 0 0 " + q2.x.toFixed(2) + " " + q2.y.toFixed(2) + "Z",
+        "L" + q1.x.toFixed(2) + " " + q1.y.toFixed(2) + "A19 19 0 0 0 " + q2.x.toFixed(2) + " " + q2.y.toFixed(2) + "Z",
       class: "tree-web-sector tree-web-sector--" + i,
     }, svg);
   });
-  addSvg("circle", { cx: 50, cy: 50, r: 21, fill: "url(#wcCoreHalo)", class: "tree-web-halo" }, svg);
+  addSvg("circle", { cx: 50, cy: 50, r: 17, fill: "url(#wcCoreHalo)", class: "tree-web-halo" }, svg);
   // 大きな六芒星（魔法陣の骨格）
   const star = (radius, start) => [0, 1, 2].map((k) => warriorWebPolar(start + k * 120, radius))
     .map((p) => p.x.toFixed(2) + "," + p.y.toFixed(2)).join(" ");
@@ -690,10 +688,11 @@ function drawWarriorWebBoard(addSvg, svg) {
     [[-0.55, 0.9, 0, -0.9], [0, -0.9, 0.55, 0.9]],
     [[0, -0.9, 0, 0.9], [-0.55, -0.4, 0.55, 0.2]],
   ];
+  const labelAngles = WARRIOR_WEB_LANES.map((lane) => Math.atan2(lane.label[1] - 50, lane.label[0] - 50) * 180 / Math.PI);
   let runes = "";
   for (let i = 0; i < 96; i++) {
     const angle = i * 360 / 96 + 1.5;
-    if (WARRIOR_WEB_LANES.some((lane) => Math.abs(warriorWebTurn(lane.angle, angle)) < 10)) continue;
+    if (labelAngles.some((a) => Math.abs(warriorWebTurn(a, angle)) < 9)) continue;
     const t = angle * Math.PI / 180;
     const c = warriorWebPolar(angle, 44.5);
     const ux = -Math.sin(t), uy = Math.cos(t); // 接線方向
@@ -705,20 +704,19 @@ function drawWarriorWebBoard(addSvg, svg) {
     }
   }
   addSvg("path", { d: runes, class: "tree-web-runes" }, svg);
-  // 背景ガイド: ノードの環（点線）と、環の間の細い軌道、6方向の放射線。実際の前提線とは別の細く暗い線
+  // 背景ガイド: 5方向のノードの環（点線）と、環の間の細い軌道、放射線。実際の前提線とは別の細く暗い線
   WARRIOR_WEB_RINGS.forEach((r) => addSvg("circle", { cx: 50, cy: 50, r, class: "tree-web-ring" }, svg));
   for (const r of [WARRIOR_WEB_CHANNELS.inner, WARRIOR_WEB_CHANNELS.outer]) {
     addSvg("circle", { cx: 50, cy: 50, r, class: "tree-web-orbit" }, svg);
   }
+  // 放射線は中心の導線から外周まで。基礎の線は上の札から中心の環へ下りる
   WARRIOR_WEB_LANES.forEach((lane, i) => {
-    const p = warriorWebPolar(lane.angle, 14), q = warriorWebPolar(lane.angle, 43.4);
+    const p = warriorWebPolar(lane.angle, WARRIOR_WEB_CORE_BUS), q = warriorWebPolar(lane.angle, 43.4);
     addSvg("line", { x1: p.x.toFixed(2), y1: p.y.toFixed(2), x2: q.x.toFixed(2), y2: q.y.toFixed(2),
       class: "tree-web-spoke tree-web-spoke--" + i }, svg);
   });
-  // 中心の魔法陣（小さな六芒星と導線リング）
-  addSvg("polygon", { points: star(16, -90), class: "tree-web-sigil" }, svg);
-  addSvg("polygon", { points: star(16, 90), class: "tree-web-sigil" }, svg);
-  addSvg("circle", { cx: 50, cy: 50, r: 16, class: "tree-web-sigil-ring" }, svg);
+  // 中心の魔法陣: 基礎の環（剣紋章を囲む、基礎の色）と、剣撃突きから各方向へ配る導線リング
+  addSvg("circle", { cx: 50, cy: 50, r: WARRIOR_WEB_TRUNK_RING, class: "tree-web-trunk-ring" }, svg);
   addSvg("circle", { cx: 50, cy: 50, r: WARRIOR_WEB_CORE_BUS, class: "tree-web-sigil-ring faint" }, svg);
 }
 
@@ -840,11 +838,10 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
 
   // 6方向の札は盤面に属する（同じ盤面座標に置き、拡大縮小・移動でノードと一緒に動く）
   WARRIOR_WEB_LANES.forEach((lane, i) => {
-    const p = warriorWebPolar(lane.angle, WARRIOR_WEB_LABEL_RADIUS);
     const label = document.createElement("span");
-    label.className = "tree-web-lane tree-web-lane--" + i;
-    label.style.left = p.x.toFixed(2) + "%";
-    label.style.top = (p.y + WARRIOR_WEB_LABEL_SHIFT[i]).toFixed(2) + "%";
+    label.className = "tree-web-lane tree-web-lane--" + i + (i === 0 ? " tree-web-lane--trunk" : "");
+    label.style.left = lane.label[0].toFixed(2) + "%";
+    label.style.top = lane.label[1].toFixed(2) + "%";
     label.textContent = lane.name;
     scene.appendChild(label);
   });

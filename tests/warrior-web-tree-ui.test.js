@@ -132,8 +132,8 @@ test("紋章盤: 正本17ノード・6方向の飾り札・中央の剣紋章・
   const pos = buttons.map(b => [parseFloat(b.style.left), parseFloat(b.style.top)]);
   for (let i = 0; i < pos.length; i++) {
     for (let j = i + 1; j < pos.length; j++) {
-      // 通常ノードは盤面幅の約8.4%、奥義は約11.4%で描くため、中心間の距離で重なりを判定
-      const need = [buttons[i], buttons[j]].some(b => b.className.includes("ultimate-kind")) ? 9.9 : 9.2;
+      // 通常ノードの見た目は盤面の約7%、奥義は約9.2%。中心間の距離で重なりを判定
+      const need = [buttons[i], buttons[j]].some(b => b.className.includes("ultimate-kind")) ? 8.9 : 8.4;
       assert.ok(Math.hypot(pos[i][0] - pos[j][0], pos[i][1] - pos[j][1]) >= need, `${buttons[i].title}と${buttons[j].title}が近すぎる`);
     }
   }
