@@ -330,8 +330,10 @@ test("専用詳細パネル: アイコン・種別・必要SP/Lv・説明・フ�
     tree.nodes.find(n => n.id === "w4a"), "");
   const sealedBtn = byClass(sealed, "crest-learn-btn")[0];
   assert.equal(sealedBtn.disabled, true);
-  assert.match(allText(sealedBtn), /猛攻の構え/);
-  assert.ok(byClass(sealed, "warrior-crest-facts")[0].children.some(n => n.textContent === "二択 猛攻の構え"));
+  assert.match(allText(sealedBtn), /封印中.*「猛攻の構え」を選択済み/);
+  // 二択の相手は比較表示に出す（見出しの事実欄は前提だけ）
+  assert.deepEqual(byClass(sealed, "tree-choice-option-name").map(n => n.textContent), ["不動の構え", "猛攻の構え"]);
+  assert.deepEqual(byClass(sealed, "warrior-crest-facts")[0].children.map(n => n.textContent), ["前提 剣撃突き"]);
   const low = ctx2.buildTreeNodeDetail({ job: "warrior", level: 10, team: null }, tree, {},
     tree.nodes.find(n => n.id === "w12"), "");
   assert.match(allText(byClass(low, "crest-learn-btn")[0]), /Lv90で解放/);

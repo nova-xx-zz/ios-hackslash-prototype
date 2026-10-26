@@ -164,6 +164,147 @@ function buildTreeSection(c, opts) {
   return section;
 }
 
+// ---------- 二択（exclusiveGroup）の共通表示 ----------
+// 判定は正本（exclusiveGroup と ranks）だけを読む。習得の可否は従来どおり canAcquireNode が決める。
+// 設計: docs/スキルの二択UI設計.md
+//   割符の印 … 組になる2つのノードに同じ番号（Ⅰ・Ⅱ・Ⅲ）を付け、盤面の離れた位置にあっても組だと分かるようにする
+//   分岐の門 … 2つの共通の親ノードに付ける菱形の印（同じ番号）。ここから二択に分かれる
+//   比較表示 … 詳細で2つを並べ、選ぶ時は2回押しで確定（選ばなかった方は封印。戻すにはリセット）
+const TREE_CHOICE_NUMERALS = ["Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ"];
+// ノードID → { group, rivals, state: "open"（未選択）/"chosen"（これを選んだ）/"sealed"（相手を選んだ） }
+// 加えて gates[親ノードID] = その親から分かれる組の一覧
+function treeChoiceInfo(treeDef, ranks) {
+  const groups = [];
+  const byKey = {};
+  for (const node of treeDef.nodes) {
+    if (!node.exclusiveGroup) continue;
+    if (!byKey[node.exclusiveGroup]) {
+      byKey[node.exclusiveGroup] = { key: node.exclusiveGroup, nodes: [] };
+      groups.push(byKey[node.exclusiveGroup]);
+    }
+    byKey[node.exclusiveGroup].nodes.push(node);
+  }
+  const info = { byNode: {}, gates: {} };
+  groups.forEach((group, index) => {
+    group.label = TREE_CHOICE_NUMERALS[index] || String(index + 1);
+    const chosen = group.nodes.find((node) => (ranks[node.id] || 0) > 0);
+    group.chosenId = chosen ? chosen.id : null;
+    // 分岐の門 = 組の全ノードに共通する前提（無ければ門は出さない）
+    const lists = group.nodes.map((node) => (node.prerequisites || []).map((pre) => pre.nodeId));
+    group.parentId = (lists[0] || []).find((id) => lists.every((list) => list.includes(id))) || null;
+    if (group.parentId) (info.gates[group.parentId] = info.gates[group.parentId] || []).push(group);
+    for (const node of group.nodes) {
+      info.byNode[node.id] = {
+        group,
+        rivals: group.nodes.filter((other) => other.id !== node.id),
+        state: !group.chosenId ? "open" : group.chosenId === node.id ? "chosen" : "sealed",
+      };
+    }
+  });
+  return info;
+}
+// 組の番号札（割符の印）。読み上げはノードの aria-label 側で行う
+function createTreeChoiceTag(choice) {
+  const tag = document.createElement("span");
+  tag.className = "tree-choice-tag " + choice.state;
+  tag.textContent = choice.group.label;
+  tag.setAttribute("aria-hidden", "true");
+  return tag;
+}
+// 分岐の門（二択に分かれる親ノードの印）
+function createTreeChoiceGate(groups) {
+  const gate = document.createElement("span");
+  gate.className = "tree-choice-gate" + (groups.every((group) => group.chosenId) ? " decided" : " open");
+  const label = document.createElement("span");
+  label.textContent = groups.map((group) => group.label).join("");
+  gate.appendChild(label);
+  gate.setAttribute("aria-hidden", "true");
+  return gate;
+}
+function treeChoiceAriaText(choice) {
+  const rivalNames = choice.rivals.map((other) => other.name).join("・");
+  return "二択" + choice.group.label + "（相手: " + rivalNames + "）" +
+    (choice.state === "chosen" ? "、選択済み" : choice.state === "sealed" ? "、選ばなかった側" : "、どちらか1つ");
+}
+// 詳細に出す比較表示（2つを並べ、もう一方をタップすると選択を切り替える）。せんし専用画面と通常の詳細で共通
+function buildTreeChoiceCompare(treeDef, ranks, node, choice) {
+  const wrap = document.createElement("div");
+  wrap.className = "tree-choice-compare " + choice.state;
+  const head = document.createElement("div");
+  head.className = "tree-choice-head";
+  const badge = document.createElement("span");
+  badge.className = "tree-choice-badge";
+  badge.textContent = "二択" + choice.group.label;
+  head.appendChild(badge);
+  const note = document.createElement("span");
+  note.className = "tree-choice-note";
+  note.textContent = choice.state === "open" ? "どちらか1つだけ習得できる" :
+    "「" + treeDef.nodes.find((other) => other.id === choice.group.chosenId).name + "」を選択済み（選び直しはリセット）";
+  head.appendChild(note);
+  wrap.appendChild(head);
+  const grid = document.createElement("div");
+  grid.className = "tree-choice-grid";
+  for (const option of choice.group.nodes) {
+    const isThis = option.id === node.id;
+    const col = document.createElement(isThis ? "div" : "button");
+    if (!isThis) col.type = "button";
+    const state = !choice.group.chosenId ? "open" : choice.group.chosenId === option.id ? "chosen" : "sealed";
+    col.className = "tree-choice-option " + state + (isThis ? " viewing" : "");
+    const name = document.createElement("span");
+    name.className = "tree-choice-option-name";
+    name.textContent = option.name;
+    col.appendChild(name);
+    const meta = document.createElement("span");
+    meta.className = "tree-choice-option-meta";
+    const layout = typeof WARRIOR_WEB_LAYOUT !== "undefined" && treeDef.id === "warrior" ? WARRIOR_WEB_LAYOUT[option.id] : null;
+    meta.textContent = (layout ? WARRIOR_WEB_LANES[layout.lane].name + "・" : "") +
+      "SP" + option.costByRank[0] + (option.reqLevel > 1 ? "・Lv" + option.reqLevel : "") +
+      (state === "chosen" ? "・選択済み" : state === "sealed" ? "・封印" : "");
+    col.appendChild(meta);
+    const desc = document.createElement("span");
+    desc.className = "tree-choice-option-desc";
+    desc.textContent = (option.desc || "").replace(/（[^）]*(選択|どちらか一方)[^）]*）/g, "");
+    col.appendChild(desc);
+    if (!isThis) {
+      col.setAttribute("aria-label", option.name + "の詳細を見る");
+      col.addEventListener("click", () => {
+        treeSelectedNode = { scope: treeSelectedNode ? treeSelectedNode.scope : "exclusive", nodeId: option.id };
+        treeSwapConfirm = null;
+        renderCharDetail();
+      });
+    }
+    grid.appendChild(col);
+  }
+  wrap.appendChild(grid);
+  return wrap;
+}
+// 二択の習得ボタンの文言と2回押しの状態。押せる時だけ使う（押せない理由は呼び出し側が出す）
+function treeChoiceConfirmKey(node) { return "choice:" + node.id; }
+function treeChoiceButtonText(node, choice) {
+  const rivals = choice.rivals.map((other) => "「" + other.name + "」").join("・");
+  if (treeSwapConfirm === treeChoiceConfirmKey(node)) {
+    return { main: "本当に選ぶ？", sub: rivals + "は封印・戻すにはリセット", confirming: true };
+  }
+  return { main: "「" + node.name + "」を選ぶ", sub: "SP" + node.costByRank[0] + "・" + rivals + "は封印", confirming: false };
+}
+// 二択なら1回目は確認待ちにし、2回目で既存の acquireNode を呼ぶ。二択でなければすぐ習得する
+function treeAcquireWithChoiceConfirm(c, treeDef, ranks, node, choice) {
+  if (choice && choice.state === "open") {
+    const key = treeChoiceConfirmKey(node);
+    if (treeSwapConfirm !== key) {
+      treeSwapConfirm = key;
+      armConfirm();
+      renderCharDetail();
+      return;
+    }
+    if (!confirmReady()) return;
+    treeSwapConfirm = null;
+  }
+  acquireNode(c, treeDef, ranks, node);
+  scheduleSave();
+  renderCharDetail();
+}
+
 // ノードを段（row）と横位置（x）で配置し、前提関係をSVGの線で結ぶ「本当の分岐図」を描画する。
 // 左端に、段が開くレベル（reqLevel）を表示する
 const TREE_ROW_PX = 54;
@@ -192,6 +333,10 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
   svg.classList.add("tree-graph-lines");
   const byId = {};
   for (const node of treeDef.nodes) byId[node.id] = node;
+  // 二択: 割符の印・分岐の門・選んでいる組の強調（せんしの紋章盤と共通）
+  const choices = treeChoiceInfo(treeDef, ranks);
+  const selectedId = treeSelectedNode && treeSelectedNode.scope === scopeKey ? treeSelectedNode.nodeId : null;
+  const focusGroup = selectedId && choices.byNode[selectedId] ? choices.byNode[selectedId].group : null;
   for (const node of treeDef.nodes) {
     for (const pre of node.prerequisites) {
       const from = byId[pre.nodeId];
@@ -202,7 +347,11 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
       line.setAttribute("x2", node.x);
       line.setAttribute("y2", nodeY(node, rows));
       const acquired = (ranks[node.id] || 0) > 0 && (ranks[from.id] || 0) > 0;
-      line.setAttribute("class", acquired ? "tree-edge acquired" : "tree-edge");
+      const choice = choices.byNode[node.id];
+      line.setAttribute("class", (acquired ? "tree-edge acquired" : "tree-edge") +
+        (choice && choice.group.parentId === from.id ? " choice-link choice-" + choice.state +
+          ((ranks[from.id] || 0) >= pre.minRank ? " parent-done" : "") : "") +
+        (choice && focusGroup === choice.group ? " choice-focus" : ""));
       svg.appendChild(line);
     }
   }
@@ -212,14 +361,21 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
     const acquired = (ranks[node.id] || 0) > 0;
     const canGet = canAcquireNode(c, treeDef, ranks, node);
     const levelLocked = node.reqLevel > c.level;
+    const choice = choices.byNode[node.id];
+    const selected = selectedId === node.id;
     const btn = document.createElement("button");
     btn.className = "tree-node" + (node.kind === "active" ? " active-kind" : " passive-kind")
       + (acquired ? " acquired" : canGet ? " available" : " locked") + (levelLocked ? " level-locked" : "")
-      + (treeSelectedNode && treeSelectedNode.scope === scopeKey && treeSelectedNode.nodeId === node.id ? " selected" : "");
+      + (choice ? " choice-node choice-" + choice.state : "")
+      + (focusGroup && !selected && choice && choice.group === focusGroup ? " choice-partner" : "")
+      + (selected ? " selected" : "");
     btn.style.left = node.x + "%";
     btn.style.top = nodeY(node, rows) + "%";
-    btn.textContent = levelLocked ? "🔒" : node.kind === "active" ? "⚔️" : "🔹";
-    btn.setAttribute("aria-label", node.name);
+    btn.textContent = levelLocked ? "🔒" : choice && choice.state === "sealed" ? "⛓" : node.kind === "active" ? "⚔️" : "🔹";
+    if (choice) btn.appendChild(createTreeChoiceTag(choice));
+    if (choices.gates[node.id]) btn.appendChild(createTreeChoiceGate(choices.gates[node.id]));
+    btn.setAttribute("aria-label", node.name + (choice ? "、" + treeChoiceAriaText(choice) : "") +
+      (choices.gates[node.id] ? "、ここから二択" + choices.gates[node.id].map((group) => group.label).join("・") + "に分かれる" : ""));
     btn.addEventListener("click", () => {
       treeSelectedNode = { scope: scopeKey, nodeId: node.id };
       treeSwapConfirm = null;
@@ -365,8 +521,24 @@ function warriorWebLinkPoints(parentId, childId) {
     .concat(warriorWebSpiral(a2, r, b2, r, b2 - a2).slice(1),
       warriorWebSpiral(b2, r, a.angle + turn, b.radius, route.dir * ease).slice(1));
 }
+function warriorWebPointsToPath(points) {
+  return "M" + points.map((p) => p.x.toFixed(2) + " " + p.y.toFixed(2)).join("L");
+}
 function warriorWebLinkPath(parentId, childId) {
-  return "M" + warriorWebLinkPoints(parentId, childId).map((p) => p.x.toFixed(2) + " " + p.y.toFixed(2)).join("L");
+  return warriorWebPointsToPath(warriorWebLinkPoints(parentId, childId));
+}
+// 線の始点側を指定の割合だけ切り落とす（二択で選ばなかった側の「途切れた線」用）
+function warriorWebTrimStart(points, ratio) {
+  const lengths = [0];
+  for (let i = 1; i < points.length; i++) {
+    lengths.push(lengths[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y));
+  }
+  const cut = lengths[lengths.length - 1] * ratio;
+  const i = lengths.findIndex((len) => len >= cut);
+  if (i <= 0) return points.slice();
+  const t = (cut - lengths[i - 1]) / ((lengths[i] - lengths[i - 1]) || 1);
+  const start = { x: points[i - 1].x + (points[i].x - points[i - 1].x) * t, y: points[i - 1].y + (points[i].y - points[i - 1].y) * t };
+  return [start].concat(points.slice(i));
 }
 
 // ---------- 刻印（ノード・詳細アイコン用の線画SVG。CSSの色を継承し、画像ファイルに依存しない） ----------
@@ -803,6 +975,10 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
         other.exclusiveGroup === node.exclusiveGroup && (ranks[other.id] || 0) > 0));
     stateOf[node.id] = { acquired, canGet, sealed, levelLocked: node.reqLevel > c.level };
   }
+  // 二択: 割符の印・分岐の門・選んでいる組の強調
+  const choices = treeChoiceInfo(treeDef, ranks);
+  const selectedId = treeSelectedNode && treeSelectedNode.scope === scopeKey ? treeSelectedNode.nodeId : null;
+  const focusGroup = selectedId && choices.byNode[selectedId] ? choices.byNode[selectedId].group : null;
 
   // 実データの前提線。下地（溝）→線→魔力の流れの順に重ね、習得済みルートを最前面へ
   const links = [];
@@ -813,7 +989,17 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
       const parentDone = (ranks[pre.nodeId] || 0) >= pre.minRank;
       const st = stateOf[node.id];
       const kind = acquired ? "acquired" : st.sealed ? "sealed" : parentDone && st.canGet ? "ready" : "dormant";
-      links.push({ d: warriorWebLinkPath(pre.nodeId, node.id), kind, lane: WARRIOR_WEB_LAYOUT[node.id].lane });
+      const choice = choices.byNode[node.id];
+      let points = warriorWebLinkPoints(pre.nodeId, node.id);
+      let cut = null;
+      // 選ばなかった側の線は分岐の門（親）側で途切れさせ、切れ目に印を付ける
+      if (choice && choice.state === "sealed" && choice.group.parentId === pre.nodeId) {
+        points = warriorWebTrimStart(points, 0.38);
+        cut = points[0];
+      }
+      const extra = (choice && choice.group.parentId === pre.nodeId ? " choice-link choice-" + choice.state : "") +
+        (choice && focusGroup === choice.group ? " choice-focus" : "");
+      links.push({ d: warriorWebPointsToPath(points), kind, lane: WARRIOR_WEB_LAYOUT[node.id].lane, extra, cut });
     }
   }
   const order = { sealed: 0, dormant: 1, ready: 2, acquired: 3 };
@@ -822,9 +1008,15 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   for (const link of links) {
     addSvg("path", { d: link.d, class: "tree-web-link-bed" }, linkLayer);
     if (link.kind === "acquired") addSvg("path", { d: link.d, class: "tree-web-link-glow lane-" + link.lane }, linkLayer);
-    addSvg("path", { d: link.d, class: "tree-web-link " + link.kind + " lane-" + link.lane }, linkLayer);
+    addSvg("path", { d: link.d, class: "tree-web-link " + link.kind + " lane-" + link.lane + link.extra }, linkLayer);
     if (link.kind === "acquired" || link.kind === "ready") {
       addSvg("path", { d: link.d, class: "tree-web-link-flow " + link.kind }, linkLayer);
+    }
+    if (link.cut) {
+      const x = link.cut.x, y = link.cut.y, r = 1.1;
+      addSvg("path", { d: "M" + (x - r).toFixed(2) + " " + (y - r).toFixed(2) + "L" + (x + r).toFixed(2) + " " + (y + r).toFixed(2) +
+        "M" + (x + r).toFixed(2) + " " + (y - r).toFixed(2) + "L" + (x - r).toFixed(2) + " " + (y + r).toFixed(2),
+        class: "tree-web-link-cut" }, linkLayer);
     }
   }
   scene.appendChild(svg);
@@ -862,6 +1054,8 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
       (st.acquired ? " acquired" : st.canGet ? " available" : " locked") +
       (st.sealed ? " choice-sealed" : "") +
       (!st.acquired && st.levelLocked ? " level-locked" : "") +
+      (choices.byNode[node.id] ? " choice-node choice-" + choices.byNode[node.id].state : "") +
+      (focusGroup && !selected && focusGroup.nodes.some((other) => other.id === node.id) ? " choice-partner" : "") +
       (selected ? " selected" : "");
     btn.style.left = p.x.toFixed(3) + "%";
     btn.style.top = p.y.toFixed(3) + "%";
@@ -876,10 +1070,15 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
     fallback.className = "tree-web-node-mark";
     fallback.textContent = layout.mark;
     btn.appendChild(fallback);
+    const choice = choices.byNode[node.id];
+    if (choice) btn.appendChild(createTreeChoiceTag(choice));
+    if (choices.gates[node.id]) btn.appendChild(createTreeChoiceGate(choices.gates[node.id]));
     btn.title = node.name;
     const stateText = st.acquired ? "習得済み" : st.canGet ? "習得可能" : st.sealed ? "二択で封印中" :
       st.levelLocked ? "Lv" + node.reqLevel + "で解放" : "未解放";
-    btn.setAttribute("aria-label", node.name + "、" + WARRIOR_WEB_LANES[layout.lane].name + "、" + stateText + "、必要Lv" + node.reqLevel);
+    btn.setAttribute("aria-label", node.name + "、" + WARRIOR_WEB_LANES[layout.lane].name + "、" + stateText + "、必要Lv" + node.reqLevel +
+      (choice ? "、" + treeChoiceAriaText(choice) : "") +
+      (choices.gates[node.id] ? "、ここから二択" + choices.gates[node.id].map((group) => group.label).join("・") + "に分かれる" : ""));
     btn.setAttribute("aria-pressed", String(selected));
     btn.addEventListener("click", () => {
       treeSelectedNode = { scope: scopeKey, nodeId: node.id };
@@ -1074,6 +1273,7 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   const rival = node.exclusiveGroup ? treeDef.nodes.find((other) => other.id !== node.id &&
     other.exclusiveGroup === node.exclusiveGroup) : null;
   const sealed = !acquired && !!rival && (ranks[rival.id] || 0) > 0;
+  const choice = treeChoiceInfo(treeDef, ranks).byNode[node.id] || null;
   const lane = layout ? layout.lane : 0;
   const shape = warriorNodeShape(node);
   const stateClass = acquired ? "acquired" : canGet ? "available" : "locked";
@@ -1081,7 +1281,7 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   panel.classList.add(stateClass);
 
   const card = document.createElement("div");
-  card.className = "crest-detail-card";
+  card.className = "crest-detail-card" + (choice ? " choice-mode" : "");
   const main = document.createElement("div");
   main.className = "crest-detail-main";
   const icon = document.createElement("div");
@@ -1121,12 +1321,13 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
     const parent = treeDef.nodes.find((other) => other.id === pre.nodeId);
     return parent ? parent.name : pre.nodeId;
   });
-  const factRows = [
+  // 二択の時は必要SP・Lv・相手を下の比較表示の各列に出すので、ここは前提だけにする
+  const factRows = choice ? [["pre", "前提", prereqs.length ? prereqs.join("・") : "なし"]] : [
     ["sp", "必要SP", String(node.costByRank[acquired ? Math.max(0, rank - 1) : rank])],
     ["lv", "必要Lv", String(node.reqLevel)],
     ["pre", "前提", prereqs.length ? prereqs.join("・") : "なし"],
   ];
-  if (rival) factRows.push(["rival", "二択", rival.name]);
+  if (rival && !choice) factRows.push(["rival", "二択", rival.name]);
   for (const [cls, label, value] of factRows) {
     const fact = document.createElement("span");
     fact.className = "crest-fact " + cls;
@@ -1140,17 +1341,22 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
 
   const body = document.createElement("div");
   body.className = "crest-detail-body";
-  const desc = document.createElement("div");
-  desc.className = "tree-node-detail-desc";
-  desc.textContent = node.desc || "";
-  body.appendChild(desc);
+  if (choice) {
+    // 二択は2つを並べて比べる（効果説明は各列に出す）
+    body.appendChild(buildTreeChoiceCompare(treeDef, ranks, node, choice));
+  } else {
+    const desc = document.createElement("div");
+    desc.className = "tree-node-detail-desc";
+    desc.textContent = node.desc || "";
+    body.appendChild(desc);
+  }
   if (node.ability && node.ability.desc && !(node.desc || "").includes(node.ability.desc)) {
     const ability = document.createElement("div");
     ability.className = "crest-detail-ability";
     ability.textContent = "技: " + node.ability.desc + (node.ability.mpCost ? "（消費MP" + node.ability.mpCost + "）" : "");
     body.appendChild(ability);
   }
-  if (WARRIOR_CREST_FLAVOR[node.id]) {
+  if (WARRIOR_CREST_FLAVOR[node.id] && !choice) {
     const flavor = document.createElement("div");
     flavor.className = "crest-detail-flavor";
     flavor.textContent = "「" + WARRIOR_CREST_FLAVOR[node.id] + "」";
@@ -1172,29 +1378,29 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
     const missing = (node.prerequisites || []).find((pre) => (ranks[pre.nodeId] || 0) < pre.minRank);
     const missingNode = missing && treeDef.nodes.find((other) => other.id === missing.nodeId);
     if (c.team !== null && c.team !== undefined && isTeamLocked(c.team)) reason = "探索中は習得できません";
-    else if (sealed) reason = "二択の「" + rival.name + "」を習得済み";
+    else if (sealed) reason = "「" + rival.name + "」を選択済み";
     else if (levelLocked) reason = `🔒 ジョブのLv${node.reqLevel}で解放（今はLv${c.level}）`;
     else if (missingNode) reason = "先に「" + missingNode.name + "」を習得";
     else reason = "SPが足りません";
   }
+  // 二択で押せる時は「〇〇を選ぶ」→「本当に選ぶ？」の2回押し
+  const choiceText = choice && choice.state === "open" && canGet ? treeChoiceButtonText(node, choice) : null;
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "btn primary small crest-learn-btn";
+  btn.className = "btn primary small crest-learn-btn" + (choiceText ? " choice" : "") +
+    (choiceText && choiceText.confirming ? " confirming" : "");
   const main1 = document.createElement("span");
   main1.className = "crest-learn-main";
-  main1.textContent = "習得する";
+  main1.textContent = choiceText ? choiceText.main : sealed ? "封印中" : "習得する";
   const sub = document.createElement("span");
   sub.className = "crest-learn-sub";
-  sub.textContent = reason || `SP${node.costByRank[rank]}を使用／残り${availableSp(c)}`;
+  sub.textContent = reason || (choiceText ? choiceText.sub : `SP${node.costByRank[rank]}を使用／残り${availableSp(c)}`);
   btn.appendChild(main1);
   btn.appendChild(sub);
-  btn.setAttribute("aria-label", `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`);
+  btn.setAttribute("aria-label", choiceText ? choiceText.main + "。" + choiceText.sub :
+    `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`);
   btn.disabled = !canGet;
-  btn.addEventListener("click", () => {
-    acquireNode(c, treeDef, ranks, node);
-    scheduleSave();
-    renderCharDetail();
-  });
+  btn.addEventListener("click", () => treeAcquireWithChoiceConfirm(c, treeDef, ranks, node, choice));
   panel.appendChild(btn);
   return panel;
 }
@@ -1207,6 +1413,7 @@ function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
   if (isWarrior) return buildWarriorCrestDetail(c, treeDef, ranks, node, panel);
   const rank = ranks[node.id] || 0;
   const acquired = rank > 0;
+  const choice = treeChoiceInfo(treeDef, ranks).byNode[node.id] || null;
 
   const head = document.createElement("div");
   head.className = "tree-node-detail-head";
@@ -1228,10 +1435,14 @@ function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
   head.appendChild(close);
   panel.appendChild(head);
 
-  const desc = document.createElement("div");
-  desc.className = "tree-node-detail-desc";
-  desc.textContent = node.desc || "";
-  panel.appendChild(desc);
+  if (choice) {
+    panel.appendChild(buildTreeChoiceCompare(treeDef, ranks, node, choice));
+  } else {
+    const desc = document.createElement("div");
+    desc.className = "tree-node-detail-desc";
+    desc.textContent = node.desc || "";
+    panel.appendChild(desc);
+  }
   if (!acquired && node.reqLevel > c.level) {
     const lock = document.createElement("div");
     lock.className = "tree-node-detail-lock";
@@ -1246,15 +1457,16 @@ function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
     panel.appendChild(state);
   } else {
     const canGet = canAcquireNode(c, treeDef, ranks, node);
+    // 二択で押せる時は「〇〇を選ぶ」→「本当に選ぶ？」の2回押し
+    const choiceText = choice && choice.state === "open" && canGet ? treeChoiceButtonText(node, choice) : null;
     const btn = document.createElement("button");
-    btn.className = "btn primary small";
-    btn.textContent = `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`;
+    btn.className = "btn primary small" + (choiceText && choiceText.confirming ? " confirming" : "");
+    btn.textContent = choiceText
+      ? `${choiceText.main}（${choiceText.sub}）`
+      : choice && choice.state === "sealed" ? "二択で封印中（選び直しはリセット）"
+        : `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`;
     btn.disabled = !canGet;
-    btn.addEventListener("click", () => {
-      acquireNode(c, treeDef, ranks, node);
-      scheduleSave();
-      renderCharDetail();
-    });
+    btn.addEventListener("click", () => treeAcquireWithChoiceConfirm(c, treeDef, ranks, node, choice));
     panel.appendChild(btn);
   }
   return panel;
