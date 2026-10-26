@@ -33,6 +33,16 @@ function detailOrder() {
   for (const c of S.roster) if (!order.includes(c)) order.push(c);
   return order;
 }
+// 詳細画面の上部に出す「名前・所属・何人目か」（通常の見出しと、せんしのスキルツリー専用画面で共通）
+function detailPagerInfo(c) {
+  const order = detailOrder();
+  const where = c.team !== null ? TEAM_LABELS[c.team] : "控え";
+  return {
+    name: `${c.name}${c.isMonster ? "（テイム）" : ""}`,
+    pos: `${where}・${order.indexOf(c) + 1}/${order.length}`,
+    canSwitch: order.length >= 2,
+  };
+}
 function switchDetail(delta) {
   const order = detailOrder();
   const i = order.findIndex((x) => x.id === detailCharId);
@@ -93,13 +103,11 @@ function renderCharDetail() {
   const focus = detailTab === "tree" && c.job === "warrior" &&
     isWarriorCrestWeb(c, "exclusive", getExclusiveTree(c));
   document.getElementById("screen-chardetail").classList.toggle("warrior-crest-view", focus);
-  document.getElementById("detailName").textContent =
-    `${c.name}${c.isMonster ? "（テイム）" : ""}`;
-  const order = detailOrder();
-  const where = c.team !== null ? TEAM_LABELS[c.team] : "控え";
-  document.getElementById("detailPos").textContent = `${where}・${order.indexOf(c) + 1}/${order.length}`;
-  document.getElementById("btnDetailPrev").disabled = order.length < 2;
-  document.getElementById("btnDetailNext").disabled = order.length < 2;
+  const pager = detailPagerInfo(c);
+  document.getElementById("detailName").textContent = pager.name;
+  document.getElementById("detailPos").textContent = pager.pos;
+  document.getElementById("btnDetailPrev").disabled = !pager.canSwitch;
+  document.getElementById("btnDetailNext").disabled = !pager.canSwitch;
 
   renderDetailTabs();
 
