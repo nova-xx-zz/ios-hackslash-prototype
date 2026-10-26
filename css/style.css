@@ -1107,6 +1107,103 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .tree-node-detail-desc { font-size: 11.5px; color: var(--sub-text); margin-bottom: 8px; }
 .tree-node-detail-state { font-size: 11.5px; color: #7dffb0; font-weight: 700; }
 
+/* ===== 二択（どちらか1つだけ習得できるスキル）の共通表示 =====
+   全職の固有ツリー・汎用ツリーで共通。割符の印（丸・番号）＝組の2ノード、分岐の門（菱形・番号）＝分かれる親ノード。
+   設計: docs/スキルの二択UI設計.md */
+:root { --choice: #f0c878; --choice-ink: #2a1c08; --choice-sealed: #b9705f; }
+.tree-choice-tag, .tree-choice-gate {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-family: var(--title-serif-ja);
+  font-weight: 700;
+  line-height: 1;
+}
+.tree-choice-tag {
+  top: -7px;
+  right: -9px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--choice);
+  background: #1b150c;
+  color: var(--choice);
+  font-size: 9.5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.7);
+}
+.tree-choice-tag.chosen { background: var(--choice); color: var(--choice-ink); }
+.tree-choice-tag.sealed { border-color: var(--choice-sealed); color: var(--choice-sealed); background: #1c1211; border-style: dashed; }
+.tree-choice-gate { left: -10px; top: 50%; width: 14px; height: 14px; margin-top: -7px; }
+.tree-choice-gate::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  transform: rotate(45deg);
+  border: 1.5px solid var(--choice);
+  background: #1b150c;
+  box-shadow: 0 1px 3px rgba(0,0,0,.7);
+}
+.tree-choice-gate > span { position: relative; color: var(--choice); font-size: 8.5px; }
+.tree-choice-gate.decided::before { border-color: rgba(240,200,120,.55); }
+.tree-choice-gate.decided > span { color: rgba(240,200,120,.75); }
+/* 組の相手（選んでいるノードの相方）を点線の輪で知らせる */
+.choice-partner::before {
+  content: "";
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  border: 2px dashed var(--choice);
+  pointer-events: none;
+  animation: choice-partner-pulse 1.6s ease-in-out infinite;
+}
+.tree-node.choice-partner::before { inset: -6px; }
+@keyframes choice-partner-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+/* 縦の分岐図の線: 未選択の二択は金の点線、選ばなかった側は錆色の点線 */
+.tree-edge.choice-link.choice-open { stroke-dasharray: 4 3; }
+.tree-edge.choice-link.choice-open.parent-done { stroke: var(--choice); stroke-width: 1.8; opacity: .85; }
+.tree-edge.choice-link.choice-sealed { stroke: var(--choice-sealed); stroke-dasharray: 2 4; opacity: .7; }
+.tree-edge.choice-focus { stroke-width: 2.8; opacity: 1; }
+.tree-node.choice-sealed { opacity: .45; }
+/* 詳細の比較表示 */
+.tree-choice-compare { margin: 2px 0 8px; }
+.tree-choice-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.tree-choice-badge {
+  padding: 2px 7px 3px;
+  border-radius: 3px;
+  background: var(--choice);
+  color: var(--choice-ink);
+  font: 700 11px/1.3 var(--title-serif-ja);
+  letter-spacing: .06em;
+}
+.tree-choice-note { font-size: 11.5px; color: #d9c79f; }
+.tree-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.tree-choice-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 7px 8px 8px;
+  border: 1px solid rgba(216,182,115,.35);
+  border-radius: 4px;
+  background: rgba(255,255,255,.04);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.tree-choice-option { cursor: pointer; touch-action: manipulation; }
+button.tree-choice-option:active { background: rgba(240,200,120,.12); }
+.tree-choice-option.viewing { border: 2px solid var(--choice); padding: 6px 7px 7px; background: rgba(240,200,120,.08); }
+.tree-choice-option.sealed { opacity: .6; border-style: dashed; }
+.tree-choice-option.chosen .tree-choice-option-meta { color: var(--choice); }
+.tree-choice-option-name { font: 700 13.5px/1.3 var(--title-serif-ja); color: #f4e8cf; }
+.tree-choice-option-meta { font-size: 10.5px; color: #b8aa88; }
+.tree-choice-option-desc { margin-top: 2px; font-size: 12px; line-height: 1.45; color: #eef0ea; }
+.tree-node-detail .btn.confirming { background: linear-gradient(180deg, #f3b06a, #c0753a); }
+@media (prefers-reduced-motion: reduce) { .choice-partner::before { animation: none; opacity: .8; } }
+
 /* ===== せんし専用: スキルツリー専用画面（剛勇の紋章盤） =====
    設計: docs/スキルツリー画面再設計.md。すべて #screen-chardetail.warrior-crest-view（せんしのツリータブ表示中）と
    .tree-web--crest / .warrior-crest-detail の内側に限定し、けんごう・他職・汎用ツリーの既存表示は変えない。
@@ -1652,6 +1749,53 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   outline-offset: 2px;
 }
 
+/* --- 二択（紋章盤）: 印はノードに対する%で盤面と一緒に拡大縮小し、小さい画面でも読める最小サイズを持つ。
+   ノード（button）の文字サイズを盤面の単位に揃え、印の文字は em で指定する --- */
+.tree-web-node { font-size: inherit; }
+.tree-web-node .tree-choice-tag {
+  top: -12%;
+  right: -16%;
+  width: 46%;
+  height: 46%;
+  min-width: 14px;
+  min-height: 14px;
+  font-size: max(2.3em, 8.5px);
+  border-width: 1.5px;
+}
+.tree-web-node .tree-choice-gate {
+  left: 50%;
+  top: auto;
+  margin-top: 0;
+  bottom: -18%;
+  width: 40%;
+  height: 40%;
+  min-width: 12px;
+  min-height: 12px;
+  margin-left: 0;
+  transform: translateX(-50%);
+}
+.tree-web-node .tree-choice-gate > span { font-size: max(2em, 8px); }
+.tree-web-link.choice-link.choice-open { stroke-dasharray: 5 3.5; }
+.tree-web-link.ready.choice-link.choice-open { stroke: var(--choice); stroke-opacity: .9; stroke-width: 1.8px; }
+.tree-web-link.choice-link.choice-sealed { stroke: var(--choice-sealed); stroke-opacity: .55; stroke-dasharray: 2 4; }
+.tree-web-link.choice-focus { stroke-opacity: 1; stroke-width: 2.8px; }
+.tree-web-link-cut { fill: none; stroke: var(--choice-sealed); stroke-width: 1.8px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.crest-inline-detail .crest-learn-btn.confirming { border-color: #f3b06a; color: #ffe0b8; background: linear-gradient(180deg, #5a3a1c, #2c1a0c 85%); }
+.crest-inline-detail .crest-learn-btn.choice { width: min(94%, 360px); padding-left: 30px; padding-right: 30px; }
+.crest-learn-btn.choice .crest-learn-main { font-size: 16px; letter-spacing: .06em; padding-left: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* 二択の詳細は比較表示が主役。見出しを詰め、カードを少し高くする */
+.crest-detail-card.choice-mode { max-height: min(38vh, 270px); padding-top: 10px; }
+.crest-detail-card.choice-mode .crest-detail-icon { width: 46px; height: 46px; }
+.crest-detail-card.choice-mode .tree-node-detail-name { font-size: 17px; }
+.crest-detail-card.choice-mode .crest-detail-body { margin-top: 6px; padding-top: 6px; }
+/* 背の低い画面（SE等）: 二択の比較表示では列に名前・状態が出るので、上の見出し行を省いて習得ボタンを画面内に残す */
+@media (max-height: 700px) {
+  .crest-detail-card.choice-mode { padding-top: 8px; }
+  .crest-detail-card.choice-mode .crest-detail-main { display: none; }
+  .crest-detail-card.choice-mode .crest-detail-body { margin-top: 0; padding-top: 0; border-top: 0; }
+}
+.crest-detail-card .tree-choice-compare { margin: 0; }
+
 /* --- 汎用Ⅰ〜Ⅲ: 従来の縦分岐図を盤面の枠の中でスクロール --- */
 .crest-stage-area--general { margin: 8px 0 0; }
 .crest-stage-area--general .tree-section {
@@ -1796,7 +1940,7 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
 .crest-inline-detail .crest-learn-btn::before, .crest-inline-detail .crest-learned::before { left: 9px; }
 .crest-inline-detail .crest-learn-btn::after, .crest-inline-detail .crest-learned::after { right: 9px; transform: translateY(-50%) scaleX(-1); }
 .crest-learn-main { font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: .3em; padding-left: .3em; }
-.crest-learn-sub { font: 600 10.5px system-ui, sans-serif; opacity: .78; }
+.crest-learn-sub { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 10.5px system-ui, sans-serif; opacity: .78; }
 .crest-inline-detail .crest-learn-btn:disabled { opacity: 1; border-color: rgba(150,140,118,.55); background: linear-gradient(180deg, #252e31, #11191d); color: #a3abab; }
 .crest-inline-detail .crest-learned {
   border-color: rgba(150,226,248,.6);
