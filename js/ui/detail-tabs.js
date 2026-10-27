@@ -10,8 +10,14 @@ function buildStatsTab(c) {
   const stats = computeStats(c);
 
   const rank = QPCore.stats.ivRank(c.ivs);
-  wrap.innerHTML = `<div class="cname">${c.favorite ? "★" : ""}${escapeHtml(c.name)}${c.isMonster ? "（テイム）" : ""} — ${race.name}・${jobDef(c).name} Lv.${c.level}` +
-    (rank ? ` <span class="iv-rank iv-${rank}" title="個体値の評価">個体${rank}</span>` : "") + `</div>
+  // モンスターの見出しは「名前 個体S〜D Lv.X」に整理し、種族・職業・テイム表記を省く。
+  // 人間の見出しは従来の表記を変更しない。
+  const name = `${c.favorite ? "★" : ""}${escapeHtml(c.name)}`;
+  const rankBadge = rank ? ` <span class="iv-rank iv-${rank}" title="個体値の評価">個体${rank}</span>` : "";
+  const heading = c.isMonster
+    ? `${name}${rankBadge} Lv.${c.level}`
+    : `${name} — ${race.name}・${jobDef(c).name} Lv.${c.level}${rankBadge}`;
+  wrap.innerHTML = `<div class="cname">${heading}</div>
     <div class="sub-ability-row">${race.desc}</div>`;
 
   // テイムしたモンスターはお気に入りにできる（お気に入りは合成の素材に選べなくなる）
