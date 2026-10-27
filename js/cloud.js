@@ -5,6 +5,27 @@
   "use strict";
   if(root.QPCore&&root.QPCore.storage&&
      (root.QPCore.storage.isDebugMode()||root.QPCore.storage.isDungeonPilotMode()))return;
+  // 課金抑制のため現段階ではクラウド機能を完全停止。端末セーブには干渉しない。
+  // 公開コードからのURLパラメーター等による解除は不可。再開時は設計/ルール/実機検証後にレビューする。
+  const CLOUD_BACKUP_ENABLED = false;
+  if (!CLOUD_BACKUP_ENABLED) {
+    const disabledMessage = "クラウドバックアップは準備中です。現在は端末のセーブのみ利用できます。";
+    const disabledState = {
+      status: "disabled", enabled: false, uid: null,
+      lastUploadAt: null, lastUploadSavedAt: null, error: null
+    };
+    root.QPCloud = {
+      start: async () => undefined,
+      backupNow: async () => false,
+      autoBackup: async () => false,
+      listBackups: async () => { throw new Error(disabledMessage); },
+      fetchCloudSave: async () => { throw new Error(disabledMessage); },
+      deleteBackup: async () => { throw new Error(disabledMessage); },
+      getState: () => ({...disabledState}),
+      subscribe(fn) { fn({...disabledState}); return () => {}; }
+    };
+    return; // SDKのロード・Firebase認証・Firestore/Storage通信・タイマー登録を行わない。
+  }
   const policy=root.QPCore.backupHistory;
   const START_DELAY_MS=1500,RETRY_MS=60*1000,MAX_BYTES=32*1024*1024;
   const SDK_URL="js/vendor/firebase.js?v=1";
