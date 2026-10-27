@@ -16,6 +16,23 @@ class Element {
   set innerHTML(v) { this._html = v; this.children = []; }
   get innerHTML() { return this._html; }
   appendChild(e) { this.children.push(e); return e; }
+  replaceChildren(...children) { this.children = children; }
+  focus() { this.focused = true; }
+  get classList() {
+    const el = this;
+    return {
+      toggle(name, force) {
+        const names = new Set(el.className.split(/\s+/).filter(Boolean));
+        const add = force === undefined ? !names.has(name) : !!force;
+        if (add) names.add(name); else names.delete(name);
+        el.className = [...names].join(" ");
+        return add;
+      },
+      add(name) { this.toggle(name, true); },
+      remove(name) { this.toggle(name, false); },
+      contains(name) { return el.className.split(/\s+/).includes(name); },
+    };
+  }
   setAttribute(k, v) { this.attrs[k] = String(v); }
   addEventListener(name, fn) { this.listeners[name] = fn; }
   querySelector() { const e = new Element("span"); this.children.push(e); return e; }
@@ -61,7 +78,12 @@ function setup(roster) {
   const benchStrips = () => all(body).filter((e) => e.className === "member-strip grid" && e.dataset.drop === "bench");
   const cardNames = (strip) => strip.children.filter((c) => c.className.startsWith("member-card") && !c.className.includes("empty"))
     .map((c) => c.title);
-  return { ctx, body, heads, headName, headMeta, benchStrips, cardNames, opened, windowHandlers, render: () => ctx.renderJobsScreen() };
+  const controls = () => document.getElementById("jobsFilterControls");
+  const icon = () => document.getElementById("btnJobsFilter");
+  const groupButton = () => document.getElementById("btnJobsNewGroup");
+  const popover = () => document.getElementById("jobsFilterPopover");
+  return { ctx, body, heads, headName, headMeta, benchStrips, cardNames, opened, windowHandlers,
+    controls, icon, groupButton, popover, elements: ids, render: () => ctx.renderJobsScreen() };
 }
 
 const roster = () => [
@@ -88,7 +110,7 @@ test("控え: 人間とモンスターが別の行に並び、どちらも控え
 test("控え: ジョブ・種族と★で絞り込み、件数は「表示/全体」で示す。並び順も変えられる", () => {
   const x = setup(roster());
   x.render();
-  const selects = () => all(x.body).filter((e) => e.tagName === "select");
+  const selects = () => all(x.controls()).filter((e) => e.tagName === "select");
   selects()[0].change("j:warrior");
   let [humans, monsters] = x.benchStrips();
   assert.deepEqual(x.cardNames(humans), ["ヒト・せんし"]);
@@ -99,17 +121,23 @@ test("控え: ジョブ・種族と★で絞り込み、件数は「表示/全�
   selects()[1].change("level");
   [humans, monsters] = x.benchStrips();
   assert.deepEqual(x.cardNames(monsters), ["オオカミ・オオカミ", "スライム・スライム"]);
-  const fav = all(x.body).find((e) => e.tagName === "button" && e.textContent === "★のみ");
+  const fav = all(x.controls()).find((e) => e.tagName === "button" && e.textContent === "★のみ");
   fav.click();
   [humans, monsters] = x.benchStrips();
   assert.deepEqual(x.cardNames(humans), ["ヒト・まほう"]);
   assert.deepEqual(x.cardNames(monsters), []);
 });
 
-test("控えが1人以下なら絞り込みバーは出さない", () => {
+test("控えが1人以下でも画面右上のフィルターから開け、一覧の途中には表示しない", () => {
   const x = setup(roster().slice(0, 2));
   x.render();
   assert.equal(all(x.body).some((e) => e.className === "list-filter-bar"), false);
+  assert.equal(all(x.controls()).some((e) => e.className === "list-filter-bar"), true);
+  x.icon().click();
+  assert.equal(x.icon().attrs["aria-expanded"], "true");
+  assert.equal(x.popover().attrs["aria-hidden"], "false");
+  x.elements.btnJobsFilterClose.click();
+  assert.equal(x.icon().attrs["aria-expanded"], "false");
 });
 
 test("モンスターの個体値S〜Dで名前色のクラスが切り替わり、人間・旧データは着色しない", () => {
@@ -160,7 +188,7 @@ test("控えの個体値フィルターはS〜D・未評価を選べ、人間を
   ];
   const x = setup(characters);
   x.render();
-  const selects = () => all(x.body).filter((e) => e.tagName === "select");
+  const selects = () => all(x.controls()).filter((e) => e.tagName === "select");
   assert.equal(selects().length, 3, "ジョブ・種族、並び順、モンスター個体値");
   for (const [rank] of ranks) {
     selects()[2].change(rank);
@@ -173,20 +201,20 @@ test("控えの個体値フィルターはS〜D・未評価を選べ、人間を
   selects()[2].change("unrated");
   assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["スライム・スライム"]);
   selects()[2].change("S");
-  const fav = all(x.body).find((e) => e.tagName === "button" && e.textContent === "★のみ");
+  const fav = all(x.controls()).find((e) => e.tagName === "button" && e.textContent === "★のみ");
   fav.click();
   assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["スライム・スライム・個体値S"]);
   selects()[0].change("j:warrior");
   assert.deepEqual(x.cardNames(x.benchStrips()[0]), [], "人間の職を選ぶと個体値条件を解除（★のみは維持）");
   const ivSelect = selects()[2];
   assert.equal(ivSelect.value, "all");
-  assert.equal(all(x.body).some((e) => e.tagName === "button" && e.textContent === "★のみ"), true);
+  assert.equal(all(x.controls()).some((e) => e.tagName === "button" && e.textContent === "★のみ"), true);
 });
 
 test("控えにモンスターがいない場合は個体値プルダウンを出さない", () => {
   const x = setup(roster().filter((c) => !c.isMonster));
   x.render();
-  assert.equal(all(x.body).filter((e) => e.tagName === "select").length, 2);
+  assert.equal(all(x.controls()).filter((e) => e.tagName === "select").length, 2);
 });
 
 
@@ -226,11 +254,62 @@ test("控えのカードはフィルター適用後の表示順だけを詳細�
   ];
   const x = setup(characters);
   x.render();
-  const select = all(x.body).filter((el) => el.tagName === "select");
+  const select = all(x.controls()).filter((el) => el.tagName === "select");
   select[1].change("level");
   const monsterStrip = x.benchStrips()[1];
   monsterStrip.children[0].listeners.click({ detail: 0 });
   assert.equal(x.opened[0].c.id, "c3");
   assert.deepEqual(Array.from(x.opened[0].opts.orderIds), ["c3", "c2"]);
   assert.equal(x.opened[0].opts.orderLabel, "控え（モンスター）");
+});
+
+
+test("固定ヘッダーの絞り込みを開閉し、条件を保持したまま一覧スクロール位置を維持", () => {
+  const x = setup(roster());
+  x.render();
+  assert.equal(all(x.body).some((e) => e.className === "list-filter-bar"), false);
+  x.icon().click();
+  assert.equal(x.icon().attrs["aria-expanded"], "true");
+  const select = all(x.controls()).filter((e) => e.tagName === "select");
+  x.body.scrollTop = 420;
+  select[0].change("m:slime");
+  assert.equal(x.body.scrollTop, 420);
+  assert.ok(x.icon().className.includes("active"), "条件ありの場合は金色の適用中マークを表示");
+  assert.equal(x.icon().attrs["aria-expanded"], "true", "条件変更時にパネルは閉じない");
+  x.elements.btnJobsFilterClose.click();
+  assert.equal(x.icon().attrs["aria-expanded"], "false");
+  assert.ok(x.icon().className.includes("active"), "パネルを閉じても条件を保持");
+  x.icon().click();
+  x.elements.btnJobsFilterReset.click();
+  assert.equal(x.body.scrollTop, 420);
+  assert.ok(!x.icon().className.includes("active"));
+  assert.equal(all(x.controls()).filter((e) => e.tagName === "select")[0].value, "all");
+});
+
+test("フォルダ＋ボタンが既存のグループ作成モーダルを呼び、上限到達で無効になる", () => {
+  const x = setup(roster());
+  x.render();
+  assert.equal(all(x.body).some((e) => e.className === "group-add"), false);
+  assert.equal(x.groupButton().disabled, false);
+  x.icon().click();
+  x.groupButton().click();
+  assert.equal(x.icon().attrs["aria-expanded"], "false", "新しいグループ作成時はフィルターを閉じる");
+  assert.equal(x.elements.groupModalTitle.textContent, "新しいグループ");
+  assert.equal(x.elements.groupNameInput.focused, true);
+  x.ctx.S.groups.push(...Array.from({ length: 8 }, (_, i) => ({ id: "g" + (i + 1), name: "G" + i })));
+  x.render();
+  assert.equal(x.groupButton().disabled, true);
+});
+
+test("固定操作ボタンはスクロール領域の外、フィルターは右上のパネル内に置く", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  const jobs = html.slice(html.indexOf('<section id="screen-jobs"'), html.indexOf("<!-- 所持品一覧画面 -->"));
+  assert.match(jobs, /id="btnJobsFilter"/);
+  assert.match(jobs, /id="btnJobsNewGroup"/);
+  assert.ok(jobs.indexOf('id="btnJobsFilter"') < jobs.indexOf('id="rosterBody"'));
+  assert.ok(jobs.indexOf('id="btnJobsNewGroup"') < jobs.indexOf('id="rosterBody"'));
+  assert.match(css, /\.jobs-filter-popover\.hidden \{ display: none; \}/);
+  assert.match(html, /js\/ui\/party\.js\?v=13/);
+  assert.match(html, /css\/style\.css\?v=79/);
 });
