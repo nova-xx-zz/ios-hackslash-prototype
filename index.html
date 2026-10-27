@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=78">
+<link rel="stylesheet" href="css/style.css?v=79">
 <link rel="stylesheet" href="css/create-unified.css?v=1">
 </head>
 <body>
@@ -203,9 +203,29 @@
   <!-- パーティ編成画面 -->
   <section id="screen-jobs" class="screen hidden">
     <div class="roster-wrap">
-      <div class="roster-header">
+      <div class="roster-header jobs-roster-header">
         <div class="map-title">パーティを編成する</div>
-        <button class="btn small ghost" id="btnJobsDone">もどる</button>
+        <div class="jobs-header-actions">
+          <button type="button" class="jobs-action-icon" id="btnJobsFilter"
+            aria-label="控えを絞り込む" aria-controls="jobsFilterPopover" aria-expanded="false" title="控えを絞り込む">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3 2v-7z"/></svg>
+            <span class="jobs-action-dot" aria-hidden="true"></span>
+          </button>
+          <button type="button" class="jobs-action-icon" id="btnJobsNewGroup"
+            aria-label="新しいグループを作る" title="新しいグループを作る">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2M3 9h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v6m-3-3h6"/></svg>
+          </button>
+          <button class="btn small ghost jobs-back" id="btnJobsDone">もどる</button>
+        </div>
+      </div>
+      <div id="jobsFilterPopover" class="jobs-filter-popover hidden" role="dialog"
+        aria-label="控えの絞り込み" aria-hidden="true">
+        <div class="jobs-filter-heading">
+          <span>控えの絞り込み・並び替え</span>
+          <button type="button" class="jobs-filter-reset" id="btnJobsFilterReset">条件をクリア</button>
+          <button type="button" class="jobs-filter-close" id="btnJobsFilterClose" aria-label="絞り込みを閉じる">×</button>
+        </div>
+        <div id="jobsFilterControls"></div>
       </div>
       <div id="rosterBody" class="roster-body"></div>
       <div class="roster-footer">
@@ -547,7 +567,7 @@
 <script src="js/ui/settings.js?v=5"></script>
 <script src="js/ui/debug.js?v=9"></script>
 <script src="js/ui/list-controls.js?v=1"></script>
-<script src="js/ui/party.js?v=12"></script>
+<script src="js/ui/party.js?v=13"></script>
 <script src="js/ui/create.js?v=10"></script>
 <script src="js/ui/detail.js?v=9"></script>
 <script src="js/ui/detail-tree.js?v=13"></script>
