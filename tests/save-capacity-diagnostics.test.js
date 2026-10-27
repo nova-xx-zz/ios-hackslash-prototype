@@ -73,7 +73,7 @@ test("画面の診断ボタンで容量の概算とクラウド制限を表示�
  await vm.runInContext("inspectCurrentSaveStorage()",ctx);
  const out=element("saveStorageDiagnosticsResult").textContent;
  assert.match(out,/2,500件/);
- assert.match(out,/バックアップ不可/);
+ assert.match(out,/新方式のサイズ上限内/);
  assert.match(out,/2.10 MiB/);
  assert.match(out,/利用候補あり/);
  assert.equal(writes.length,0);
@@ -101,10 +101,10 @@ test("クラウド送信判定と設定画面が共通の定数を使い、ス�
  const cloud=fs.readFileSync(path.join(__dirname,"../js/cloud.js"),"utf8");
  const idx=html.indexOf('js/core/save-diagnostics.js?v=1');
  assert.ok(idx>=0);
- assert.ok(idx<html.indexOf('js/cloud.js?v=5'));
- assert.ok(idx<html.indexOf('js/ui/settings.js?v=5'));
- assert.match(cloud,/root\.QPCore\.saveDiagnostics/);
- assert.match(cloud,/saveDiagnostics\.cloudAccepts\(item\.json\)/);
+ assert.ok(idx<html.indexOf('js/cloud.js?v=6'));
+ assert.ok(idx<html.indexOf('js/ui/settings.js?v=6'));
+ assert.match(cloud,/root\.QPCore\.backupHistory/);
+ assert.match(cloud,/request\(entry\.id,"POST"/);
  assert.match(html,/id="btnSaveStorageDiagnostics"/);
  assert.match(html,/id="saveStorageDiagnosticsResult"/);
 });
