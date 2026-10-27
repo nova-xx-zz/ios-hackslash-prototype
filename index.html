@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=80">
+<link rel="stylesheet" href="css/style.css?v=81">
 <link rel="stylesheet" href="css/create-unified.css?v=1">
 </head>
 <body>
@@ -184,11 +184,26 @@
   </section>
   <section id="screen-enhance" class="screen hidden">
     <div class="roster-wrap">
-      <div class="roster-header">
+      <div class="roster-header jobs-roster-header">
         <div class="map-title">装備強化</div>
-        <button class="btn small ghost" id="btnEnhanceListBack">もどる</button>
+        <div class="jobs-header-actions">
+          <button type="button" class="jobs-action-icon" id="btnEnhanceFilter"
+            aria-label="装備強化を絞り込む" aria-controls="enhanceFilterPopover" aria-expanded="false" title="装備強化を絞り込む">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3 2v-7z"/></svg>
+            <span class="jobs-action-dot" aria-hidden="true"></span>
+          </button>
+          <button class="btn small ghost jobs-back" id="btnEnhanceListBack">もどる</button>
+        </div>
       </div>
-      <div class="inventory-filter-row" id="enhanceFilterRow"></div>
+      <div id="enhanceFilterPopover" class="jobs-filter-popover hidden" role="dialog"
+        aria-label="装備強化の絞り込み" aria-hidden="true">
+        <div class="jobs-filter-heading">
+          <span>装備強化の絞り込み・並び順</span>
+          <button type="button" class="jobs-filter-reset" id="btnEnhanceFilterReset">条件をクリア</button>
+          <button type="button" class="jobs-filter-close" id="btnEnhanceFilterClose" aria-label="絞り込みを閉じる">×</button>
+        </div>
+        <div class="inventory-filter-row" id="enhanceFilterRow"></div>
+      </div>
       <div id="enhanceListBody" class="roster-body"></div>
     </div>
   </section>
@@ -253,15 +268,28 @@
   <!-- 所持品一覧画面 -->
   <section id="screen-inventory" class="screen hidden">
     <div class="roster-wrap">
-      <div class="roster-header">
-        <div class="map-title">所持品</div>
-        <div>
+      <div class="roster-header jobs-roster-header">
+        <div class="map-title" id="inventoryScreenTitle">所持品</div>
+        <div class="jobs-header-actions">
+          <button type="button" class="jobs-action-icon" id="btnInventoryFilter"
+            aria-label="所持品を絞り込む" aria-controls="inventoryFilterPopover" aria-expanded="false" title="所持品を絞り込む">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3 2v-7z"/></svg>
+            <span class="jobs-action-dot" aria-hidden="true"></span>
+          </button>
           <button class="btn small ghost" id="btnInventoryDisassemble">分解する</button>
-          <button class="btn small ghost" id="btnInventoryBack">もどる</button>
+          <button class="btn small ghost jobs-back" id="btnInventoryBack">もどる</button>
         </div>
       </div>
-      <div class="inventory-filter-row" id="inventoryFilterRow"></div>
-      <div class="inventory-manage-row" id="inventoryManageRow"></div>
+      <div id="inventoryFilterPopover" class="jobs-filter-popover hidden" role="dialog"
+        aria-label="所持品・装備分解の絞り込み" aria-hidden="true">
+        <div class="jobs-filter-heading">
+          <span>部位・表示・並び順</span>
+          <button type="button" class="jobs-filter-reset" id="btnInventoryFilterReset">条件をクリア</button>
+          <button type="button" class="jobs-filter-close" id="btnInventoryFilterClose" aria-label="絞り込みを閉じる">×</button>
+        </div>
+        <div class="inventory-filter-row" id="inventoryFilterRow"></div>
+        <div class="inventory-manage-row" id="inventoryManageRow"></div>
+      </div>
       <div class="inventory-bulk-row hidden" id="inventoryBulkRow"></div>
       <div class="dex-count" id="inventoryCount"></div>
       <p class="inventory-message hidden" id="inventoryMessage"></p>
@@ -588,7 +616,7 @@
 <script src="js/ui/detail.js?v=9"></script>
 <script src="js/ui/detail-tree.js?v=13"></script>
 <script src="js/ui/detail-tabs.js?v=14"></script>
-<script src="js/ui/inventory.js?v=25"></script>
+<script src="js/ui/inventory.js?v=26"></script>
 <script src="js/ui/battle.js?v=8"></script>
 <script src="js/ui/log.js?v=4"></script>
 <script src="js/ui/dock.js?v=18"></script>
@@ -597,7 +625,7 @@
 <script src="js/ui/book.js?v=10"></script>
 <script src="js/ui/notify.js?v=1"></script>
 <script src="js/ui/shop.js?v=8"></script>
-<script src="js/ui/menu.js?v=6"></script>
+<script src="js/ui/menu.js?v=7"></script>
 <!-- FORGE-TRIAL-UI-START -->
 <script src="js/ui/forge-trial.js?v=8"></script>
 <!-- FORGE-TRIAL-UI-END -->

@@ -25,6 +25,45 @@ let bulkIncludeNormal = true; // 普通（呪いでも貴重でもない）。�
 const bulkSelectable = (item) => inventoryOrganize.isBulkSelectable(item, bulkIncludeValuable, bulkIncludeCursed, bulkIncludeNormal);
 
 let inventoryReturnScreen = "screen-jobs"; // 「もどる」の戻り先（編成メニューから開いた時は screen-menu）
+let inventoryFilterOpen = false;
+function setInventoryFilterOpen(open) {
+  inventoryFilterOpen = !!open;
+  const panel = document.getElementById("inventoryFilterPopover");
+  panel.classList.toggle("hidden", !inventoryFilterOpen);
+  panel.setAttribute("aria-hidden", inventoryFilterOpen ? "false" : "true");
+  document.getElementById("btnInventoryFilter").setAttribute("aria-expanded", inventoryFilterOpen ? "true" : "false");
+}
+function refreshInventoryFilterIndicator() {
+  const active = inventoryFilterSlot !== "all" || inventoryQualityView !== "all" || inventorySortMode !== "rarity";
+  const btn = document.getElementById("btnInventoryFilter");
+  btn.classList.toggle("active", active);
+  const label = disassembleMode ? "装備分解を絞り込む" : "所持品を絞り込む";
+  btn.setAttribute("aria-label", active ? label + "（条件適用中）" : label);
+  document.getElementById("inventoryScreenTitle").textContent = disassembleMode ? "装備分解" : "所持品";
+}
+document.getElementById("btnInventoryFilter").addEventListener("click", () => setInventoryFilterOpen(!inventoryFilterOpen));
+document.getElementById("btnInventoryFilterClose").addEventListener("click", () => setInventoryFilterOpen(false));
+document.getElementById("btnInventoryFilterReset").addEventListener("click", () => {
+  inventoryFilterSlot = "all";
+  inventoryQualityView = "all";
+  inventorySortMode = "rarity";
+  inventoryVisibleLimit = 80;
+  disassembleConfirming = false; // 取り消せない操作の確認状態を必ず解除
+  document.getElementById("inventoryBody").scrollTop = 0;
+  renderInventoryScreen(); // 選択中のアイテムは維持する
+});
+// DOMモックしか持たない周辺機能の単体テストとも互換性を維持する。
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("pointerdown", (event) => {
+    if (!inventoryFilterOpen) return;
+    const panel = document.getElementById("inventoryFilterPopover");
+    const trigger = document.getElementById("btnInventoryFilter");
+    if (!panel.contains(event.target) && !trigger.contains(event.target)) setInventoryFilterOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (inventoryFilterOpen && event.key === "Escape") setInventoryFilterOpen(false);
+  });
+}
 // opts: { disassemble（分解する装備を選ぶ状態で開く）, returnScreen }
 function openInventoryScreen(opts) {
   opts = opts || {};
@@ -35,6 +74,7 @@ function openInventoryScreen(opts) {
   inventoryVisibleLimit = 80;
   exitDisassembleMode();
   if (opts.disassemble) disassembleMode = true;
+  setInventoryFilterOpen(false);
   showInventoryMessage("");
   renderInventoryScreen();
   showScreen("screen-inventory");
@@ -194,6 +234,7 @@ function renderInventoryScreen() {
   }
 
   renderInventoryManageControls();
+  refreshInventoryFilterIndicator();
   const shownItems = shownInventoryItems();
   const totalCount = S.inventory.length + S.skillBooks.length;
   const includesBooks = inventoryFilterSlot === "skillBook" || (inventoryFilterSlot === "all" && inventoryQualityView === "all");
@@ -363,12 +404,14 @@ function buildInventorySkillBookRow(book) {
 }
 
 document.getElementById("btnInventoryBack").addEventListener("click", () => {
+  setInventoryFilterOpen(false);
   exitDisassembleMode();
   if (inventoryReturnScreen === "screen-menu") { openPartyMenu(); return; }
   renderJobsScreen();
   showScreen("screen-jobs");
 });
 document.getElementById("btnInventoryDisassemble").addEventListener("click", () => {
+  setInventoryFilterOpen(false);
   disassembleMode = true;
   disassembleSelection = new Set();
   disassembleConfirming = false;
@@ -376,6 +419,7 @@ document.getElementById("btnInventoryDisassemble").addEventListener("click", () 
   renderInventoryScreen();
 });
 document.getElementById("btnDisassembleCancel").addEventListener("click", () => {
+  setInventoryFilterOpen(false);
   exitDisassembleMode();
   renderInventoryScreen();
 });

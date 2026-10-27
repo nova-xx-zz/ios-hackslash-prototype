@@ -579,8 +579,8 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 }
 .roster-header { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 8px; gap: 8px; }
 /* 編成・仲間と別れる: スクロール領域外に固定した右上フィルター操作 */
-#screen-jobs .jobs-roster-header, #screen-farewell .jobs-roster-header { flex: 0 0 auto; gap: 6px; }
-#screen-jobs .jobs-roster-header .map-title, #screen-farewell .jobs-roster-header .map-title {
+#screen-jobs .jobs-roster-header, #screen-farewell .jobs-roster-header, #screen-enhance .jobs-roster-header, #screen-inventory .jobs-roster-header { flex: 0 0 auto; gap: 6px; }
+#screen-jobs .jobs-roster-header .map-title, #screen-farewell .jobs-roster-header .map-title, #screen-enhance .jobs-roster-header .map-title, #screen-inventory .jobs-roster-header .map-title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .jobs-header-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
@@ -601,7 +601,7 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 }
 .jobs-action-icon.active .jobs-action-dot { display: block; }
 .jobs-action-icon:disabled { opacity: .35; cursor: default; }
-#screen-jobs .jobs-back, #screen-farewell .jobs-back { margin: 0; padding: 8px 11px; min-height: 38px; white-space: nowrap; }
+#screen-jobs .jobs-back, #screen-farewell .jobs-back, #screen-enhance .jobs-back, #screen-inventory .jobs-back { margin: 0; padding: 8px 11px; min-height: 38px; white-space: nowrap; }
 .jobs-filter-popover {
   position: absolute; top: 55px; right: 10px; z-index: 22;
   width: min(350px, calc(100% - 20px)); max-height: min(65vh, calc(100% - 105px));
@@ -620,11 +620,20 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 .jobs-filter-heading .jobs-filter-close { font-size: 17px; line-height: 1; min-width: 30px; min-height: 28px; }
 .jobs-filter-popover .list-filter-bar { padding: 0; margin: 0; border: none; }
 .jobs-filter-popover .list-filter-line { padding-bottom: 6px; }
+.jobs-filter-popover .inventory-filter-row { padding: 4px 0 8px; }
+.jobs-filter-popover .inventory-manage-row { padding: 6px 0 0; margin-bottom: 0; }
+#screen-inventory #btnInventoryDisassemble {
+  margin: 0; padding: 8px 10px; min-height: 38px; white-space: nowrap; font-size: 12px;
+}
+@media (max-width: 355px) {
+  #screen-inventory #btnInventoryDisassemble { min-height: 34px; padding: 6px 7px; }
+}
+
 @media (max-width: 355px) {
   .jobs-header-actions { gap: 4px; }
   .jobs-action-icon { width: 34px; height: 34px; flex-basis: 34px; padding: 6px; }
-  #screen-jobs .jobs-back, #screen-farewell .jobs-back { min-height: 34px; padding: 6px 8px; }
-  #screen-jobs .jobs-roster-header .map-title, #screen-farewell .jobs-roster-header .map-title { font-size: 13px; }
+  #screen-jobs .jobs-back, #screen-farewell .jobs-back, #screen-enhance .jobs-back, #screen-inventory .jobs-back { min-height: 34px; padding: 6px 8px; }
+  #screen-jobs .jobs-roster-header .map-title, #screen-farewell .jobs-roster-header .map-title, #screen-enhance .jobs-roster-header .map-title, #screen-inventory .jobs-roster-header .map-title { font-size: 13px; }
 }
 .roster-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 /* 編成画面の一覧はスクロールバーを出さない（指で送る。ドラッグ中は端に近づけると自動でスクロールする） */

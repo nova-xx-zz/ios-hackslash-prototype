@@ -306,8 +306,47 @@ const ENHANCE_LIST_VIEWS = [
   ["all", "すべて"], ["valuable", "保護・貴重"], ["enhanced", "強化済み"], ["unenhanced", "未強化"], ["locked", "ロック"],
 ];
 const ENHANCE_LIST_SORTS = [["rarity", "レア度"], ["plus", "強化値"], ["power", "能力"]];
+let enhanceFilterOpen = false;
+
+function setEnhanceFilterOpen(open) {
+  enhanceFilterOpen = !!open;
+  const panel = document.getElementById("enhanceFilterPopover");
+  panel.classList.toggle("hidden", !enhanceFilterOpen);
+  panel.setAttribute("aria-hidden", enhanceFilterOpen ? "false" : "true");
+  document.getElementById("btnEnhanceFilter").setAttribute("aria-expanded", enhanceFilterOpen ? "true" : "false");
+}
+function refreshEnhanceFilterIndicator() {
+  const active = enhanceListFilter !== "equipped" || enhanceListSlot !== "all" ||
+    enhanceListView !== "all" || enhanceListSort !== "rarity" ||
+    (enhanceListFilter === "equipped" && enhanceListGroup !== "slot");
+  const btn = document.getElementById("btnEnhanceFilter");
+  btn.classList.toggle("active", active);
+  btn.setAttribute("aria-label", active ? "装備強化を絞り込む（条件適用中）" : "装備強化を絞り込む");
+}
+document.getElementById("btnEnhanceFilter").addEventListener("click", () => setEnhanceFilterOpen(!enhanceFilterOpen));
+document.getElementById("btnEnhanceFilterClose").addEventListener("click", () => setEnhanceFilterOpen(false));
+document.getElementById("btnEnhanceFilterReset").addEventListener("click", () => {
+  enhanceListFilter = "equipped";
+  enhanceListSlot = "all";
+  enhanceListView = "all";
+  enhanceListSort = "rarity";
+  enhanceListGroup = "slot";
+  enhanceListLimit = ENHANCE_LIST_PAGE;
+  document.getElementById("enhanceListBody").scrollTop = 0;
+  renderEnhanceList();
+});
+document.addEventListener("pointerdown", (event) => {
+  if (!enhanceFilterOpen) return;
+  const panel = document.getElementById("enhanceFilterPopover");
+  const trigger = document.getElementById("btnEnhanceFilter");
+  if (!panel.contains(event.target) && !trigger.contains(event.target)) setEnhanceFilterOpen(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (enhanceFilterOpen && event.key === "Escape") setEnhanceFilterOpen(false);
+});
 
 function openEnhanceList() {
+  setEnhanceFilterOpen(false);
   enhanceListLimit = ENHANCE_LIST_PAGE;
   renderEnhanceList();
   showScreen("screen-enhance");
@@ -395,6 +434,7 @@ function renderEnhanceListControls() {
   selects.appendChild(buildFilterSelect("表示", ENHANCE_LIST_VIEWS, enhanceListView, change((v) => { enhanceListView = v; })));
   selects.appendChild(buildFilterSelect("並び順", ENHANCE_LIST_SORTS, enhanceListSort, change((v) => { enhanceListSort = v; })));
   filterRow.appendChild(selects);
+  refreshEnhanceFilterIndicator();
 }
 
 function renderEnhanceList() {
@@ -485,4 +525,7 @@ function buildEnhanceListRow({ item, owner, locked }) {
   row.appendChild(btn);
   return row;
 }
-document.getElementById("btnEnhanceListBack").addEventListener("click", () => openPartyMenu());
+document.getElementById("btnEnhanceListBack").addEventListener("click", () => {
+  setEnhanceFilterOpen(false);
+  openPartyMenu();
+});

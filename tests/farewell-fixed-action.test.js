@@ -261,7 +261,7 @@ test("仲間と別れる: フィルターは右上固定・一覧内には置か
   const section = html.slice(html.indexOf('id="screen-farewell"'), html.indexOf('id="screen-enhance"'));
   assert.ok(section.indexOf('id="btnFarewellFilter"') < section.indexOf('id="farewellBody"'));
   assert.ok(section.indexOf('id="farewellFilterPopover"') < section.indexOf('id="farewellBody"'));
-  assert.ok(html.includes('js/ui/menu.js?v=6'));
+  assert.ok(html.includes('js/ui/menu.js?v=7'));
 });
 
 test("仲間と別れる: フィルター変更・リセット・パネル外タップ・Escape と一覧スクロールの維持", () => {
