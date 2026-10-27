@@ -84,7 +84,7 @@ function harness(){
       inventory:Array.from({length:count},(_,i)=>({id:i,name:"大剣⚔️"})),autoRepeat:[]});
     root.saveGame();
   }
-  return{root,advance,flush,save,metrics,blobs,
+  return{root,advance,flush,save,metrics,blobs,jump:ms=>{now+=ms;},
     getEntries:()=>index?structuredClone(index.entries):[],
     setLegacy:data=>{legacy={data,savedAt:now};},
     failUpload:()=>{failUpload=true;},
@@ -98,9 +98,9 @@ test("端末セーブはそのまま、初回自動保存後24時間未満は書
   await h.root.QPCloud.start();h.save(1,4143);assert.equal(await h.root.QPCloud.autoBackup(),true,h.root.QPCloud.getState().error);await h.advance(0);
   assert.equal(h.metrics.uploads,1);
   assert.equal(h.getEntries()[0].kind,"auto");
-  await h.advance(DAY-1);h.save(2);await h.advance(0);
+  h.jump(DAY-1);h.save(2);await h.root.QPCloud.autoBackup();
   assert.equal(h.metrics.uploads,1);
-  await h.advance(1);await h.root.QPCloud.autoBackup();
+  h.jump(1);assert.equal(await h.root.QPCloud.autoBackup(),true);
   assert.equal(h.metrics.uploads,2);
   assert.equal(h.getEntries().length,2);
 });
@@ -114,7 +114,7 @@ test("手動5件・自動5件と履歴削除・選択復元が可能",async()=>{
   assert.equal((await h.root.QPCloud.fetchCloudSave(first.id)).json.includes('"progress":1'),true);
   await h.root.QPCloud.deleteBackup(h.getEntries().find(e=>e.kind==="manual").id);
   assert.equal(await h.root.QPCloud.backupNow(),true);
-  for(let i=0;i<5;i++){await h.advance(DAY);h.save(i+10);assert.equal(await h.root.QPCloud.autoBackup(),true);await h.advance(0);}
+  for(let i=0;i<5;i++){h.jump(DAY);h.save(i+10);assert.equal(await h.root.QPCloud.autoBackup(),true,h.root.QPCloud.getState().error);}
   assert.equal(h.getEntries().filter(e=>e.kind==="auto").length,5);
   assert.equal(h.getEntries().length,10);
 });
