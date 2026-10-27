@@ -136,7 +136,7 @@ test("本番のFirestore直接書込みは引き続き禁止・クラウドV2は
   assert.match(production,/allow read, write:\s*if false;/);
   assert.doesNotMatch(existingCloud,/cloudLargeBackup|saveSegments/);
   assert.ok(html.indexOf("js/core/save-mirror.js?v=1")<html.indexOf("js/core/save-segments.js?v=1"));
-  assert.ok(html.indexOf("js/core/cloud-large-backup.js?v=1")<html.indexOf("js/cloud.js?v=6"));
+  assert.ok(html.indexOf("js/core/cloud-large-backup.js?v=1")<html.indexOf("js/cloud.js?v=7"));
   assert.match(html,/id="btnSegmentedSaveCopy"/);
 });
 test("設定操作以外で分割コピーは始まらず、既存の端末セーブは上書きしない",async()=>{
