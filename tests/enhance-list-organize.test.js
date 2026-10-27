@@ -144,7 +144,7 @@ test("装備強化: 固定フィルターを開閉でき、選択条件と件数
   assert.equal(x.select("表示").value, "all");
   assert.equal(x.rowNames().length, 4, "既定は装備中の全アイテム");
   assert.ok(!x.ids.btnEnhanceFilter.className.includes("active"));
-  x.ids.btnEnhanceListBack.click();
+  x.ids.btnEnhanceFilterClose.click();
   assert.equal(x.ids.btnEnhanceFilter.attrs["aria-expanded"], "false");
 });
 
