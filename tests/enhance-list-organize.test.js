@@ -28,6 +28,7 @@ function setup({ inventoryCount = 0 } = {}) {
   const document = {
     getElementById: (id) => ids[id] || (ids[id] = new Element()),
     createElement: (t) => new Element(t),
+    addEventListener: () => {}, // 同じ menu.js 内の別画面がイベント登録するためのDOMモック
   };
   const mk = (id, over) => ({ id, name: id, slot: "weapon", rarity: "n", plus: 0, options: [], stats: { atk: 1 }, ...over });
   const alice = { id: "c1", name: "アリス", team: 0, equip: {
