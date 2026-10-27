@@ -1,0 +1,24 @@
+// Preview専用。正式版は認証サーバーAPIで管理するまで公開しない。
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    match /swordcrest-backups/{uid}/{backupId} {
+      // 同じ認証UIDの不変スナップショットのみ。広範囲list・上書きを禁止する。
+      allow get: if isOwner(uid);
+      allow list: if false;
+      allow create: if isOwner(uid)
+        && backupId.matches('^[a-f0-9-]{32,36}$')
+        && request.resource.size > 0
+        && request.resource.size <= 32 * 1024 * 1024
+        && request.resource.contentType == 'application/octet-stream';
+      allow update: if false;
+      allow delete: if isOwner(uid);
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

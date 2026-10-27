@@ -16,7 +16,7 @@
 <title>ソードクレスト</title>
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
-<link rel="stylesheet" href="css/style.css?v=82">
+<link rel="stylesheet" href="css/style.css?v=83">
 <link rel="stylesheet" href="css/create-unified.css?v=1">
 </head>
 <body>
@@ -88,24 +88,34 @@
             <span class="settings-label">数万件向けの分割保存検証</span>
             <button class="btn small ghost" id="btnSegmentedSaveCopy">分割コピーを検証</button>
           </div>
-          <p class="settings-note">端末セーブを最大192KiBずつに分けてIndexedDBへ検証コピーします。元の保存方法は変わりません。クラウドの大容量保存はサーバー認証基盤の整備後に有効化します。</p>
+          <p class="settings-note">端末セーブを最大192KiBずつに分けてIndexedDBへ検証コピーします。元の保存方法は変わりません。この検証コピーはCloud Storageのバックアップとは別機能です。</p>
           <p class="sub settings-message" id="segmentedSaveCopyResult" role="status" aria-live="polite">未実施</p>
         </div>
         <div class="settings-cloud">
           <div class="settings-row">
             <span class="settings-label">クラウドセーブ</span>
-            <span class="settings-value" id="cloudStatus">—</span>
+            <span class="settings-value" id="cloudStatus">準備中（通信停止）</span>
           </div>
           <div class="settings-row">
             <span class="settings-label">最終バックアップ</span>
             <span class="settings-value" id="cloudLastUpload">—</span>
           </div>
-          <p class="sub settings-note">進行は自動でクラウドにバックアップされます（1分おき・アプリを離れる時）。端末のデータが消えた時は「クラウドから復元」で戻せます。別の端末への引き継ぎは、今後アカウント連携で対応します。</p>
+          <p class="sub settings-note">端末の通常セーブは従来どおり継続します。クラウド機能は現在準備中で、Firebaseとの通信・保存・復元は停止しています。端末への通常セーブは継続します。提供開始後は自動24時間ごと、手動・自動それぞれ最大5件を予定しています。</p>
           <div class="settings-buttons">
-            <button class="btn small ghost" id="btnCloudBackup">今すぐバックアップ</button>
-            <button class="btn small ghost" id="btnCloudRestore">クラウドから復元</button>
+            <button class="btn small ghost" id="btnCloudBackup" disabled>今すぐバックアップ</button>
+            <button class="btn small ghost" id="btnCloudRestore" disabled>クラウドから復元</button>
           </div>
-          <p class="sub settings-message hidden" id="cloudMessage"></p>
+          <p class="sub settings-message" id="cloudMessage" role="status" aria-live="polite">クラウドバックアップは現在利用できません。端末への通常セーブは継続されます。</p>
+          <div class="settings-row">
+            <span class="settings-label">手動バックアップ（提供予定） <span id="cloudManualCount">（0/5）</span></span>
+          </div>
+          <div class="settings-backup-list" id="cloudManualList" aria-label="手動バックアップ一覧"><p class="settings-note">サービス開始後に表示します</p></div>
+          <div class="settings-row">
+            <span class="settings-label">自動バックアップ（提供予定） <span id="cloudAutoCount">（0/5）</span></span>
+            <button type="button" class="btn small ghost" id="btnCloudRefresh" disabled>履歴を更新</button>
+          </div>
+          <div class="settings-backup-list" id="cloudAutoList" aria-label="自動バックアップ一覧"><p class="settings-note">サービス開始後に表示します</p></div>
+          <p class="settings-note">提供開始後の仕様：自動は24時間ごとに最大5件、手動は最大5件。現在は保存・履歴取得・復元・削除を行いません。</p>
           <div class="settings-row">
             <span class="settings-label">ユーザーID</span>
             <span class="settings-value settings-uid" id="cloudUid">—</span>
@@ -564,6 +574,7 @@
 <script src="js/core/save-diagnostics.js?v=1"></script>
 <script src="js/core/save-mirror.js?v=1"></script>
 <script src="js/core/save-segments.js?v=1"></script>
+<script src="js/core/backup-history.js?v=1"></script>
 <script src="js/core/cloud-large-backup.js?v=1"></script>
 <script src="js/core/rng.js?v=3"></script>
 <script src="js/core/dungeon-trial.js?v=5"></script>
@@ -595,7 +606,7 @@
 <script src="js/model/inventory.js?v=18"></script>
 <script src="js/model/run.js?v=16"></script>
 <script src="js/firebase-config.js?v=1"></script>
-<script src="js/cloud.js?v=5"></script>
+<script src="js/cloud.js?v=7"></script>
 <script src="js/data.js?v=38"></script>
 <script src="js/uniques.js?v=4"></script>
 <script src="js/options.js?v=2"></script>
@@ -608,7 +619,7 @@
 <script src="js/ui/title-map.js?v=16"></script>
 <script src="js/contact-config.js?v=1"></script>
 <script src="js/ui/contact.js?v=1"></script>
-<script src="js/ui/settings.js?v=5"></script>
+<script src="js/ui/settings.js?v=7"></script>
 <script src="js/ui/debug.js?v=9"></script>
 <script src="js/ui/list-controls.js?v=1"></script>
 <script src="js/ui/party.js?v=14"></script>

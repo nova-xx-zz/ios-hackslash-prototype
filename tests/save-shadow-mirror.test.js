@@ -95,7 +95,7 @@ test("HTMLロード順と任意操作のみに限定し、自動移行/既存キ
   const html = fs.readFileSync(require("node:path").join(__dirname, "../index.html"), "utf8");
   const ui = fs.readFileSync(require("node:path").join(__dirname, "../js/ui/settings.js"), "utf8");
   assert.ok(html.indexOf("js/core/save-mirror.js?v=1") >= 0);
-  assert.ok(html.indexOf("js/core/save-mirror.js?v=1") < html.indexOf("js/ui/settings.js?v=5"));
+  assert.ok(html.indexOf("js/core/save-mirror.js?v=1") < html.indexOf("js/ui/settings.js?v=7"));
   assert.match(html, /id="btnSaveShadowCopy"/);
   assert.match(ui, /copyVerified/);
   assert.doesNotMatch(ui, /store\.remove\(KEYS\.save/);
