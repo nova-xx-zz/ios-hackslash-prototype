@@ -12,6 +12,7 @@ assert.ok(start >= 0 && end > start, "仲間と別れる画面の実装が存在
 const implementation = source.slice(start, end);
 const listControls = fs.readFileSync(path.join(__dirname, "../js/ui/list-controls.js"), "utf8");
 const RosterOrganize = require("../js/core/roster-organize.js");
+const Stats = require("../js/core/stats.js");
 
 class Element {
   constructor(tag = "div") {
@@ -62,7 +63,7 @@ function setup(candidateCount = 24, extra = []) {
   const context = vm.createContext({
     document, RACES: { human: { name: "人間" }, slime: { name: "スライム" }, wolf: { name: "オオカミ" } },
     jobDef: (c) => ({ name: c.isMonster ? c.race : (c.job || "戦士") }),
-    QPCore: { rosterOrganize: RosterOrganize },
+    QPCore: { rosterOrganize: RosterOrganize, stats: Stats },
     Inventory: {
       releaseCandidates: () => alive.filter((c) => c.team === null && !c.favorite),
       releaseMembers: (chosen) => {
@@ -203,4 +204,25 @@ test("仲間と別れる: 表示中をまとめて選び、絞り込みで隠れ
   x.getButton().click();
   assert.equal(x.calls.length, 1);
   assert.equal(x.calls[0].map((c) => c.id).sort().join(","), "c90,c91");
+});
+
+
+test("仲間と別れるでも個体値Sを抽出でき、人間切替で条件解除する", () => {
+  const ivs = (v) => Object.fromEntries(Stats.IV_KEYS.map((k) => [k, v]));
+  const x = setup(2, [
+    { ...mon("c90", "slime", 3), ivs: ivs(1.05) },
+    { ...mon("c91", "slime", 6), ivs: ivs(1) },
+    mon("c92", "wolf", 8),
+  ]);
+  x.open();
+  const selects = () => find(x.elements.farewellBody, (n) => n.tagName === "select");
+  assert.equal(selects().length, 3);
+  selects()[2].change("S");
+  assert.deepEqual(x.rows().map((r) => r.children[0].textContent.split("（")[0]), ["slimec90"]);
+  assert.deepEqual(find(x.elements.farewellBody, (n) => n.className === "roster-section").map((n) => n.textContent), ["モンスター（1人）"]);
+  assert.equal(x.elements.farewellBody.children[2].children[0].textContent, "条件一致 1人／候補 5人");
+  const human = find(x.elements.farewellBody, (n) => n.tagName === "button" && n.textContent === "人間")[0];
+  human.click();
+  assert.equal(selects().length, 2, "人間だけなら個体値フィルターは非表示");
+  assert.equal(x.rows().length, 2);
 });
