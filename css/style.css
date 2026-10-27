@@ -578,6 +578,54 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
   padding: 10px;
 }
 .roster-header { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 8px; gap: 8px; }
+/* パーティ編成: スクロール対象の外に固定された右上ショートカット */
+#screen-jobs .jobs-roster-header { flex: 0 0 auto; gap: 6px; }
+#screen-jobs .jobs-roster-header .map-title {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.jobs-header-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.jobs-action-icon {
+  position: relative; display: grid; place-items: center; flex: 0 0 38px;
+  width: 38px; height: 38px; padding: 8px; border: 1px solid rgba(201,164,99,.5);
+  border-radius: 10px; background: rgba(16,29,36,.88); color: #dbc18a;
+  cursor: pointer;
+}
+.jobs-action-icon svg { width: 21px; height: 21px; }
+.jobs-action-icon:focus-visible, .jobs-filter-heading button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+.jobs-action-icon.active { background: rgba(201,164,99,.2); border-color: var(--accent); }
+.jobs-action-dot {
+  display: none; position: absolute; right: 5px; top: 5px;
+  width: 6px; height: 6px; border-radius: 50%; background: #f2c14e;
+}
+.jobs-action-icon.active .jobs-action-dot { display: block; }
+.jobs-action-icon:disabled { opacity: .35; cursor: default; }
+#screen-jobs .jobs-back { margin: 0; padding: 8px 11px; min-height: 38px; white-space: nowrap; }
+.jobs-filter-popover {
+  position: absolute; top: 55px; right: 10px; z-index: 22;
+  width: min(350px, calc(100% - 20px)); max-height: min(65vh, calc(100% - 105px));
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 10px 12px 8px; border: 1px solid rgba(201,164,99,.65); border-radius: 12px;
+  background: rgba(9,20,27,.97); box-shadow: 0 12px 32px rgba(0,0,0,.6);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.jobs-filter-popover.hidden { display: none; }
+.jobs-filter-heading { display: flex; align-items: center; gap: 6px; color: #e5d1aa; font-weight: 700; font-size: 12px; padding-bottom: 7px; }
+.jobs-filter-heading > span { flex: 1 1 auto; min-width: 0; }
+.jobs-filter-heading button {
+  border: 1px solid var(--border); border-radius: 7px; color: var(--sub-text);
+  background: rgba(255,255,255,.05); cursor: pointer; font-size: 11px; padding: 6px 7px;
+}
+.jobs-filter-heading .jobs-filter-close { font-size: 17px; line-height: 1; min-width: 30px; min-height: 28px; }
+.jobs-filter-popover .list-filter-bar { padding: 0; margin: 0; border: none; }
+.jobs-filter-popover .list-filter-line { padding-bottom: 6px; }
+@media (max-width: 355px) {
+  .jobs-header-actions { gap: 4px; }
+  .jobs-action-icon { width: 34px; height: 34px; flex-basis: 34px; padding: 6px; }
+  #screen-jobs .jobs-back { min-height: 34px; padding: 6px 8px; }
+  #screen-jobs .jobs-roster-header .map-title { font-size: 13px; }
+}
 .roster-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 /* 編成画面の一覧はスクロールバーを出さない（指で送る。ドラッグ中は端に近づけると自動でスクロールする） */
 #rosterBody { scrollbar-width: none; }
