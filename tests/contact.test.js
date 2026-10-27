@@ -54,6 +54,6 @@ test("設定・探索画面にリンクがあり、設定用スクリプトがUI
   assert.match(html, /id="contactExploreLink"/);
   const cfg = html.indexOf('src="js/contact-config.js?v=1"');
   const ui = html.indexOf('src="js/ui/contact.js?v=1"');
-  const settings = html.indexOf('src="js/ui/settings.js?v=5"');
+  const settings = html.indexOf('src="js/ui/settings.js?v=6"');
   assert.ok(cfg >= 0 && ui > cfg && settings > ui);
 });
