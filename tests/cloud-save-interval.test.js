@@ -3,7 +3,12 @@ const test=require("node:test"),assert=require("node:assert/strict");
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const crypto=require("node:crypto").webcrypto;
 const history=require("../js/core/backup-history.js");
-const source=fs.readFileSync(path.join(__dirname,"../js/cloud.js"),"utf8");
+const shippedSource=fs.readFileSync(path.join(__dirname,"../js/cloud.js"),"utf8");
+// 実際に配信する版では常に無効。下の保存ロジックの単体テストのみメモリ内でONにする。
+// URLパラメータ等では切替えず、Firebaseへの実ネットワークアクセスもしない。
+assert.match(shippedSource,/const CLOUD_BACKUP_ENABLED = false;/);
+const source=shippedSource.replace("const CLOUD_BACKUP_ENABLED = false;",
+  "const CLOUD_BACKUP_ENABLED = true;");
 const DAY=24*60*60*1000;
 function harness(){
   let now=1_800_000_000_000,serial=0,failUpload=false,failIndex=false;
@@ -135,4 +140,31 @@ test("旧Firestoreは復元専用で利用でき、ローカルを消さない",
   const old=await h.root.QPCloud.fetchCloudSave();
   assert.equal(JSON.parse(old.json).roster[0].id,"old");
   assert.equal(h.metrics.uploads,0);
+});
+
+test("公開版はクラウド通信を完全停止し、ローカル保存イベントを妨げない",async()=>{
+  const actions=[],timers=[],listeners={},documentListeners={};
+  const root={
+    QPCore:{storage:{isDebugMode:()=>false,isDungeonPilotMode:()=>false}},
+    QP_FIREBASE_CONFIG:{projectId:"billing-is-live"},
+    QPFirebase:new Proxy({}, {get(){throw new Error("Firebase touched");}}),
+    document:{addEventListener(type,fn){documentListeners[type]=fn;}},
+    addEventListener(type,fn){listeners[type]=fn;},
+    setTimeout(fn,ms){timers.push({fn,ms});},
+    fetch(){actions.push("network");throw new Error("network attempted");},
+  };
+  root.globalThis=root;
+  vm.runInNewContext(shippedSource,root,{filename:"js/cloud.js"});
+  assert.equal(root.QPCloud.getState().status,"disabled");
+  assert.equal(root.QPCloud.getState().enabled,false);
+  await root.QPCloud.start();
+  assert.equal(await root.QPCloud.backupNow(),false);
+  assert.equal(await root.QPCloud.autoBackup(),false);
+  await assert.rejects(root.QPCloud.fetchCloudSave(),/準備中/);
+  await assert.rejects(root.QPCloud.listBackups(),/準備中/);
+  await assert.rejects(root.QPCloud.deleteBackup("0".repeat(32)),/準備中/);
+  assert.equal(timers.length,0,"バックアップのタイマーは登録しない");
+  assert.equal(actions.length,0,"Firebaseを呼ばない");
+  assert.deepEqual(Object.keys(listeners),[],"セーブイベントに介入しない");
+  assert.deepEqual(Object.keys(documentListeners),[],"画面非表示時の送信も行わない");
 });
