@@ -102,11 +102,55 @@ let farewellSelection = new Set();
 let farewellConfirm = false;
 let farewellMessage = "";
 let farewellView = newRosterListView();
+let farewellFilterOpen = false;
+
+function setFarewellFilterOpen(open) {
+  farewellFilterOpen = !!open;
+  const panel = document.getElementById("farewellFilterPopover");
+  panel.classList.toggle("hidden", !farewellFilterOpen);
+  panel.setAttribute("aria-hidden", farewellFilterOpen ? "false" : "true");
+  document.getElementById("btnFarewellFilter").setAttribute("aria-expanded", farewellFilterOpen ? "true" : "false");
+}
+function renderFarewellFilterControls(candidates) {
+  const controls = document.getElementById("farewellFilterControls");
+  controls.replaceChildren(buildRosterFilterBar(farewellView, {
+    chars: candidates, showKind: true, showFavorite: false,
+    onChange: () => {
+      // 検索条件の変更時は二段階確認をキャンセルし、一覧のスクロール位置を維持。
+      farewellConfirm = false;
+      farewellMessage = "";
+      renderFarewell();
+    },
+  }));
+  const applied = rosterListViewActive(farewellView);
+  const button = document.getElementById("btnFarewellFilter");
+  button.classList.toggle("active", !!applied);
+  button.setAttribute("aria-label", applied ? "仲間を絞り込む（条件適用中）" : "仲間を絞り込む");
+  button.title = applied ? "仲間を絞り込む（条件適用中）" : "仲間を絞り込む";
+}
+document.getElementById("btnFarewellFilter").addEventListener("click", () => setFarewellFilterOpen(!farewellFilterOpen));
+document.getElementById("btnFarewellFilterClose").addEventListener("click", () => setFarewellFilterOpen(false));
+document.getElementById("btnFarewellFilterReset").addEventListener("click", () => {
+  farewellView = newRosterListView();
+  farewellConfirm = false;
+  farewellMessage = "";
+  renderFarewell();
+});
+document.addEventListener("pointerdown", (event) => {
+  if (!farewellFilterOpen) return;
+  const panel = document.getElementById("farewellFilterPopover");
+  const trigger = document.getElementById("btnFarewellFilter");
+  if (!panel.contains(event.target) && !trigger.contains(event.target)) setFarewellFilterOpen(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (farewellFilterOpen && event.key === "Escape") setFarewellFilterOpen(false);
+});
 
 function openFarewell() {
   farewellSelection = new Set();
   farewellConfirm = false;
   farewellMessage = "";
+  setFarewellFilterOpen(false);
   renderFarewell();
   showScreen("screen-farewell");
 }
@@ -150,17 +194,13 @@ function renderFarewell() {
 
   const candidates = Inventory.releaseCandidates();
   for (const c of [...farewellSelection]) if (!candidates.includes(c)) farewellSelection.delete(c);
+  // フィルターは一覧と独立した固定ヘッダー内。候補0でも条件のクリアは可能。
+  renderFarewellFilterControls(candidates);
   if (candidates.length === 0) {
     const none = document.createElement("div");
     none.className = "sub-ability-row";
     none.textContent = "別れられる仲間がいません（パーティの外にいる仲間だけ選べます）";
     body.appendChild(none);
-  } else {
-    // お気に入りは候補にいないので「★のみ」は出さない
-    body.appendChild(buildRosterFilterBar(farewellView, {
-      chars: candidates, showKind: true, showFavorite: false,
-      onChange: () => { farewellConfirm = false; body.scrollTop = 0; renderFarewell(); },
-    }));
   }
   const shown = applyRosterListView(candidates, farewellView);
   if (candidates.length > 0) {
@@ -246,7 +286,10 @@ function renderFarewellActionBar(shown) {
   btn.setAttribute("aria-describedby", "farewellSelectedCount");
   footer.appendChild(btn);
 }
-document.getElementById("btnFarewellBack").addEventListener("click", () => openPartyMenu());
+document.getElementById("btnFarewellBack").addEventListener("click", () => {
+  setFarewellFilterOpen(false);
+  openPartyMenu();
+});
 
 // ---------- 装備強化（装備中・所持品の装備をまとめて選ぶ） ----------
 // 探索中・自動周回中のチームのキャラが付けている装備は、戦闘中の能力値が変わらないよう強化できない。
