@@ -748,9 +748,11 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 .member-strip.grid { flex-wrap: wrap; overflow-x: visible; }
 .member-strip.grid .member-card { width: calc((100% - 12px) / 3); }
 .member-card .mname {
-  font-size: 13px; font-weight: 700; margin-top: 1px;
+  font-size: 11px; font-weight: 700; margin-top: 1px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* 種族行を省略するモンスター名が、右上の盾アイコンに重ならないようにする。 */
+.member-card.monster .mname { padding-right: 22px; margin-top: 0; }
 /* テイムモンスターの名前色: 詳細画面の個体値評価 S/A/B/C/D と同じ配色にする。 */
 .member-card.monster.iv-S .mname { color: #f2c14e; text-shadow: 0 0 7px rgba(242, 193, 78, 0.2); }
 .member-card.monster.iv-A .mname { color: #b97dff; }
@@ -759,7 +761,7 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 .member-card.monster.iv-D .mname { color: var(--sub-text); }
 .member-card .mstats {
   display: flex; gap: 8px; margin-top: 6px;
-  font-size: 10px; color: var(--sub-text);
+  font-size: 8px; color: var(--sub-text);
 }
 .member-card.monster { border-color: rgba(201, 164, 99, 0.5); }
 .member-card.empty {
