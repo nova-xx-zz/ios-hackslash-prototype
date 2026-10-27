@@ -578,9 +578,9 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
   padding: 10px;
 }
 .roster-header { display: flex; align-items: center; justify-content: space-between; padding: 2px 2px 8px; gap: 8px; }
-/* パーティ編成: スクロール対象の外に固定された右上ショートカット */
-#screen-jobs .jobs-roster-header { flex: 0 0 auto; gap: 6px; }
-#screen-jobs .jobs-roster-header .map-title {
+/* 編成・仲間と別れる: スクロール領域外に固定した右上フィルター操作 */
+#screen-jobs .jobs-roster-header, #screen-farewell .jobs-roster-header { flex: 0 0 auto; gap: 6px; }
+#screen-jobs .jobs-roster-header .map-title, #screen-farewell .jobs-roster-header .map-title {
   flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .jobs-header-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
@@ -601,7 +601,7 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 }
 .jobs-action-icon.active .jobs-action-dot { display: block; }
 .jobs-action-icon:disabled { opacity: .35; cursor: default; }
-#screen-jobs .jobs-back { margin: 0; padding: 8px 11px; min-height: 38px; white-space: nowrap; }
+#screen-jobs .jobs-back, #screen-farewell .jobs-back { margin: 0; padding: 8px 11px; min-height: 38px; white-space: nowrap; }
 .jobs-filter-popover {
   position: absolute; top: 55px; right: 10px; z-index: 22;
   width: min(350px, calc(100% - 20px)); max-height: min(65vh, calc(100% - 105px));
@@ -623,8 +623,8 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 @media (max-width: 355px) {
   .jobs-header-actions { gap: 4px; }
   .jobs-action-icon { width: 34px; height: 34px; flex-basis: 34px; padding: 6px; }
-  #screen-jobs .jobs-back { min-height: 34px; padding: 6px 8px; }
-  #screen-jobs .jobs-roster-header .map-title { font-size: 13px; }
+  #screen-jobs .jobs-back, #screen-farewell .jobs-back { min-height: 34px; padding: 6px 8px; }
+  #screen-jobs .jobs-roster-header .map-title, #screen-farewell .jobs-roster-header .map-title { font-size: 13px; }
 }
 .roster-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 /* 編成画面の一覧はスクロールバーを出さない（指で送る。ドラッグ中は端に近づけると自動でスクロールする） */
