@@ -158,9 +158,25 @@
   </section>
   <section id="screen-farewell" class="screen hidden">
     <div class="roster-wrap">
-      <div class="roster-header">
+      <div class="roster-header jobs-roster-header">
         <div class="map-title">仲間と別れる</div>
-        <button class="btn small ghost" id="btnFarewellBack">もどる</button>
+        <div class="jobs-header-actions">
+          <button type="button" class="jobs-action-icon" id="btnFarewellFilter"
+            aria-label="仲間を絞り込む" aria-controls="farewellFilterPopover" aria-expanded="false" title="仲間を絞り込む">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3 2v-7z"/></svg>
+            <span class="jobs-action-dot" aria-hidden="true"></span>
+          </button>
+          <button class="btn small ghost jobs-back" id="btnFarewellBack">もどる</button>
+        </div>
+      </div>
+      <div id="farewellFilterPopover" class="jobs-filter-popover hidden" role="dialog"
+        aria-label="仲間の絞り込み" aria-hidden="true">
+        <div class="jobs-filter-heading">
+          <span>仲間の絞り込み・並び替え</span>
+          <button type="button" class="jobs-filter-reset" id="btnFarewellFilterReset">条件をクリア</button>
+          <button type="button" class="jobs-filter-close" id="btnFarewellFilterClose" aria-label="絞り込みを閉じる">×</button>
+        </div>
+        <div id="farewellFilterControls"></div>
       </div>
       <div id="farewellBody" class="roster-body"></div>
       <div id="farewellActionBar" class="farewell-action-bar" aria-label="仲間との別れの操作"></div>
@@ -581,7 +597,7 @@
 <script src="js/ui/book.js?v=10"></script>
 <script src="js/ui/notify.js?v=1"></script>
 <script src="js/ui/shop.js?v=8"></script>
-<script src="js/ui/menu.js?v=5"></script>
+<script src="js/ui/menu.js?v=6"></script>
 <!-- FORGE-TRIAL-UI-START -->
 <script src="js/ui/forge-trial.js?v=8"></script>
 <!-- FORGE-TRIAL-UI-END -->
