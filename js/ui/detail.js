@@ -53,7 +53,7 @@ function detailPagerInfo(c) {
     ? detailNavContext.label
     : (c.team !== null ? TEAM_LABELS[c.team] : "控え");
   return {
-    name: `${c.name}${c.isMonster ? "（テイム）" : ""}`,
+    name: c.name,
     pos: `${where}・${order.indexOf(c) + 1}/${order.length}`,
     canSwitch: order.length >= 2,
   };
