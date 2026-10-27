@@ -324,9 +324,9 @@ test("固定操作ボタンはスクロール領域の外、フィルターは�
 
 test("モンスターカードの文字だけ2px小さくし、人間と共通の名前・レベルに適用する", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
-  assert.match(css, /\\.member-card \\.mname \\{\s*font-size: 11px;/);
-  assert.match(css, /\\.member-card \\.mstats \\{[\\s\\S]*?font-size: 8px;/);
-  assert.match(css, /\\.member-card\\.monster \\.mname \\{ padding-right: 22px; margin-top: 0; \\}/);
+  assert.ok(css.includes(".member-card .mname {\n  font-size: 11px;"), "名前は13pxから11px");
+  assert.ok(css.includes(".member-card .mstats {\n  display: flex; gap: 8px; margin-top: 6px;\n  font-size: 8px;"), "レベルは10pxから8px");
+  assert.ok(css.includes(".member-card.monster .mname { padding-right: 22px; margin-top: 0; }"), "右上の紋章を避ける");
   const x = setup(roster());
   const monster = x.ctx.buildMemberCard({
     id: "m-long", race: "slime", isMonster: true, name: "デザートスコーピオン", level: 99,
