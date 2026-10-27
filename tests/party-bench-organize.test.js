@@ -101,7 +101,7 @@ test("控え: 人間とモンスターが別の行に並び、どちらも控え
   assert.ok(names.includes("控え（人間）") && names.includes("控え（モンスター）"));
   const [humans, monsters] = x.benchStrips();
   assert.deepEqual(x.cardNames(humans), ["ヒト・まほう", "ヒト・せんし"]);
-  assert.deepEqual(x.cardNames(monsters), ["スライム・スライム", "オオカミ・オオカミ"]);
+  assert.deepEqual(x.cardNames(monsters), ["スラ Lv.4", "ウル Lv.9"]);
   // 人間の行には仲間を呼ぶ「＋」があり、モンスターの行には無い
   assert.ok(humans.children.some((c) => c.className.includes("empty")));
   assert.ok(!monsters.children.some((c) => c.className.includes("empty")));
@@ -120,7 +120,7 @@ test("控え: ジョブ・種族と★で絞り込み、件数は「表示/全�
   selects()[0].change("all");
   selects()[1].change("level");
   [humans, monsters] = x.benchStrips();
-  assert.deepEqual(x.cardNames(monsters), ["オオカミ・オオカミ", "スライム・スライム"]);
+  assert.deepEqual(x.cardNames(monsters), ["ウル Lv.9", "スラ Lv.4"]);
   const fav = all(x.controls()).find((e) => e.tagName === "button" && e.textContent === "★のみ");
   fav.click();
   [humans, monsters] = x.benchStrips();
@@ -152,16 +152,23 @@ test("モンスターの個体値S〜Dで名前色のクラスが切り替わり
     });
     assert.equal(card.className, "member-card monster iv-" + rank);
     assert.ok(card.innerHTML.includes("class=\"mname\""), "名前の要素は維持する");
-    assert.ok(card.innerHTML.includes("スライム " + rank), "種族横の評価表記も維持する");
-    assert.ok(card.title.includes("個体値" + rank), "省略された名前でもランクを確認できる");
+    assert.equal(card.innerHTML.includes('class="mtitle"'), false, "モンスターカードに種族・評価の文字行は表示しない");
+    assert.ok(card.innerHTML.includes('<div class="mname">スライム</div>'), "カードに名前を表示する");
+    assert.ok(card.innerHTML.includes('<span>Lv.1</span>'), "カードにレベルを表示する");
+    assert.equal(card.title, "スライム Lv.1", "省略された名前はツールチップから確認できる");
+    assert.equal(card.attrs["aria-label"], "スライム、レベル1、個体値" + rank, "音声読み上げには評価を残す");
+    assert.equal(card.innerHTML.includes(" " + rank), false, "ランク文字を描画しない");
   }
   const legacy = x.ctx.buildMemberCard({ race: "slime", isMonster: true, name: "旧スライム", level: 1 });
   assert.equal(legacy.className, "member-card monster", "個体値のない既存モンスターは従来色");
+  assert.equal(legacy.innerHTML.includes('class="mtitle"'), false, "旧モンスターにも種族行を出さない");
+  assert.equal(legacy.title, "旧スライム Lv.1");
   const human = x.ctx.buildMemberCard({
     race: "human", job: "warrior", name: "ヒト", level: 1,
     ivs: Object.fromEntries(Stats.IV_KEYS.map((k) => [k, 1.05])),
   });
   assert.equal(human.className, "member-card", "人間は個体値による着色をしない");
+  assert.ok(human.innerHTML.includes('<div class="mtitle">ヒト</div>'), "人間の既存種族表示は維持する");
 });
 
 test("編成カードのランク色は詳細画面のランク色と一致する", () => {
@@ -194,16 +201,16 @@ test("控えの個体値フィルターはS〜D・未評価を選べ、人間を
     selects()[2].change(rank);
     const [humans, monsters] = x.benchStrips();
     assert.deepEqual(x.cardNames(humans), [], "ランク指定中は人間を表示しない");
-    assert.deepEqual(x.cardNames(monsters), ["スライム・スライム・個体値" + rank]);
+    assert.deepEqual(x.cardNames(monsters), [rank + "個体 Lv." + (ranks.findIndex(([r]) => r === rank) + 1)]);
     const heads = x.heads().filter((h) => x.headName(h).startsWith("控え"));
     assert.deepEqual(heads.map(x.headMeta), ["0/1人", "1/6人"]);
   }
   selects()[2].change("unrated");
-  assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["スライム・スライム"]);
+  assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["旧個体 Lv.1"]);
   selects()[2].change("S");
   const fav = all(x.controls()).find((e) => e.tagName === "button" && e.textContent === "★のみ");
   fav.click();
-  assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["スライム・スライム・個体値S"]);
+  assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["S個体 Lv.1"]);
   selects()[0].change("j:warrior");
   assert.deepEqual(x.cardNames(x.benchStrips()[0]), [], "人間の職を選ぶと個体値条件を解除（★のみは維持）");
   const ivSelect = selects()[2];
@@ -312,4 +319,21 @@ test("固定操作ボタンはスクロール領域の外、フィルターは�
   assert.match(css, /\.jobs-filter-popover\.hidden \{ display: none; \}/);
   assert.match(html, /js\/ui\/party\.js\?v=13/);
   assert.match(html, /css\/style\.css\?v=81/);
+});
+
+
+test("モンスターカードの文字だけ2px小さくし、人間と共通の名前・レベルに適用する", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  assert.match(css, /\\.member-card \\.mname \\{\s*font-size: 11px;/);
+  assert.match(css, /\\.member-card \\.mstats \\{[\\s\\S]*?font-size: 8px;/);
+  assert.match(css, /\\.member-card\\.monster \\.mname \\{ padding-right: 22px; margin-top: 0; \\}/);
+  const x = setup(roster());
+  const monster = x.ctx.buildMemberCard({
+    id: "m-long", race: "slime", isMonster: true, name: "デザートスコーピオン", level: 99,
+    ivs: Object.fromEntries(Stats.IV_KEYS.map((k) => [k, 1.05])),
+  });
+  assert.equal(monster.title, "デザートスコーピオン Lv.99");
+  assert.ok(monster.innerHTML.includes("デザートスコーピオン"));
+  assert.ok(monster.innerHTML.includes("Lv.99"));
+  assert.equal(monster.innerHTML.includes("mtitle"), false);
 });
