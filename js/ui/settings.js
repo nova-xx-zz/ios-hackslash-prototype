@@ -19,6 +19,73 @@ function showCloudMessage(text, isError) {
 }
 
 let cloudRestoreCandidate = null; // 2回押しで確定する復元の候補 { json, savedAt }
+let selectedBackupId = null;
+let cloudHistoryInitialized = false;
+
+async function refreshCloudHistory() {
+  if (!window.QPCloud || typeof QPCloud.listBackups !== "function") return;
+  const manual = document.getElementById("cloudManualList");
+  const automatic = document.getElementById("cloudAutoList");
+  if (!manual || !automatic) return;
+  try {
+    const entries = await QPCloud.listBackups();
+    const groups = [["manual", manual, "cloudManualCount"], ["auto", automatic, "cloudAutoCount"]];
+    for (const [kind, container, counterId] of groups) {
+      const list = entries.filter(e => e.kind === kind);
+      container.replaceChildren();
+      document.getElementById(counterId).textContent = "（" + list.length + "/5）";
+      if (!list.length) {
+        const empty = document.createElement("p");
+        empty.className = "settings-note";
+        empty.textContent = "保存履歴はありません";
+        container.appendChild(empty);
+      }
+      for (const entry of list) {
+        const row = document.createElement("div");
+        row.className = "settings-backup-entry";
+        const choose = document.createElement("button");
+        choose.type = "button";
+        choose.className = "btn small ghost";
+        choose.textContent = formatDateTime(entry.createdAt) + "（" +
+          QPCore.saveDiagnostics.formatBytes(entry.bytes) + "）";
+        choose.addEventListener("click", () => {
+          resetCloudRestoreConfirm();
+          selectedBackupId = entry.id;
+          document.getElementById("btnCloudRestore").textContent = "選択した履歴を確認";
+          showCloudMessage(formatDateTime(entry.createdAt) +
+            " のバックアップを選択しました。「選択した履歴を確認」を押してください。", false);
+        });
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "btn small ghost";
+        del.textContent = "削除";
+        del.setAttribute("aria-label", formatDateTime(entry.createdAt) + "のバックアップを削除");
+        del.addEventListener("click", async () => {
+          if (!confirm("このバックアップを削除しますか？操作は取り消せません。")) return;
+          del.disabled = true;
+          try {
+            await QPCloud.deleteBackup(entry.id);
+            if (selectedBackupId === entry.id) {
+              selectedBackupId = null;
+              resetCloudRestoreConfirm();
+            }
+            showCloudMessage("バックアップを削除しました", false);
+            await refreshCloudHistory();
+          } catch(e) {
+            showCloudMessage(e.message || "削除できませんでした", true);
+            del.disabled = false;
+          }
+        });
+        row.appendChild(choose);
+        row.appendChild(del);
+        container.appendChild(row);
+      }
+    }
+  } catch(e) {
+    showCloudMessage(e.message || "履歴の取得に失敗しました", true);
+  }
+}
+
 
 function renderCloudState(st) {
   document.getElementById("cloudStatus").textContent = CLOUD_STATUS_LABELS[st.status] || "—";
@@ -28,6 +95,10 @@ function renderCloudState(st) {
   document.getElementById("btnCloudBackup").disabled = busy;
   document.getElementById("btnCloudRestore").disabled = busy;
   if (st.error && !cloudRestoreCandidate) showCloudMessage(st.error, true);
+  if (st.status === "ready" && !cloudHistoryInitialized) {
+    cloudHistoryInitialized = true;
+    refreshCloudHistory();
+  }
 }
 
 function resetCloudRestoreConfirm() {
@@ -43,7 +114,10 @@ if (window.QPCloud) {
     showCloudMessage("バックアップしています…");
     const ok = await QPCloud.backupNow();
     const st = QPCloud.getState();
-    if (ok) showCloudMessage(`バックアップしました（${formatDateTime(st.lastUploadAt)}）`);
+    if (ok) {
+      showCloudMessage(`手動バックアップを保存しました（${formatDateTime(st.lastUploadAt)}）`);
+      await refreshCloudHistory();
+    }
     else showCloudMessage(st.error || "バックアップできませんでした", true);
   });
 
@@ -53,13 +127,14 @@ if (window.QPCloud) {
       if (!confirmReady()) return;
       const json = cloudRestoreCandidate.json;
       resetCloudRestoreConfirm();
+      selectedBackupId = null;
       if (!restoreSaveFromCloud(json)) showCloudMessage("復元できませんでした（クラウドのセーブが壊れているか、端末に保存できません）", true);
       return;
     }
     showCloudMessage("クラウドのセーブを確認しています…");
     let cloud;
     try {
-      cloud = await QPCloud.fetchCloudSave();
+      cloud = await QPCloud.fetchCloudSave(selectedBackupId);
     } catch (e) {
       showCloudMessage(e.message, true);
       return;
@@ -79,8 +154,15 @@ if (window.QPCloud) {
     document.getElementById("btnCloudRestore").textContent = "本当に復元する（取り消せません）";
   });
 
+  const refreshButton = document.getElementById("btnCloudRefresh");
+  if (refreshButton) refreshButton.addEventListener("click", refreshCloudHistory);
+
   // 設定画面を離れたら、復元の確認は取り消す
-  document.getElementById("btnSettingsBack").addEventListener("click", () => { resetCloudRestoreConfirm(); showCloudMessage(""); });
+  document.getElementById("btnSettingsBack").addEventListener("click", () => {
+    selectedBackupId = null;
+    resetCloudRestoreConfirm();
+    showCloudMessage("");
+  });
 } else {
   document.querySelector("#screen-settings .settings-cloud").classList.add("hidden");
 }
@@ -109,8 +191,8 @@ async function inspectCurrentSaveStorage(){
     });
     const fmt=QPCore.saveDiagnostics.formatBytes;
     const cloudStatus=!diagnostic.saved?"判定不可（保存データなし）":
-      diagnostic.cloudEligible?"現行の送信サイズ基準内（送信成功は未確認）":
-      "現行の送信サイズ基準を超過（バックアップ不可）";
+      diagnostic.utf8Bytes > 32*1024*1024?"新方式の32MiB上限を超過":
+      "新方式のサイズ上限内（実際のバックアップ成功は未確認）";
     const stored=diagnostic.saved?
       `${fmt(diagnostic.utf8Bytes)} / ${diagnostic.characters.toLocaleString("ja-JP")}文字`:
       "端末に保存済みのゲームデータがありません";
@@ -121,7 +203,8 @@ async function inspectCurrentSaveStorage(){
       "端末の保存済みセーブ: "+stored,
       "現在の未装備アイテム: "+S.inventory.length.toLocaleString("ja-JP")+"件",
       "クラウド保存: "+cloudStatus,
-      "クラウド側の安全目安: "+fmt(diagnostic.cloudLimitBytes)+"（文字数とUTF-8で判定）",
+      "旧方式の送信目安: "+fmt(diagnostic.cloudLimitBytes)+"（旧Firestore単一文書）",
+      "新方式の未圧縮上限: 32.00 MiB（圧縮率や通信成功は別途確認）",
       "ブラウザの保存領域（オリジン全体の参考値）: "+capacity,
       "永続保存の状態: "+permanent,
       "IndexedDB API: "+(diagnostic.indexedDBAvailable?"利用候補あり":"利用可否を確認できません"),
