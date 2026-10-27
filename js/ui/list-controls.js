@@ -55,17 +55,24 @@ function buildFilterChips(name, options, current, onChange) {
 const ROSTER_SORT_OPTIONS = [
   ["level", "Lvが高い順"], ["levelAsc", "Lvが低い順"], ["job", "ジョブ・種族ごと"], ["newest", "新しい順"], ["oldest", "古い順"],
 ];
+const ROSTER_IV_RANK_OPTIONS = [
+  ["all", "すべて"], ["S", "Sランク"], ["A", "Aランク"], ["B", "Bランク"],
+  ["C", "Cランク"], ["D", "Dランク"], ["unrated", "未評価"],
+];
 function newRosterListView() {
-  return { kind: "all", group: "all", favoriteOnly: false, sort: "oldest" }; // 既定は従来どおり仲間にした順
+  return { kind: "all", group: "all", ivRank: "all", favoriteOnly: false, sort: "oldest" }; // 既定は従来どおり仲間にした順
 }
 
 // 仲間一覧の絞り込みバー。view（newRosterListView の形）を書き換えて onChange を呼ぶ。
 // opts: { chars（選択肢を作る元の仲間）, showKind（人間／モンスターの切り替えを出すか）, showFavorite, onChange }
+// 個体値の選択はモンスターがいる時だけ表示し、ランクを選ぶと人間は除外される。
 function buildRosterFilterBar(view, opts) {
   const org = QPCore.rosterOrganize;
   const bar = document.createElement("div");
   bar.className = "list-filter-bar";
   const change = (fn) => (value) => { fn(value); opts.onChange(); };
+  const hasMonsters = opts.chars.some((c) => c.isMonster);
+  if (!hasMonsters || view.kind === "human") view.ivRank = "all";
 
   if (opts.showKind) {
     const chipsLine = document.createElement("div");
@@ -75,6 +82,7 @@ function buildRosterFilterBar(view, opts) {
         view.kind = v;
         // 種類を変えたら、合わなくなったジョブ・種族の絞り込みは外す
         if (view.group !== "all" && v !== "all" && !view.group.startsWith(v === "monster" ? "m:" : "j:")) view.group = "all";
+        if (v === "human") view.ivRank = "all";
       })));
     bar.appendChild(chipsLine);
   }
@@ -85,17 +93,35 @@ function buildRosterFilterBar(view, opts) {
   if (view.group !== "all" && !groups.some((g) => g.key === view.group)) view.group = "all"; // 該当者がいなくなった
   selectLine.appendChild(buildFilterSelect("ジョブ・種族",
     [["all", "すべて"], ...groups.map((g) => [g.key, `${g.kind === "monster" ? "🐾" : ""}${g.name}（${g.count}）`])],
-    view.group, change((v) => { view.group = v; })));
+    view.group, change((v) => {
+      view.group = v;
+      if (v.startsWith("j:")) view.ivRank = "all"; // 人間の職業が選ばれたら個体値条件を解除
+    })));
   selectLine.appendChild(buildFilterSelect("並び順", ROSTER_SORT_OPTIONS, view.sort, change((v) => { view.sort = v; })));
+  bar.appendChild(selectLine);
+
+  // 小さい画面で既存の2つのプルダウンを圧迫しないよう、個体値と★のみは次の行に置く。
+  const ivLine = document.createElement("div");
+  ivLine.className = "list-filter-line";
+  const showIv = hasMonsters && view.kind !== "human";
+  if (showIv) {
+    ivLine.appendChild(buildFilterSelect("モンスター個体値", ROSTER_IV_RANK_OPTIONS, view.ivRank || "all", change((v) => {
+      view.ivRank = v;
+      if (v !== "all") {
+        if (view.group.startsWith("j:")) view.group = "all";
+        if (opts.showKind) view.kind = "monster";
+      }
+    })));
+  }
   if (opts.showFavorite !== false) {
     const fav = document.createElement("button");
     fav.className = "priority-chip inv-filter list-filter-fav" + (view.favoriteOnly ? " tier-3" : "");
     fav.textContent = "★のみ";
     fav.setAttribute("aria-pressed", view.favoriteOnly ? "true" : "false");
     fav.addEventListener("click", change(() => { view.favoriteOnly = !view.favoriteOnly; }));
-    selectLine.appendChild(fav);
+    (showIv ? ivLine : selectLine).appendChild(fav);
   }
-  bar.appendChild(selectLine);
+  if (showIv) bar.appendChild(ivLine);
   return bar;
 }
 
@@ -106,5 +132,5 @@ function applyRosterListView(chars, view) {
 }
 
 function rosterListViewActive(view) {
-  return view.kind !== "all" || view.group !== "all" || view.favoriteOnly;
+  return view.kind !== "all" || view.group !== "all" || (view.ivRank && view.ivRank !== "all") || view.favoriteOnly;
 }
