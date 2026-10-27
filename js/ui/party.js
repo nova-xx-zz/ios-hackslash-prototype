@@ -329,16 +329,19 @@ document.getElementById("groupNameInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); saveGroupModal(); }
 });
 
-// 仲間のカード: ジョブの紋章・種族・名前・レベル（ジョブ名は紋章で表す。モンスターは共通の盾）
+// 仲間のカード: モンスターは名前（個体値ランク色）とレベルのみ表示する。
+// 人間のカードは既存の種族表示を維持し、ジョブ紋章とドラッグ操作は共通。
 function buildMemberCard(c, navigation) {
   const btn = document.createElement("button");
-  // 個体値の表示色と評価は詳細画面と同じ ivRank を使用し、セーブデータには手を加えない。
-  const ivRank = c.ivs ? QPCore.stats.ivRank(c.ivs) : null;
-  btn.className = "member-card" + (c.isMonster ? " monster" : "") + (c.isMonster && ivRank ? ` iv-${ivRank}` : "");
-  btn.title = `${RACES[c.race].name}・${jobDef(c).name}${c.isMonster && ivRank ? `・個体値${ivRank}` : ""}`;
+  // 個体値は詳細画面と共通の判定を色だけに使う（ランク文字はカードに表示しない）。
+  const ivRank = c.isMonster && c.ivs ? QPCore.stats.ivRank(c.ivs) : null;
+  btn.className = "member-card" + (c.isMonster ? " monster" : "") + (ivRank ? ` iv-${ivRank}` : "");
+  btn.title = c.isMonster ? `${c.name} Lv.${c.level}` : `${RACES[c.race].name}・${jobDef(c).name}`;
+  // 色を識別しづらい利用者にもランクを伝えるが、画面上は名前とレベルだけ。
+  if (c.isMonster) btn.setAttribute("aria-label", `${c.name}、レベル${c.level}${ivRank ? `、個体値${ivRank}` : ""}`);
   btn.innerHTML = `
     <div class="micon">${jobInsignia(c.isMonster ? null : c.job)}</div>
-    <div class="mtitle">${RACES[c.race].name}${ivRank ? " " + ivRank : ""}</div>
+    ${c.isMonster ? "" : `<div class="mtitle">${RACES[c.race].name}</div>`}
     <div class="mname">${c.favorite ? "★" : ""}${escapeHtml(c.name)}</div>
     <div class="mstats"><span>Lv.${c.level}</span></div>`;
   attachMemberDrag(btn, c, navigation);
