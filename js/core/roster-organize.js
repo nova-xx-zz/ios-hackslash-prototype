@@ -2,11 +2,13 @@
 // 画面内の一時的な表示条件だけを扱い、ロスターの配列・キャラのデータは変更しない（セーブ項目も増やさない）。
 //   kind:  "all" | "human" | "monster"
 //   group: ジョブID（人間）または種族ID（モンスター）。"all" なら絞り込まない
+//   ivRank: "all" | "S" | "A" | "B" | "C" | "D" | "unrated"（個体値未設定）
 //   favoriteOnly: true ならお気に入り（★）だけ
 //   sort:  "level"（Lvの高い順）| "levelAsc"（Lvの低い順）| "job"（ジョブ・種族ごと）| "newest"（仲間にした新しい順）| "oldest"
 (function (root) {
   "use strict";
   const KINDS = Object.freeze(["all", "human", "monster"]);
+  const IV_RANKS = Object.freeze(["all", "S", "A", "B", "C", "D", "unrated"]);
   const SORTS = Object.freeze(["level", "levelAsc", "job", "newest", "oldest"]);
 
   function kindOf(c) { return c && c.isMonster ? "monster" : "human"; }
@@ -24,6 +26,17 @@
     if (!KINDS.includes(kind)) throw new RangeError("Unknown roster kind: " + kind);
     if (kind !== "all" && kindOf(c) !== kind) return false;
     if (o.group && o.group !== "all" && groupKey(c) !== o.group) return false;
+    const ivRank = o.ivRank || "all";
+    if (!IV_RANKS.includes(ivRank)) throw new RangeError("Unknown monster IV rank: " + ivRank);
+    if (ivRank !== "all") {
+      // 個体値フィルターはモンスター専用。人間や古い未評価個体をランクに紛れ込ませない。
+      if (!c.isMonster) return false;
+      if (ivRank === "unrated") {
+        if (c.ivs) return false;
+      } else {
+        if (!c.ivs || root.QPCore.stats.ivRank(c.ivs) !== ivRank) return false;
+      }
+    }
     if (o.favoriteOnly && !c.favorite) return false;
     return true;
   }
@@ -66,7 +79,7 @@
       (a.kind === b.kind ? 0 : a.kind === "human" ? -1 : 1) || a.name.localeCompare(b.name, "ja"));
   }
 
-  const api = { KINDS, SORTS, kindOf, groupKey, seqOf, matches, filter, sort, groupOptions };
+  const api = { KINDS, IV_RANKS, SORTS, kindOf, groupKey, seqOf, matches, filter, sort, groupOptions };
   root.QPCore = root.QPCore || {};
   root.QPCore.rosterOrganize = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

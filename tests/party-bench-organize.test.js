@@ -139,3 +139,46 @@ test("編成カードのランク色は詳細画面のランク色と一致す�
     assert.equal(cardRule[1], rankRule[1], rank + " の配色が一致する");
   }
 });
+
+
+test("控えの個体値フィルターはS〜D・未評価を選べ、人間を除外し件数も更新する", () => {
+  const ranks = [["S", 1.05], ["A", 1.02], ["B", 1], ["C", 0.98], ["D", 0.95]];
+  const ivs = (v) => Object.fromEntries(Stats.IV_KEYS.map((k) => [k, v]));
+  const characters = [
+    { id: "c1", name: "アレン", job: "warrior", race: "human", level: 3, team: null },
+    ...ranks.map(([rank, value], i) => ({
+      id: "c" + (i + 2), name: rank + "個体", race: "slime", isMonster: true,
+      level: i + 1, team: null, ivs: ivs(value), favorite: rank === "S",
+    })),
+    { id: "c7", name: "旧個体", race: "slime", isMonster: true, level: 1, team: null },
+  ];
+  const x = setup(characters);
+  x.render();
+  const selects = () => all(x.body).filter((e) => e.tagName === "select");
+  assert.equal(selects().length, 3, "ジョブ・種族、並び順、モンスター個体値");
+  for (const [rank] of ranks) {
+    selects()[2].change(rank);
+    const [humans, monsters] = x.benchStrips();
+    assert.deepEqual(x.cardNames(humans), [], "ランク指定中は人間を表示しない");
+    assert.deepEqual(x.cardNames(monsters), ["スライム・スライム・個体値" + rank]);
+    const heads = x.heads().filter((h) => x.headName(h).startsWith("控え"));
+    assert.deepEqual(heads.map(x.headMeta), ["0/1人", "1/6人"]);
+  }
+  selects()[2].change("unrated");
+  assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["スライム・スライム"]);
+  selects()[2].change("S");
+  const fav = all(x.body).find((e) => e.tagName === "button" && e.textContent === "★のみ");
+  fav.click();
+  assert.deepEqual(x.cardNames(x.benchStrips()[1]), ["スライム・スライム・個体値S"]);
+  selects()[0].change("j:warrior");
+  assert.deepEqual(x.cardNames(x.benchStrips()[0]), [], "人間の職を選ぶと個体値条件を解除（★のみは維持）");
+  const ivSelect = selects()[2];
+  assert.equal(ivSelect.value, "all");
+  assert.equal(all(x.body).some((e) => e.tagName === "button" && e.textContent === "★のみ"), true);
+});
+
+test("控えにモンスターがいない場合は個体値プルダウンを出さない", () => {
+  const x = setup(roster().filter((c) => !c.isMonster));
+  x.render();
+  assert.equal(all(x.body).filter((e) => e.tagName === "select").length, 2);
+});
