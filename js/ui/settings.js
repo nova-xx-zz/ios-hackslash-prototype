@@ -199,7 +199,10 @@ async function inspectCurrentSaveStorage(){
       inventoryCount:S.inventory.length,estimate,persisted,indexedDBAvailable
     });
     const fmt=QPCore.saveDiagnostics.formatBytes;
-    const cloudStatus=!diagnostic.saved?"判定不可（保存データなし）":
+    const cloudDisabled=window.QPCloud &&
+      window.QPCloud.getState().status==="disabled";
+    const cloudStatus=cloudDisabled?"未提供（クラウドへの保存・復元は停止中）":
+      !diagnostic.saved?"判定不可（保存データなし）":
       diagnostic.utf8Bytes > 32*1024*1024?"新方式の32MiB上限を超過":
       "新方式のサイズ上限内（実際のバックアップ成功は未確認）";
     const stored=diagnostic.saved?
@@ -213,7 +216,7 @@ async function inspectCurrentSaveStorage(){
       "現在の未装備アイテム: "+S.inventory.length.toLocaleString("ja-JP")+"件",
       "クラウド保存: "+cloudStatus,
       "旧方式の送信目安: "+fmt(diagnostic.cloudLimitBytes)+"（旧Firestore単一文書）",
-      "新方式の未圧縮上限: 32.00 MiB（圧縮率や通信成功は別途確認）",
+      "提供予定の未圧縮上限: 32.00 MiB（圧縮率や通信成功は別途確認）",
       "ブラウザの保存領域（オリジン全体の参考値）: "+capacity,
       "永続保存の状態: "+permanent,
       "IndexedDB API: "+(diagnostic.indexedDBAvailable?"利用候補あり":"利用可否を確認できません"),
