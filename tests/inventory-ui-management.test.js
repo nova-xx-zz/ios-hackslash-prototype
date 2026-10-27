@@ -171,3 +171,44 @@ test("分解まとめて選ぶ: 普通を外すと、一度選んだ普通の装
  chip("普通を含む").click();
  assert.equal(ids.inventoryDisassembleSummary.textContent,"分解するアイテムをタップして選んでください");
 });
+
+
+test("所持品・分解: 右上固定フィルターを開閉し、部位と表示の条件をクリア", () => {
+ const {c,ids,state}=setup(12);
+ c.openInventoryScreen({disassemble:true,returnScreen:"screen-menu"});
+ assert.equal(ids.inventoryScreenTitle.textContent,"装備分解");
+ assert.equal(ids.btnInventoryFilter["aria-expanded"],"false");
+ ids.btnInventoryFilter.click();
+ assert.equal(ids.btnInventoryFilter["aria-expanded"],"true");
+ assert.equal(ids.inventoryFilterPopover["aria-hidden"],"false");
+ ids.inventoryManageRow.children.find(e=>e.textContent==="整理候補").click();
+ assert.ok(ids.btnInventoryFilter.className.includes("active"));
+ const bulk=ids.inventoryBulkRow.children.find(e=>e.textContent.startsWith("安全候補すべて"));
+ assert.ok(bulk,"一括選択はフィルター外の一覧側に残す");
+ bulk.click();
+ const before=vm.runInContext("disassembleSelection.size",c);
+ assert.ok(before>0);
+ ids.btnDisassembleConfirm.click();
+ assert.equal(vm.runInContext("disassembleConfirming",c),true,"分解の1回目は確認のみ");
+ ids.btnInventoryFilterReset.click();
+ assert.equal(vm.runInContext("disassembleConfirming",c),false,"絞り込み条件クリアで確認待ちを解除");
+ assert.equal(vm.runInContext("disassembleSelection.size",c),before,"選択は誤って解除しない");
+ assert.ok(!ids.btnInventoryFilter.className.includes("active"));
+ ids.btnInventoryFilterClose.click();
+ assert.equal(ids.btnInventoryFilter["aria-expanded"],"false");
+ assert.equal(state.inventory.length,44,"クリアや開閉で分解を実行しない");
+ ids.btnDisassembleCancel.click();
+ assert.equal(ids.inventoryScreenTitle.textContent,"所持品");
+ assert.equal(ids.inventoryDisassembleBar.className.includes("hidden"),true);
+});
+
+test("装備分解・所持品: フィルターはスクロール外、固定の一括選択と分解操作は残す", () => {
+ const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+ const section=html.slice(html.indexOf('id="screen-inventory"'),html.indexOf('id="screen-forge-trial"'));
+ assert.ok(section.indexOf('id="btnInventoryFilter"')<section.indexOf('id="inventoryBody"'));
+ assert.ok(section.indexOf('id="inventoryFilterRow"')<section.indexOf('id="inventoryBody"'));
+ assert.ok(section.indexOf('id="inventoryManageRow"')<section.indexOf('id="inventoryBody"'));
+ assert.ok(section.indexOf('id="inventoryBulkRow"')>section.indexOf('id="inventoryFilterPopover"'));
+ assert.ok(section.indexOf('id="inventoryDisassembleBar"')>section.indexOf('id="inventoryBody"'));
+ assert.ok(html.includes('js/ui/inventory.js?v=26'));
+});
