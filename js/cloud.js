@@ -137,10 +137,10 @@
       const name="swordcrest-backups/"+state.uid+"/"+id;
       headers["X-Goog-Upload-Protocol"]="multipart";
       headers["Content-Type"]="multipart/related; boundary="+boundary;
-      const pre="--"+boundary+"\\r\\nContent-Type: application/json; charset=utf-8\\r\\n\\r\\n"+
+      const pre="--"+boundary+"\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"+
         JSON.stringify({name,contentType:"application/octet-stream"})+
-        "\\r\\n--"+boundary+"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\n";
-      const post="\\r\\n--"+boundary+"--";
+        "\r\n--"+boundary+"\r\nContent-Type: application/octet-stream\r\n\r\n";
+      const post="\r\n--"+boundary+"--";
       body=new root.Blob([pre,bytes,post]);
     }
     const response=await root.fetch(storageUrl(id,kind),{
