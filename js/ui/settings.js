@@ -2,7 +2,8 @@
 // クラウドセーブの状態の表示と、「今すぐバックアップ」「クラウドから復元」。通信は js/cloud.js（QPCloud）
 "use strict";
 
-const CLOUD_STATUS_LABELS = { off: "未接続", connecting: "接続中…", ready: "有効", error: "停止中" };
+const CLOUD_STATUS_LABELS = { off: "未接続", connecting: "接続中…", ready: "有効", error: "停止中", disabled: "準備中（通信停止）" };
+const CLOUD_DISABLED_MESSAGE = "クラウドバックアップは現在利用できません。端末への通常セーブは継続されます。";
 
 function formatDateTime(ms) {
   if (!ms) return "—";
@@ -23,7 +24,8 @@ let selectedBackupId = null;
 let cloudHistoryInitialized = false;
 
 async function refreshCloudHistory() {
-  if (!window.QPCloud || typeof QPCloud.listBackups !== "function") return;
+  if (!window.QPCloud || QPCloud.getState().status === "disabled" ||
+      typeof QPCloud.listBackups !== "function") return;
   const manual = document.getElementById("cloudManualList");
   const automatic = document.getElementById("cloudAutoList");
   if (!manual || !automatic) return;
@@ -91,10 +93,17 @@ function renderCloudState(st) {
   document.getElementById("cloudStatus").textContent = CLOUD_STATUS_LABELS[st.status] || "—";
   document.getElementById("cloudLastUpload").textContent = formatDateTime(st.lastUploadAt);
   document.getElementById("cloudUid").textContent = st.uid || "—";
-  const busy = st.status === "connecting";
+  const disabled = st.status === "disabled";
+  const busy = st.status === "connecting" || disabled;
   document.getElementById("btnCloudBackup").disabled = busy;
   document.getElementById("btnCloudRestore").disabled = busy;
-  if (st.error && !cloudRestoreCandidate) showCloudMessage(st.error, true);
+  const refresh = document.getElementById("btnCloudRefresh");
+  if (refresh) refresh.disabled = busy;
+  if (disabled) {
+    showCloudMessage(CLOUD_DISABLED_MESSAGE, false);
+  } else if (st.error && !cloudRestoreCandidate) {
+    showCloudMessage(st.error, true);
+  }
   if (st.status === "ready" && !cloudHistoryInitialized) {
     cloudHistoryInitialized = true;
     refreshCloudHistory();
