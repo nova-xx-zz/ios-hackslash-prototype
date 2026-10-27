@@ -694,6 +694,12 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
   font-size: 13px; font-weight: 700; margin-top: 1px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* テイムモンスターの名前色: 詳細画面の個体値評価 S/A/B/C/D と同じ配色にする。 */
+.member-card.monster.iv-S .mname { color: #f2c14e; text-shadow: 0 0 7px rgba(242, 193, 78, 0.2); }
+.member-card.monster.iv-A .mname { color: #b97dff; }
+.member-card.monster.iv-B .mname { color: #5fd480; }
+.member-card.monster.iv-C .mname { color: #5ccbff; }
+.member-card.monster.iv-D .mname { color: var(--sub-text); }
 .member-card .mstats {
   display: flex; gap: 8px; margin-top: 6px;
   font-size: 10px; color: var(--sub-text);
