@@ -6,9 +6,15 @@
 // ---------- キャラ詳細 ----------
 // 開いた元の画面。編成画面（既定）か探索画面（ドックの仲間カードから開いた時）。「もどる」で元の画面へ帰る
 let detailReturnScreen = "screen-jobs";
+// 編成画面のどの行から開いたかを保持する表示専用の情報（セーブには含めない）。
+let detailNavContext = null;
 function openCharDetail(c, opts) {
   detailReturnScreen = (opts && opts.returnScreen) || "screen-jobs";
   detailCharId = c.id;
+  // 以前の詳細画面の情報は引き継がず、今回タップした行の順番に必ず切り替える。
+  detailNavContext = opts && Array.isArray(opts.orderIds) && opts.orderIds.includes(c.id)
+    ? { ids: opts.orderIds.slice(), label: String(opts.orderLabel || "") }
+    : null;
   detailTab = "stats";
   fusionSelection = new Set();
   fusionConfirm = false;
@@ -20,14 +26,21 @@ function openCharDetail(c, opts) {
 }
 
 // ---------- 仲間の切り替え（‹ ›） ----------
-// 詳細を開いたまま、前後の仲間に切り替える（今のタブのまま）。並びはパーティ編成の画面と同じ
-// 第一〜第四のパーティの順、その後に控え（未編成）。
-// 探索画面から開いた時は、表示中のパーティの仲間だけを回る（出撃前にそのパーティの装備・ジョブを順に整えやすくする）
+// 詳細を開いたまま、前後の仲間に切り替える（今のタブのまま）。
+// 編成画面からは、開いた行（パーティ・未編成グループ・控え）で実際に表示された順を辿る。
+// 探索画面から開いた時は、表示中のパーティの仲間だけを回る。
 function detailOrder() {
   if (detailReturnScreen === "screen-battle") {
     const party = teamMembers(S.activeTeam);
     if (party.some((x) => x.id === detailCharId)) return party;
   }
+  if (detailNavContext) {
+    // 仲間IDを現在のロスターで引き直し、削除・移動後も古いオブジェクトを参照しない。
+    const current = new Map(S.roster.map((c) => [c.id, c]));
+    const scoped = detailNavContext.ids.map((id) => current.get(id)).filter(Boolean);
+    if (scoped.some((c) => c.id === detailCharId)) return scoped;
+  }
+  // 旧来の呼び出し元など、表示順情報が渡されていない場合だけ全体を辿る。
   const order = [];
   for (let t = 0; t < TEAM_COUNT; t++) order.push(...teamMembers(t));
   for (const c of S.roster) if (!order.includes(c)) order.push(c);
@@ -36,7 +49,9 @@ function detailOrder() {
 // 詳細画面の上部に出す「名前・所属・何人目か」（通常の見出しと、せんしのスキルツリー専用画面で共通）
 function detailPagerInfo(c) {
   const order = detailOrder();
-  const where = c.team !== null ? TEAM_LABELS[c.team] : "控え";
+  const where = detailNavContext && detailNavContext.ids.includes(c.id) && detailNavContext.label
+    ? detailNavContext.label
+    : (c.team !== null ? TEAM_LABELS[c.team] : "控え");
   return {
     name: `${c.name}${c.isMonster ? "（テイム）" : ""}`,
     pos: `${where}・${order.indexOf(c) + 1}/${order.length}`,
@@ -62,6 +77,7 @@ function switchDetail(delta) {
 // 「もどる」: 開いた元の画面へ帰る。探索画面へは、詳細で変えたジョブ・装備・Lvを仲間カードに反映して戻る
 function closeCharDetail() {
   detailCharId = null;
+  detailNavContext = null;
   openSlot = null;
   if (detailReturnScreen === "screen-battle") {
     detailReturnScreen = "screen-jobs";

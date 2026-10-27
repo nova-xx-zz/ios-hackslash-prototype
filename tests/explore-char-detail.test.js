@@ -19,7 +19,8 @@ function loadDetail(roster) {
   const calls = [];
   const context = vm.createContext({
     S: { roster, activeTeam: 1 },
-    TEAM_COUNT: 4,
+    TEAM_COUNT: 4, TEAM_LABELS: ["I", "II", "III", "IV"],
+    document: { getElementById: () => ({ scrollTop: 0 }) },
     teamMembers: (t) => roster.filter((c) => c.team === t),
     renderCharDetail: () => calls.push("render"),
     renderJobsScreen: () => calls.push("jobs"),
@@ -30,7 +31,7 @@ function loadDetail(roster) {
   });
   const code = slice(source, "let detailReturnScreen", "\ndocument.getElementById(\"btnDetailPrev\")");
   // トップレベルの let は vm の外から見えないので、確認用の読み出し口を足す
-  vm.runInContext(code + "\nthis.peek = () => ({ detailReturnScreen, detailCharId });", context);
+  vm.runInContext(code + "\nthis.peek = () => ({ detailReturnScreen, detailCharId, detailNavContext });", context);
   return { context, calls };
 }
 
@@ -64,4 +65,58 @@ test("探索画面の仲間カードはボタンで、タップで探索画面�
   assert.match(build, /openDockCharDetail\(c\.id\)/);
   assert.match(build, /openCharDetail\(c, \{ returnScreen: "screen-battle" \}\)/);
   assert.match(read("js/ui/inventory.js"), /btnDetailBack"\)\.addEventListener\("click", \(\) => closeCharDetail\(\)\)/);
+});
+
+
+test("未編成グループから開くと、コウモリの次はセイレーンで他の控えに飛ばない", () => {
+  const characters = [
+    { id: "a", name: "控えA", team: null, group: null },
+    { id: "s", name: "スライム", team: null, group: "S", isMonster: true },
+    { id: "bat", name: "コウモリ", team: null, group: "S", isMonster: true },
+    { id: "b", name: "控えB", team: null, group: null },
+    { id: "siren", name: "セイレーン", team: null, group: "S", isMonster: true },
+  ];
+  const { context, calls } = loadDetail(characters);
+  context.openCharDetail(characters[2], { orderIds: ["s", "bat", "siren"], orderLabel: "モンスターS" });
+  assert.deepEqual([...context.detailOrder()].map((c) => c.id), ["s", "bat", "siren"]);
+  assert.equal(context.detailPagerInfo(characters[2]).pos, "モンスターS・2/3");
+  context.switchDetail(1);
+  assert.equal(context.peek().detailCharId, "siren");
+  assert.equal(context.detailPagerInfo(characters[4]).pos, "モンスターS・3/3");
+  context.switchDetail(1);
+  assert.equal(context.peek().detailCharId, "s", "最後から先頭へループする");
+  context.switchDetail(-1);
+  assert.equal(context.peek().detailCharId, "siren", "前送りもグループ内でループする");
+  assert.ok(calls.includes("render"));
+});
+
+test("詳細画面を別の行から開き直すと前のグループの並びが残らない", () => {
+  const characters = [
+    { id: "a", team: 0 }, { id: "s", team: null, group: "S" },
+    { id: "bat", team: null, group: "S" }, { id: "siren", team: null, group: "S" },
+    { id: "bench", team: null, group: null },
+  ];
+  const { context } = loadDetail(characters);
+  context.openCharDetail(characters[2], { orderIds: ["s", "bat", "siren"], orderLabel: "モンスターS" });
+  context.closeCharDetail();
+  assert.equal(context.peek().detailNavContext, null);
+  context.openCharDetail(characters[4], { orderIds: ["bench"], orderLabel: "控え（人間）" });
+  assert.deepEqual([...context.detailOrder()].map((c) => c.id), ["bench"]);
+  assert.equal(context.detailPagerInfo(characters[4]).canSwitch, false);
+  context.openCharDetail(characters[0]);
+  assert.deepEqual([...context.detailOrder()].map((c) => c.id), ["a", "s", "bat", "siren", "bench"], "情報なしの従来呼び出しにも対応");
+});
+
+test("控えを絞り込み・並べ替えて開いた場合も画面の表示順を維持する", () => {
+  const characters = [
+    { id: "a", name: "控えA", team: null },
+    { id: "b", name: "控えB", team: null },
+    { id: "c", name: "控えC", team: null },
+  ];
+  const { context } = loadDetail(characters);
+  context.openCharDetail(characters[1], { orderIds: ["c", "b"], orderLabel: "控え（モンスター）" });
+  assert.deepEqual([...context.detailOrder()].map((c) => c.id), ["c", "b"]);
+  assert.equal(context.detailPagerInfo(characters[1]).pos, "控え（モンスター）・2/2");
+  context.switchDetail(1);
+  assert.equal(context.peek().detailCharId, "c");
 });

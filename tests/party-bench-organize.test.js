@@ -33,8 +33,14 @@ function setup(roster) {
     addEventListener: () => {},
   };
   const S = { roster, groups: [], activeTeam: 0 };
+  const opened = [];
+  const windowHandlers = {};
+  const window = {
+    addEventListener: (name, fn) => { windowHandlers[name] = fn; },
+    removeEventListener: (name) => { delete windowHandlers[name]; },
+  };
   const ctx = vm.createContext({
-    document, S, window: {},
+    document, S, window,
     TEAM_LABELS: ["I", "II", "III", "IV"], TEAM_NAMES: ["第一", "第二", "第三", "第四"], MAX_ACTIVE: 5,
     teamMembers: (i) => roster.filter((c) => c.team === i), isTeamLocked: () => false,
     QPModel: { save: { GROUP_MAX: 8, GROUP_NAME_MAX: 12 } }, Shop: { rosterCapacity: () => 100 },
@@ -42,7 +48,7 @@ function setup(roster) {
     jobDef: (c) => ({ name: c.isMonster ? { slime: "スライム", wolf: "オオカミ" }[c.race] : { warrior: "せんし", mage: "まほう" }[c.job] }),
     jobInsignia: () => "", escapeHtml: (s) => s,
     QPCore: { stats: { ivRank: Stats.ivRank }, rosterOrganize: RosterOrganize },
-    openCreateScreen: () => {}, openCharDetail: () => {}, clampVitals: () => {},
+    openCreateScreen: () => {}, openCharDetail: (c, opts) => opened.push({ c, opts }), clampVitals: () => {},
     armConfirm: () => {}, confirmReady: () => true, setTimeout, clearTimeout,
   });
   for (const f of ["../js/ui/list-controls.js", "../js/ui/party.js"]) {
@@ -55,7 +61,7 @@ function setup(roster) {
   const benchStrips = () => all(body).filter((e) => e.className === "member-strip grid" && e.dataset.drop === "bench");
   const cardNames = (strip) => strip.children.filter((c) => c.className.startsWith("member-card") && !c.className.includes("empty"))
     .map((c) => c.title);
-  return { ctx, body, heads, headName, headMeta, benchStrips, cardNames, render: () => ctx.renderJobsScreen() };
+  return { ctx, body, heads, headName, headMeta, benchStrips, cardNames, opened, windowHandlers, render: () => ctx.renderJobsScreen() };
 }
 
 const roster = () => [
@@ -181,4 +187,50 @@ test("控えにモンスターがいない場合は個体値プルダウンを�
   const x = setup(roster().filter((c) => !c.isMonster));
   x.render();
   assert.equal(all(x.body).filter((e) => e.tagName === "select").length, 2);
+});
+
+
+test("未編成グループのカードからは同じグループの表示順と名前を詳細へ渡す", () => {
+  const characters = [
+    { id: "c1", name: "控え", race: "human", job: "warrior", team: null, group: null, level: 1 },
+    { id: "c2", name: "コウモリ", race: "slime", isMonster: true, team: null, group: "g1", level: 1 },
+    { id: "c3", name: "他の控え", race: "wolf", isMonster: true, team: null, group: null, level: 1 },
+    { id: "c4", name: "セイレーン", race: "wolf", isMonster: true, team: null, group: "g1", level: 1 },
+  ];
+  const x = setup(characters);
+  x.ctx.S.groups.push({ id: "g1", name: "モンスターS" });
+  // group g1 は初期状態では折りたたみ。グループ見出しを開いてカードを描画する。
+  x.render();
+  const groupHead = x.heads().find((h) => x.headName(h) === "モンスターS");
+  assert.ok(groupHead);
+  groupHead.click();
+  const strip = all(x.body).find((el) => el.className === "member-strip grid" && el.dataset.drop === "g:g1");
+  assert.ok(strip);
+  assert.equal(strip.children.length, 2);
+  strip.children[0].listeners.click({ detail: 0 });
+  assert.equal(x.opened[0].c.id, "c2");
+  assert.deepEqual(Array.from(x.opened[0].opts.orderIds), ["c2", "c4"]);
+  assert.equal(x.opened[0].opts.orderLabel, "モンスターS");
+  // iPhone Safari のポインター操作でも同じオプションを渡す。
+  strip.children[0].listeners.pointerdown({ pointerType: "touch", clientX: 5, clientY: 5 });
+  x.windowHandlers.pointerup({ type: "pointerup" });
+  assert.equal(x.opened[1].c.id, "c2");
+  assert.deepEqual(Array.from(x.opened[1].opts.orderIds), ["c2", "c4"]);
+});
+
+test("控えのカードはフィルター適用後の表示順だけを詳細送りの対象にする", () => {
+  const characters = [
+    { id: "c1", name: "人間", job: "warrior", race: "human", team: null, level: 1 },
+    { id: "c2", name: "モンスターA", race: "slime", isMonster: true, team: null, level: 4 },
+    { id: "c3", name: "モンスターB", race: "wolf", isMonster: true, team: null, level: 9 },
+  ];
+  const x = setup(characters);
+  x.render();
+  const select = all(x.body).filter((el) => el.tagName === "select");
+  select[1].change("level");
+  const monsterStrip = x.benchStrips()[1];
+  monsterStrip.children[0].listeners.click({ detail: 0 });
+  assert.equal(x.opened[0].c.id, "c3");
+  assert.deepEqual(Array.from(x.opened[0].opts.orderIds), ["c3", "c2"]);
+  assert.equal(x.opened[0].opts.orderLabel, "控え（モンスター）");
 });
