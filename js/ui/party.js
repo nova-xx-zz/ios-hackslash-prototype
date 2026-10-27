@@ -282,11 +282,13 @@ document.getElementById("groupNameInput").addEventListener("keydown", (e) => {
 // 仲間のカード: ジョブの紋章・種族・名前・レベル（ジョブ名は紋章で表す。モンスターは共通の盾）
 function buildMemberCard(c) {
   const btn = document.createElement("button");
-  btn.className = "member-card" + (c.isMonster ? " monster" : "");
-  btn.title = `${RACES[c.race].name}・${jobDef(c).name}`;
+  // 個体値の表示色と評価は詳細画面と同じ ivRank を使用し、セーブデータには手を加えない。
+  const ivRank = c.ivs ? QPCore.stats.ivRank(c.ivs) : null;
+  btn.className = "member-card" + (c.isMonster ? " monster" : "") + (c.isMonster && ivRank ? ` iv-${ivRank}` : "");
+  btn.title = `${RACES[c.race].name}・${jobDef(c).name}${c.isMonster && ivRank ? `・個体値${ivRank}` : ""}`;
   btn.innerHTML = `
     <div class="micon">${jobInsignia(c.isMonster ? null : c.job)}</div>
-    <div class="mtitle">${RACES[c.race].name}${c.ivs ? " " + QPCore.stats.ivRank(c.ivs) : ""}</div>
+    <div class="mtitle">${RACES[c.race].name}${ivRank ? " " + ivRank : ""}</div>
     <div class="mname">${c.favorite ? "★" : ""}${escapeHtml(c.name)}</div>
     <div class="mstats"><span>Lv.${c.level}</span></div>`;
   attachMemberDrag(btn, c);

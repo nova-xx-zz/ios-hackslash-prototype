@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const RosterOrganize = require("../js/core/roster-organize.js");
+const Stats = require("../js/core/stats.js");
 
 class Element {
   constructor(tag = "div") {
@@ -40,7 +41,7 @@ function setup(roster) {
     scheduleSave: () => {}, RACES: { human: { name: "ヒト" }, slime: { name: "スライム" }, wolf: { name: "オオカミ" } },
     jobDef: (c) => ({ name: c.isMonster ? { slime: "スライム", wolf: "オオカミ" }[c.race] : { warrior: "せんし", mage: "まほう" }[c.job] }),
     jobInsignia: () => "", escapeHtml: (s) => s,
-    QPCore: { stats: { ivRank: () => "" }, rosterOrganize: RosterOrganize },
+    QPCore: { stats: { ivRank: Stats.ivRank }, rosterOrganize: RosterOrganize },
     openCreateScreen: () => {}, openCharDetail: () => {}, clampVitals: () => {},
     armConfirm: () => {}, confirmReady: () => true, setTimeout, clearTimeout,
   });
@@ -103,4 +104,38 @@ test("控えが1人以下なら絞り込みバーは出さない", () => {
   const x = setup(roster().slice(0, 2));
   x.render();
   assert.equal(all(x.body).some((e) => e.className === "list-filter-bar"), false);
+});
+
+test("モンスターの個体値S〜Dで名前色のクラスが切り替わり、人間・旧データは着色しない", () => {
+  const x = setup(roster());
+  const ranks = [
+    ["S", 1.05], ["A", 1.02], ["B", 1], ["C", 0.98], ["D", 0.95],
+  ];
+  for (const [rank, value] of ranks) {
+    const ivs = Object.fromEntries(Stats.IV_KEYS.map((k) => [k, value]));
+    const card = x.ctx.buildMemberCard({
+      id: "m-" + rank, race: "slime", isMonster: true, name: "スライム", level: 1, ivs,
+    });
+    assert.equal(card.className, "member-card monster iv-" + rank);
+    assert.ok(card.innerHTML.includes("class=\"mname\""), "名前の要素は維持する");
+    assert.ok(card.innerHTML.includes("スライム " + rank), "種族横の評価表記も維持する");
+    assert.ok(card.title.includes("個体値" + rank), "省略された名前でもランクを確認できる");
+  }
+  const legacy = x.ctx.buildMemberCard({ race: "slime", isMonster: true, name: "旧スライム", level: 1 });
+  assert.equal(legacy.className, "member-card monster", "個体値のない既存モンスターは従来色");
+  const human = x.ctx.buildMemberCard({
+    race: "human", job: "warrior", name: "ヒト", level: 1,
+    ivs: Object.fromEntries(Stats.IV_KEYS.map((k) => [k, 1.05])),
+  });
+  assert.equal(human.className, "member-card", "人間は個体値による着色をしない");
+});
+
+test("編成カードのランク色は詳細画面のランク色と一致する", () => {
+  const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
+  for (const rank of ["S", "A", "B", "C", "D"]) {
+    const rankRule = css.match(new RegExp("\\.iv-rank\\.iv-" + rank + " \\{ color: ([^;]+); \\}"));
+    const cardRule = css.match(new RegExp("\\.member-card\\.monster\\.iv-" + rank + " \\.mname \\{ color: ([^;]+);"));
+    assert.ok(rankRule && cardRule, rank + " の詳細画面と編成カードのCSSが存在する");
+    assert.equal(cardRule[1], rankRule[1], rank + " の配色が一致する");
+  }
 });
