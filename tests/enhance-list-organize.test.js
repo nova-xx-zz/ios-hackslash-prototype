@@ -19,7 +19,20 @@ class Element {
   addEventListener(name, fn) { this.listeners[name] = fn; }
   click() { if (!this.disabled) this.listeners.click?.(); }
   change(v) { this.value = v; this.listeners.change?.({ target: this }); }
-  get classList() { return { toggle() {}, add() {}, remove() {} }; }
+  get classList() {
+    const el = this;
+    return {
+      toggle(name, force) {
+        const classes = new Set(el.className.split(/\s+/).filter(Boolean));
+        const on = force === undefined ? !classes.has(name) : !!force;
+        if (on) classes.add(name); else classes.delete(name);
+        el.className = [...classes].join(" ");
+        return on;
+      },
+      add(name) { this.toggle(name, true); },
+      remove(name) { this.toggle(name, false); },
+    };
+  }
 }
 const all = (n) => { const out = []; const visit = (x) => { for (const c of x.children) { out.push(c); visit(c); } }; visit(n); return out; };
 
@@ -63,7 +76,7 @@ function setup({ inventoryCount = 0 } = {}) {
   const select = (caption) => all(controls).find((e) => e.className === "list-filter-select-label" &&
     e.children[0].textContent === caption).children[1];
   const chip = (text) => all(controls).find((e) => e.tagName === "button" && e.textContent === text);
-  return { ctx, body, sections, rowNames, select, chip, opened, open: () => ctx.openEnhanceList() };
+  return { ctx, body, ids, controls, sections, rowNames, select, chip, opened, open: () => ctx.openEnhanceList() };
 }
 
 test("装備中: 部位ごとにまとめ、レア度順。探索中パーティの装備は強化ボタンが押せない", () => {
@@ -108,4 +121,38 @@ test("所持品: 80件ずつ表示し、能力順に並び替えられる。強�
   x.body.scrollTop = 300;
   all(x.body).find((e) => e.tagName === "button" && e.textContent === "強化する").click();
   assert.equal(x.opened.length, 1);
+});
+
+
+test("装備強化: 固定フィルターを開閉でき、選択条件と件数・80件表示を維持", () => {
+  const x = setup({ inventoryCount: 170 });
+  x.open();
+  assert.equal(x.ids.btnEnhanceFilter.attrs["aria-expanded"], "false");
+  x.ids.btnEnhanceFilter.click();
+  assert.equal(x.ids.btnEnhanceFilter.attrs["aria-expanded"], "true");
+  assert.equal(x.ids.enhanceFilterPopover.attrs["aria-hidden"], "false");
+  x.chip("所持品").click();
+  x.select("表示").change("enhanced");
+  assert.equal(x.rowNames().length, 0);
+  assert.ok(x.ids.btnEnhanceFilter.className.includes("active"));
+  x.ids.btnEnhanceFilterClose.click();
+  assert.equal(x.ids.btnEnhanceFilter.attrs["aria-expanded"], "false");
+  assert.equal(x.select("表示").value, "enhanced", "パネルを閉じても条件を保持");
+  x.ids.btnEnhanceFilter.click();
+  x.ids.btnEnhanceFilterReset.click();
+  assert.equal(x.ids.btnEnhanceFilter.attrs["aria-expanded"], "true");
+  assert.equal(x.select("表示").value, "all");
+  assert.equal(x.rowNames().length, 4, "既定は装備中の全アイテム");
+  assert.ok(!x.ids.btnEnhanceFilter.className.includes("active"));
+  x.ids.btnEnhanceListBack.click();
+  assert.equal(x.ids.btnEnhanceFilter.attrs["aria-expanded"], "false");
+});
+
+test("装備強化: フィルターはスクロール外の右上固定、ポップアップに既存の操作群を格納", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const section = html.slice(html.indexOf('id="screen-enhance"'), html.indexOf('id="screen-shop"'));
+  assert.ok(section.indexOf('id="btnEnhanceFilter"') < section.indexOf('id="enhanceListBody"'));
+  assert.ok(section.indexOf('id="enhanceFilterRow"') < section.indexOf('id="enhanceListBody"'));
+  assert.match(section, /id="enhanceFilterPopover"[^>]*class=/);
+  assert.ok(html.includes('js/ui/menu.js?v=7'));
 });
