@@ -120,3 +120,48 @@ test("控えを絞り込み・並べ替えて開いた場合も画面の表示�
   context.switchDetail(1);
   assert.equal(context.peek().detailCharId, "c");
 });
+
+test("詳細画面: モンスターの見出しは名前・個体ランク・Lvのみ、人間は従来表記", () => {
+  const Stats = require("../js/core/stats.js");
+  const code = slice(read("js/ui/detail-tabs.js"), "function buildStatsTab(c)", "\n// 特殊職の解放の条件の文");
+  const getStats = (c) => {
+    const created = [];
+    class Element {
+      constructor() { this.className = ""; this.innerHTML = ""; this.textContent = ""; this.children = []; }
+      appendChild(el) { this.children.push(el); return el; }
+      addEventListener() {}
+    }
+    const context = vm.createContext({
+      document: { createElement: () => { const el = new Element(); created.push(el); return el; } },
+      RACES: { kraken: { name: "クラーケン族", desc: "海の魔物" }, human: { name: "ヒト", desc: "人間" } },
+      QPCore: { stats: { ivRank: Stats.ivRank } },
+      computeStats: () => ({ maxHp: 37, maxMp: 3, atk: 15, mag: 1, def: 9, spd: 3.8 }),
+      escapeHtml: (v) => v, jobDef: (c) => ({ name: c.isMonster ? "クラーケンの落とし子" : "せんし" }),
+      TEAM_LABELS: ["I", "II", "III", "IV"], MAX_ACTIVE: 5,
+      teamMembers: () => [], isTeamLocked: () => false, clampVitals: () => {},
+      renderCharDetail: () => {}, JOBS: { warrior: {} },
+    });
+    vm.runInContext(code, context);
+    return context.buildStatsTab(c);
+  };
+  const ivs = Object.fromEntries(Stats.IV_KEYS.map((key) => [key, .97]));
+  const monster = getStats({
+    id: "m1", name: "クラーケンの落とし子", race: "kraken", isMonster: true,
+    team: null, level: 1, ivs, favorite: false,
+  });
+  assert.match(monster.innerHTML, /<div class="cname">クラーケンの落とし子 <span class="iv-rank iv-C" title="個体値の評価">個体C<\/span> Lv\.1<\/div>/);
+  assert.doesNotMatch(monster.innerHTML.split("</div>")[0], /テイム|クラーケン族|—|・/);
+  assert.match(monster.innerHTML, /<div class="sub-ability-row">海の魔物<\/div>/, "説明文は残す");
+  const old = getStats({ id: "m2", name: "旧個体", race: "kraken", isMonster: true, team: null, level: 5 });
+  assert.match(old.innerHTML, /<div class="cname">旧個体 Lv\.5<\/div>/, "ランクのない旧モンスターには個体表示を付けない");
+  const human = getStats({ id: "h1", name: "アレン", race: "human", job: "warrior", isMonster: false, team: null, level: 3 });
+  assert.match(human.innerHTML, /<div class="cname">アレン — ヒト・せんし Lv\.3<\/div>/, "人間の名前欄は変更しない");
+});
+
+test("詳細画面: キャラ送りのヘッダーもモンスターのテイム表記だけを削除", () => {
+  const monsters = [{ id: "m", name: "クラーケンの落とし子", isMonster: true, team: null }];
+  const x = loadDetail(monsters);
+  x.context.openCharDetail(monsters[0], { orderIds: ["m"], orderLabel: "控え（モンスター）" });
+  assert.equal(x.context.detailPagerInfo(monsters[0]).name, "クラーケンの落とし子");
+  assert.equal(x.context.detailPagerInfo(monsters[0]).pos, "控え（モンスター）・1/1");
+});
