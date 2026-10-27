@@ -45,7 +45,14 @@ function harness(){
         decodeURIComponent(u.pathname.split("/o/")[1]);
       if(request.method==="POST"){
         if(failUpload){failUpload=false;return{ok:false,status:503};}
-        metrics.uploads++;blobs.set(name,new Uint8Array(request.body));return{ok:true,status:200};
+        const payload=Buffer.from(await request.body.arrayBuffer());
+        const boundary=request.headers["Content-Type"].split("boundary=")[1];
+        const split=Buffer.from("Content-Type: application/octet-stream\r\n\r\n");
+        const start=payload.indexOf(split)+split.length;
+        const end=payload.lastIndexOf(Buffer.from("\r\n--"+boundary+"--"));
+        assert.ok(start>=split.length&&end>start,"multipart boundaries must be present");
+        metrics.uploads++;blobs.set(name,Uint8Array.from(payload.subarray(start,end)));
+        return{ok:true,status:200};
       }
       if(request.method==="DELETE"){
         metrics.deletes++;blobs.delete(name);return{ok:true,status:200};
