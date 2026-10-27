@@ -179,7 +179,10 @@ function buildPartyRow(opts) {
   const strip = document.createElement("div");
   strip.className = "member-strip" + (opts.grid ? " grid" : "") + (opts.locked ? " locked" : "");
   strip.dataset.drop = opts.dropKey;
-  for (const c of opts.members) strip.appendChild(buildMemberCard(c));
+  // 詳細画面の前後送りは、この行に実際に並んでいる仲間の表示順を基準にする。
+  // パーティ、未編成グループ、絞り込み済みの控えで共通。
+  const navigation = { orderIds: opts.members.map((c) => c.id), orderLabel: opts.name };
+  for (const c of opts.members) strip.appendChild(buildMemberCard(c, navigation));
   if (opts.emptyTile) {
     const add = document.createElement("button");
     add.className = "member-card empty";
@@ -280,7 +283,7 @@ document.getElementById("groupNameInput").addEventListener("keydown", (e) => {
 });
 
 // 仲間のカード: ジョブの紋章・種族・名前・レベル（ジョブ名は紋章で表す。モンスターは共通の盾）
-function buildMemberCard(c) {
+function buildMemberCard(c, navigation) {
   const btn = document.createElement("button");
   // 個体値の表示色と評価は詳細画面と同じ ivRank を使用し、セーブデータには手を加えない。
   const ivRank = c.ivs ? QPCore.stats.ivRank(c.ivs) : null;
@@ -291,7 +294,7 @@ function buildMemberCard(c) {
     <div class="mtitle">${RACES[c.race].name}${ivRank ? " " + ivRank : ""}</div>
     <div class="mname">${c.favorite ? "★" : ""}${escapeHtml(c.name)}</div>
     <div class="mstats"><span>Lv.${c.level}</span></div>`;
-  attachMemberDrag(btn, c);
+  attachMemberDrag(btn, c, navigation);
   return btn;
 }
 
@@ -309,7 +312,8 @@ document.addEventListener("touchmove", (e) => {
   if (dragState) e.preventDefault();
 }, { passive: false });
 
-function attachMemberDrag(card, c) {
+function attachMemberDrag(card, c, navigation) {
+  const openDetail = () => openCharDetail(c, navigation);
   card.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const start = { x: e.clientX, y: e.clientY };
@@ -347,7 +351,7 @@ function attachMemberDrag(card, c) {
       clearTimeout(holdTimer);
       detach();
       if (dragging) dropMemberDrag(ev);
-      else if (!canceled && ev.type === "pointerup") openCharDetail(c); // スクロールで中断された時は開かない
+      else if (!canceled && ev.type === "pointerup") openDetail(); // スクロールで中断された時は開かない
     };
     const detach = () => {
       window.removeEventListener("pointermove", onMove);
@@ -365,7 +369,7 @@ function attachMemberDrag(card, c) {
 
   // キーボード操作など、ポインタを伴わない click のためのフォールバック
   card.addEventListener("click", (e) => {
-    if (e.detail === 0) openCharDetail(c);
+    if (e.detail === 0) openDetail();
   });
 }
 
