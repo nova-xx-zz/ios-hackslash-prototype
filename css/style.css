@@ -2882,3 +2882,19 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
 .enhance-batch-guaranteed input { width: 18px; height: 18px; margin: 1px 0 0; flex: 0 0 auto; accent-color: var(--accent); }
 .enhance-batch-guaranteed small { display: block; color: var(--sub-text); font-size: 10.5px; }
 .list-filter-fav { min-height: 36px; flex: 0 0 auto; }
+
+/* クラウドバックアップ履歴（手動/自動それぞれ最大5件） */
+.settings-backup-list { display: grid; gap: 6px; margin: 4px 0 12px; }
+.settings-backup-entry {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  padding: 8px; border: 1px solid rgba(194,165,104,.35);
+  background: rgba(10,21,27,.5); border-radius: 8px;
+}
+.settings-backup-entry > button:first-child {
+  flex: 1; min-width: 0; text-align: left; overflow-wrap: anywhere;
+}
+.settings-backup-entry > button:last-child { flex: 0 0 auto; }
+@media (max-width: 390px) {
+  .settings-backup-entry { padding: 5px; gap: 5px; }
+  .settings-backup-entry .btn { font-size: 12px; padding: 8px; }
+}
