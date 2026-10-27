@@ -1,0 +1,22 @@
+name: Backup history focused tests
+on:
+  pull_request:
+    paths:
+      - 'js/cloud.js'
+      - 'js/core/backup-history.js'
+      - 'js/ui/settings.js'
+      - 'tests/cloud-save-interval.test.js'
+      - 'tests/backup-history.test.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify backup policy, storage mock, restore & diagnostics
+        run: node --test tests/backup-history.test.js tests/cloud-save-interval.test.js tests/save-capacity-diagnostics.test.js tests/segmented-storage-cloud-v2.test.js
