@@ -127,10 +127,24 @@
     if(!user||typeof user.getIdToken!=="function")throw Error("バックアップ用の認証情報がありません");
     const token=await user.getIdToken();
     const kind=method==="POST"?"upload":method==="GET"?"get":"delete";
-    const headers={"Authorization":"Firebase "+token};
-    if(bytes)headers["Content-Type"]="application/octet-stream";
+    const headers={"Authorization":"Firebase "+token,
+      "X-Firebase-Storage-Version":"webjs/12.19.0"};
+    if(root.QP_FIREBASE_CONFIG.appId)headers["X-Firebase-GMPID"]=root.QP_FIREBASE_CONFIG.appId;
+    let body;
+    if(bytes){
+      // Firebase Storage Web SDKと同じmultipart形式。生のバイト列だけのPOSTは送らない。
+      const boundary="scbackup"+id.replace(/-/g,"");
+      const name="swordcrest-backups/"+state.uid+"/"+id;
+      headers["X-Goog-Upload-Protocol"]="multipart";
+      headers["Content-Type"]="multipart/related; boundary="+boundary;
+      const pre="--"+boundary+"\\r\\nContent-Type: application/json; charset=utf-8\\r\\n\\r\\n"+
+        JSON.stringify({name,contentType:"application/octet-stream"})+
+        "\\r\\n--"+boundary+"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\n";
+      const post="\\r\\n--"+boundary+"--";
+      body=new root.Blob([pre,bytes,post]);
+    }
     const response=await root.fetch(storageUrl(id,kind),{
-      method,headers,...(bytes?{body:bytes}:{})
+      method,headers,...(body?{body}:{})
     });
     if(!response.ok)throw Error("Cloud Storage通信に失敗しました（HTTP "+response.status+"）");
     return method==="GET"?new Uint8Array(await response.arrayBuffer()):null;
