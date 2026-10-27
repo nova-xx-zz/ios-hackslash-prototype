@@ -211,10 +211,10 @@ test("仲間と別れる: 人間とモンスターを分けて表示し、種類
 test("仲間と別れる: 表示中をまとめて選び、絞り込みで隠れた選択は人数に明示する", () => {
   const x = setup(2, [mon("c90", "slime", 2), mon("c91", "slime", 3)]);
   x.open();
-  const body = () => x.elements.farewellBody;
   const chip = (pred) => find(x.elements.farewellFilterControls, (n) => n.tagName === "button" && pred(n.textContent))[0];
+  const bulk = () => find(x.elements.farewellBody, (n) => n.tagName === "button" && n.textContent.startsWith("表示中をすべて選ぶ"))[0];
   chip((t) => t === "モンスター").click();
-  chip((t) => t.startsWith("表示中をすべて選ぶ")).click();
+  bulk().click();
   assert.equal(x.getButton().textContent, "2人と別れる");
   chip((t) => t === "人間").click();
   assert.equal(x.elements.farewellActionBar.children[0].textContent, "選択中：2人（うち表示外2人）");
