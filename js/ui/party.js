@@ -9,6 +9,7 @@ let benchExpanded = true; // 控え（人間）
 let benchMonsterExpanded = true; // 控え（モンスター）
 // 控えの絞り込み・並び替え（js/ui/list-controls.js）。画面内の一時状態でセーブには入れない
 let benchView = newRosterListView();
+let jobsFilterOpen = false; // ヘッダー右上の絞り込みパネル。画面内だけの表示状態
 const expandedGroups = new Set(); // 開いている未編成グループのid
 let detailCharId = null;
 let detailTab = "stats";
@@ -17,6 +18,60 @@ let fusionMessage = "";
 let fusionConfirm = false; // 合成ボタンを1回押して確認待ちか（素材の消滅は取り消せないため2回押しで確定）
 let treeSelectedNode = null; // ツリータブ: 選択中ノード { scope: "exclusive"|スロットkey, nodeId }
 let treeSwapConfirm = null; // ツリータブ: 交換ボタンを1回押して確認待ちの枠key
+
+function setJobsFilterOpen(open) {
+  jobsFilterOpen = !!open;
+  const panel = document.getElementById("jobsFilterPopover");
+  panel.classList.toggle("hidden", !jobsFilterOpen);
+  panel.setAttribute("aria-hidden", jobsFilterOpen ? "false" : "true");
+  document.getElementById("btnJobsFilter").setAttribute("aria-expanded", jobsFilterOpen ? "true" : "false");
+}
+
+function renderJobsFilterControls(bench) {
+  const controls = document.getElementById("jobsFilterControls");
+  controls.replaceChildren(buildRosterFilterBar(benchView, {
+    chars: bench, showKind: false,
+    onChange: () => {
+      // 控えの深い位置までスクロールしていても、条件変更で一覧の先頭に戻さない。
+      const body = document.getElementById("rosterBody");
+      const scrollTop = body.scrollTop;
+      renderJobsScreen();
+      body.scrollTop = scrollTop;
+    },
+  }));
+  const applied = rosterListViewActive(benchView);
+  const button = document.getElementById("btnJobsFilter");
+  button.classList.toggle("active", !!applied);
+  button.setAttribute("aria-label", applied ? "控えを絞り込む（条件適用中）" : "控えを絞り込む");
+  button.title = applied ? "控えを絞り込む（条件適用中）" : "控えを絞り込む";
+  const groupButton = document.getElementById("btnJobsNewGroup");
+  groupButton.disabled = S.groups.length >= QPModel.save.GROUP_MAX;
+  groupButton.title = groupButton.disabled ? "グループ数が上限に達しています" : "新しいグループを作る";
+}
+
+document.getElementById("btnJobsFilter").addEventListener("click", () => setJobsFilterOpen(!jobsFilterOpen));
+document.getElementById("btnJobsFilterClose").addEventListener("click", () => setJobsFilterOpen(false));
+document.getElementById("btnJobsFilterReset").addEventListener("click", () => {
+  benchView = newRosterListView();
+  const scrollTop = document.getElementById("rosterBody").scrollTop;
+  renderJobsScreen();
+  document.getElementById("rosterBody").scrollTop = scrollTop;
+});
+document.getElementById("btnJobsNewGroup").addEventListener("click", () => {
+  if (S.groups.length >= QPModel.save.GROUP_MAX) return;
+  setJobsFilterOpen(false);
+  openGroupModal(null);
+});
+document.getElementById("btnJobsDone").addEventListener("click", () => setJobsFilterOpen(false));
+document.addEventListener("pointerdown", (event) => {
+  if (!jobsFilterOpen) return;
+  const panel = document.getElementById("jobsFilterPopover");
+  const trigger = document.getElementById("btnJobsFilter");
+  if (!panel.contains(event.target) && !trigger.contains(event.target)) setJobsFilterOpen(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (jobsFilterOpen && event.key === "Escape") setJobsFilterOpen(false);
+});
 
 function renderJobsScreen() {
   scheduleSave();
@@ -70,20 +125,12 @@ function renderJobsScreen() {
       grid: true, // 人数が多くなるので、横スクロールではなく折り返して縦に並べる
     }));
   }
-  if (S.groups.length < QPModel.save.GROUP_MAX) {
-    const add = document.createElement("button");
-    add.className = "group-add";
-    add.textContent = "＋ 新しいグループを作る";
-    add.addEventListener("click", () => openGroupModal(null));
-    wrap.appendChild(add);
-  }
+  // グループの新規作成はスクロールしても固定表示される右上のフォルダ＋から行う。
 
   // 控え: 人間とモンスターを別の行に分ける（どちらへドロップしても「控え」に入り、種類に応じた行に並ぶ）
   wrap.appendChild(sectionLabel("未編成"));
   const bench = S.roster.filter((c) => c.team === null && !c.group);
-  if (bench.length > 1 || rosterListViewActive(benchView)) {
-    wrap.appendChild(buildRosterFilterBar(benchView, { chars: bench, showKind: false, onChange: () => renderJobsScreen() }));
-  }
+  renderJobsFilterControls(bench); // フィルターはヘッダー直下のフローティングパネル内に表示
   const shownBench = applyRosterListView(bench, benchView);
   const filtered = rosterListViewActive(benchView);
   const benchMeta = (all, shown) => (filtered ? `${shown.length}/${all.length}人` : `${all.length}人`);
