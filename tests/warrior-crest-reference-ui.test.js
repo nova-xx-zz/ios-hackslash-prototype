@@ -202,7 +202,9 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   const tab = ctx.buildTreeTab({ id: "a", name: "ガイ", job: "warrior", level: 99, team: null });
   const order = tab.children.map((child) => child.className);
   assert.deepEqual(order, ["detail-section-head crest-screen-head", "crest-focus-tabs", "crest-stage-area", "crest-inline-detail"]);
-  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 1, "習得ボタンは下部ドック");
+  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 1, "習得ボタンは詳細ドック内");
+  assert.equal(byClass(tab.children[3], "crest-detail-actions").length, 1, "詳細カードの末尾に習得ボタンを配置");
+  assert.equal(byClass(tab.children[3], "crest-detail-card")[0].children.at(-1).className, "crest-detail-actions");
   assert.equal(byClass(tab.children[2], "crest-learn-btn").length, 0);
   assert.equal(byClass(tab, "crest-screen-name").length, 0, "大きな左上タイトルは省略");
   assert.equal(byClass(tab, "crest-screen-actions").length, 1, "SP・リセットは残す");
