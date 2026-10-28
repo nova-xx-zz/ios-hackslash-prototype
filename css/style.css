@@ -1359,7 +1359,18 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 
 /* --- 2段目: スキルツリー・SP・リセット --- */
 .tree-tab--crest .crest-screen-head { display: block; margin: 0 0 8px; padding: 0; background: none; border: 0; border-radius: 0; }
-.crest-screen-bar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.crest-screen-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.crest-current-tree-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #dac69c;
+  font: 700 clamp(11px, 3.4vw, 14px)/1.4 var(--title-serif-ja);
+  letter-spacing: .03em;
+  text-shadow: 0 1px 5px rgba(0,0,0,.8);
+}
 .crest-screen-name {
   margin: 0;
   min-width: 0;
@@ -1484,43 +1495,6 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   will-change: transform;
 }
 .tree-web--crest .tree-web-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-
-/* 職業の見出し（画面固定・タップ判定なし） */
-.crest-banner {
-  position: absolute;
-  left: 12px;
-  top: 2px;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 18px 6px 2px;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 30% 50%, rgba(3,9,13,.78), rgba(3,9,13,0) 72%);
-}
-.crest-banner-emblem { flex: 0 0 auto; width: 42px; height: 42px; filter: drop-shadow(0 2px 6px rgba(0,0,0,.7)); }
-.crest-banner-emblem .crest-emblem { width: 100%; height: 100%; }
-.crest-banner-text { display: flex; flex-direction: column; }
-.crest-banner-job { font: 700 19px/1.2 var(--title-serif-ja); letter-spacing: .14em; color: #f6ead0; text-shadow: 0 2px 6px #000; }
-.crest-banner-tree { font: 12px/1.3 var(--title-serif-ja); letter-spacing: .1em; color: #dcc79b; text-shadow: 0 1px 5px #000; }
-.crest-banner-rule {
-  position: relative;
-  display: block;
-  width: 86px;
-  height: 9px;
-  margin-top: 2px;
-  background: linear-gradient(90deg, rgba(216,182,115,.85), rgba(216,182,115,0)) 8px 50% / calc(100% - 8px) 1px no-repeat;
-}
-.crest-banner-rule::before {
-  content: "";
-  position: absolute;
-  left: 1px;
-  top: 1.5px;
-  width: 5px;
-  height: 5px;
-  transform: rotate(45deg);
-  border: 1px solid var(--gold);
-}
 
 /* ズーム操作（画面固定。盤面の左下。右下は奥義が外枠に掛かるため空ける） */
 .tree-web--crest .tree-web-controls { position: absolute; left: 12px; bottom: 4px; z-index: 4; display: flex; gap: 4px; }
@@ -2028,9 +2002,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   .crest-detail-body { margin-top: 6px; padding-top: 5px; }
   .crest-detail-flavor { display: none; }
   .crest-inline-detail .crest-learn-btn, .crest-inline-detail .crest-learned { min-height: 46px; }
-  .crest-banner-emblem { width: 36px; height: 36px; }
-  .crest-banner-job { font-size: 17px; }
-  .crest-banner-rule { display: none; }
+  .crest-current-tree-name { font-size: 11px; letter-spacing: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tree-web-link-flow, .tree-web-node.available .tree-web-node-aura,
@@ -3010,8 +2982,7 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
 .crest-stage-area--general .tree-swap-btn { font-size: 10px; min-height: 29px; }
 .crest-stage-area--general .tree-web--universal { flex: 1 1 auto; min-height: 180px; }
 .tree-web--universal .tree-web-node-mark { letter-spacing: 0; }
-.tree-web--universal .crest-banner-job { max-width: min(60vw, 220px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tree-web--universal .crest-banner-tree { max-width: min(60vw, 220px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 @media (max-height: 700px) {
   .crest-stage-area--general .tree-section-head { padding: 3px 8px; margin-bottom: 2px; }
   .crest-stage-area--general .tree-swap-btn { min-height: 25px; }

@@ -133,6 +133,6 @@ test("iPhone向け折りたたみCSSとキャッシュ番号が更新されて�
   const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
   assert.match(css,/\.job-accordion-content\[hidden\]/);
   assert.match(css,/\.job-pass-purchased/);
-  assert.match(html,/css\/style\.css\?v=91/);
+  assert.match(html,/css\/style\.css\?v=92/);
   assert.match(html,/js\/ui\/detail-tabs\.js\?v=21/);
 });
