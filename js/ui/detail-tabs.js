@@ -155,6 +155,8 @@ function buildJobCard(c, jobId, unlocked) {
   card.addEventListener("click", () => {
     if (!unlocked) return;
     switchJob(c, jobId);
+    // 転職先の区分を自動展開して、選択したジョブが隠れないようにする。
+    jobAccordionState(c)[jobCategoryOf(jobId)] = true;
     // 新しいジョブで持てない装備・使えない装飾品の枠の装備は所持品に戻す
     const removed = normalizeCharEquip(c);
     clampVitals(c);
@@ -388,74 +390,133 @@ function buildSwordmasterTrialPilot(c) {
   return box;
 }
 
+// ジョブの折りたたみ状態は表示専用。セーブ形式には追加しない。
+const jobAccordionStates = new Map();
+function jobCategoryOf(jobId) {
+  if (BASIC_JOB_IDS.includes(jobId)) return "basic";
+  if (JOBS[jobId] && JOBS[jobId].tier === "advanced") return "advanced";
+  return "special";
+}
+function jobAccordionState(c) {
+  let state = jobAccordionStates.get(c.id);
+  if (!state) {
+    // 初回は現在の職業の区分だけ開く（職業が増えてもスクロールを短くする）。
+    state = { basic: false, advanced: false, special: false };
+    state[jobCategoryOf(c.job)] = true;
+    jobAccordionStates.set(c.id, state);
+  }
+  return state;
+}
+function buildJobAccordion(c, key, label, completed, total, children, badgeText) {
+  const section = document.createElement("section");
+  section.className = "job-accordion";
+  section.dataset.group = key;
+  const expanded = !!jobAccordionState(c)[key];
+  const header = document.createElement("button");
+  header.type = "button";
+  header.className = "detail-section-head job-accordion-header";
+  header.setAttribute("aria-expanded", String(expanded));
+  const id = "job-accordion-" + key + "-" + c.id;
+  header.setAttribute("aria-controls", id);
+  const titleWrap = document.createElement("span");
+  titleWrap.className = "job-accordion-heading";
+  const title = document.createElement("span");
+  title.className = "job-accordion-title";
+  title.textContent = label;
+  titleWrap.appendChild(title);
+  if (badgeText) {
+    const badge = document.createElement("span");
+    badge.className = "job-pass-purchased";
+    badge.textContent = badgeText;
+    titleWrap.appendChild(badge);
+  }
+  header.appendChild(titleWrap);
+  const trailing = document.createElement("span");
+  trailing.className = "job-accordion-trailing";
+  const count = document.createElement("span");
+  count.className = "count";
+  count.textContent = completed + "/" + total;
+  trailing.appendChild(count);
+  const arrow = document.createElement("span");
+  arrow.className = "job-accordion-chevron";
+  arrow.textContent = expanded ? "⌃" : "⌄";
+  arrow.setAttribute("aria-hidden", "true");
+  trailing.appendChild(arrow);
+  header.appendChild(trailing);
+  const content = document.createElement("div");
+  content.id = id;
+  content.className = "job-accordion-content";
+  content.hidden = !expanded;
+  content.appendChild(children);
+  header.addEventListener("click", () => {
+    jobAccordionState(c)[key] = !jobAccordionState(c)[key];
+    renderCharDetail();
+  });
+  section.appendChild(header);
+  section.appendChild(content);
+  return section;
+}
 function buildJobTab(c) {
   if (c.isMonster) return buildFusionTab(c);
   const wrap = document.createElement("div");
-
+  wrap.className = "job-accordion-list";
   const advIds = Object.keys(JOBS).filter((id) => JOBS[id].tier === "advanced");
   const masteredCount = (ids) => ids.filter((id) => (c.jobLevels[id] && c.jobLevels[id].level) >= JOB_MASTER_LEVEL).length;
 
-  const basicHead = document.createElement("div");
-  basicHead.className = "detail-section-head";
-  basicHead.innerHTML = `<span>基本職</span><span class="count">${masteredCount(BASIC_JOB_IDS)}/${BASIC_JOB_IDS.length}</span>`;
-  wrap.appendChild(basicHead);
-
+  const basicContent = document.createElement("div");
   const basicGrid = document.createElement("div");
   basicGrid.className = "job-card-grid";
   for (const jobId of BASIC_JOB_IDS) basicGrid.appendChild(buildJobCard(c, jobId, true));
-  wrap.appendChild(basicGrid);
+  basicContent.appendChild(basicGrid);
 
-  // 購入時と新規作成時に全基本職は自動でLv.99。手動選択は不要。
-  if (isFeatureEnabled("shop")) {
+  // 購入済み表示は常に基本職の見出し横（折りたたんでも表示）。
+  const purchased = isFeatureEnabled("shop") && Shop.hasUnlock("basicJobMaxPass");
+  if (isFeatureEnabled("shop") && !purchased) {
     const pass = document.createElement("div");
-    pass.className = "sub-ability-row";
-    if (Shop.hasUnlock("basicJobMaxPass")) {
-      pass.textContent = "基本職育成パス：購入済み（全基本職Lv.99／新しい仲間にも自動適用）";
-    } else {
-      const text = document.createElement("div");
-      text.textContent = "基本職育成パス：未購入（購入時に今いる仲間も全基本職Lv.99）";
-      const link = document.createElement("button");
-      link.type = "button";
-      link.className = "btn small ghost";
-      link.textContent = "ショップで確認";
-      link.addEventListener("click", () => openShop("screen-chardetail", "basic_job_max_pass"));
-      pass.append(text, link);
-    }
-    wrap.appendChild(pass);
+    pass.className = "sub-ability-row job-unpurchased";
+    const text = document.createElement("div");
+    text.textContent = "基本職育成パス：未購入（購入時に今いる仲間も全基本職Lv.99）";
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "btn small ghost";
+    link.textContent = "ショップで確認";
+    link.addEventListener("click", () => openShop("screen-chardetail", "basic_job_max_pass"));
+    pass.append(text, link);
+    basicContent.appendChild(pass);
   }
+  wrap.appendChild(buildJobAccordion(
+    c, "basic", "基本職", masteredCount(BASIC_JOB_IDS), BASIC_JOB_IDS.length,
+    basicContent, purchased ? "基本職育成パス:購入済み" : ""
+  ));
 
-  const advHead = document.createElement("div");
-  advHead.className = "detail-section-head";
-  const advCaption = isFeatureEnabled("jobTrialSwordmaster")
-    ? `上級職（基本職Lv.${JOB_MASTER_LEVEL}。けんごうのみ実績＋専用試練も必要）`
-    : `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
-  advHead.innerHTML = `<span>${advCaption}</span><span class="count">${masteredCount(advIds)}/${advIds.length}</span>`;
-  wrap.appendChild(advHead);
-
+  const advContent = document.createElement("div");
   const advGrid = document.createElement("div");
   advGrid.className = "job-card-grid";
   for (const jobId of advIds) advGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
-  wrap.appendChild(advGrid);
-  if (isFeatureEnabled("jobTrialSwordmaster")) wrap.appendChild(buildSwordmasterTrialPilot(c));
+  advContent.appendChild(advGrid);
+  if (isFeatureEnabled("jobTrialSwordmaster")) advContent.appendChild(buildSwordmasterTrialPilot(c));
+  const advCaption = isFeatureEnabled("jobTrialSwordmaster")
+    ? `上級職（基本職Lv.${JOB_MASTER_LEVEL}。けんごうのみ実績＋専用試練も必要）`
+    : `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
+  wrap.appendChild(buildJobAccordion(c, "advanced", advCaption, masteredCount(advIds), advIds.length, advContent));
 
-  // 特殊職（機能フラグ specialJobs が有効な間だけ。docs/special-job-design.md）
+  // 特殊職も今後増えるため折りたたみ可能にする。
   const specialIds = SPECIAL_JOB_IDS.filter(jobUsable);
   if (specialIds.length) {
-    const spHead = document.createElement("div");
-    spHead.className = "detail-section-head";
-    spHead.innerHTML = `<span>特殊職（テスト中）</span><span class="count">${specialIds.filter((id) => jobUnlocked(c, id)).length}/${specialIds.length}</span>`;
-    wrap.appendChild(spHead);
+    const spContent = document.createElement("div");
     const spGrid = document.createElement("div");
     spGrid.className = "job-card-grid";
     for (const jobId of specialIds) spGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
-    wrap.appendChild(spGrid);
+    spContent.appendChild(spGrid);
     for (const jobId of specialIds) {
       const note = document.createElement("div");
       note.className = "sub-ability-row";
       note.textContent = `${JOBS[jobId].name}: ` + (jobUnlocked(c, jobId) ? "解放済み。" : "未解放。" + specialJobUnlockText(JOBS[jobId]) + "。") +
         "1人だけのチームで強くなる（ひとり旅の加護）";
-      wrap.appendChild(note);
+      spContent.appendChild(note);
     }
+    wrap.appendChild(buildJobAccordion(c, "special", "特殊職（テスト中）",
+      specialIds.filter((id) => jobUnlocked(c, id)).length, specialIds.length, spContent));
   }
 
   return wrap;

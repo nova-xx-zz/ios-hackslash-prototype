@@ -2994,3 +2994,32 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
   .gambit-trigger, .gambit-skill { font-size: 10.5px; padding: 4px; }
   .gambit-grip { width: 26px; }
 }
+
+/* ジョブ一覧: 基本・上級・特殊職を折りたたみ、将来の職追加でも見出しから移動できる */
+.job-accordion-list { display: flex; flex-direction: column; gap: 8px; }
+.job-accordion { min-width: 0; }
+.job-accordion .job-accordion-header {
+  width: 100%; min-height: 43px; margin: 0; padding: 8px 10px;
+  text-align: left; color: var(--text); cursor: pointer; font-family: inherit;
+  appearance: none; -webkit-appearance: none;
+}
+.job-accordion .job-accordion-header:focus-visible { outline: 2px solid #4dc3ff; outline-offset: 2px; }
+.job-accordion-heading { display: flex; flex: 1; align-items: center; flex-wrap: wrap; gap: 3px 8px; min-width: 0; }
+.job-accordion-title { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.job-accordion-trailing { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
+.job-accordion-chevron { color: #d9bc82; font-size: 17px; line-height: 1; }
+.job-pass-purchased {
+  display: inline-flex; align-items: center; padding: 2px 7px;
+  border: 1px solid rgba(201,164,99,.48); border-radius: 6px;
+  background: rgba(201,164,99,.12); color: #f4ddb0;
+  font-size: 10px; font-weight: 700; line-height: 1.5; white-space: nowrap;
+}
+.job-accordion-content { padding: 8px 0 0; }
+.job-accordion-content[hidden] { display: none !important; }
+.job-accordion-content .job-card-grid { margin-bottom: 6px; }
+.job-accordion-content .job-unpurchased { margin: 5px 0 8px; }
+@media(max-width:390px) {
+  .job-accordion-heading { gap: 3px 5px; }
+  .job-pass-purchased { font-size: 9px; padding: 2px 4px; }
+  .job-accordion-trailing { gap: 5px; }
+}
