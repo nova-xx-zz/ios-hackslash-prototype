@@ -512,3 +512,26 @@ test("同じ固有ツリーでもせんしの手配置だけ維持し、転職�
   assert.equal(byClass(advanced,"tree-web--universal").length,1);
   assert.equal(byClass(advanced,"tree-web-node").length,data.EXCLUSIVE_TREES.warrior.nodes.length);
 });
+
+test("全7種の固有ツリーマスターを共通紋章盤へ描画し、ノード・依存線が欠けない", () => {
+  const trees = Object.values(data.EXCLUSIVE_TREES);
+  assert.ok(trees.length >= 7);
+  for (const tree of trees) {
+    const { context } = renderContext({
+      getExclusiveTree: () => tree,
+      getTreeState: () => ({exclusiveRanks:{},general:{}}),
+      jobDef: () => ({name:tree.name}),
+    });
+    const c={id:"all-"+tree.id,job:tree.tag || tree.id,level:99,team:null,name:tree.name};
+    const tab=context.buildTreeTab(c);
+    assert.equal(byClass(tab,"tree-web-node").length,tree.nodes.length,tree.id+" のノード数");
+    assert.equal(byClass(tab,"tree-web-link-bed").length,
+      tree.nodes.reduce((n,x)=>n+(x.prerequisites||[]).length,0),tree.id+" の前提線");
+    const names=byClass(tab,"tree-web-node").map(x=>x.title).sort();
+    assert.deepEqual(names,tree.nodes.map(x=>x.name).sort(),tree.id+" のスキル名");
+    const points=byClass(tab,"tree-web-node").map(b=>[parseFloat(b.style.left),parseFloat(b.style.top)]);
+    assert.ok(points.every(p=>p.every(v=>Number.isFinite(v)&&v>=0&&v<=100)),tree.id+" の配置範囲");
+    assert.equal(byClass(tab,"crest-inline-detail").length,1,tree.id+" の詳細");
+    assert.ok(byClass(tab,"crest-learn-btn").length<=1,tree.id+" の習得ボタン");
+  }
+});
