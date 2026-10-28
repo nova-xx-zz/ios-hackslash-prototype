@@ -158,7 +158,7 @@ test("省スペース版のスタイルが存在し、旧独立ONボタンは廃
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(css, /\.gambit-rule\s*\{[\s\S]*?grid-template-columns:\s*29px/);
   assert.match(css, /\.gambit-index\.on:after/);
-  assert.match(html, /css\/style\.css\?v=93/);
+  assert.match(html, /css\/style\.css\?v=94/);
   assert.match(html, /js\/ui\/detail-tabs\.js\?v=21/);
   assert.match(html, /js\/ui\/detail\.js\?v=12/);
   assert.match(css, /#screen-chardetail #detailSheet\.gambit-sheet/);
