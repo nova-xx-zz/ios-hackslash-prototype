@@ -64,7 +64,7 @@ function renderCreateScreen() {
   wrap.appendChild(nameField);
 
   // 種族・ジョブも編成画面の共通カードで表示する。
-  wrap.appendChild(buildCreatePickRow("しゅぞく", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race"), "race", draft.race));
+  wrap.appendChild(buildCreatePickRow("種族", RACES[draft.race].name, RACES[draft.race].desc, () => openCreatePick("race"), "race", draft.race));
   const jobSub = JOBS[draft.job].abilities.map((a) => `${a.name}(Lv.${a.reqLevel})`).join(" / ");
   wrap.appendChild(buildCreatePickRow("ジョブ", JOBS[draft.job].name, jobSub, () => openCreatePick("job"), "job", draft.job));
 
