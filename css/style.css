@@ -1359,8 +1359,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 /* 共通ナビゲーション：ツリーの角ばった5分割タブを全タブに適用。
    ツリー専用セレクタでの上書きを禁止して切替時の段差をなくす。 */
 #screen-chardetail #detailTabs {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex; /* ツリーがないモンスターは4タブを均等割りで表示 */
   flex: 0 0 43px;
   height: 43px;
   min-height: 43px;
@@ -1370,6 +1369,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   box-sizing: border-box;
 }
 #screen-chardetail #detailTabs .detail-tab {
+  flex: 1 1 0;
   min-width: 0;
   min-height: 43px;
   padding: 10px 2px;
