@@ -60,7 +60,7 @@ function context(overrides = {}) {
     availableSp: () => 20,
     scheduleSave: () => {},
     getExclusiveTree: () => data.EXCLUSIVE_TREES.warrior,
-    jobDef: (c) => ({name: c.job === "warrior" ? "せんし" : c.job}),
+    jobDef: (c) => ({name: c.job === "warrior" ? "戦士" : c.job}),
     getTreeState: () => ({ exclusiveRanks: { w1: 1 }, general: {} }),
     GENERAL_SLOTS: [],
     totalSp: () => 30,
@@ -202,7 +202,9 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   const tab = ctx.buildTreeTab({ id: "a", name: "ガイ", job: "warrior", level: 99, team: null });
   const order = tab.children.map((child) => child.className);
   assert.deepEqual(order, ["detail-section-head crest-screen-head", "crest-focus-tabs", "crest-stage-area", "crest-inline-detail"]);
-  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 1, "習得ボタンは下部ドック");
+  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 1, "習得ボタンは詳細ドック内");
+  assert.equal(byClass(tab.children[3], "crest-detail-actions").length, 1, "詳細カードの末尾に習得ボタンを配置");
+  assert.equal(byClass(tab.children[3], "crest-detail-card")[0].children.at(-1).className, "crest-detail-actions");
   assert.equal(byClass(tab.children[2], "crest-learn-btn").length, 0);
   assert.equal(byClass(tab, "crest-screen-name").length, 0, "大きな左上タイトルは省略");
   assert.equal(byClass(tab, "crest-screen-actions").length, 1, "SP・リセットは残す");
@@ -224,7 +226,7 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=90/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=15/);
+  assert.match(html, /css\/style\.css\?v=91/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=16/);
   assert.match(html, /js\/ui\/detail\.js\?v=12/);
 });

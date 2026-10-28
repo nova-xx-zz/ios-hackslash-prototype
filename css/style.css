@@ -976,7 +976,7 @@ body.dragging-member { overflow: hidden; touch-action: none; }
 .job-card-level { font-size: 10px; color: var(--sub-text); font-weight: 700; }
 .job-card-level .star { color: var(--atb); }
 .job-card-name { font-size: 12px; font-weight: 700; text-align: center; }
-.job-card-name.long { font-size: 10.5px; letter-spacing: -0.03em; white-space: nowrap; } /* じゅんれいけんし など8文字の名前を1行に収める */
+.job-card-name.long { font-size: 10.5px; letter-spacing: -0.03em; white-space: nowrap; } /* 追加職の長い表示名向け保険 */
 .job-card-exp-bar { width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 2px; }
 
 /* モンスター図鑑 */
@@ -1431,9 +1431,11 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   border-radius: 0;
   background: none;
   color: #a9b8b6;
-  font: 700 13px var(--title-serif-ja);
-  letter-spacing: .06em;
+  font: 700 clamp(11px, 3.2vw, 13px) var(--title-serif-ja);
+  letter-spacing: .02em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -1832,7 +1834,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 .crest-detail-card {
   position: relative;
   width: 100%;
-  max-height: min(31vh, 230px);
+  max-height: min(34vh, 250px);
   overflow-y: auto;
   overscroll-behavior-y: contain;
   padding: 12px 14px 11px;
@@ -1853,6 +1855,30 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   scrollbar-width: none;
 }
 .crest-detail-card::-webkit-scrollbar { display: none; }
+
+/* 習得は詳細カード内で完結。習得済みは上部の状態タグのみ表示する。 */
+.crest-detail-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(216,182,115,.24);
+}
+.crest-inline-detail .crest-detail-actions .crest-learn-btn {
+  width: 100%;
+  max-width: none;
+  min-height: 44px;
+  padding: 6px 28px;
+}
+.crest-detail-actions .crest-learn-main {
+  font-size: 15px;
+  letter-spacing: .14em;
+  padding-left: .14em;
+}
+.crest-detail-card .crest-detail-actions .crest-learn-btn.choice {
+  width: 100%;
+}
+
 .crest-detail-main { display: flex; align-items: center; gap: 12px; }
 .crest-detail-icon {
   --rim: #5d686e;
@@ -1995,7 +2021,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   #screen-chardetail.warrior-crest-view .roster-header { min-height: 36px; padding-bottom: 2px; }
   .tree-tab--crest .crest-screen-head { margin-bottom: 6px; }
   .crest-focus-tab { padding: 8px 2px; }
-  .crest-detail-card { padding: 10px 12px 9px; max-height: 26vh; }
+  .crest-detail-card { padding: 10px 12px 9px; max-height: 34vh; }
   .crest-detail-icon { width: 54px; height: 54px; }
   .warrior-crest-detail .tree-node-detail-name { font-size: 17px; }
   .warrior-crest-detail .tree-node-detail-desc { font-size: 12.5px; line-height: 1.5; }

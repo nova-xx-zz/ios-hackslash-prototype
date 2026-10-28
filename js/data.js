@@ -100,7 +100,7 @@ const MONSTER_MAX_LEVEL = 100;
 const CHAR_MAX_LEVEL = 99;
 const JOBS = {
   warrior: {
-    id: "warrior", name: "せんし", commandName: "とくぎ", icon: "⚔️", tier: "basic",
+    id: "warrior", name: "戦士", commandName: "とくぎ", icon: "⚔️", tier: "basic",
     desc: "接近して斬りかかる正統派の近接アタッカー。技はどれも消費MPがなく、安定して打撃を重ねられる。",
     base: { hp: 34, mp: 4, atk: 11, mag: 2, def: 8, spd: 6 },
     abilities: [
@@ -111,7 +111,7 @@ const JOBS = {
     ],
   },
   mage: {
-    id: "mage", name: "まほうつかい", commandName: "まほう", icon: "🪄", tier: "basic",
+    id: "mage", name: "魔法使い", commandName: "まほう", icon: "🪄", tier: "basic",
     desc: "属性魔法で敵を攻撃する後衛職。MPを多く消費するが、敵全体を巻き込む魔法も得意とする。",
     base: { hp: 20, mp: 20, atk: 4, mag: 12, def: 3, spd: 7 },
     abilities: [
@@ -122,7 +122,7 @@ const JOBS = {
     ],
   },
   priest: {
-    id: "priest", name: "そうりょ", commandName: "いのり", icon: "✨", tier: "basic",
+    id: "priest", name: "僧侶", commandName: "いのり", icon: "✨", tier: "basic",
     desc: "回復魔法を得意とする支援職。パーティのHPを立て直しながら長期戦を支える。",
     base: { hp: 24, mp: 18, atk: 5, mag: 9, def: 5, spd: 6 },
     abilities: [
@@ -133,7 +133,7 @@ const JOBS = {
     ],
   },
   thief: {
-    id: "thief", name: "とうぞく", commandName: "わざ", icon: "🗡️", tier: "basic",
+    id: "thief", name: "盗賊", commandName: "わざ", icon: "🗡️", tier: "basic",
     desc: "素早い身のこなしで多段攻撃を得意とする軽戦士。行動速度が高く、手数で押し切る。",
     base: { hp: 24, mp: 8, atk: 9, mag: 3, def: 5, spd: 10 },
     explorationSkills: [
@@ -148,7 +148,7 @@ const JOBS = {
     ],
   },
   monk: {
-    id: "monk", name: "ぶとうか", commandName: "けんぽう", icon: "👊", tier: "basic",
+    id: "monk", name: "武闘家", commandName: "けんぽう", icon: "👊", tier: "basic",
     desc: "拳で戦いながら気の力で自らを癒す、攻撃と回復を両立できる近接職。",
     base: { hp: 32, mp: 6, atk: 10, mag: 4, def: 7, spd: 8 },
     abilities: [
@@ -159,7 +159,7 @@ const JOBS = {
     ],
   },
   darkknight: {
-    id: "darkknight", name: "あんこくし", commandName: "あんこく", icon: "🌑", tier: "basic",
+    id: "darkknight", name: "暗黒士", commandName: "あんこく", icon: "🌑", tier: "basic",
     desc: "闇の力で敵のHPを吸収する異端の戦士。攻撃を重ねながら自分のHPも回復できる。",
     base: { hp: 30, mp: 10, atk: 12, mag: 6, def: 7, spd: 6 },
     abilities: [
@@ -171,7 +171,7 @@ const JOBS = {
   },
   // ---------- 上級職（対応する基本職をLv.50まで極めると転職できる） ----------
   swordmaster: {
-    id: "swordmaster", name: "けんごう", commandName: "けんじゅつ", icon: "🌀", tier: "advanced",
+    id: "swordmaster", name: "剣豪", commandName: "けんじゅつ", icon: "🌀", tier: "advanced",
     requires: { job: "warrior", level: JOB_MASTER_LEVEL },
     desc: "せんしの技を極めた剣の達人。一撃の重さと隙のない連撃を兼ね備える。",
     base: { hp: 42, mp: 4, atk: 15, mag: 2, def: 9, spd: 8 },
@@ -183,7 +183,7 @@ const JOBS = {
     ],
   },
   archmage: {
-    id: "archmage", name: "だいまどうし", commandName: "だいまほう", icon: "🔥", tier: "advanced",
+    id: "archmage", name: "大魔導士", commandName: "だいまほう", icon: "🔥", tier: "advanced",
     requires: { job: "mage", level: JOB_MASTER_LEVEL },
     desc: "まほうつかいの上位職。より強大な魔法を扱い、大魔法で戦況を一変させる。",
     base: { hp: 24, mp: 28, atk: 4, mag: 17, def: 4, spd: 8 },
@@ -195,7 +195,7 @@ const JOBS = {
     ],
   },
   archpriest: {
-    id: "archpriest", name: "だいしんかん", commandName: "だいいのり", icon: "🕊️", tier: "advanced",
+    id: "archpriest", name: "大神官", commandName: "だいいのり", icon: "🕊️", tier: "advanced",
     requires: { job: "priest", level: JOB_MASTER_LEVEL },
     desc: "そうりょの上位職。回復量と範囲に優れ、パーティを崩れさせない支柱となる。",
     base: { hp: 28, mp: 26, atk: 5, mag: 13, def: 6, spd: 7 },
@@ -207,7 +207,7 @@ const JOBS = {
     ],
   },
   ninja: {
-    id: "ninja", name: "にんじゃ", commandName: "にんじゅつ", icon: "🥷", tier: "advanced",
+    id: "ninja", name: "忍者", commandName: "にんじゅつ", icon: "🥷", tier: "advanced",
     requires: { job: "thief", level: JOB_MASTER_LEVEL },
     desc: "とうぞくの上位職。卓越した速さと多彩な技でひたすら手数を重ねる。",
     base: { hp: 27, mp: 10, atk: 13, mag: 4, def: 6, spd: 14 },
@@ -224,7 +224,7 @@ const JOBS = {
     ],
   },
   saintfist: {
-    id: "saintfist", name: "けんせい", commandName: "せいけん", icon: "🕉️", tier: "advanced",
+    id: "saintfist", name: "剣聖", commandName: "せいけん", icon: "🕉️", tier: "advanced",
     requires: { job: "monk", level: JOB_MASTER_LEVEL },
     desc: "ぶとうかの上位職。拳の威力と気の扱いが共に極まった、攻守一体の達人。",
     base: { hp: 40, mp: 9, atk: 15, mag: 6, def: 10, spd: 10 },
@@ -236,7 +236,7 @@ const JOBS = {
     ],
   },
   reaper: {
-    id: "reaper", name: "しにがみ", commandName: "しにがみのちから", icon: "💀", tier: "advanced",
+    id: "reaper", name: "死神", commandName: "しにがみのちから", icon: "💀", tier: "advanced",
     requires: { job: "darkknight", level: JOB_MASTER_LEVEL },
     desc: "あんこくしの上位職。生命力を刈り取る技で、攻撃と回復を同時に成立させる。",
     base: { hp: 36, mp: 14, atk: 17, mag: 9, def: 8, spd: 8 },
@@ -255,7 +255,7 @@ const JOBS = {
   //   有料: purchase（ショップの購入で付く purchases.unlocks のキー）。販売開始はショップの商品の salesFrom
   // soloBonus: そのチームの仲間がこのジョブのキャラ1人だけのときの効果（ひとり旅の加護。js/model/roster.js の soloBonus）
   pilgrim: {
-    id: "pilgrim", name: "じゅんれいけんし", commandName: "じゅんれい", icon: "🧭", tier: "special",
+    id: "pilgrim", name: "巡礼剣士", commandName: "じゅんれい", icon: "🧭", tier: "special",
     unlock: {
       testOpen: true,
       cleared: "inferno_peak", // 業火の霊峰（中盤の終わり、推奨Lv60）

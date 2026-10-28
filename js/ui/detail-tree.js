@@ -1070,7 +1070,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   text.className = "crest-banner-text";
   const job = document.createElement("span");
   job.className = "crest-banner-job";
-  job.textContent = "せんし";
+  job.textContent = jobDef(c).name;
   const tree = document.createElement("span");
   tree.className = "crest-banner-tree";
   tree.textContent = treeDef.name;
@@ -1084,7 +1084,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   // 盤面: viewport（固定の枠・タッチ受付）＞ scene（正方形。transform はここだけ）
   const viewport = document.createElement("div");
   viewport.className = "tree-web-viewport";
-  viewport.setAttribute("aria-label", "せんしのスキルツリー（剛勇の紋章盤）。ピンチで拡大、拡大中は指で移動");
+  viewport.setAttribute("aria-label", jobDef(c).name + "のスキルツリー（" + treeDef.name + "）。ピンチで拡大、拡大中は指で移動");
   const scene = document.createElement("div");
   scene.className = "tree-web-scene";
   viewport.appendChild(scene);
@@ -1511,13 +1511,9 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
     body.appendChild(flavor);
   }
   card.appendChild(body);
-  panel.appendChild(card);
-
+  // 「習得済み」は上部の状態タグだけに集約し、画面下の巨大な重複表示はしない。
   if (acquired) {
-    const state = document.createElement("div");
-    state.className = "tree-node-detail-state crest-learned";
-    state.textContent = "習得済み";
-    panel.appendChild(state);
+    panel.appendChild(card);
     return panel;
   }
   // 習得できない理由は表示だけ（可否そのものは canAcquireNode の結果）
@@ -1549,7 +1545,12 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
     `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`);
   btn.disabled = !canGet;
   btn.addEventListener("click", () => treeAcquireWithChoiceConfirm(c, treeDef, ranks, node, choice));
-  panel.appendChild(btn);
+  // 習得ボタンも選択詳細カードの一部にする。ロジック・二択2段階確認は変えない。
+  const actions = document.createElement("div");
+  actions.className = "crest-detail-actions";
+  actions.appendChild(btn);
+  card.appendChild(actions);
+  panel.appendChild(card);
   return panel;
 }
 
