@@ -461,7 +461,7 @@ test("せんし専用画面: 横並び4タブの固有を開き、詳細パネ�
   assert.equal(byClass(restored, "tree-web").length, 1);
   assert.equal(byClass(restored, "crest-inline-detail").length, 1);
   const other = context.buildTreeTab({ id: "hero2", name: "新人", job: "warrior", level: 99, team: null });
-  assert.equal(byClass(other, "crest-focus-tab").filter(n => n.attrs["aria-selected"] === "true")[0].textContent, "せんし");
+  assert.equal(byClass(other, "crest-focus-tab").filter(n => n.attrs["aria-selected"] === "true")[0].textContent, "戦士");
 });
 
 test("参考画像に合わせ全ジョブで共通ヘッダー・下部2段ナビを維持する", () => {
@@ -490,15 +490,15 @@ test("他職の固有ツリーに全ノードと実前提線を描画し、選�
   const { context, calls } = renderContext({
     getExclusiveTree: () => basic,
     getTreeState: () => ({exclusiveRanks:{},general:{}}),
-    jobDef: () => ({name:"まほうつかい"}),
+    jobDef: () => ({name:"魔法使い"}),
   });
   const c={id:"mage-1",name:"ルナ",job:"mage",level:99,team:null};
   const tab=context.buildTreeTab(c);
   assert.equal(byClass(tab,"tree-web--universal").length,1);
   assert.equal(byClass(tab,"tree-web-node").length,basic.nodes.length);
   assert.equal(byClass(tab,"tree-web-link-bed").length,basic.nodes.reduce((n,v)=>n+(v.prerequisites||[]).length,0));
-  assert.equal(byClass(tab,"crest-banner-job")[0].textContent,"まほうつかい");
-  assert.equal(byClass(tab,"crest-focus-tab")[0].textContent,"まほうつかい");
+  assert.equal(byClass(tab,"crest-banner-job")[0].textContent,"魔法使い");
+  assert.equal(byClass(tab,"crest-focus-tab")[0].textContent,"魔法使い");
   assert.equal(byClass(tab,"crest-learn-btn").length,1);
   const target=byClass(tab,"tree-web-node").find(n=>n.title===basic.nodes[basic.nodes.length-1].name);
   assert.ok(target);
