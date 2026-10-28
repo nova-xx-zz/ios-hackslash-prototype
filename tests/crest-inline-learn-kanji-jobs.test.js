@@ -32,7 +32,7 @@ test("基本・上級・特殊の全ジョブ名を漢字化し既存ID・習得
 test("4分割タブは幅オーバー防止、表示名変更に合わせてキャッシュ更新", () => {
   assert.match(css, /\.crest-focus-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.crest-focus-tab\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden/);
-  assert.match(html, /css\/style\.css\?v=92/);
+  assert.match(html, /css\/style\.css\?v=93/);
   assert.match(html, /js\/data\.js\?v=39/);
   assert.match(html, /js\/ui\/detail-tree\.js\?v=17/);
 });
