@@ -26,9 +26,11 @@ test("キャラ送りは全タブ共通の52px固定グリッドで文字数・�
   const btn = declaration("#screen-chardetail .detail-switch-btn");
   assert.match(btn, /width:\s*44px/);
   assert.match(btn, /height:\s*44px/);
+  assert.match(btn, /margin:\s*0/, "コンパクト化後も標準ボタンの余白でタップ位置がズレない");
   const back = declaration("#screen-chardetail #btnDetailBack");
   assert.match(back, /width:\s*76px/);
   assert.match(back, /height:\s*44px/);
+  assert.match(back, /margin:\s*0/, "戻るボタンはヘッダー内に収める");
   assert.match(declaration(".detail-switch-name .map-title"), /text-overflow:\s*ellipsis/);
   assert.doesNotMatch(css, /#screen-chardetail\.warrior-crest-view \.roster-header\s*\{/);
   assert.doesNotMatch(css, /#screen-chardetail\.warrior-crest-view \.roster-wrap\s*\{/);
