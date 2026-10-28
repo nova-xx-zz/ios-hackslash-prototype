@@ -1496,7 +1496,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   border-radius: 0;
   background: none;
   color: #a9b8b6;
-  font: 700 clamp(10.5px, 2.9vw, 11.5px) var(--title-serif-ja);
+  font: 700 clamp(10.5px, 2.9vw, 11.5px)/1.2 var(--title-serif-ja);
   letter-spacing: .02em;
   white-space: nowrap;
   overflow: hidden;
