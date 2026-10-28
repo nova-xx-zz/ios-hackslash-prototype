@@ -437,7 +437,7 @@ test("せんし専用画面: 横並び4タブの固有を開き、詳細パネ�
     getGeneralTree: () => generalTree,
   });
   const first = context.buildTreeTab({ id: "hero1", name: "ガイ", job: "warrior", level: 99, team: null });
-  assert.equal(byClass(first, "crest-focus-navigation").length, 1);
+  assert.equal(byClass(first, "crest-focus-navigation").length, 0, "キャラ送りは共通ヘッダーで表示する");
   assert.equal(byClass(first, "crest-focus-tabs").length, 1);
   assert.deepEqual(byClass(first, "crest-focus-tab").map(b => b.textContent), ["せんし", "汎用Ⅰ", "汎用Ⅱ", "汎用Ⅲ"]);
   assert.equal(byClass(first, "tree-web-node").length, 17);
@@ -463,23 +463,25 @@ test("せんし専用画面: 横並び4タブの固有を開き、詳細パネ�
   assert.equal(byClass(other, "crest-focus-tab").filter(n => n.attrs["aria-selected"] === "true")[0].textContent, "せんし");
 });
 
-test("参考画像に沿った全高レイアウトを全職に適用し、元画面への導線を残す", () => {
+test("参考画像に合わせ全ジョブで共通ヘッダー・下部2段ナビを維持する", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const detail = fs.readFileSync(path.join(__dirname, "../js/ui/detail.js"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(detail, /detailTab === "tree" && !c\.isMonster && !!getExclusiveTree\(c\)/);
   assert.match(detail, /classList\.toggle\("warrior-crest-view", focus\)/);
   assert.match(css, /#screen-chardetail\.warrior-crest-view \.roster-header/);
   assert.match(css, /#screen-chardetail\.warrior-crest-view #detailTabs/);
-  assert.match(css, /#screen-chardetail\.warrior-crest-view.*\.global-nav/);
-  const { context, calls } = renderContext({ detailTab: "tree" });
+  assert.match(css, /body\.with-global-nav \.screen \{ bottom: calc\(var\(--safe-bottom\) \+ var\(--global-nav-h, 68px\)\); \}/);
+  assert.doesNotMatch(css, /body:has\(#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\) \.global-nav \{ display: none; \}/);
+  assert.match(html, /class="detail-tabs" id="detailTabs"/);
+  assert.match(html, /class="roster-header"/);
+  const { context } = renderContext({ detailTab: "tree" });
   const first = context.buildTreeTab({ id: "hero1", name: "ガイ", job: "warrior", level: 99, team: null });
-  const back = byClass(first, "crest-focus-back")[0];
-  assert.equal(back.attrs["aria-label"], "仲間詳細に戻る");
-  back.click();
-  assert.equal(context.detailTab, "stats");
-  assert.equal(calls.rerenders, 1);
+  assert.equal(byClass(first, "crest-focus-navigation").length, 0);
+  assert.equal(byClass(first, "crest-screen-name").length, 0);
+  assert.equal(byClass(first, "crest-sp").length, 1);
+  assert.equal(byClass(first, "crest-inline-detail").length, 1);
 });
-
 
 test("他職の固有ツリーに全ノードと実前提線を描画し、選択・習得判定はマスターに委譲", () => {
   const basic = data.EXCLUSIVE_TREES.magic;
