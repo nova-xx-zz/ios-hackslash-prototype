@@ -35,6 +35,7 @@ function context(overrides = {}) {
   const ctx = vm.createContext({
     document: { createElement: (t) => new Element(t), createElementNS: (_, t) => new Element(t), getElementById: () => null },
     S: { material: 9999 }, treeSelectedNode: null, treeSwapConfirm: null,
+    jobDef: (c) => data.JOBS[c.job] || data.JOBS.warrior,
     renderCharDetail: () => { calls.rerenders++; },
     canAcquireNode: (c, tree, ranks, node) => node.reqLevel <= c.level &&
       node.prerequisites.every((p) => (ranks[p.nodeId] || 0) >= p.minRank) &&
