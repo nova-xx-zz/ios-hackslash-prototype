@@ -839,49 +839,49 @@ function getEnemyTemplate(key) {
 // mult: ジョブ基礎値にかける倍率。passiveは戦闘に反映する1つの分かりやすい効果のみに絞る。
 const RACES = {
   human: {
-    name: "ヒトゾク", kind: "player", icon: "👤",
+    name: "人族", kind: "player", icon: "👤",
     mult: { hp: 1.0, mp: 1.0, atk: 1.0, mag: 1.0, def: 1.0, spd: 1.0 },
     expMult: 1.0, passive: {},
     desc: "もっともバランスの取れた種族。目立った強みはないが弱点もない。",
   },
   beastkin: {
-    name: "ハーフビースト", kind: "player", icon: "🐾",
+    name: "半獣人", kind: "player", icon: "🐾",
     mult: { hp: 1.0, mp: 0.85, atk: 1.15, mag: 0.85, def: 0.9, spd: 1.15 },
     expMult: 1.0, passive: { critBonus: 0.08 },
     desc: "野生の勘を宿す種族。攻撃と俊敏さに優れるが魔力は苦手。会心が出やすい。",
   },
   sylvan: {
-    name: "もりびと", kind: "player", icon: "🌿",
+    name: "森人", kind: "player", icon: "🌿",
     mult: { hp: 0.9, mp: 1.2, atk: 0.85, mag: 1.2, def: 1.1, spd: 1.05 },
     expMult: 1.1, passive: {},
     desc: "森に暮らす魔力の民。物覚えが早く、経験値を多く得られる。",
   },
   stonekin: {
-    name: "いわびと", kind: "player", icon: "🪨",
+    name: "岩人", kind: "player", icon: "🪨",
     mult: { hp: 1.25, mp: 0.8, atk: 1.0, mag: 0.7, def: 1.25, spd: 0.75 },
     expMult: 1.0, passive: { dmgTakenMult: 0.92 },
     desc: "頑丈な体を持つ種族。動きは遅いが打たれ強く、受けるダメージが少し減る。",
   },
   nocturne: {
-    name: "よあるきぞく", kind: "player", icon: "🌙",
+    name: "夜行族", kind: "player", icon: "🌙",
     mult: { hp: 1.05, mp: 1.05, atk: 1.1, mag: 1.1, def: 1.0, spd: 1.1 },
     expMult: 0.85, passive: { lifesteal: 0.06 },
     desc: "夜に力を増す一族。総合力は高いが成長は遅く、与えたダメージの一部でHPを回復する。",
   },
   artisan: {
-    name: "こうじん", kind: "player", icon: "🛠️",
+    name: "工人", kind: "player", icon: "🛠️",
     mult: { hp: 0.9, mp: 1.3, atk: 0.85, mag: 1.15, def: 0.95, spd: 1.0 },
     expMult: 1.0, passive: { mpCostMult: 0.8 },
     desc: "魔力の扱いに長けた技巧の民。MPが多く、技の消費MPが2割少なくて済む。",
   },
   spiritkin: {
-    name: "せいれいぞく", kind: "player", icon: "🔮",
+    name: "精霊族", kind: "player", icon: "🔮",
     mult: { hp: 0.85, mp: 1.25, atk: 0.8, mag: 1.2, def: 0.9, spd: 1.1 },
     expMult: 1.0, passive: { healBonus: 0.25 },
     desc: "精霊の血を引く種族。体は脆いが、使う回復量が25%増える。",
   },
   giant: {
-    name: "きょじん", kind: "player", icon: "⛰️",
+    name: "巨人", kind: "player", icon: "⛰️",
     mult: { hp: 1.4, mp: 0.7, atk: 1.25, mag: 0.7, def: 1.15, spd: 0.65 },
     expMult: 0.9, passive: { dmgTakenMult: 0.9 },
     desc: "山のような巨躯を持つ種族。圧倒的な体力と攻撃力を誇るが、動きは非常に遅い。",
