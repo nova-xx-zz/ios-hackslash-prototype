@@ -545,7 +545,7 @@ test("全7種の固有ツリーマスターを共通紋章盤へ描画し、ノ�
 test("固有・汎用の切替でSP左側のツリー名だけ変化し盤面に職業バナーを置かない",()=>{
   const general = data.GENERAL_TREES.offense;
   const {context}=renderContext({
-    GENERAL_SLOTS:[{key:"slot1",label:"汎用ツリー①"}],
+    GENERAL_SLOTS:[{key:"slot1",label:"汎用ツリー①",candidates:["offense","support"]}],
     getGeneralTree:()=>general,
     getTreeState:()=>({exclusiveRanks:{w1:1},general:{slot1:{treeId:"offense",ranks:{}}}}),
   });
