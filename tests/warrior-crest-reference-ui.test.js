@@ -212,7 +212,11 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   assert.equal(byClass(tab, "crest-current-tree-name")[0].textContent, data.EXCLUSIVE_TREES.warrior.name, "ツリー名を上部に残す");
   assert.equal(byClass(tab, "crest-banner").length, 0, "盤面上に職業名や紋章を置かない");
   assert.equal(byClass(tab, "crest-screen-actions").length, 1, "SP・リセットは残す");
-  assert.match(css, /#app:has\(#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\) \{[^}]*explore-guild\.jpg/);
+  assert.match(css, /#app \{[^}]*explore-guild\.jpg/, "通常画面と同じ背景画像を使用");
+  assert.doesNotMatch(css, /#app:has\(#screen-chardetail\.warrior-crest-view/, "ツリー専用の明るい背景上書きをしない");
+  assert.match(css, /#screen-chardetail\.warrior-crest-view \.job-char-card \{[^}]*background: linear-gradient\(/, "ジョブ画面と同系統の半透明パネル");
+  assert.match(css, /#screen-chardetail\.warrior-crest-view \.job-char-card \{[^}]*border: 1px solid var\(--border\)/, "共通の金枠");
+  assert.match(css, /#screen-chardetail\.warrior-crest-view \.job-char-card \{[^}]*border-radius: 12px/, "共通の角丸");
   assert.match(css, /\.crest-stage-area \{[^}]*flex: 1 1 auto;/);
   assert.match(css, /\.crest-inline-detail \{ flex: 0 0 auto;/);
   assert.match(css, /\.tree-web--crest \.tree-web-viewport \{[^}]*touch-action: none;/);
@@ -222,7 +226,7 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   assert.ok(section.length > 1000);
   assert.doesNotMatch(section, /!important/, "上書き合戦をしない");
   assert.equal((css.match(/全ジョブ共通: スキルツリー紋章盤/g) || []).length, 1);
-  assert.equal((css.match(/#app:has\(#screen-chardetail\.warrior-crest-view/g) || []).length, 1);
+  assert.equal((css.match(/#app:has\(#screen-chardetail\.warrior-crest-view/g) || []).length, 0);
   assert.doesNotMatch(section, /\.global-nav\s*\{\s*display:\s*none/, "全体ナビを隠さない");
   assert.doesNotMatch(section, /#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\s*\{\s*bottom:/, "安全領域計算を上書きしない");
   assert.match(section, /#screen-chardetail #detailTabs\s*\{\s*display:\s*flex/, "下部の詳細タブを全画面共通化");
@@ -230,7 +234,7 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=94/);
+  assert.match(html, /css\/style\.css\?v=95/);
   assert.match(html, /js\/ui\/detail-tree\.js\?v=17/);
   assert.match(html, /js\/ui\/detail\.js\?v=12/);
 });

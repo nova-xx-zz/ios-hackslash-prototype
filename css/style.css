@@ -1346,15 +1346,8 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 .tree-web-node--lane-4, .tree-web-lane--4, .tree-web-sector--4, .tree-web-spoke--4, .lane-4 { --lane: var(--l4); --lane-fill: #182836; }
 .tree-web-node--lane-5, .tree-web-lane--5, .tree-web-sector--5, .tree-web-spoke--5, .lane-5 { --lane: var(--l5); --lane-fill: #132e19; }
 
-/* --- 画面の器: 全高の専用画面。仲間詳細の見出し・下部タブ・グローバルナビはこの表示中だけ隠す --- */
-#app:has(#screen-chardetail.warrior-crest-view:not(.hidden)) {
-  /* 背景の城郭（石造アーチ・左右のランタン・遠景の城）。画面に固定し、盤面の拡大縮小には追従しない */
-  background:
-    radial-gradient(ellipse 72% 40% at 50% 47%, rgba(14,40,58,.18), rgba(3,9,14,0) 70%),
-    linear-gradient(180deg, rgba(2,7,11,.62) 0%, rgba(4,13,21,.30) 18%, rgba(5,15,25,.36) 52%, rgba(2,7,11,.88) 76%, #02070b 100%),
-    linear-gradient(rgba(10,30,52,.30), rgba(10,30,52,.30)),
-    #050b10 url("../icons/explore-guild.jpg") center 22% / cover no-repeat;
-}
+/* ツリー表示中も他のキャラ詳細タブと同じ #app 背景を使う。
+   独自の明るい城郭背景の上書きは行わない。 */
 /* ツリー中も「能力値～ジョブ」と「編成～設定」を常時表示する。
    body.with-global-nav の既存安全領域/高さ計算をそのまま使い、全画面専用上書きは禁止。 */
 #screen-chardetail.warrior-crest-view { padding: 0; }
@@ -1388,15 +1381,22 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 #screen-chardetail.warrior-crest-view #detailBody::-webkit-scrollbar { display: none; }
 #screen-chardetail.warrior-crest-view .locked-notice,
 #screen-chardetail.warrior-crest-view .detail-notice { flex: 0 0 auto; margin: 0 0 4px; font-size: 11px; }
+/* ジョブ画面の半透明カードと同系統の外枠をツリーにも適用する。
+   中身の円形盤面は透過のまま。親カードにだけ背景を敷き、
+   タブ・盤面・スキル詳細の操作や拡大縮小を妨げない。 */
 #screen-chardetail.warrior-crest-view .job-char-card {
   display: flex;
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
   margin: 0;
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: 0;
+  padding: 7px 8px 8px;
+  background: linear-gradient(180deg, rgba(18,35,43,.52), rgba(7,18,26,.64));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 8px 24px rgba(0,0,0,.24);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
 }
 /* 探索中も戻る・キャラ送り・タブ・閲覧は可能。習得/リセットの禁止は既存ロジック（ボタンの disabled）が担う */
 #screen-chardetail.warrior-crest-view .job-char-card.readonly { pointer-events: auto; opacity: 1; }
@@ -1519,7 +1519,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   display: flex;
   flex: 1 1 auto;
   min-height: 230px;
-  margin: 4px -12px 0; /* 盤面は画面の左右いっぱいまで使う */
+  margin: 4px -7px 0; /* カードの余白を相殺し、円形盤面の大きさをほぼ維持 */
 }
 .warrior-crest-section {
   display: flex;
@@ -3020,7 +3020,7 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
 
 /* 全職共通の紋章盤: 汎用スロットの交換ボタンを固定盤面上部に置き、
    盤面と下部の選択スキル詳細はせんしと同じ構造に統一する。 */
-.crest-stage-area--general { margin: 4px -12px 0; }
+.crest-stage-area--general { margin: 4px -7px 0; }
 .crest-stage-area--general .warrior-crest-section {
   display: flex; flex-direction: column; overflow: visible;
   flex: 1 1 auto; min-height: 0; border: 0; box-shadow: none;
