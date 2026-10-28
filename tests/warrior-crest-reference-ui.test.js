@@ -225,12 +225,12 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   assert.equal((css.match(/#app:has\(#screen-chardetail\.warrior-crest-view/g) || []).length, 1);
   assert.doesNotMatch(section, /\.global-nav\s*\{\s*display:\s*none/, "全体ナビを隠さない");
   assert.doesNotMatch(section, /#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\s*\{\s*bottom:/, "安全領域計算を上書きしない");
-  assert.match(section, /#screen-chardetail\.warrior-crest-view #detailTabs\s*\{\s*display:\s*flex/, "下部の詳細タブを表示");
-  assert.match(section, /#screen-chardetail\.warrior-crest-view \.roster-header\s*\{\s*display:\s*flex/, "キャラ送りを表示");
+  assert.match(section, /#screen-chardetail #detailTabs\s*\{\s*display:\s*flex/, "下部の詳細タブを全画面共通化");
+  assert.match(css, /#screen-chardetail \.roster-header\s*\{\s*display:\s*grid/, "全タブ共通の固定ヘッダーを表示");
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=92/);
+  assert.match(html, /css\/style\.css\?v=93/);
   assert.match(html, /js\/ui\/detail-tree\.js\?v=17/);
   assert.match(html, /js\/ui\/detail\.js\?v=12/);
 });
