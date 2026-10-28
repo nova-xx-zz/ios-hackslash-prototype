@@ -38,6 +38,8 @@
 
   const dungeonTrial = (root.QPCore && root.QPCore.dungeonTrial) ||
     (typeof require === "function" ? require("./dungeon-trial.js") : null);
+  const tactics = (root.QPCore && root.QPCore.tactics) ||
+    (typeof require === "function" ? require("./tactics.js") : null);
 
   const BASIC_ATTACK = { id: "attack", name: "たたかう", reqLevel: 1, mpCost: 0, kind: "physical", target: "single", power: 1.0, hits: 1 };
 
@@ -296,6 +298,36 @@
   //   多段技が防御の高い敵にほぼ効かない場合に弱い技を使い続けていた）
   function chooseAction(c, party, env, enemies, battle) {
     enemies = enemies || [];
+    // 明示的なガンビット設定があるキャラは上から条件→技を判定する。
+    // 設定のない旧セーブ／モンスター／旧AIテストは、下の期待効果AIを従来どおり使う。
+    if (Array.isArray(c.tacticsRules) && tactics) {
+      const list = tactics.normalizeRules(c.tacticsRules) || [];
+      const available = env.abilities(c);
+      const statsOf = (p) => baseStatsOf(p, env, battle);
+      for (const rule of list) {
+        if (!rule.enabled) continue;
+        const ability = available.find((a) => a.id === rule.abilityId);
+        if (!ability || c.mp < env.mpCost(c, ability)) continue;
+        if (!tactics.conditionMet(rule, c, party, enemies, statsOf)) continue;
+        if (ability.kind === "buff" && !buffNeeded(c, ability, party, battle)) continue;
+        if (ability.kind === "heal") {
+          const allies = party.filter((p) => p.alive && p.hp > 0);
+          const hasMissing = allies.some((p) => p.hp < statsOf(p).maxHp);
+          if (!hasMissing) continue;
+          // 旧AIの初期移行時のみ、従来の回復閾値を維持する。
+          if (rule.condition === "auto") {
+            const threshold = ability.target === "all-ally" ? 0.7 : 0.8;
+            if (!allies.some((p) => p.hp < statsOf(p).maxHp * threshold)) continue;
+          }
+        }
+        if (ability.target === "single" || ability.target === "all-enemy") {
+          if (!enemies.some((e) => e.alive && e.hp > 0)) continue;
+        }
+        // 技マスターを汚さず、その行動だけの標的優先度を渡す。
+        return Object.assign({}, ability, { _tacticsTargetMode: rule.targetMode });
+      }
+      return BASIC_ATTACK;
+    }
     const abilities = env.abilities(c).filter((a) => c.mp >= env.mpCost(c, a));
     const maxHp = (p) => baseStatsOf(p, env, battle).maxHp;
     const usable = abilities.filter((a) => {
@@ -359,7 +391,7 @@
     const stats = memberStats(c, env, battle);
     const pas = passivesOf(c, env, battle);
     let targets = [];
-    if (ability.target === "single") { const t = pickEnemyTarget(c, battle.enemies, rng); if (t) targets = [t]; }
+    if (ability.target === "single") { const t = pickEnemyTarget(ability._tacticsTargetMode ? { targetPriority: ability._tacticsTargetMode } : c, battle.enemies, rng); if (t) targets = [t]; }
     else if (ability.target === "single-ally") { const t = pickAllyTarget(party, env, battle); if (t) targets = [t]; }
     else if (ability.target === "all-enemy") targets = battle.enemies.filter((e) => e.alive);
     else if (ability.target === "all-ally") targets = party.filter((p) => p.alive);

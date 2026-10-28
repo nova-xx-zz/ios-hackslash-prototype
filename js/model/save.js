@@ -94,6 +94,13 @@
   }
   // limits: { maxPlus（+値の上限）, ivRange（個体値は 1±ivRange）}。レベルの上限は読み込み後に roster 側（clampLevel）でそろえる
   function normalizeChar(c, limits) {
+    if (Object.prototype.hasOwnProperty.call(c, "tacticsRules")) {
+      const tacticMod = (root.QPCore && root.QPCore.tactics) ||
+        (typeof require === "function" ? require("../core/tactics.js") : null);
+      const normalized = tacticMod && tacticMod.normalizeRules(c.tacticsRules);
+      if (normalized) c.tacticsRules = normalized;
+      else delete c.tacticsRules; // 不正な形式なら旧セーブ設定を保持して旧AIへ戻す
+    }
     c.name = (typeof c.name === "string" ? c.name : String(c.name == null ? "" : c.name)).slice(0, c.isMonster ? MONSTER_NAME_MAX : NAME_MAX) || "ななし";
     c.level = Math.max(1, count(c.level));
     c.exp = count(c.exp);

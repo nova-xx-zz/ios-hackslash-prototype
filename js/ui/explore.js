@@ -39,7 +39,7 @@ function battleEnv() {
     rng: RNG,
     atbRate: ATB_RATE,
     stats: computeStats,
-    abilities: (c) => availableAbilities(c).filter((a) => isSkillActive(c, a.id)),
+    abilities: (c) => Array.isArray(c.tacticsRules) ? availableAbilities(c) : availableAbilities(c).filter((a) => isSkillActive(c, a.id)),
     mpCost: mpCostFor,
     tier: getAbilityTier,
     // 種族・スキルツリー・装備のセット効果を合わせる

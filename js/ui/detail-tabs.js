@@ -514,114 +514,206 @@ function buildSkillRow(c, a, opts) {
   return row;
 }
 
-function buildSkillTab(c) {
-  const wrap = document.createElement("div");
+let skillViewMode = "active";
+let editingTacticId = null;
 
-  const activeList = availableAbilities(c);
-  const lockedList = jobDef(c).abilities.filter((a) => c.level < a.reqLevel);
-  const activeHead = document.createElement("div");
-  activeHead.className = "detail-section-head";
-  activeHead.innerHTML = `<span>アクティブ（OFFで不使用、優先度で使う順番を調整）</span><span class="count">${activeList.length}/${activeList.length + lockedList.length}</span>`;
-  wrap.appendChild(activeHead);
-
-  const activeListWrap = document.createElement("div");
-  activeListWrap.className = "skill-row-list";
-  for (const a of activeList) activeListWrap.appendChild(buildSkillRow(c, a));
-  for (const a of lockedList) activeListWrap.appendChild(buildSkillRow(c, a, { locked: true }));
-  wrap.appendChild(activeListWrap);
-
-  const race = RACES[c.race];
-  const passives = Object.keys(race.passive).map((k) => ({ id: "p_" + k, name: PASSIVE_LABELS[k](race.passive[k]), kind: "passive" }));
-  if (race.expMult !== 1) passives.push({ id: "p_exp", name: `獲得経験値 ${Math.round((race.expMult - 1) * 100)}%`, kind: "passive" });
-  const passiveHead = document.createElement("div");
-  passiveHead.className = "detail-section-head";
-  passiveHead.innerHTML = `<span>パッシブ（種族特性、常時有効）</span><span class="count">${passives.length}/${passives.length}</span>`;
-  wrap.appendChild(passiveHead);
-
-  const passiveListWrap = document.createElement("div");
-  passiveListWrap.className = "skill-row-list";
-  for (const p of passives) passiveListWrap.appendChild(buildSkillRow(c, p, { staticOn: true }));
-  if (passives.length === 0) {
-    const none = document.createElement("div");
-    none.className = "sub-ability-row";
-    none.textContent = "（この種族に特性はありません）";
-    passiveListWrap.appendChild(none);
-  }
-  wrap.appendChild(passiveListWrap);
-
-  // 探索専用スキルは戦闘中に選択する技ではなく、鍵付き宝箱に自動発動。
-  // 通常の優先度やON/OFFボタンは付けない。
-  const exploration = jobDef(c).explorationSkills || [];
-  if (exploration.length) {
-    const learned = exploration.filter((a) => c.level >= a.reqLevel);
-    const head = document.createElement("div");
-    head.className = "detail-section-head";
-    head.innerHTML = `<span>探索スキル（自動発動・操作不要）</span><span class="count">${learned.length}/${exploration.length}</span>`;
-    wrap.appendChild(head);
-    const list = document.createElement("div");
-    list.className = "skill-row-list";
-    for (const a of exploration) {
-      const row = buildSkillRow(c, Object.assign({ kind: "exploration" }, a),
-        { locked: c.level < a.reqLevel, staticOn: c.level >= a.reqLevel });
-      const desc = document.createElement("div");
-      desc.className = "sub-ability-row";
-      desc.textContent = a.desc;
-      list.appendChild(row);
-      list.appendChild(desc);
-    }
-    wrap.appendChild(list);
-  }
-
+// 技の実際の習得条件が満たされているものだけを選択候補にする。
+// ここに登録するだけで他職の未育成技やツリー未取得技を解放しない。
+function gambitAbilityPool(c) {
+  const job = jobDef(c);
+  const list = (job.abilities || []).filter((a) => c.level >= a.reqLevel);
   if (!c.isMonster) {
-    const subLabels = ["サブアビリティ①", "サブアビリティ②"];
-    for (let slot = 0; slot < 2; slot++) {
-      const subRow = document.createElement("div");
-      subRow.className = "sub-ability-row";
-      subRow.textContent = `${subLabels[slot]}（他ジョブで実際にレベルを上げた技を装備できる）`;
-      wrap.appendChild(subRow);
-
-      const subPickRow = document.createElement("div");
-      subPickRow.className = "sub-pick-row";
-      const noneBtn = document.createElement("button");
-      noneBtn.className = "sub-pick" + (!c.subAbilityIds[slot] ? " active" : "");
-      noneBtn.textContent = "なし";
-      noneBtn.addEventListener("click", () => { c.subAbilityIds[slot] = null; renderCharDetail(); });
-      subPickRow.appendChild(noneBtn);
-
-      const otherSlotId = c.subAbilityIds[1 - slot];
-      const candidates = subAbilityCandidates(c).filter((a) => a.id !== otherSlotId);
-      for (const a of candidates) {
-        const btn = document.createElement("button");
-        btn.className = "sub-pick" + (c.subAbilityIds[slot] === a.id ? " active" : "");
-        btn.textContent = a.name;
-        btn.addEventListener("click", () => { c.subAbilityIds[slot] = a.id; renderCharDetail(); });
-        subPickRow.appendChild(btn);
+    list.push(...subAbilityCandidates(c));
+    const tree = getExclusiveTree(c);
+    if (tree) {
+      const ranks = getTreeState(c).exclusiveRanks;
+      for (const node of tree.nodes) {
+        if (node.kind === "active" && node.ability && (ranks[node.id] || 0) > 0) list.push(node.ability);
       }
-      wrap.appendChild(subPickRow);
-    }
-    if (subAbilityCandidates(c).length === 0) {
-      const hintEl = document.createElement("div");
-      hintEl.className = "sub-ability-row";
-      hintEl.textContent = "（まだ他ジョブの技を習得していません）";
-      wrap.appendChild(hintEl);
     }
   }
+  return [...new Map(list.map((a) => [a.id, a])).values()];
+}
 
-  const targetRow = document.createElement("div");
-  targetRow.className = "sub-ability-row";
-  targetRow.textContent = "攻撃対象の優先度（単体を狙う技・通常攻撃に適用）";
-  wrap.appendChild(targetRow);
-
-  const targetPickRow = document.createElement("div");
-  targetPickRow.className = "sub-pick-row";
-  for (const mode of TARGET_MODES) {
-    const btn = document.createElement("button");
-    btn.className = "sub-pick" + (c.targetPriority === mode.value ? " active" : "");
-    btn.textContent = mode.label;
-    btn.addEventListener("click", () => { c.targetPriority = mode.value; renderCharDetail(); });
-    targetPickRow.appendChild(btn);
+function gambitEl(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text != null) el.textContent = text;
+  return el;
+}
+function gambitButton(label, fn, disabled, className) {
+  const btn = gambitEl("button", className || "gambit-btn", label);
+  btn.type = "button";
+  btn.disabled = !!disabled;
+  btn.addEventListener("click", fn);
+  return btn;
+}
+function gambitSelect(options, selected, change) {
+  const el = gambitEl("select", "gambit-select");
+  for (const item of options) {
+    const opt = gambitEl("option", "", item.label);
+    opt.value = item.value;
+    el.appendChild(opt);
   }
-  wrap.appendChild(targetPickRow);
+  el.value = String(selected);
+  el.addEventListener("change", () => change(el.value));
+  return el;
+}
+function gambitCommit(c) {
+  c.tacticsRules = QPCore.tactics.normalizeRules(c.tacticsRules) || [];
+  renderCharDetail();
+}
+function gambitEditor(c, rule, pool) {
+  const panel = gambitEl("section", "gambit-editor");
+  panel.appendChild(gambitEl("div", "gambit-editor-head", "戦術ルールの設定"));
+  const addField = (label, control) => {
+    const field = gambitEl("label", "gambit-field");
+    field.appendChild(gambitEl("span", "gambit-label", label));
+    field.appendChild(control);
+    panel.appendChild(field);
+  };
+  addField("使用するスキル", gambitSelect(
+    pool.map((a) => ({ label: a.name, value: a.id })), rule.abilityId,
+    (id) => { rule.abilityId = id; gambitCommit(c); }
+  ));
+  addField("発動条件", gambitSelect(
+    QPCore.tactics.CONDITIONS.map((x) => ({ value: x.id, label: x.label })),
+    rule.condition, (id) => { rule.condition = id; rule.value = id === "enemyCountGte" ? 3 : 20; gambitCommit(c); }
+  ));
+  const pct = ["allyHpLte", "selfHpLte", "enemyHpLte", "selfMpGte"].includes(rule.condition);
+  const count = rule.condition === "enemyCountGte";
+  if (pct || count) {
+    const input = gambitEl("input", "gambit-number");
+    input.type = "number"; input.min = pct ? "0" : "1"; input.max = pct ? "100" : "5";
+    input.step = "1"; input.value = String(rule.value);
+    input.addEventListener("change", () => {
+      const n = Number(input.value);
+      if (Number.isFinite(n)) rule.value = Math.max(Number(input.min), Math.min(Number(input.max), Math.round(n)));
+      gambitCommit(c);
+    });
+    addField(pct ? "判定する割合（%）" : "敵の数（体）", input);
+  }
+  if (["single", "all-enemy"].includes((pool.find((a) => a.id === rule.abilityId) || {}).target)) {
+    addField("攻撃対象の選び方", gambitSelect(
+      TARGET_MODES.map((x) => ({ value: x.value, label: x.label })),
+      rule.targetMode, (v) => { rule.targetMode = v; gambitCommit(c); }
+    ));
+  }
+  const actions = gambitEl("div", "gambit-editor-actions");
+  actions.appendChild(gambitButton("このルールを削除", () => {
+    c.tacticsRules = c.tacticsRules.filter((r) => r.id !== rule.id);
+    editingTacticId = null;
+    gambitCommit(c);
+  }, false, "gambit-btn danger"));
+  actions.appendChild(gambitButton("閉じる", () => { editingTacticId = null; renderCharDetail(); }));
+  panel.appendChild(actions);
+  return panel;
+}
+function gambitRules(c, pool) {
+  const wrap = gambitEl("div", "gambit-container");
+  const actions = gambitEl("div", "gambit-toolbar");
+  actions.appendChild(gambitEl("div", "gambit-count", "設定中 " + c.tacticsRules.length + " / " + QPCore.tactics.MAX_RULES));
+  actions.appendChild(gambitButton("＋ ルールを追加", () => {
+    const candidates = pool.filter((a) => !c.tacticsRules.some((r) => r.abilityId === a.id));
+    const chosen = candidates[0] || pool[0];
+    if (!chosen) return;
+    let num = 1;
+    while (c.tacticsRules.some((r) => r.id === "rule-" + num)) num++;
+    const rule = { id: "rule-" + num, abilityId: chosen.id, enabled: true, condition: "auto",
+      value: 0, targetMode: TARGET_MODES.some((x) => x.value === c.targetPriority) ? c.targetPriority : "weakest" };
+    c.tacticsRules.push(rule);
+    editingTacticId = rule.id;
+    gambitCommit(c);
+  }, c.tacticsRules.length >= QPCore.tactics.MAX_RULES || pool.length === 0, "gambit-btn primary"));
+  wrap.appendChild(actions);
 
+  const list = gambitEl("div", "gambit-rule-list");
+  c.tacticsRules.forEach((rule, i) => {
+    const ability = pool.find((a) => a.id === rule.abilityId);
+    const row = gambitEl("div", "gambit-rule" + (rule.enabled ? "" : " inactive") + (ability ? "" : " unavailable"));
+    row.appendChild(gambitEl("div", "gambit-index", String(i + 1)));
+    const conditionLabel = (QPCore.tactics.CONDITIONS.find((x) => x.id === rule.condition) || {}).label || "条件不明";
+    const trigger = gambitEl("button", "gambit-trigger");
+    trigger.type = "button";
+    trigger.textContent = (rule.condition === "auto" ? "状況に応じて" : conditionLabel) +
+      (["allyHpLte", "selfHpLte", "enemyHpLte", "selfMpGte"].includes(rule.condition) ? " " + rule.value + "%" :
+      rule.condition === "enemyCountGte" ? " " + rule.value + "体" : "");
+    trigger.addEventListener("click", () => { editingTacticId = rule.id; renderCharDetail(); });
+    row.appendChild(trigger);
+    row.appendChild(gambitEl("div", "gambit-arrow", "→"));
+    const skill = gambitButton((ability ? ability.name : "未習得・使用不可"), () => { editingTacticId = rule.id; renderCharDetail(); }, false, "gambit-skill");
+    row.appendChild(skill);
+    const controls = gambitEl("div", "gambit-rule-controls");
+    controls.appendChild(gambitButton("↑", () => {
+      [c.tacticsRules[i - 1], c.tacticsRules[i]] = [c.tacticsRules[i], c.tacticsRules[i - 1]];
+      gambitCommit(c);
+    }, i === 0, "gambit-move"));
+    controls.appendChild(gambitButton("↓", () => {
+      [c.tacticsRules[i], c.tacticsRules[i + 1]] = [c.tacticsRules[i + 1], c.tacticsRules[i]];
+      gambitCommit(c);
+    }, i === c.tacticsRules.length - 1, "gambit-move"));
+    controls.appendChild(gambitButton(rule.enabled ? "ON" : "OFF", () => { rule.enabled = !rule.enabled; gambitCommit(c); },
+      false, "gambit-enabled" + (rule.enabled ? " on" : "")));
+    row.appendChild(controls);
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+  if (c.tacticsRules.length === 0) wrap.appendChild(gambitEl("p", "gambit-hint", "ルールがありません。通常攻撃のみを使用します。"));
+  const edit = c.tacticsRules.find((r) => r.id === editingTacticId);
+  if (edit) wrap.appendChild(gambitEditor(c, edit, pool));
+  wrap.appendChild(gambitEl("p", "gambit-hint", "上から順に判定します。条件やMPが足りない場合は次のルールへ進みます。全て不成立なら通常攻撃します。"));
+  return wrap;
+}
+function gambitPassives(c) {
+  const wrap = gambitEl("div", "gambit-passive-list");
+  const passives = typeof learnedTreePassives === "function" ? learnedTreePassives(c) : [];
+  const section = (name, items) => {
+    const head = gambitEl("div", "detail-section-head");
+    head.appendChild(gambitEl("span", "", name));
+    head.appendChild(gambitEl("span", "count", items.length + "件"));
+    wrap.appendChild(head);
+    if (!items.length) wrap.appendChild(gambitEl("p", "gambit-hint", "現在有効な効果はありません"));
+    for (const item of items) {
+      const row = gambitEl("div", "gambit-passive");
+      row.appendChild(gambitEl("strong", "", item.name));
+      row.appendChild(gambitEl("div", "gambit-passive-desc", item.desc || "常時有効"));
+      if (item.treeName) row.appendChild(gambitEl("span", "gambit-passive-source", item.treeName));
+      wrap.appendChild(row);
+    }
+  };
+  section("スキルツリー（習得中・常時有効）", passives);
+  const race = RACES[c.race] || RACES.human;
+  const racial = Object.keys(race.passive || {}).map((k) => ({ name: PASSIVE_LABELS[k] ? PASSIVE_LABELS[k](race.passive[k]) : k, desc: "種族特性・常時有効" }));
+  if (race.expMult !== 1) racial.push({ name: "獲得経験値 " + Math.round((race.expMult - 1) * 100) + "%", desc: "種族特性・常時有効" });
+  section("種族特性（常時有効）", racial);
+  wrap.appendChild(gambitEl("p", "gambit-hint", "パッシブはON/OFF不要。ツリーをリセットすると表示・能力補正から自動で外れます。"));
+  return wrap;
+}
+function buildSkillTab(c) {
+  const wrap = gambitEl("div", "gambit-root");
+  const legacyAbilities = availableAbilities(c);
+  QPCore.tactics.migrateLegacy(c, legacyAbilities, getAbilityTier);
+  const tabs = gambitEl("div", "gambit-tabs");
+  for (const tab of [{ id: "active", label: "アクティブ" }, { id: "passive", label: "パッシブ" }]) {
+    tabs.appendChild(gambitButton(tab.label, () => {
+      skillViewMode = tab.id; editingTacticId = null; renderCharDetail();
+    }, false, "gambit-tab" + (skillViewMode === tab.id ? " active" : "")));
+  }
+  wrap.appendChild(tabs);
+  const pool = gambitAbilityPool(c);
+  if (skillViewMode === "passive") wrap.appendChild(gambitPassives(c));
+  else wrap.appendChild(gambitRules(c, pool));
+
+  const exploration = (jobDef(c).explorationSkills || []);
+  if (exploration.length) {
+    const section = gambitEl("section", "gambit-exploration");
+    section.appendChild(gambitEl("div", "detail-section-head", "探索スキル（自動発動・枠消費なし）"));
+    for (const ability of exploration) {
+      const trained = c.level >= ability.reqLevel;
+      const text = ability.name + " ― " + (trained ? ability.desc : "Lv." + ability.reqLevel + "で習得");
+      section.appendChild(gambitEl("div", "gambit-passive" + (trained ? "" : " unavailable"), text));
+    }
+    wrap.appendChild(section);
+  }
   return wrap;
 }
