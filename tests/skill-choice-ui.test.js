@@ -173,6 +173,6 @@ test("二択のCSSは全ツリー共通の節と紋章盤の節にあり、キ�
   assert.match(css, /\.tree-web-node \.tree-choice-tag \{[^}]*width: 46%;[^}]*min-width: 14px;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.choice-partner::before/);
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(html, /css\/style\.css\?v=93/);
+  assert.match(html, /css\/style\.css\?v=94/);
   assert.match(html, /js\/ui\/detail-tree\.js\?v=17/);
 });
