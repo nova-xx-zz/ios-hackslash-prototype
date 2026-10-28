@@ -44,7 +44,7 @@ function setup() {
     { id: "fire", name: "炎紋弾", reqLevel: 1, kind: "magic", target: "single" },
   ];
   const character = {
-    id: "c1", race: "human", job: "priest", level: 20, isMonster: false,
+    id: "c1", race: "human", job: "priest", level: 20, isMonster: false, team: null,
     targetPriority: "weakest", tacticsRules: [
       { id: "rule-1", abilityId: "heal", condition: "auto", value: 0, enabled: true, targetMode: "weakest" },
       { id: "rule-2", abilityId: "fire", condition: "always", value: 0, enabled: true, targetMode: "weakest" },
@@ -55,16 +55,22 @@ function setup() {
       createElement: tag => new Element(tag),
       getElementById: id => current && all(current, n => n.id === id)[0] || null,
     },
-    QPCore: { tactics },
-    jobDef: () => ({ abilities, explorationSkills: [] }),
+    QPCore: { tactics, stats: { ivRank: () => null } },
+    escapeHtml: (x) => String(x),
+    computeStats: () => ({ maxHp: 100, maxMp: 40, atk: 20, mag: 20, def: 10, spd: 8 }),
+    MAX_ACTIVE: 5, TEAM_LABELS: ["I", "II", "III", "IV"],
+    teamMembers: () => [], isTeamLocked: () => false,
+    JOBS: { priest: {} },
+    learnedTreePassives: (c) => c._treePassives || [],
+    jobDef: () => ({ abilities, explorationSkills: [], name: "そうりょ" }),
     availableAbilities: () => abilities,
     getAbilityTier: () => 2,
     getExclusiveTree: () => null,
     getTreeState: () => null,
     subAbilityCandidates: () => [],
     TARGET_MODES: [{ value: "weakest", label: "弱い敵" }, { value: "strongest", label: "強い敵" }, { value: "random", label: "ランダム" }],
-    RACES: { human: { passive: {}, expMult: 1 } },
-    PASSIVE_LABELS: {},
+    RACES: { human: { name: "にんげん", desc: "人間", passive: { critBonus: 0.08 }, expMult: 1 } },
+    PASSIVE_LABELS: { critBonus: (value) => "会心率 +" + Math.round(value * 100) + "%" },
   });
   let current = null;
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui/detail-tabs.js"), "utf8"), ctx, { filename: "detail-tabs.js" });
@@ -120,9 +126,37 @@ test("省スペース版のスタイルが存在し、旧独立ONボタンは廃
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(css, /\.gambit-rule\s*\{[\s\S]*?grid-template-columns:\s*29px/);
   assert.match(css, /\.gambit-index\.on:after/);
-  assert.match(html, /css\/style\.css\?v=84/);
-  assert.match(html, /js\/ui\/detail-tabs\.js\?v=17/);
+  assert.match(html, /css\/style\.css\?v=85/);
+  assert.match(html, /js\/ui\/detail-tabs\.js\?v=18/);
   const ui = setup();
   assert.equal(cls(ui.root, "gambit-enabled").length, 0);
   assert.equal(cls(ui.root, "gambit-move").length, 4);
+});
+
+test("パッシブスキルは能力値の下に表示され、スキルタブはガンビット専用になる", () => {
+  const ui = setup();
+  ui.character._treePassives = [{ id: "priest:mp8", name: "魔力の泉", desc: "MP+8%", treeName: "癒しの心得" }];
+  const stats = ui.ctx.buildStatsTab(ui.character);
+  const statBox = cls(stats, "detail-stat-box")[0];
+  const passive = cls(stats, "stats-passive-section")[0];
+  assert.ok(statBox, "能力値が残る");
+  assert.ok(passive, "パッシブ表示が能力値内に存在する");
+  assert.ok(stats.children.indexOf(passive) > stats.children.indexOf(statBox), "能力値の下にある");
+  assert.match(txt(passive), /パッシブスキル/);
+  assert.match(txt(passive), /魔力の泉/);
+  assert.match(txt(passive), /MP\+8%/);
+  assert.match(txt(passive), /会心率 \+8%/, "種族特性も移動する");
+  assert.equal(cls(ui.root, "gambit-passive-list").length, 0, "スキルタブにパッシブは表示しない");
+  assert.equal(cls(ui.root, "gambit-tab").length, 0, "アクティブとパッシブの切替ボタンを撤去");
+  assert.equal(cls(ui.root, "gambit-rule").length, 2, "既存ガンビットは保持する");
+});
+test("スキルツリーをリセットしたら能力値タブのパッシブ一覧から消える", () => {
+  const ui = setup();
+  ui.character._treePassives = [{ id: "priest:mp8", name: "魔力の泉", desc: "MP+8%", treeName: "癒しの心得" }];
+  assert.match(txt(ui.ctx.buildStatsTab(ui.character)), /魔力の泉/);
+  ui.character._treePassives = [];
+  const statView = ui.ctx.buildStatsTab(ui.character);
+  assert.doesNotMatch(txt(statView), /魔力の泉/, "未習得スキルは再表示しない");
+  assert.match(txt(statView), /会心率 \+8%/, "種族特性は残る");
+  assert.equal(cls(statView, "gambit-enabled").length, 0, "パッシブにON/OFFを付けない");
 });

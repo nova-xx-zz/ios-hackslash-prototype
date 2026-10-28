@@ -103,6 +103,21 @@ function buildStatsTab(c) {
     wrap.appendChild(note);
   }
 
+  // パッシブは「設定する技」ではなく常時発動する効果なので能力値の直下へ配置。
+  // 効果は既存のcomputeStats/treePassiveから計算済みで、ここでは参照表示しかしない。
+  const passiveSection = document.createElement("section");
+  passiveSection.className = "stats-passive-section";
+  const passiveTitle = document.createElement("div");
+  passiveTitle.className = "detail-section-head";
+  passiveTitle.textContent = "パッシブスキル";
+  passiveSection.appendChild(passiveTitle);
+  const passiveNote = document.createElement("p");
+  passiveNote.className = "gambit-hint";
+  passiveNote.textContent = "習得中の効果は常時有効です。能力値などには反映済みです。";
+  passiveSection.appendChild(passiveNote);
+  passiveSection.appendChild(gambitPassives(c));
+  wrap.appendChild(passiveSection);
+
   return wrap;
 }
 
@@ -514,7 +529,6 @@ function buildSkillRow(c, a, opts) {
   return row;
 }
 
-let skillViewMode = "active";
 let editingTacticId = null;
 
 // 技の実際の習得条件が満たされているものだけを選択候補にする。
@@ -727,16 +741,9 @@ function buildSkillTab(c) {
   const wrap = gambitEl("div", "gambit-root");
   const legacyAbilities = availableAbilities(c);
   QPCore.tactics.migrateLegacy(c, legacyAbilities, getAbilityTier);
-  const tabs = gambitEl("div", "gambit-tabs");
-  for (const tab of [{ id: "active", label: "アクティブ" }, { id: "passive", label: "パッシブ" }]) {
-    tabs.appendChild(gambitButton(tab.label, () => {
-      skillViewMode = tab.id; editingTacticId = null; renderCharDetail();
-    }, false, "gambit-tab" + (skillViewMode === tab.id ? " active" : "")));
-  }
-  wrap.appendChild(tabs);
-  const pool = gambitAbilityPool(c);
-  if (skillViewMode === "passive") wrap.appendChild(gambitPassives(c));
-  else wrap.appendChild(gambitRules(c, pool));
+  const heading = gambitEl("div", "gambit-active-heading", "アクティブスキル");
+  wrap.appendChild(heading);
+  wrap.appendChild(gambitRules(c, gambitAbilityPool(c)));
 
   const exploration = (jobDef(c).explorationSkills || []);
   if (exploration.length) {
