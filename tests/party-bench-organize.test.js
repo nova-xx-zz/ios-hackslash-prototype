@@ -317,8 +317,8 @@ test("固定操作ボタンはスクロール領域の外、フィルターは�
   assert.ok(jobs.indexOf('id="btnJobsFilter"') < jobs.indexOf('id="rosterBody"'));
   assert.ok(jobs.indexOf('id="btnJobsNewGroup"') < jobs.indexOf('id="rosterBody"'));
   assert.match(css, /\.jobs-filter-popover\.hidden \{ display: none; \}/);
-  assert.match(html, /js\/ui\/party\.js\?v=14/);
-  assert.match(html, /css\/style\.css\?v=89/);
+  assert.match(html, /js\/ui\/party\.js\?v=15/);
+  assert.match(html, /css\/style\.css\?v=90/);
 });
 
 
