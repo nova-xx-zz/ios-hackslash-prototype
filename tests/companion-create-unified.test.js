@@ -38,7 +38,7 @@ test("種族選択はXSSなくクリックでモーダル導線へ",()=>{
   class El{constructor(tag){this.tag=tag;this.children=[];this.listeners={};this.textContent="";this.attrs={};}appendChild(el){this.children.push(el);return el;}addEventListener(k,fn){this.listeners[k]=fn;}setAttribute(k,v){this.attrs[k]=v;}click(){this.listeners.click?.();}}
   const cx=vm.createContext({document:{createElement:tag=>new El(tag)},RACES:{human:{icon:"♜"}},jobInsignia:()=>"<svg></svg>"});
   vm.runInContext(create.slice(start,end),cx);
-  let clicked=false;const row=cx.buildCreatePickRow("しゅぞく","<img src=x>","説明",()=>{clicked=true;},"race","human");
+  let clicked=false;const row=cx.buildCreatePickRow("種族","<img src=x>","説明",()=>{clicked=true;},"race","human");
   assert.equal(row.tag,"button");assert.equal(row.children[1].children[0].children[1].children[0].textContent,"<img src=x>");
   row.click();assert.equal(clicked,true);
 });
@@ -49,7 +49,7 @@ test("プレビューは6能力値・特性・スキルを表示し名前をエ�
   const cx=vm.createContext({document:{getElementById:()=>box},draft:{name:"<b>エマ</b>",race:"human",job:"rogue"},
     newCharacter:(name,job,race,opts)=>({name,job,race,level:opts.level}),createStartLevel:()=>1,
     computeStats:()=>({maxHp:22,maxMp:10,atk:8,mag:4,def:6,spd:10.5}),
-    RACES:{human:{name:"もりびと",passive:{},expMult:1.1}},JOBS:{rogue:{name:"とうぞく"}},
+    RACES:{human:{name:"森人",passive:{},expMult:1.1}},JOBS:{rogue:{name:"盗賊"}},
     availableAbilities:()=>[{name:"影刃"}],PASSIVE_LABELS:{},
     escapeHtml:t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")});
   vm.runInContext(create.slice(start,end),cx);cx.updateCreatePreview();
