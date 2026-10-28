@@ -701,25 +701,7 @@ function buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks) {
   const layout = crestGenericLayout(treeDef);
   const wrap = document.createElement("div");
   wrap.className = "tree-web tree-web--crest tree-web--universal";
-  const banner = document.createElement("div");
-  banner.className = "crest-banner";
-  const emblem = document.createElement("div");
-  emblem.className = "crest-banner-emblem";
-  emblem.appendChild(createWarriorCoreEmblem("crest-emblem--banner"));
-  banner.appendChild(emblem);
-  const text = document.createElement("div");
-  text.className = "crest-banner-text";
-  const name = document.createElement("span");
-  name.className = "crest-banner-job";
-  name.textContent = jobDef(c).name;
-  const title = document.createElement("span");
-  title.className = "crest-banner-tree";
-  title.textContent = treeDef.name;
-  const line = document.createElement("span");
-  line.className = "crest-banner-rule";
-  text.appendChild(name); text.appendChild(title); text.appendChild(line);
-  banner.appendChild(text);
-
+  // 職業名・紋章の重複バナーは生成しない。ツリー名は上部の共通SP欄へ移動。
   const viewport = document.createElement("div");
   viewport.className = "tree-web-viewport";
   viewport.setAttribute("aria-label", jobDef(c).name + "のスキルツリー。ピンチで拡大、拡大中は指で移動");
@@ -727,7 +709,6 @@ function buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks) {
   scene.className = "tree-web-scene";
   viewport.appendChild(scene);
   wrap.appendChild(viewport);
-  wrap.appendChild(banner);
   const controls = document.createElement("div");
   controls.className = "tree-web-controls";
   wrap.appendChild(controls);
@@ -857,14 +838,6 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   }
   // キャラクター送り／もどるは通常の詳細ヘッダーを共用する（ツリー専用の重複ヘッダーを作らない）。
 
-  const head = document.createElement("div");
-  head.className = "detail-section-head crest-screen-head";
-  const bar = buildWarriorCrestScreenHead(total - spent, total);
-  const resetRow = buildTreeResetRow(c, spent, true);
-  if (resetRow) bar.crestActions.appendChild(resetRow);
-  head.appendChild(bar);
-  wrap.appendChild(head);
-
   // 参考画面の横並び4タブ。固有と汎用3枠のうち1つだけを表示する。
   const entries = [{
     scopeKey: "exclusive", label: jobDef(c).name, title: exclusiveTree.name + "（固有）",
@@ -880,6 +853,16 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   });
   const active = entries.find((entry) => entry.scopeKey === warriorFocusScope) || entries[0];
   warriorFocusScope = active.scopeKey;
+
+  // 選択中ツリーの名称だけをSP・リセットの左に置く。
+  // 円形盤面上の浮遊バナーは表示せず、操作領域を広く確保する。
+  const head = document.createElement("div");
+  head.className = "detail-section-head crest-screen-head";
+  const bar = buildWarriorCrestScreenHead(total - spent, total, active.treeDef.name);
+  const resetRow = buildTreeResetRow(c, spent, true);
+  if (resetRow) bar.crestActions.appendChild(resetRow);
+  head.appendChild(bar);
+  wrap.appendChild(head);
   const tabs = document.createElement("div");
   tabs.className = "crest-focus-tabs";
   tabs.setAttribute("role", "tablist");
@@ -922,10 +905,15 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
 }
 
 // 2段目: 大きな「スキルツリー」とSP（リセット札は呼び出し側が crestActions へ入れる）
-function buildWarriorCrestScreenHead(available, total) {
+function buildWarriorCrestScreenHead(available, total, treeName) {
   const frag = document.createElement("div");
   frag.className = "crest-screen-bar";
-  // ユーザー確認済みレイアウトでは左上の大きなタイトルを省略し、SP/リセットだけを表示。
+  // アイコンとジョブ名の代わりに、現在表示中のツリー名のみを小さく残す。
+  const name = document.createElement("span");
+  name.className = "crest-current-tree-name";
+  name.textContent = treeName;
+  name.title = treeName;
+  frag.appendChild(name);
   const sp = document.createElement("div");
   sp.className = "crest-sp";
   sp.setAttribute("aria-label", "スキルポイント 残り" + available + "／合計" + total);
@@ -1059,28 +1047,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   const wrap = document.createElement("div");
   wrap.className = "tree-web tree-web--crest";
 
-  // 画面固定: 職業の見出し（剣紋章＋せんし／剛勇の心得）。盤面の拡大に追従しない
-  const banner = document.createElement("div");
-  banner.className = "crest-banner";
-  const emblem = document.createElement("div");
-  emblem.className = "crest-banner-emblem";
-  emblem.appendChild(createWarriorCoreEmblem("crest-emblem--banner"));
-  banner.appendChild(emblem);
-  const text = document.createElement("div");
-  text.className = "crest-banner-text";
-  const job = document.createElement("span");
-  job.className = "crest-banner-job";
-  job.textContent = jobDef(c).name;
-  const tree = document.createElement("span");
-  tree.className = "crest-banner-tree";
-  tree.textContent = treeDef.name;
-  const rule = document.createElement("span");
-  rule.className = "crest-banner-rule";
-  text.appendChild(job);
-  text.appendChild(tree);
-  text.appendChild(rule);
-  banner.appendChild(text);
-
+  // 円形盤面の上の職業名・アイコンバナーは廃止。名称は共通上部ヘッダーに表示。
   // 盤面: viewport（固定の枠・タッチ受付）＞ scene（正方形。transform はここだけ）
   const viewport = document.createElement("div");
   viewport.className = "tree-web-viewport";
@@ -1089,7 +1056,6 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   scene.className = "tree-web-scene";
   viewport.appendChild(scene);
   wrap.appendChild(viewport);
-  wrap.appendChild(banner);
 
   // 画面固定: ズーム操作（盤面の右下に小さく常設）
   const controls = document.createElement("div");
