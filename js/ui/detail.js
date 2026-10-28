@@ -119,8 +119,8 @@ function renderCharDetail() {
   const c = S.roster.find((x) => x.id === detailCharId);
   if (!c) { closeCharDetail(); return; }
   // 基本職せんしのツリー画面だけ専用レイアウトにする（他ジョブ・他タブはそのまま）。
-  const focus = detailTab === "tree" && c.job === "warrior" &&
-    isWarriorCrestWeb(c, "exclusive", getExclusiveTree(c));
+  // 全ジョブで紋章盤ビューを使い、既存の専用画面と同じ背景・固定配置にする。
+  const focus = detailTab === "tree" && !c.isMonster && !!getExclusiveTree(c);
   document.getElementById("screen-chardetail").classList.toggle("warrior-crest-view", focus);
   const pager = detailPagerInfo(c);
   document.getElementById("detailName").textContent = pager.name;

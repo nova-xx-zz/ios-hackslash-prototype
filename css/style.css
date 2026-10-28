@@ -3023,3 +3023,29 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
   .job-pass-purchased { font-size: 9px; padding: 2px 4px; }
   .job-accordion-trailing { gap: 5px; }
 }
+
+/* 全職共通の紋章盤: 汎用スロットの交換ボタンを固定盤面上部に置き、
+   盤面と下部の選択スキル詳細はせんしと同じ構造に統一する。 */
+.crest-stage-area--general { margin: 4px -12px 0; }
+.crest-stage-area--general .warrior-crest-section {
+  display: flex; flex-direction: column; overflow: visible;
+  flex: 1 1 auto; min-height: 0; border: 0; box-shadow: none;
+  background: none; padding: 0;
+}
+.crest-stage-area--general .tree-section-head {
+  flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 5px;
+  align-items: center; justify-content: space-between;
+  margin: 0 12px 4px; padding: 5px 10px;
+  border: 1px solid rgba(201,164,99,.4);
+  border-radius: 6px; background: rgba(7,22,31,.88);
+}
+.crest-stage-area--general .tree-section-title { font-size: 11px; }
+.crest-stage-area--general .tree-swap-btn { font-size: 10px; min-height: 29px; }
+.crest-stage-area--general .tree-web--universal { flex: 1 1 auto; min-height: 180px; }
+.tree-web--universal .tree-web-node-mark { letter-spacing: 0; }
+.tree-web--universal .crest-banner-job { max-width: min(60vw, 220px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree-web--universal .crest-banner-tree { max-width: min(60vw, 220px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-height: 700px) {
+  .crest-stage-area--general .tree-section-head { padding: 3px 8px; margin-bottom: 2px; }
+  .crest-stage-area--general .tree-swap-btn { min-height: 25px; }
+}

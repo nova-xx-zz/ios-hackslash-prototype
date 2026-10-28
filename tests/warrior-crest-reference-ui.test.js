@@ -60,6 +60,7 @@ function context(overrides = {}) {
     availableSp: () => 20,
     scheduleSave: () => {},
     getExclusiveTree: () => data.EXCLUSIVE_TREES.warrior,
+    jobDef: (c) => ({name: c.job === "warrior" ? "せんし" : c.job}),
     getTreeState: () => ({ exclusiveRanks: { w1: 1 }, general: {} }),
     GENERAL_SLOTS: [],
     totalSp: () => 30,
@@ -219,7 +220,7 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=88/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=13/);
-  assert.match(html, /js\/ui\/detail\.js\?v=11/);
+  assert.match(html, /css\/style\.css\?v=89/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=14/);
+  assert.match(html, /js\/ui\/detail\.js\?v=12/);
 });

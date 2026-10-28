@@ -17,9 +17,8 @@ function buildTreeTab(c) {
   const st = getTreeState(c);
   const total = totalSp(c);
   const spent = totalSpentSp(c);
-  // せんしだけはスキルツリー専用画面（画面固定のUI＋拡大縮小できる紋章盤＋下部の詳細）にする。計算と操作は全職共通のまま。
-  const crest = isWarriorCrestWeb(c, "exclusive", exclusiveTree);
-  if (crest) return buildWarriorCrestScreen(c, exclusiveTree, st, total, spent);
+  // 固有ツリーを持つ全職を共通の紋章盤UIに統一。せんしの配置は専用配置を維持する。
+  return buildWarriorCrestScreen(c, exclusiveTree, st, total, spent);
 
   const head = document.createElement("div");
   head.className = "detail-section-head";
@@ -143,14 +142,12 @@ function buildTreeSection(c, opts) {
     });
     headRow.appendChild(swapBtn);
   }
-  // せんしの固有ツリーだけ専用の紋章盤。汎用3枠・けんごう・他職は既存の縦分岐図。
-  if (isWarriorCrestWeb(c, scopeKey, treeDef)) {
-    section.classList.add("warrior-crest-section");
-    section.appendChild(buildWarriorWebGraph(c, scopeKey, treeDef, ranks));
-  } else {
-    section.appendChild(headRow);
-    section.appendChild(buildTreeGraph(c, scopeKey, treeDef, ranks));
-  }
+  // 一覧画面は全職共通の紋章盤。せんし固有だけ既存の手配置をそのまま使う。
+  section.classList.add("warrior-crest-section");
+  if (slotDef) section.appendChild(headRow); // 汎用ツリーの交換操作は残す
+  section.appendChild(isWarriorCrestWeb(c, scopeKey, treeDef)
+    ? buildWarriorWebGraph(c, scopeKey, treeDef, ranks)
+    : buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks));
 
   // 選んだマスの詳細。通常はキャラ詳細の下部シート（#detailSheet）に固定して出す
   if (treeSelectedNode && treeSelectedNode.scope === scopeKey) {
@@ -648,13 +645,212 @@ function createWarriorCoreEmblem(extraClass) {
   return svg;
 }
 
+// 全ジョブの円形盤面用。表示専用の座標は既存のノードrow/前提を元に安定生成する。
+// せんし専用のWARRIOR_WEB_LAYOUTと習得条件・保存形式は変更しない。
+const UNIVERSAL_CREST_LANES = [
+  { name: "基礎", angle: -90, label: [50, 3.4] },
+  { name: "技巧", angle: -54, label: [86, 22.5] },
+  { name: "研鑽", angle: 18, label: [91, 73] },
+  { name: "極意", angle: 90, label: [50, 97.8] },
+  { name: "守護", angle: 162, label: [9, 73] },
+  { name: "応用", angle: 234, label: [14, 22.5] },
+];
+const universalCrestLayouts = new WeakMap();
+function crestGenericLayout(treeDef) {
+  if (universalCrestLayouts.has(treeDef)) return universalCrestLayouts.get(treeDef);
+  const layout = {};
+  const nodes = treeDef.nodes.slice().sort((a, b) => (a.row || 0) - (b.row || 0) ||
+    (a.x || 50) - (b.x || 50) || a.id.localeCompare(b.id));
+  const roots = nodes.filter((node) => !(node.prerequisites || []).length);
+  // 内側の核に初期ノードを置き、残りを最大6方向の同心円へ分配する。
+  // ルートが多い職でも衝突しないよう半径と角度を均等配置。
+  roots.forEach((node, i) => {
+    const count = Math.max(roots.length, 3);
+    const lane = i % 6;
+    layout[node.id] = { lane, angle: -90 + 360 * i / count, radius: roots.length > 6 ? 19 : 13,
+      mark: Array.from(node.name || "◆")[0], glyph: crestGenericGlyph(node) };
+  });
+  const others = nodes.filter((n) => !layout[n.id]);
+  const rings = Math.max(1, Math.ceil(others.length / 6));
+  others.forEach((node, i) => {
+    const lane = i % 6;
+    const ring = Math.floor(i / 6);
+    const radius = rings <= 1 ? 30 : rings === 2 ? [25, 37][ring] :
+      rings === 3 ? [21, 31, 41][ring] : 17 + 25 * (ring + 1) / rings;
+    const jitter = ring % 2 === 1 ? 11 : -8;
+    layout[node.id] = { lane, angle: UNIVERSAL_CREST_LANES[lane].angle + jitter,
+      radius: Math.min(42, radius), mark: Array.from(node.name || "◆")[0], glyph: crestGenericGlyph(node) };
+  });
+  universalCrestLayouts.set(treeDef, layout);
+  return layout;
+}
+function crestGenericGlyph(node) {
+  if (node.ability) {
+    if (node.ability.kind === "magic") return "flame";
+    if (node.ability.kind === "heal") return "heart";
+    if (node.ability.kind === "buff") return "aura";
+    return "thrust";
+  }
+  const effects = node.effects || [];
+  if (effects.some((e) => e.stat === "def" || /def|guard/i.test(e.key || ""))) return "tower";
+  if (effects.some((e) => e.stat === "mag" || /mp|mana/i.test(e.key || ""))) return "gem";
+  if (effects.some((e) => e.stat === "atk" || /atk|crit/i.test(e.key || ""))) return "might";
+  return "insight";
+}
+function buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks) {
+  const layout = crestGenericLayout(treeDef);
+  const wrap = document.createElement("div");
+  wrap.className = "tree-web tree-web--crest tree-web--universal";
+  const banner = document.createElement("div");
+  banner.className = "crest-banner";
+  const emblem = document.createElement("div");
+  emblem.className = "crest-banner-emblem";
+  emblem.appendChild(createWarriorCoreEmblem("crest-emblem--banner"));
+  banner.appendChild(emblem);
+  const text = document.createElement("div");
+  text.className = "crest-banner-text";
+  const name = document.createElement("span");
+  name.className = "crest-banner-job";
+  name.textContent = jobDef(c).name;
+  const title = document.createElement("span");
+  title.className = "crest-banner-tree";
+  title.textContent = treeDef.name;
+  const line = document.createElement("span");
+  line.className = "crest-banner-rule";
+  text.appendChild(name); text.appendChild(title); text.appendChild(line);
+  banner.appendChild(text);
+
+  const viewport = document.createElement("div");
+  viewport.className = "tree-web-viewport";
+  viewport.setAttribute("aria-label", jobDef(c).name + "のスキルツリー。ピンチで拡大、拡大中は指で移動");
+  const scene = document.createElement("div");
+  scene.className = "tree-web-scene";
+  viewport.appendChild(scene);
+  wrap.appendChild(viewport);
+  wrap.appendChild(banner);
+  const controls = document.createElement("div");
+  controls.className = "tree-web-controls";
+  wrap.appendChild(controls);
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.classList.add("tree-web-lines");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-hidden", "true");
+  const addSvg = (tag, attrs, parent) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, String(value));
+    parent.appendChild(el);
+    return el;
+  };
+  drawWarriorWebBoard(addSvg, svg, UNIVERSAL_CREST_LANES);
+  const byId = Object.fromEntries(treeDef.nodes.map((node) => [node.id, node]));
+  const choices = treeChoiceInfo(treeDef, ranks);
+  const selected = treeSelectedNode && treeSelectedNode.scope === scopeKey ? treeSelectedNode.nodeId : null;
+  const focused = selected && choices.byNode[selected] ? choices.byNode[selected].group : null;
+  const links = [];
+  for (const node of treeDef.nodes) for (const pre of node.prerequisites || []) {
+    if (!byId[pre.nodeId]) continue;
+    const a = layout[pre.nodeId], b = layout[node.id];
+    const acquired = (ranks[node.id] || 0) >= pre.minRank && (ranks[pre.nodeId] || 0) >= pre.minRank;
+    const parentDone = (ranks[pre.nodeId] || 0) >= pre.minRank;
+    const sealed = !!(node.exclusiveGroup && (ranks[node.id] || 0) === 0 &&
+      treeDef.nodes.some((other) => other.id !== node.id && other.exclusiveGroup === node.exclusiveGroup &&
+        (ranks[other.id] || 0) > 0));
+    const kind = acquired ? "acquired" : sealed ? "sealed" :
+      parentDone && canAcquireNode(c, treeDef, ranks, node) ? "ready" : "dormant";
+    let points = warriorWebSpiral(a.angle, a.radius, b.angle, b.radius);
+    const choice = choices.byNode[node.id];
+    let cut = null;
+    if (choice && choice.state === "sealed" && choice.group.parentId === pre.nodeId) {
+      points = warriorWebTrimStart(points, .38); cut = points[0];
+    }
+    links.push({ kind, lane: b.lane, d: warriorWebPointsToPath(points), cut });
+  }
+  const order = {sealed:0,dormant:1,ready:2,acquired:3};
+  links.sort((a,b) => order[a.kind]-order[b.kind]);
+  const layer = addSvg("g", {class:"tree-web-link-layer"},svg);
+  for (const link of links) {
+    addSvg("path",{d:link.d,class:"tree-web-link-bed"},layer);
+    if (link.kind === "acquired") addSvg("path",{d:link.d,class:"tree-web-link-glow lane-"+link.lane},layer);
+    addSvg("path",{d:link.d,class:"tree-web-link "+link.kind+" lane-"+link.lane},layer);
+    if (link.kind === "acquired" || link.kind === "ready")
+      addSvg("path",{d:link.d,class:"tree-web-link-flow "+link.kind},layer);
+    if (link.cut) {
+      const p=link.cut,r=1.1;
+      addSvg("path",{d:"M"+(p.x-r).toFixed(2)+" "+(p.y-r).toFixed(2)+"L"+(p.x+r).toFixed(2)+" "+(p.y+r).toFixed(2)+
+        "M"+(p.x+r).toFixed(2)+" "+(p.y-r).toFixed(2)+"L"+(p.x-r).toFixed(2)+" "+(p.y+r).toFixed(2),
+        class:"tree-web-link-cut"},layer);
+    }
+  }
+  scene.appendChild(svg);
+  const center = document.createElement("div");
+  center.className = "tree-web-core"+(treeDef.nodes.some((n)=>(ranks[n.id]||0)>0)?" lit":"");
+  center.appendChild(createWarriorCoreEmblem());
+  center.setAttribute("aria-hidden","true");
+  scene.appendChild(center);
+  UNIVERSAL_CREST_LANES.forEach((lane,i)=>{
+    const el=document.createElement("span");
+    el.className="tree-web-lane tree-web-lane--"+i+(i===0?" tree-web-lane--trunk":"");
+    el.style.left=lane.label[0].toFixed(2)+"%";
+    el.style.top=lane.label[1].toFixed(2)+"%";
+    el.textContent=lane.name;
+    scene.appendChild(el);
+  });
+  for (const node of treeDef.nodes) {
+    const spot=layout[node.id];
+    const p=warriorWebPolar(spot.angle,spot.radius);
+    const rank=ranks[node.id]||0, acquired=rank>0;
+    const canGet=!acquired&&canAcquireNode(c,treeDef,ranks,node);
+    const sealed=!!(node.exclusiveGroup&&!acquired&&treeDef.nodes.some((o)=>o.id!==node.id&&
+      o.exclusiveGroup===node.exclusiveGroup&&(ranks[o.id]||0)>0));
+    const levelLocked=!acquired&&node.reqLevel>c.level;
+    const choice=choices.byNode[node.id];
+    const isSelected=selected===node.id;
+    const shape=node.kind==="active"?"diamond":"circle";
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="tree-web-node tree-web-node--lane-"+spot.lane+" shape-"+shape+
+      (node.kind==="active"?" active-kind":" passive-kind")+
+      (acquired?" acquired":canGet?" available":" locked")+
+      (sealed?" choice-sealed":"")+(levelLocked?" level-locked":"")+
+      (choice?" choice-node choice-"+choice.state:"")+
+      (focused&&!isSelected&&focused.nodes.some((n)=>n.id===node.id)?" choice-partner":"")+
+      (isSelected?" selected":"");
+    btn.style.left=p.x.toFixed(3)+"%";btn.style.top=p.y.toFixed(3)+"%";
+    const aura=document.createElement("span");aura.className="tree-web-node-aura";btn.appendChild(aura);
+    btn.appendChild(createWarriorNodeFrame(shape));
+    btn.appendChild(createWarriorCrestGlyph(sealed?"seal":levelLocked?"lock":spot.glyph));
+    const mark=document.createElement("span");mark.className="tree-web-node-mark";mark.textContent=spot.mark;btn.appendChild(mark);
+    if(choice)btn.appendChild(createTreeChoiceTag(choice));
+    if(choices.gates[node.id])btn.appendChild(createTreeChoiceGate(choices.gates[node.id]));
+    btn.title=node.name;
+    btn.setAttribute("aria-label",node.name+"、"+UNIVERSAL_CREST_LANES[spot.lane].name+"、"+
+      (acquired?"習得済み":canGet?"習得可能":sealed?"二択で封印中":levelLocked?"レベル不足":"未解放")+
+      "、必要Lv"+node.reqLevel+(choice?"、"+treeChoiceAriaText(choice):""));
+    btn.setAttribute("aria-pressed",String(isSelected));
+    btn.addEventListener("click",()=>{treeSelectedNode={scope:scopeKey,nodeId:node.id};treeSwapConfirm=null;renderCharDetail();});
+    scene.appendChild(btn);
+  }
+  const legend=document.createElement("div");legend.className="tree-web-legend";
+  for(const [cls,label] of [["learned","習得済み"],["ready","習得可能"],["dormant","未解放"],["sealed","封印"]]){
+    const key=document.createElement("span");key.className="tree-web-key "+cls;
+    const chip=document.createElement("i");chip.setAttribute("aria-hidden","true");key.appendChild(chip);
+    const t=document.createElement("span");t.textContent=label;key.appendChild(t);legend.appendChild(key);
+  }
+  wrap.appendChild(legend);
+  attachWarriorWebZoom(viewport,scene,controls);
+  return wrap;
+}
+
 // ---------- せんし専用画面の全体（画面固定のUI＋盤面＋下部の詳細） ----------
 function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   const wrap = document.createElement("div");
   wrap.className = "tree-tab tree-tab--crest";
   // キャラ送りで仲間が変わったら、前の仲間の表示枠・選択ノード・拡大位置を引き継がない。
-  if (warriorFocusCharId !== c.id) {
-    warriorFocusCharId = c.id;
+  if (warriorFocusCharId !== c.id + ":" + c.job) {
+    warriorFocusCharId = c.id + ":" + c.job;
     warriorFocusScope = "exclusive";
     treeSelectedNode = null;
     resetWarriorWebView();
@@ -671,7 +867,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
 
   // 参考画面の横並び4タブ。固有と汎用3枠のうち1つだけを表示する。
   const entries = [{
-    scopeKey: "exclusive", label: "せんし", title: exclusiveTree.name + "（固有）",
+    scopeKey: "exclusive", label: jobDef(c).name, title: exclusiveTree.name + "（固有）",
     treeDef: exclusiveTree, ranks: st.exclusiveRanks, slotDef: null,
   }];
   GENERAL_SLOTS.forEach((slot, index) => {
@@ -709,7 +905,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   // 未選択なら、固有は剣撃突き・汎用は先頭ノードの詳細を最初から出す
   if (!treeSelectedNode || treeSelectedNode.scope !== active.scopeKey ||
       !active.treeDef.nodes.some((node) => node.id === treeSelectedNode.nodeId)) {
-    const initial = active.scopeKey === "exclusive"
+    const initial = active.scopeKey === "exclusive" && c.job === "warrior"
       ? active.treeDef.nodes.find((node) => node.id === "w3")
       : active.treeDef.nodes[0];
     treeSelectedNode = initial ? { scope: active.scopeKey, nodeId: initial.id } : null;
@@ -805,7 +1001,7 @@ function buildWarriorCrestScreenHead(available, total) {
 }
 
 // ---------- 盤面の装飾（魔法陣・ルーン・外枠。すべて当たり判定なし） ----------
-function drawWarriorWebBoard(addSvg, svg) {
+function drawWarriorWebBoard(addSvg, svg, lanes = WARRIOR_WEB_LANES) {
   const defs = addSvg("defs", {}, svg);
   const board = addSvg("radialGradient", { id: "wcBoardGrad", cx: "50%", cy: "50%", r: "50%" }, defs);
   addSvg("stop", { offset: "0%", "stop-color": "#123544", "stop-opacity": ".86" }, board);
@@ -823,7 +1019,7 @@ function drawWarriorWebBoard(addSvg, svg) {
 
   addSvg("circle", { cx: 50, cy: 50, r: 47.4, class: "tree-web-disc", fill: "url(#wcBoardGrad)" }, svg);
   // 外へ伸びる5方向の淡い色の扇（方向の気配だけ）。基礎は中心の環なので扇を持たない
-  WARRIOR_WEB_LANES.forEach((lane, i) => {
+  lanes.forEach((lane, i) => {
     if (i === 0) return;
     const a1 = lane.angle - 22, a2 = lane.angle + 22;
     const p1 = warriorWebPolar(a1, 42.5), p2 = warriorWebPolar(a2, 42.5);
@@ -860,7 +1056,7 @@ function drawWarriorWebBoard(addSvg, svg) {
     [[-0.55, 0.9, 0, -0.9], [0, -0.9, 0.55, 0.9]],
     [[0, -0.9, 0, 0.9], [-0.55, -0.4, 0.55, 0.2]],
   ];
-  const labelAngles = WARRIOR_WEB_LANES.map((lane) => Math.atan2(lane.label[1] - 50, lane.label[0] - 50) * 180 / Math.PI);
+  const labelAngles = lanes.map((lane) => Math.atan2(lane.label[1] - 50, lane.label[0] - 50) * 180 / Math.PI);
   let runes = "";
   for (let i = 0; i < 96; i++) {
     const angle = i * 360 / 96 + 1.5;
@@ -882,7 +1078,7 @@ function drawWarriorWebBoard(addSvg, svg) {
     addSvg("circle", { cx: 50, cy: 50, r, class: "tree-web-orbit" }, svg);
   }
   // 放射線は中心の導線から外周まで。基礎の線は上の札から中心の環へ下りる
-  WARRIOR_WEB_LANES.forEach((lane, i) => {
+  lanes.forEach((lane, i) => {
     const p = warriorWebPolar(lane.angle, WARRIOR_WEB_CORE_BUS), q = warriorWebPolar(lane.angle, 43.4);
     addSvg("line", { x1: p.x.toFixed(2), y1: p.y.toFixed(2), x2: q.x.toFixed(2), y2: q.y.toFixed(2),
       class: "tree-web-spoke tree-web-spoke--" + i }, svg);
@@ -1265,7 +1461,9 @@ function attachWarriorWebZoom(viewport, scene, controls) {
 
 // ---------- 下部の専用詳細パネル（せんしのみ） ----------
 function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
-  const layout = WARRIOR_WEB_LAYOUT[node.id];
+  const isWarriorLayout = c.job === "warrior" && treeDef.id === "warrior" && WARRIOR_WEB_LAYOUT[node.id];
+  const layout = isWarriorLayout ? WARRIOR_WEB_LAYOUT[node.id] : crestGenericLayout(treeDef)[node.id];
+  const laneNames = isWarriorLayout ? WARRIOR_WEB_LANES : UNIVERSAL_CREST_LANES;
   const rank = ranks[node.id] || 0;
   const acquired = rank > 0;
   const canGet = !acquired && canAcquireNode(c, treeDef, ranks, node);
@@ -1305,7 +1503,7 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   tags.className = "crest-detail-tags";
   for (const [cls, label] of [
     ["kind", node.kind === "active" ? "アクティブ" : "パッシブ"],
-    ["lane", WARRIOR_WEB_LANES[lane].name],
+    ["lane", laneNames[lane].name],
     ["state", acquired ? "習得済み" : canGet ? "習得可能" : sealed ? "封印" : "未解放"],
   ]) {
     const tag = document.createElement("span");
@@ -1408,9 +1606,10 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
 // 選択中ノードの詳細（説明・コスト・習得状況・習得ボタン）を分岐図の下に表示する
 function buildTreeNodeDetail(c, treeDef, ranks, node, treeTitle) {
   const panel = document.createElement("div");
-  const isWarrior = c.job === "warrior" && treeDef.id === "warrior" && !!WARRIOR_WEB_LAYOUT[node.id];
-  panel.className = "tree-node-detail" + (isWarrior ? " warrior-crest-detail" : "");
-  if (isWarrior) return buildWarriorCrestDetail(c, treeDef, ranks, node, panel);
+  // 共通の画面下ドックには全職同じ金装飾の詳細カードを使う。
+  const crest = !!(treeDef && treeDef.nodes && node);
+  panel.className = "tree-node-detail" + (crest ? " warrior-crest-detail" : "");
+  if (crest) return buildWarriorCrestDetail(c, treeDef, ranks, node, panel);
   const rank = ranks[node.id] || 0;
   const acquired = rank > 0;
   const choice = treeChoiceInfo(treeDef, ranks).byNode[node.id] || null;

@@ -153,11 +153,11 @@ test("汎用ツリー・他職の縦の分岐図と詳細にも同じ印と比�
   const panel = ctx.buildTreeNodeDetail(c, tree, ranks, choiceNode, "汎用");
   assert.equal(byClass(panel, "tree-choice-option").length, 2);
   const btn = all(panel, (n) => n.tagName === "button" && /primary/.test(n.className))[0];
-  assert.match(btn.textContent, /を選ぶ/);
+  assert.match(text(btn), /を選ぶ/);
   btn.click();
   assert.deepEqual(calls.acquired, []);
   const again = all(ctx.buildTreeNodeDetail(c, tree, ranks, choiceNode, "汎用"), (n) => n.tagName === "button" && /primary/.test(n.className))[0];
-  assert.match(again.textContent, /本当に選ぶ？/);
+  assert.match(text(again), /本当に選ぶ？/);
   again.click();
   assert.deepEqual(calls.acquired, [choiceNode.id]);
   // 他職（まほうつかい）の縦の分岐図にも印が付く
@@ -172,6 +172,6 @@ test("二択のCSSは全ツリー共通の節と紋章盤の節にあり、キ�
   assert.match(css, /\.tree-web-node \.tree-choice-tag \{[^}]*width: 46%;[^}]*min-width: 14px;/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.choice-partner::before/);
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
-  assert.match(html, /css\/style\.css\?v=88/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=13/);
+  assert.match(html, /css\/style\.css\?v=89/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=14/);
 });

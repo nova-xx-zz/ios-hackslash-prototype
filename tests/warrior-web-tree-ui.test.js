@@ -66,6 +66,7 @@ function renderContext(overrides = {}) {
     scheduleSave: () => { calls.saved++; },
     // ツリータブ全体を組み立てる時の依存（汎用枠は0件にして固有ツリーだけ検証する）
     getExclusiveTree: () => data.EXCLUSIVE_TREES.warrior,
+    jobDef: (c) => ({name: c.job === "warrior" ? "せんし" : c.job === "swordmaster" ? "けんごう" : c.job}),
     getTreeState: () => ({ exclusiveRanks: { w1: 1 }, general: {} }),
     GENERAL_SLOTS: [],
     totalSp: () => 44,
@@ -87,7 +88,7 @@ function pathEnds(d) {
   return { start: nums[0], end: nums[nums.length - 1] };
 }
 
-test("せんしだけ新UI: けんごう・他職・汎用枠は従来の縦分岐図", () => {
+test("全ジョブ共通UI: せんし・けんごうとも円形紋章盤、せんしだけ配置を固定", () => {
   const { context } = renderContext();
   const tree = data.EXCLUSIVE_TREES.warrior;
   assert.equal(context.isWarriorCrestWeb({ job: "warrior" }, "exclusive", tree), true);
@@ -103,11 +104,11 @@ test("せんしだけ新UI: けんごう・他職・汎用枠は従来の縦分�
   assert.equal(byClass(warriorTab, "tree-graph").length, 0);
 
   const kengoTab = context.buildTreeTab({ job: "swordmaster", level: 45, team: null });
-  assert.ok(!kengoTab.className.includes("tree-tab--crest"));
-  assert.equal(byClass(kengoTab, "tree-web").length, 0);
-  assert.equal(byClass(kengoTab, "crest-screen-head").length, 0);
-  assert.equal(byClass(kengoTab, "tree-graph").length, 1);
-  assert.equal(byClass(kengoTab, "tree-node").length, tree.nodes.length);
+  assert.ok(kengoTab.className.includes("tree-tab--crest"));
+  assert.equal(byClass(kengoTab, "tree-web--universal").length, 1);
+  assert.equal(byClass(kengoTab, "crest-screen-head").length, 1);
+  assert.equal(byClass(kengoTab, "tree-graph").length, 0);
+  assert.equal(byClass(kengoTab, "tree-web-node").length, tree.nodes.length);
 });
 
 test("紋章盤: 正本17ノード・6方向の飾り札・中央の剣紋章・背景ガイドを描画", () => {
@@ -345,15 +346,15 @@ test("専用詳細パネル: アイコン・種別・必要SP/Lv・説明・フ�
   assert.ok(byClass(done, "warrior-crest-facts")[0].children.some(n => n.textContent === "必要SP 2"));
 });
 
-test("けんごう・他職の詳細パネルは従来のまま", () => {
+test("けんごう・他職の詳細パネルにも共通の金装飾を適用", () => {
   const { context } = renderContext();
   const tree = data.EXCLUSIVE_TREES.warrior;
   const node = tree.nodes.find(n => n.id === "w3");
   const b = context.buildTreeNodeDetail({ job: "swordmaster", level: 99 }, tree, {}, node, "剛勇の心得（固有）");
-  assert.equal(b.className, "tree-node-detail");
-  assert.equal(byClass(b, "crest-detail-card").length, 0);
-  const btn = descendants(b, n => n.tagName === "button" && n.className.includes("primary"))[0];
-  assert.equal(btn.textContent, "習得する（SP2／残り98）");
+  assert.ok(b.className.includes("warrior-crest-detail"));
+  assert.equal(byClass(b, "crest-detail-card").length, 1);
+  const btn = byClass(b, "crest-learn-btn")[0];
+  assert.match(allText(btn), /習得する/);
 });
 
 test("見出しのSP表示とリセット札（せんしのみ）。振り直しは既存処理・確認手順のまま", () => {
@@ -449,8 +450,8 @@ test("せんし専用画面: 横並び4タブの固有を開き、詳細パネ�
   byClass(first, "crest-focus-tab")[2].click();
   assert.equal(calls.rerenders, 1, "汎用タブの切替で再描画");
   const general = context.buildTreeTab({ id: "hero1", name: "ガイ", job: "warrior", level: 99, team: null });
-  assert.equal(byClass(general, "tree-web").length, 0, "汎用タブは既存の分岐図");
-  assert.equal(byClass(general, "tree-graph").length, 1);
+  assert.equal(byClass(general, "tree-web--universal").length, 1, "汎用も同じ円形盤面");
+  assert.equal(byClass(general, "tree-graph").length, 0);
   assert.equal(byClass(general, "crest-inline-detail").length, 1);
   assert.equal(byClass(general, "crest-focus-tab").filter(n => n.attrs["aria-selected"] === "true")[0].textContent, "汎用Ⅱ");
 
@@ -462,10 +463,10 @@ test("せんし専用画面: 横並び4タブの固有を開き、詳細パネ�
   assert.equal(byClass(other, "crest-focus-tab").filter(n => n.attrs["aria-selected"] === "true")[0].textContent, "せんし");
 });
 
-test("参考画像に沿った全高レイアウトはせんしのツリー画面に限定し、元画面への導線を残す", () => {
+test("参考画像に沿った全高レイアウトを全職に適用し、元画面への導線を残す", () => {
   const css = fs.readFileSync(path.join(__dirname, "../css/style.css"), "utf8");
   const detail = fs.readFileSync(path.join(__dirname, "../js/ui/detail.js"), "utf8");
-  assert.match(detail, /detailTab === "tree" && c\.job === "warrior"/);
+  assert.match(detail, /detailTab === "tree" && !c\.isMonster && !!getExclusiveTree\(c\)/);
   assert.match(detail, /classList\.toggle\("warrior-crest-view", focus\)/);
   assert.match(css, /#screen-chardetail\.warrior-crest-view \.roster-header/);
   assert.match(css, /#screen-chardetail\.warrior-crest-view #detailTabs/);
@@ -477,4 +478,60 @@ test("参考画像に沿った全高レイアウトはせんしのツリー画�
   back.click();
   assert.equal(context.detailTab, "stats");
   assert.equal(calls.rerenders, 1);
+});
+
+
+test("他職の固有ツリーに全ノードと実前提線を描画し、選択・習得判定はマスターに委譲", () => {
+  const basic = data.EXCLUSIVE_TREES.magic;
+  assert.ok(basic && basic.nodes.length > 0, "魔法使いの固有ツリーがある");
+  const { context, calls } = renderContext({
+    getExclusiveTree: () => basic,
+    getTreeState: () => ({exclusiveRanks:{},general:{}}),
+    jobDef: () => ({name:"まほうつかい"}),
+  });
+  const c={id:"mage-1",name:"ルナ",job:"mage",level:99,team:null};
+  const tab=context.buildTreeTab(c);
+  assert.equal(byClass(tab,"tree-web--universal").length,1);
+  assert.equal(byClass(tab,"tree-web-node").length,basic.nodes.length);
+  assert.equal(byClass(tab,"tree-web-link-bed").length,basic.nodes.reduce((n,v)=>n+(v.prerequisites||[]).length,0));
+  assert.equal(byClass(tab,"crest-banner-job")[0].textContent,"まほうつかい");
+  assert.equal(byClass(tab,"crest-focus-tab")[0].textContent,"まほうつかい");
+  assert.equal(byClass(tab,"crest-learn-btn").length,1);
+  const target=byClass(tab,"tree-web-node").find(n=>n.title===basic.nodes[basic.nodes.length-1].name);
+  assert.ok(target);
+  target.click();
+  assert.deepEqual({ ...context.treeSelectedNode },{scope:"exclusive",nodeId:basic.nodes[basic.nodes.length-1].id});
+  assert.equal(calls.rerenders,1);
+});
+test("同じ固有ツリーでもせんしの手配置だけ維持し、転職先では汎用配置を使用", () => {
+  const { context } = renderContext();
+  const warrior=context.buildTreeTab({id:"c",job:"warrior",level:99,team:null});
+  const original=byClass(warrior,"tree-web--crest")[0];
+  assert.equal(byClass(original,"tree-web--universal").length,0);
+  const advanced=context.buildTreeTab({id:"c",job:"swordmaster",level:99,team:null});
+  assert.equal(byClass(advanced,"tree-web--universal").length,1);
+  assert.equal(byClass(advanced,"tree-web-node").length,data.EXCLUSIVE_TREES.warrior.nodes.length);
+});
+
+test("全7種の固有ツリーマスターを共通紋章盤へ描画し、ノード・依存線が欠けない", () => {
+  const trees = Object.values(data.EXCLUSIVE_TREES);
+  assert.ok(trees.length >= 7);
+  for (const tree of trees) {
+    const { context } = renderContext({
+      getExclusiveTree: () => tree,
+      getTreeState: () => ({exclusiveRanks:{},general:{}}),
+      jobDef: () => ({name:tree.name}),
+    });
+    const c={id:"all-"+tree.id,job:tree.tag || tree.id,level:99,team:null,name:tree.name};
+    const tab=context.buildTreeTab(c);
+    assert.equal(byClass(tab,"tree-web-node").length,tree.nodes.length,tree.id+" のノード数");
+    assert.equal(byClass(tab,"tree-web-link-bed").length,
+      tree.nodes.reduce((n,x)=>n+(x.prerequisites||[]).length,0),tree.id+" の前提線");
+    const names=byClass(tab,"tree-web-node").map(x=>x.title).sort();
+    assert.equal(JSON.stringify(names),JSON.stringify(Array.from(tree.nodes, x=>x.name).sort()),tree.id+" のスキル名");
+    const points=byClass(tab,"tree-web-node").map(b=>[parseFloat(b.style.left),parseFloat(b.style.top)]);
+    assert.ok(points.every(p=>p.every(v=>Number.isFinite(v)&&v>=0&&v<=100)),tree.id+" の配置範囲");
+    assert.equal(byClass(tab,"crest-inline-detail").length,1,tree.id+" の詳細");
+    assert.ok(byClass(tab,"crest-learn-btn").length<=1,tree.id+" の習得ボタン");
+  }
 });
