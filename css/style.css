@@ -2929,6 +2929,23 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
   background: rgba(6,20,30,.98); box-shadow: 0 5px 20px rgba(0,0,0,.3);
 }
 .gambit-editor-head { font-size: 12px; font-weight: 700; color: #f0d59b; }
+
+/* 編集中のスキル性能を表示する専用の読み取りカード。一覧行は従来の高さを維持。 */
+.gambit-ability-detail {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  padding: 9px; border: 1px solid rgba(201,164,99,.42); border-radius: 8px;
+  background: rgba(26,36,42,.86);
+}
+.gambit-ability-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 8px; }
+.gambit-ability-name { color: #ffe5b1; font-size: 13px; }
+.gambit-ability-kind { color: #adc6db; font-size: 10px; }
+.gambit-ability-desc { margin: 0; color: var(--text); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.gambit-ability-specs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
+.gambit-ability-spec { display: flex; flex-direction: column; gap: 2px; padding: 6px 5px; min-width: 0; background: rgba(2,13,23,.5); border-radius: 5px; }
+.gambit-ability-spec-label { font-size: 10px; color: var(--sub-text); }
+.gambit-ability-spec strong { font-size: 11px; font-weight: 700; color: #f8edcf; overflow-wrap: anywhere; }
+.gambit-ability-warning { color: #ffc6bb; font-size: 11px; line-height: 1.5; }
+
 .gambit-field { display: grid; grid-template-columns: 1fr; gap: 3px; }
 .gambit-label { font-size: 11px; color: var(--sub-text); }
 .gambit-select, .gambit-number { box-sizing: border-box; width: 100%; min-height: 38px; padding: 6px 9px; color: var(--text); background: #182933; border: 1px solid rgba(201,164,99,.45); border-radius: 7px; font-size: 13px; }
