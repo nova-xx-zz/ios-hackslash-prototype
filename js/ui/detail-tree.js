@@ -855,7 +855,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     treeSelectedNode = null;
     resetWarriorWebView();
   }
-  wrap.appendChild(buildWarriorCrestNavigation(c));
+  // キャラクター送り／もどるは通常の詳細ヘッダーを共用する（ツリー専用の重複ヘッダーを作らない）。
 
   const head = document.createElement("div");
   head.className = "detail-section-head crest-screen-head";
@@ -921,61 +921,11 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   return wrap;
 }
 
-// 最上段: 戻る・作品名・前後のキャラクター送り（旧画面の ‹ 名前 位置 › を世界観に合わせて小さく）
-function buildWarriorCrestNavigation(c) {
-  const nav = document.createElement("div");
-  nav.className = "crest-focus-navigation";
-  const back = document.createElement("button");
-  back.type = "button";
-  back.className = "crest-focus-back";
-  back.textContent = "‹";
-  back.setAttribute("aria-label", "仲間詳細に戻る");
-  back.addEventListener("click", () => { detailTab = "stats"; renderCharDetail(); });
-  nav.appendChild(back);
-  const brand = document.createElement("span");
-  brand.className = "crest-focus-brand";
-  brand.textContent = "SWORD CREST ✦";
-  nav.appendChild(brand);
-
-  const info = typeof detailPagerInfo === "function"
-    ? detailPagerInfo(c) : { name: c.name || "", pos: "", canSwitch: false };
-  const pager = document.createElement("div");
-  pager.className = "crest-pager";
-  const step = (delta, label, hint) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "crest-pager-btn";
-    button.textContent = label;
-    button.setAttribute("aria-label", hint);
-    button.disabled = !info.canSwitch;
-    button.addEventListener("click", () => { if (typeof switchDetail === "function") switchDetail(delta); });
-    return button;
-  };
-  pager.appendChild(step(-1, "‹", "前の仲間"));
-  const who = document.createElement("div");
-  who.className = "crest-pager-who";
-  const name = document.createElement("span");
-  name.className = "crest-pager-name";
-  name.textContent = info.name;
-  const pos = document.createElement("span");
-  pos.className = "crest-pager-pos";
-  pos.textContent = info.pos;
-  who.appendChild(name);
-  who.appendChild(pos);
-  pager.appendChild(who);
-  pager.appendChild(step(1, "›", "次の仲間"));
-  nav.appendChild(pager);
-  return nav;
-}
-
 // 2段目: 大きな「スキルツリー」とSP（リセット札は呼び出し側が crestActions へ入れる）
 function buildWarriorCrestScreenHead(available, total) {
   const frag = document.createElement("div");
   frag.className = "crest-screen-bar";
-  const name = document.createElement("h2");
-  name.className = "crest-screen-name";
-  name.textContent = "スキルツリー";
-  frag.appendChild(name);
+  // ユーザー確認済みレイアウトでは左上の大きなタイトルを省略し、SP/リセットだけを表示。
   const sp = document.createElement("div");
   sp.className = "crest-sp";
   sp.setAttribute("aria-label", "スキルポイント 残り" + available + "／合計" + total);

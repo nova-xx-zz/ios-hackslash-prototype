@@ -169,22 +169,21 @@ test("習得は中から外へ: 基礎は剣紋章を囲む環、どの前提線
   }
 });
 
-test("キャラ送り: 名前・位置を表示し、前後ボタンは既存の switchDetail を呼ぶ（1人なら押せない）", () => {
-  const { ctx, calls } = context();
+test("共通ヘッダー: ツリー固有の重複キャラ送りを削除し、通常画面の前後ボタン・戻るを継続利用", () => {
+  const { ctx } = context();
   const tab = ctx.buildTreeTab({ id: "a", name: "ガイ", job: "warrior", level: 99, team: 0 });
-  assert.equal(byClass(tab, "crest-pager-name")[0].textContent, "ガイ");
-  assert.equal(byClass(tab, "crest-pager-pos")[0].textContent, "I・2/5");
-  const [prev, next] = byClass(tab, "crest-pager-btn");
-  assert.equal(prev.attrs["aria-label"], "前の仲間");
-  next.click();
-  prev.click();
-  assert.deepEqual(calls.switched, [1, -1]);
-
-  const solo = context({ detailPagerInfo: (c) => ({ name: c.name, pos: "控え・1/1", canSwitch: false }) });
-  const soloTab = solo.ctx.buildTreeTab({ id: "a", name: "ガイ", job: "warrior", level: 99, team: null });
-  assert.ok(byClass(soloTab, "crest-pager-btn").every((b) => b.disabled));
+  assert.equal(byClass(tab, "crest-focus-navigation").length, 0, "独自のヘッダーは生成しない");
+  assert.equal(byClass(tab, "crest-pager-btn").length, 0);
+  assert.equal(byClass(tab, "crest-focus-brand").length, 0, "SWORD CREST表記は置かない");
+  assert.match(html, /id="btnDetailPrev"/);
+  assert.match(html, /id="detailName"/);
+  assert.match(html, /id="detailPos"/);
+  assert.match(html, /id="btnDetailNext"/);
+  assert.match(html, /id="btnDetailBack"/);
   assert.match(detailJs, /function detailPagerInfo\(c\)/);
-  assert.match(detailJs, /const pager = detailPagerInfo\(c\);/, "通常の見出しと同じ情報源");
+  assert.match(detailJs, /const pager = detailPagerInfo\(c\);/);
+  assert.match(detailJs, /addEventListener\("click", \(\) => switchDetail\(-1\)\)/);
+  assert.match(detailJs, /addEventListener\("click", \(\) => switchDetail\(1\)\)/);
 });
 
 test("仲間が変わったら選択ノード・表示タブ・拡大位置を引き継がない", () => {
@@ -202,25 +201,30 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   const { ctx } = context();
   const tab = ctx.buildTreeTab({ id: "a", name: "ガイ", job: "warrior", level: 99, team: null });
   const order = tab.children.map((child) => child.className);
-  assert.deepEqual(order, ["crest-focus-navigation", "detail-section-head crest-screen-head", "crest-focus-tabs", "crest-stage-area", "crest-inline-detail"]);
-  assert.equal(byClass(tab.children[4], "crest-learn-btn").length, 1, "習得ボタンは下部ドック");
-  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 0);
+  assert.deepEqual(order, ["detail-section-head crest-screen-head", "crest-focus-tabs", "crest-stage-area", "crest-inline-detail"]);
+  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 1, "習得ボタンは下部ドック");
+  assert.equal(byClass(tab.children[2], "crest-learn-btn").length, 0);
+  assert.equal(byClass(tab, "crest-screen-name").length, 0, "大きな左上タイトルは省略");
+  assert.equal(byClass(tab, "crest-screen-actions").length, 1, "SP・リセットは残す");
   assert.match(css, /#app:has\(#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\) \{[^}]*explore-guild\.jpg/);
   assert.match(css, /\.crest-stage-area \{[^}]*flex: 1 1 auto;/);
   assert.match(css, /\.crest-inline-detail \{ flex: 0 0 auto;/);
   assert.match(css, /\.tree-web--crest \.tree-web-viewport \{[^}]*touch-action: none;/);
   assert.equal(fs.existsSync(path.join(root, "icons/skill-tree-gothic-background.svg")), false, "使わなくなった背景SVGは残さない");
   assert.doesNotMatch(css, /skill-tree-gothic-background|crest-zoom-options|crest-tree-stage/);
-  const section = css.slice(css.indexOf("/* ===== せんし専用: スキルツリー専用画面"), css.indexOf("/* map */"));
+  const section = css.slice(css.indexOf("/* ===== 全ジョブ共通: スキルツリー紋章盤"), css.indexOf("/* map */"));
   assert.ok(section.length > 1000);
   assert.doesNotMatch(section, /!important/, "上書き合戦をしない");
-  // 剣士の専用CSSは1か所にまとめる（上書きの層を重ねない）
-  assert.equal((css.match(/せんし専用: スキルツリー専用画面/g) || []).length, 1);
+  assert.equal((css.match(/全ジョブ共通: スキルツリー紋章盤/g) || []).length, 1);
   assert.equal((css.match(/#app:has\(#screen-chardetail\.warrior-crest-view/g) || []).length, 1);
+  assert.doesNotMatch(section, /\.global-nav\s*\{\s*display:\s*none/, "全体ナビを隠さない");
+  assert.doesNotMatch(section, /#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\s*\{\s*bottom:/, "安全領域計算を上書きしない");
+  assert.match(section, /#screen-chardetail\.warrior-crest-view #detailTabs\s*\{\s*display:\s*flex/, "下部の詳細タブを表示");
+  assert.match(section, /#screen-chardetail\.warrior-crest-view \.roster-header\s*\{\s*display:\s*flex/, "キャラ送りを表示");
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=89/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=14/);
+  assert.match(html, /css\/style\.css\?v=90/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=15/);
   assert.match(html, /js\/ui\/detail\.js\?v=12/);
 });
