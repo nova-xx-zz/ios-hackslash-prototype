@@ -66,7 +66,7 @@ function renderContext(overrides = {}) {
     scheduleSave: () => { calls.saved++; },
     // ツリータブ全体を組み立てる時の依存（汎用枠は0件にして固有ツリーだけ検証する）
     getExclusiveTree: () => data.EXCLUSIVE_TREES.warrior,
-    jobDef: (c) => ({name: c.job === "warrior" ? "せんし" : c.job === "swordmaster" ? "けんごう" : c.job}),
+    jobDef: (c) => ({name: c.job === "warrior" ? "戦士" : c.job === "swordmaster" ? "剣豪" : c.job}),
     getTreeState: () => ({ exclusiveRanks: { w1: 1 }, general: {} }),
     GENERAL_SLOTS: [],
     totalSp: () => 44,
@@ -128,7 +128,7 @@ test("紋章盤: 正本17ノード・6方向の飾り札・中央の剣紋章・
   assert.equal(byClass(root, "tree-web-tick").length, 72, "古金の外枠の目盛");
   assert.equal(byClass(root, "tree-web-runes").length, 1);
   assert.equal(byClass(root, "crest-banner").length, 1);
-  assert.match(allText(byClass(root, "crest-banner")[0]), /せんし.*剛勇の心得/);
+  assert.match(allText(byClass(root, "crest-banner")[0]), /戦士.*剛勇の心得/);
   // 位置は重ならない
   const pos = buttons.map(b => [parseFloat(b.style.left), parseFloat(b.style.top)]);
   for (let i = 0; i < pos.length; i++) {
@@ -342,7 +342,8 @@ test("専用詳細パネル: アイコン・種別・必要SP/Lv・説明・フ�
   // 習得済みは状態表示のみ
   const done = context.buildTreeNodeDetail({ job: "warrior", level: 99 }, tree, { w3: 1 }, node, "");
   assert.equal(byClass(done, "crest-learn-btn").length, 0);
-  assert.equal(byClass(done, "tree-node-detail-state")[0].textContent, "習得済み");
+  assert.equal(byClass(done, "tree-node-detail-state").length, 0, "カードの外に重複した習得済み表示を出さない");
+  assert.equal(byClass(done, "crest-tag").find(n=>n.className.split(" ").includes("state")).textContent, "習得済み");
   assert.ok(byClass(done, "warrior-crest-facts")[0].children.some(n => n.textContent === "必要SP 2"));
 });
 
@@ -439,7 +440,7 @@ test("せんし専用画面: 横並び4タブの固有を開き、詳細パネ�
   const first = context.buildTreeTab({ id: "hero1", name: "ガイ", job: "warrior", level: 99, team: null });
   assert.equal(byClass(first, "crest-focus-navigation").length, 0, "キャラ送りは共通ヘッダーで表示する");
   assert.equal(byClass(first, "crest-focus-tabs").length, 1);
-  assert.deepEqual(byClass(first, "crest-focus-tab").map(b => b.textContent), ["せんし", "汎用Ⅰ", "汎用Ⅱ", "汎用Ⅲ"]);
+  assert.deepEqual(byClass(first, "crest-focus-tab").map(b => b.textContent), ["戦士", "汎用Ⅰ", "汎用Ⅱ", "汎用Ⅲ"]);
   assert.equal(byClass(first, "tree-web-node").length, 17);
   assert.equal(byClass(first, "tree-graph").length, 0, "汎用の縦リストを一度に出さない");
   assert.equal(byClass(first, "crest-inline-detail").length, 1);
