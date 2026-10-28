@@ -1461,7 +1461,7 @@ function attachWarriorWebZoom(viewport, scene, controls) {
 
 // ---------- 下部の専用詳細パネル（せんしのみ） ----------
 function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
-  const isWarriorLayout = treeDef.id === "warrior" && WARRIOR_WEB_LAYOUT[node.id];
+  const isWarriorLayout = c.job === "warrior" && treeDef.id === "warrior" && WARRIOR_WEB_LAYOUT[node.id];
   const layout = isWarriorLayout ? WARRIOR_WEB_LAYOUT[node.id] : crestGenericLayout(treeDef)[node.id];
   const laneNames = isWarriorLayout ? WARRIOR_WEB_LANES : UNIVERSAL_CREST_LANES;
   const rank = ranks[node.id] || 0;
