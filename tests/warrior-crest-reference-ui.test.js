@@ -230,7 +230,7 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
 });
 
 test("キャッシュ番号（iPhoneへの反映）", () => {
-  assert.match(html, /css\/style\.css\?v=91/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=16/);
+  assert.match(html, /css\/style\.css\?v=92/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=17/);
   assert.match(html, /js\/ui\/detail\.js\?v=12/);
 });
