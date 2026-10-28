@@ -1269,9 +1269,9 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 .tree-node-detail .btn.confirming { background: linear-gradient(180deg, #f3b06a, #c0753a); }
 @media (prefers-reduced-motion: reduce) { .choice-partner::before { animation: none; opacity: .8; } }
 
-/* ===== せんし専用: スキルツリー専用画面（剛勇の紋章盤） =====
-   設計: docs/スキルツリー画面再設計.md。すべて #screen-chardetail.warrior-crest-view（せんしのツリータブ表示中）と
-   .tree-web--crest / .warrior-crest-detail の内側に限定し、けんごう・他職・汎用ツリーの既存表示は変えない。
+/* ===== 全ジョブ共通: スキルツリー紋章盤（せんし手配置は維持） =====
+   設計: docs/スキルツリー画面再設計.md。#screen-chardetail.warrior-crest-view は既存互換のCSSクラス名。
+   ツリー表示中もキャラ詳細ヘッダー・詳細タブ・全体ナビを維持する。
    層の分け方:
      画面固定  … 背景の城郭(#app)・戻る/キャラ送り・タイトル・SP・タブ・職業見出し・ズームボタン・下部の詳細と習得ボタン
      盤面(scene) … 魔法陣・ルーン・剣紋章・前提線・ノード・6方向の札。transform は .tree-web-scene にだけ掛かる。
@@ -1305,18 +1305,31 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
     linear-gradient(rgba(10,30,52,.30), rgba(10,30,52,.30)),
     #050b10 url("../icons/explore-guild.jpg") center 22% / cover no-repeat;
 }
-body:has(#screen-chardetail.warrior-crest-view:not(.hidden)) .global-nav { display: none; }
-body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom: var(--safe-bottom); }
+/* ツリー中も「能力値～ジョブ」と「編成～設定」を常時表示する。
+   body.with-global-nav の既存安全領域/高さ計算をそのまま使い、全画面専用上書きは禁止。 */
 #screen-chardetail.warrior-crest-view { padding: 0; }
-#screen-chardetail.warrior-crest-view .roster-wrap { padding: 4px 12px 10px; }
-#screen-chardetail.warrior-crest-view .roster-header,
-#screen-chardetail.warrior-crest-view #detailTabs,
+#screen-chardetail.warrior-crest-view .roster-wrap { padding: 5px 10px 0; }
+#screen-chardetail.warrior-crest-view .roster-header {
+  display: flex; flex: 0 0 auto; align-items: center; gap: 8px;
+  padding: 0 2px 5px; min-height: 42px;
+}
+#screen-chardetail.warrior-crest-view .roster-header .detail-switch-name .map-title {
+  font: 700 17px/1.2 var(--title-serif-ja);
+}
+#screen-chardetail.warrior-crest-view #detailTabs {
+  display: flex; flex: 0 0 auto;
+  margin: 3px -10px 0;
+  background: rgba(5,14,20,.97);
+  border-top: 1px solid rgba(216,182,115,.42);
+}
+#screen-chardetail.warrior-crest-view #detailTabs .detail-tab {
+  min-height: 43px; padding: 10px 2px; font-size: 12px;
+}
 #screen-chardetail.warrior-crest-view #detailSheet { display: none; }
 #screen-chardetail.warrior-crest-view #detailBody {
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto; /* 極端に背の低い画面だけ全体をスクロール（通常は1画面に収まる） */
+  display: flex; flex: 1 1 auto; min-height: 0;
+  flex-direction: column; overflow-x: hidden;
+  overflow-y: auto; /* 小画面では盤面側だけスクロール、下部2段ナビは固定 */
   overscroll-behavior-y: contain;
   scrollbar-width: none;
 }
@@ -1325,7 +1338,7 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
 #screen-chardetail.warrior-crest-view .detail-notice { flex: 0 0 auto; margin: 0 0 4px; font-size: 11px; }
 #screen-chardetail.warrior-crest-view .job-char-card {
   display: flex;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   min-height: 0;
   margin: 0;
   padding: 0;
@@ -1340,85 +1353,13 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
   flex-direction: column;
   flex: 1 1 auto;
   width: 100%;
-  min-height: 540px;
+  min-height: 0;
   color: var(--ink);
 }
 
-/* --- 最上段: 戻る・作品名・キャラクター送り --- */
-.crest-focus-navigation { display: flex; align-items: center; gap: 4px; min-height: 38px; }
-.crest-focus-back {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  margin-left: -6px;
-  padding: 0 0 3px;
-  border: 0;
-  background: none;
-  color: #e9d29d;
-  font-size: 30px;
-  line-height: 1;
-  cursor: pointer;
-}
-.crest-focus-brand {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font: 700 12px "Cinzel", Georgia, serif;
-  letter-spacing: .2em;
-  color: #d3b477;
-  text-shadow: 0 1px 4px #000;
-}
-.crest-pager {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid rgba(216,182,115,.45);
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(14,32,40,.88), rgba(4,13,19,.9));
-  box-shadow: inset 0 0 0 1px rgba(3,9,13,.85), 0 2px 8px rgba(0,0,0,.45);
-}
-.crest-pager-btn {
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  padding: 0 0 2px;
-  border: 1px solid rgba(216,182,115,.5);
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 35%, rgba(52,72,70,.95), rgba(10,22,27,.95));
-  color: #f3dfb2;
-  font-size: 19px;
-  line-height: 1;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-.crest-pager-btn:disabled { opacity: .35; cursor: default; }
-.crest-pager-btn:active:not(:disabled) { background: rgba(120,96,58,.6); }
-.crest-pager-who {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 62px;
-  max-width: 108px;
-  padding: 0 4px;
-  line-height: 1.15;
-}
-.crest-pager-name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font: 700 13px var(--title-serif-ja);
-  color: #f6ead0;
-}
-.crest-pager-pos { font-size: 9.5px; letter-spacing: .04em; color: #b9a983; white-space: nowrap; }
-
 /* --- 2段目: スキルツリー・SP・リセット --- */
 .tree-tab--crest .crest-screen-head { display: block; margin: 0 0 8px; padding: 0; background: none; border: 0; border-radius: 0; }
-.crest-screen-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.crest-screen-bar { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .crest-screen-name {
   margin: 0;
   min-width: 0;
@@ -1809,7 +1750,7 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
 }
 .tree-web-node:active .tree-web-frame { transform: scale(.94); }
 .tree-web-node:focus-visible, .tree-web-control:focus-visible, .crest-focus-tab:focus-visible,
-.crest-focus-back:focus-visible, .crest-pager-btn:focus-visible, .crest-learn-btn:focus-visible {
+#screen-chardetail.warrior-crest-view .detail-switch-btn:focus-visible, .crest-learn-btn:focus-visible {
   outline: 2px solid #f5dc99;
   outline-offset: 2px;
 }
@@ -2050,8 +1991,8 @@ body.with-global-nav #screen-chardetail.warrior-crest-view:not(.hidden) { bottom
 }
 /* 背の低い画面: 詳細カードを詰めて盤面を残す（盤面はピンチで拡大できる） */
 @media (max-height: 760px) {
-  .tree-tab--crest { min-height: 500px; }
-  .crest-focus-navigation { min-height: 34px; }
+  .tree-tab--crest { min-height: 0; }
+  #screen-chardetail.warrior-crest-view .roster-header { min-height: 36px; padding-bottom: 2px; }
   .tree-tab--crest .crest-screen-head { margin-bottom: 6px; }
   .crest-focus-tab { padding: 8px 2px; }
   .crest-detail-card { padding: 10px 12px 9px; max-height: 26vh; }
