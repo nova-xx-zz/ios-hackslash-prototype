@@ -573,18 +573,22 @@ function gambitSelect(options, selected, change) {
   el.addEventListener("change", () => change(el.value));
   return el;
 }
-function gambitRevealEditor() {
-  const panel = document.getElementById("gambitRuleEditor");
-  if (panel && typeof panel.scrollIntoView === "function") {
-    panel.scrollIntoView({ block: "nearest", behavior: "instant" });
-  }
-}
 function gambitOpenEditor(c, rule) {
   editingTacticId = rule.id;
   renderCharDetail();
-  // 旧実装は一覧の最下部に編集欄があり、押しても見えなかった。
-  // 行の直下に開いた編集欄をその場で見える範囲へ移動する。
-  gambitRevealEditor();
+  // 詳細は一覧とは別の固定フッターに出す。画面自体は移動させない。
+  const sheet = document.getElementById("detailSheet");
+  if (sheet) sheet.scrollTop = 0;
+}
+function gambitMountEditor(c, pool) {
+  const sheet = document.getElementById("detailSheet");
+  const rule = c.tacticsRules.find((r) => r.id === editingTacticId);
+  if (!sheet || !rule) return;
+  sheet.replaceChildren(gambitEditor(c, rule, pool));
+  sheet.classList.add("gambit-sheet");
+  sheet.classList.remove("hidden");
+  sheet.setAttribute("role", "region");
+  sheet.setAttribute("aria-label", "ガンビットの条件とスキル編集");
 }
 function gambitConditionText(rule) {
   switch (rule.condition) {
@@ -598,9 +602,12 @@ function gambitConditionText(rule) {
   }
 }
 function gambitCommit(c) {
+  const sheet = document.getElementById("detailSheet");
+  const savedScroll = sheet && editingTacticId ? sheet.scrollTop : 0;
   c.tacticsRules = QPCore.tactics.normalizeRules(c.tacticsRules) || [];
   renderCharDetail();
-  if (editingTacticId) gambitRevealEditor();
+  const currentSheet = document.getElementById("detailSheet");
+  if (currentSheet && editingTacticId) currentSheet.scrollTop = savedScroll;
 }
 // ガンビットの編集中にスキルの性能を確認するための閲覧専用パネル。
 // ツリー/ジョブ側と同じ ability マスターから表示し、効果値を別途複製しない。
@@ -648,7 +655,12 @@ function gambitEditor(c, rule, pool) {
   panel.id = "gambitRuleEditor";
   panel.setAttribute("role", "region");
   panel.setAttribute("aria-label", "ルール編集");
-  panel.appendChild(gambitEl("div", "gambit-editor-head", "ルール " + (c.tacticsRules.indexOf(rule) + 1) + " を編集"));
+  const heading = gambitEl("div", "gambit-editor-heading");
+  heading.appendChild(gambitEl("div", "gambit-editor-head", "ルール " + (c.tacticsRules.indexOf(rule) + 1) + " を編集"));
+  const closeEditor = gambitButton("×", () => { editingTacticId = null; renderCharDetail(); }, false, "gambit-editor-close");
+  closeEditor.setAttribute("aria-label", "ルール編集を閉じる");
+  heading.appendChild(closeEditor);
+  panel.appendChild(heading);
   const addField = (label, control) => {
     const field = gambitEl("label", "gambit-field");
     field.appendChild(gambitEl("span", "gambit-label", label));
@@ -694,6 +706,92 @@ function gambitEditor(c, rule, pool) {
   panel.appendChild(actions);
   return panel;
 }
+// 見た目の順位ではなくルールIDで移動し、未保存の編集中ルールも一緒に保持する。
+function gambitMoveRule(c, ruleId, destination) {
+  const start = c.tacticsRules.findIndex((r) => r.id === ruleId);
+  if (start < 0 || destination < 0 || destination >= c.tacticsRules.length || start === destination) return false;
+  const [rule] = c.tacticsRules.splice(start, 1);
+  c.tacticsRules.splice(destination, 0, rule);
+  gambitCommit(c);
+  return true;
+}
+
+// タッチでは「≡」ハンドルを約300ms長押しするとドラッグ開始。
+// HTML5 draggable はiOS Safariで不安定なのでPointer Eventsを使用する。
+function gambitBindDrag(grip, row, list, c, ruleId) {
+  let pointerId = null, startY = 0, originIndex = -1, landingIndex = -1;
+  let timer = null, dragging = false, highlighted = null;
+  const clearTimer = () => { if (timer !== null) { clearTimeout(timer); timer = null; } };
+  const rows = () => Array.from(list.querySelectorAll(".gambit-rule"));
+  const cleanup = () => {
+    clearTimer();
+    dragging = false;
+    row.classList.remove("gambit-dragging");
+    row.style.transform = "";
+    if (highlighted) highlighted.classList.remove("gambit-drop-target");
+    highlighted = null;
+    pointerId = null;
+  };
+  const activate = () => {
+    if (pointerId === null) return;
+    dragging = true;
+    originIndex = c.tacticsRules.findIndex((r) => r.id === ruleId);
+    landingIndex = originIndex;
+    row.classList.add("gambit-dragging");
+    // 振動はプラットフォーム対応時だけの軽い触覚フィードバック。
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(12);
+  };
+  grip.addEventListener("pointerdown", (event) => {
+    if (pointerId !== null || (event.pointerType === "mouse" && event.button !== 0) || c.tacticsRules.length < 2) return;
+    pointerId = event.pointerId;
+    startY = event.clientY;
+    if (grip.setPointerCapture) {
+      try { grip.setPointerCapture(pointerId); } catch (_) {}
+    }
+    if (event.pointerType === "touch") timer = setTimeout(activate, 300);
+    else activate();
+  });
+  grip.addEventListener("pointermove", (event) => {
+    if (pointerId !== event.pointerId) return;
+    if (!dragging) {
+      if (Math.abs(event.clientY - startY) > 10) { clearTimer(); pointerId = null; }
+      return;
+    }
+    if (event.cancelable) event.preventDefault();
+    row.style.transform = "translateY(" + (event.clientY - startY) + "px)";
+    const scroll = document.getElementById("detailBody");
+    if (scroll && scroll.getBoundingClientRect) {
+      const bounds = scroll.getBoundingClientRect();
+      if (event.clientY < bounds.top + 38) scroll.scrollTop -= 14;
+      else if (event.clientY > bounds.bottom - 38) scroll.scrollTop += 14;
+    }
+    // pointer capture中も elementFromPoint は実際に指の下の要素を返す。
+    const hovered = document.elementFromPoint ? document.elementFromPoint(event.clientX, event.clientY) : null;
+    const candidate = hovered && hovered.closest ? hovered.closest(".gambit-rule") : null;
+    const entries = rows();
+    const index = candidate ? entries.indexOf(candidate) : -1;
+    if (index < 0) return;
+    landingIndex = index;
+    if (highlighted && highlighted !== candidate) highlighted.classList.remove("gambit-drop-target");
+    highlighted = candidate;
+    if (candidate !== row) candidate.classList.add("gambit-drop-target");
+  });
+  grip.addEventListener("pointerup", (event) => {
+    if (event.pointerId !== pointerId) return;
+    const to = landingIndex, wasDragging = dragging;
+    cleanup();
+    if (wasDragging) gambitMoveRule(c, ruleId, to);
+  });
+  grip.addEventListener("pointercancel", cleanup);
+  grip.addEventListener("lostpointercapture", () => { if (pointerId !== null) cleanup(); });
+  // VoiceOver/キーボードでもルールの順番を変更できるようにする。
+  grip.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    const current = c.tacticsRules.findIndex((r) => r.id === ruleId);
+    gambitMoveRule(c, ruleId, current + (event.key === "ArrowUp" ? -1 : 1));
+  });
+}
 function gambitRules(c, pool) {
   const wrap = gambitEl("div", "gambit-container");
   const actions = gambitEl("div", "gambit-toolbar");
@@ -732,27 +830,19 @@ function gambitRules(c, pool) {
     skill.title = "使用スキルを編集";
     skill.setAttribute("aria-label", "ルール" + (i + 1) + "の使用スキルを編集");
     row.appendChild(skill);
-    const controls = gambitEl("div", "gambit-rule-controls");
-    const up = gambitButton("↑", () => {
-      [c.tacticsRules[i - 1], c.tacticsRules[i]] = [c.tacticsRules[i], c.tacticsRules[i - 1]];
-      gambitCommit(c);
-    }, i === 0, "gambit-move");
-    up.setAttribute("aria-label", "ルール" + (i + 1) + "を上へ");
-    controls.appendChild(up);
-    const down = gambitButton("↓", () => {
-      [c.tacticsRules[i], c.tacticsRules[i + 1]] = [c.tacticsRules[i + 1], c.tacticsRules[i]];
-      gambitCommit(c);
-    }, i === c.tacticsRules.length - 1, "gambit-move");
-    down.setAttribute("aria-label", "ルール" + (i + 1) + "を下へ");
-    controls.appendChild(down);
-    row.appendChild(controls);
+    const grip = gambitButton("≡", () => {}, c.tacticsRules.length < 2, "gambit-grip");
+    grip.title = "長押しして移動（キーボードでは上下キー）";
+    grip.setAttribute("aria-label", "ルール" + (i + 1) + "を長押しして並べ替え");
+    row.setAttribute("data-gambit-rule-id", rule.id);
+    row.appendChild(grip);
+    gambitBindDrag(grip, row, list, c, rule.id);
     list.appendChild(row);
-    // タップした既存ルールの直後に編集欄を展開。リストの末尾には追いやらない。
-    if (editingTacticId === rule.id) list.appendChild(gambitEditor(c, rule, pool));
+
   });
   wrap.appendChild(list);
   if (c.tacticsRules.length === 0) wrap.appendChild(gambitEl("p", "gambit-hint", "ルールがありません。通常攻撃のみを使用します。"));
-  wrap.appendChild(gambitEl("p", "gambit-hint", "条件・技をタップで編集／番号でON・OFF／↑↓で順序変更。上から順に判定します。"));
+  wrap.appendChild(gambitEl("p", "gambit-hint", "条件・スキルをタップして下部で編集／≡を長押しして並べ替え。"));
+  gambitMountEditor(c, pool);
   return wrap;
 }
 function gambitPassives(c) {

@@ -16,6 +16,7 @@ function openCharDetail(c, opts) {
     ? { ids: opts.orderIds.slice(), label: String(opts.orderLabel || "") }
     : null;
   detailTab = "stats";
+  if (typeof editingTacticId !== "undefined") editingTacticId = null;
   fusionSelection = new Set();
   fusionConfirm = false;
   fusionMessage = "";
@@ -64,6 +65,7 @@ function switchDetail(delta) {
   if (order.length < 2 || i < 0) return;
   const next = order[(i + delta + order.length) % order.length];
   detailCharId = next.id;
+  if (typeof editingTacticId !== "undefined") editingTacticId = null;
   // そのキャラだけの選択状態（合成の素材・ツリーのノード・開いている装備枠）は持ち越さない
   fusionSelection = new Set();
   fusionConfirm = false;
@@ -77,6 +79,7 @@ function switchDetail(delta) {
 // 「もどる」: 開いた元の画面へ帰る。探索画面へは、詳細で変えたジョブ・装備・Lvを仲間カードに反映して戻る
 function closeCharDetail() {
   detailCharId = null;
+  if (typeof editingTacticId !== "undefined") editingTacticId = null;
   detailNavContext = null;
   openSlot = null;
   if (detailReturnScreen === "screen-battle") {
@@ -140,6 +143,7 @@ function renderCharDetail() {
   const sheet = document.getElementById("detailSheet");
   sheet.innerHTML = "";
   sheet.classList.add("hidden");
+  sheet.classList.remove("gambit-sheet");
 
   // 探索中のチームに所属するキャラは、装備・スキル・転職・合成などを変更すると
   // 戦闘中の状態が不整合になるため、表示のみ（操作不可）にする
@@ -180,7 +184,11 @@ function renderDetailTabs() {
     const btn = document.createElement("button");
     btn.className = "detail-tab" + (detailTab === t.key ? " active" : "");
     btn.textContent = t.key === "job" && c && c.isMonster ? "合成" : t.label;
-    btn.addEventListener("click", () => { detailTab = t.key; renderCharDetail(); });
+    btn.addEventListener("click", () => {
+      if (detailTab !== t.key && typeof editingTacticId !== "undefined") editingTacticId = null;
+      detailTab = t.key;
+      renderCharDetail();
+    });
     tabs.appendChild(btn);
   }
 }
