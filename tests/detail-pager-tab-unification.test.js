@@ -63,7 +63,7 @@ test("2枚の画面に同じキャラ送りDOMを使い、描画時は名前の�
   assert.match(detail, /document\.getElementById\("detailName"\)\.textContent = pager\.name/);
   assert.match(detail, /document\.getElementById\("detailPos"\)\.textContent = pager\.pos/);
   assert.match(detail, /classList\.toggle\("warrior-crest-view", focus\)/);
-  assert.match(html, /css\/style\.css\?v=95/);
+  assert.match(html, /css\/style\.css\?v=96/);
 });
 
 test("ツリー固有4タブのみ38pxのコンパクト表示にし、他画面の共通5タブは維持", () => {
