@@ -62,6 +62,8 @@ function setup({purchased = false, shop = true, job = "swordmaster", special = t
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui/detail-tabs.js"), "utf8"), ctx);
   // ジョブカードの内部描画は別責務。ここでは個数とアコーディオンの動作のみ確認。
+  // js/ui/detail-tabs.js の関数宣言が単体テスト用スタブより後で評価されるので上書きする。
+  ctx.specialJobUnlockText = () => "試練達成";
   ctx.buildJobCard = (c,id) => { const node = new Element("button"); node.textContent = jobs[id].name; return node; };
   ctx.renderCharDetail = () => { current = ctx.buildJobTab(character); };
   ctx.renderCharDetail();
