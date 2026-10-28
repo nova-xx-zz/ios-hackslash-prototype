@@ -46,7 +46,11 @@
     }
     const unique = new Set();
     const choices = (knownAbilities || []).filter((a) => a && !unique.has(a.id) && unique.add(a.id) && (!c.skillActive || c.skillActive[a.id] !== false));
-    choices.sort((a, b) => ((tier ? tier(c, b.id) : 2) - (tier ? tier(c, a.id) : 2)));
+    // 旧設定で優先度が同じ場合、HPを失った味方を救える回復を先に判定する。
+    // 「auto」の回復条件は従来の閾値を使うため、HP満タン時は攻撃に進む。
+    const kindOrder = (a) => a.kind === "heal" ? 0 : a.kind === "buff" ? 1 : 2;
+    choices.sort((a, b) =>
+      ((tier ? tier(c, b.id) : 2) - (tier ? tier(c, a.id) : 2)) || kindOrder(a) - kindOrder(b));
     c.tacticsRules = choices.slice(0, MAX_RULES).map((a, i) => ({
       id: "rule-" + (i + 1), abilityId: a.id, enabled: true, condition: "auto", value: 0,
       targetMode: TARGET_MODES.includes(c.targetPriority) ? c.targetPriority : "weakest",
