@@ -602,6 +602,47 @@ function gambitCommit(c) {
   renderCharDetail();
   if (editingTacticId) gambitRevealEditor();
 }
+// ガンビットの編集中にスキルの性能を確認するための閲覧専用パネル。
+// ツリー/ジョブ側と同じ ability マスターから表示し、効果値を別途複製しない。
+function gambitAbilityDetail(c, ability) {
+  const box = gambitEl("section", "gambit-ability-detail");
+  box.setAttribute("aria-label", "選択中のスキル詳細");
+  if (!ability) {
+    box.appendChild(gambitEl("div", "gambit-ability-warning", "このスキルは現在習得していないか、使用できません。"));
+    return box;
+  }
+  const kinds = { physical: "物理攻撃", magic: "魔法攻撃", heal: "回復", buff: "補助" };
+  const targets = { single: "敵単体", "all-enemy": "敵全体", "single-ally": "味方単体", "all-ally": "味方全体", self: "自分" };
+  const elements = {
+    fire: "火", water: "水", wind: "風", earth: "土", thunder: "雷", lightning: "雷",
+    light: "光", dark: "闇", poison: "毒", ice: "氷", holy: "聖", curse: "呪", void: "虚無"
+  };
+  const head = gambitEl("div", "gambit-ability-head");
+  head.appendChild(gambitEl("strong", "gambit-ability-name", ability.name || "名前未設定"));
+  head.appendChild(gambitEl("span", "gambit-ability-kind", kinds[ability.kind] || "スキル"));
+  box.appendChild(head);
+  box.appendChild(gambitEl("p", "gambit-ability-desc", ability.desc || "スキル説明は未設定です。"));
+  const specs = gambitEl("div", "gambit-ability-specs");
+  function spec(label, value) {
+    const cell = gambitEl("div", "gambit-ability-spec");
+    cell.appendChild(gambitEl("span", "gambit-ability-spec-label", label));
+    cell.appendChild(gambitEl("strong", "", String(value)));
+    specs.appendChild(cell);
+  }
+  if (Number.isFinite(ability.mpCost)) {
+    // 実際のMP消費は種族・ツリー・装備による軽減/増加を考慮する。
+    const actual = typeof mpCostFor === "function" ? mpCostFor(c, ability) : ability.mpCost;
+    const value = Number.isFinite(actual) ? actual : ability.mpCost;
+    spec("消費MP", value === ability.mpCost ? value : value + "（基本" + ability.mpCost + "）");
+  }
+  if (ability.target) spec("対象", targets[ability.target] || ability.target);
+  if (ability.element) spec("属性", elements[ability.element] || ability.element);
+  if (Number.isFinite(ability.power) && ability.power > 0) spec("威力係数", "×" + ability.power);
+  if (Number.isFinite(ability.hits) && ability.hits > 0) spec("回数", ability.hits + "回");
+  if (Number.isFinite(ability.reqLevel) && ability.reqLevel > 0) spec("必要Lv", ability.reqLevel);
+  if (specs.children.length) box.appendChild(specs);
+  return box;
+}
 function gambitEditor(c, rule, pool) {
   const panel = gambitEl("section", "gambit-editor");
   panel.id = "gambitRuleEditor";
@@ -618,6 +659,8 @@ function gambitEditor(c, rule, pool) {
     pool.map((a) => ({ label: a.name, value: a.id })), rule.abilityId,
     (id) => { rule.abilityId = id; gambitCommit(c); }
   ));
+  // 同じ行で説明と性能を確認できる。技の切替後は既存の再描画で自動更新。
+  panel.appendChild(gambitAbilityDetail(c, pool.find((a) => a.id === rule.abilityId)));
   addField("発動条件", gambitSelect(
     QPCore.tactics.CONDITIONS.map((x) => ({ value: x.id, label: x.label })),
     rule.condition, (id) => { rule.condition = id; rule.value = id === "enemyCountGte" ? 3 : 20; gambitCommit(c); }

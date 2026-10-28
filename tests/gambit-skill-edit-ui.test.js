@@ -40,8 +40,8 @@ const txt = (el) => (el.textContent || "") + el.children.map(txt).join("");
 
 function setup() {
   const abilities = [
-    { id: "heal", name: "癒しの灯", reqLevel: 1, kind: "heal", target: "single-ally" },
-    { id: "fire", name: "炎紋弾", reqLevel: 1, kind: "magic", target: "single" },
+    { id: "heal", name: "癒しの灯", reqLevel: 1, kind: "heal", target: "single-ally", mpCost: 4, power: 1.8, hits: 1, desc: "味方1体のHPを回復" },
+    { id: "fire", name: "炎紋弾", reqLevel: 1, kind: "magic", element: "fire", target: "single", mpCost: 4, power: 1.5, hits: 1, desc: "敵1体に炎属性の魔法攻撃" },
   ];
   const character = {
     id: "c1", race: "human", job: "priest", level: 20, isMonster: false, team: null,
@@ -58,6 +58,7 @@ function setup() {
     QPCore: { tactics, stats: { ivRank: () => null } },
     escapeHtml: (x) => String(x),
     computeStats: () => ({ maxHp: 100, maxMp: 40, atk: 20, mag: 20, def: 10, spd: 8 }),
+    mpCostFor: (c, a) => a.id === "fire" ? 3 : a.mpCost,
     MAX_ACTIVE: 5, TEAM_LABELS: ["I", "II", "III", "IV"],
     teamMembers: () => [], isTeamLocked: () => false,
     JOBS: { priest: {} },
@@ -126,8 +127,8 @@ test("省スペース版のスタイルが存在し、旧独立ONボタンは廃
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(css, /\.gambit-rule\s*\{[\s\S]*?grid-template-columns:\s*29px/);
   assert.match(css, /\.gambit-index\.on:after/);
-  assert.match(html, /css\/style\.css\?v=85/);
-  assert.match(html, /js\/ui\/detail-tabs\.js\?v=18/);
+  assert.match(html, /css\/style\.css\?v=86/);
+  assert.match(html, /js\/ui\/detail-tabs\.js\?v=19/);
   const ui = setup();
   assert.equal(cls(ui.root, "gambit-enabled").length, 0);
   assert.equal(cls(ui.root, "gambit-move").length, 4);
@@ -159,4 +160,51 @@ test("スキルツリーをリセットしたら能力値タブのパッシブ�
   assert.doesNotMatch(txt(statView), /魔力の泉/, "未習得スキルは再表示しない");
   assert.match(txt(statView), /会心率 \+8%/, "種族特性は残る");
   assert.equal(cls(statView, "gambit-enabled").length, 0, "パッシブにON/OFFを付けない");
+});
+
+test("ガンビットの編集中は選択スキルの説明・対象・威力・消費MPをマスターから表示", () => {
+  const ui = setup();
+  assert.equal(cls(ui.root, "gambit-ability-detail").length, 0, "一覧は省スペースのまま");
+  cls(ui.root, "gambit-trigger")[0].click();
+  const details = cls(ui.root, "gambit-ability-detail");
+  assert.equal(details.length, 1);
+  const detail = details[0];
+  assert.match(txt(detail), /癒しの灯/);
+  assert.match(txt(detail), /味方1体のHPを回復/);
+  assert.match(txt(detail), /回復/);
+  assert.match(txt(detail), /味方単体/);
+  assert.match(txt(detail), /消費MP4/);
+  assert.match(txt(detail), /1\.8/);
+  assert.match(txt(detail), /1回/);
+  assert.equal(detail.attrs["aria-label"], "選択中のスキル詳細");
+});
+test("選択スキルを切り替えると説明と消費MP補正が連動し、他のルールは変更されない", () => {
+  const ui = setup();
+  cls(ui.root, "gambit-skill")[0].click();
+  const abilitySelect = cls(ui.root, "gambit-editor")[0] && cls(ui.root, "gambit-select")[0];
+  assert.equal(abilitySelect.value, "heal");
+  abilitySelect.change("fire");
+  assert.equal(ui.character.tacticsRules[0].abilityId, "fire");
+  assert.equal(ui.character.tacticsRules[1].abilityId, "fire");
+  const details = cls(ui.root, "gambit-ability-detail");
+  assert.equal(details.length, 1);
+  assert.match(txt(details[0]), /炎紋弾/);
+  assert.match(txt(details[0]), /敵1体に炎属性の魔法攻撃/);
+  assert.match(txt(details[0]), /魔法攻撃/);
+  assert.match(txt(details[0]), /火/);
+  assert.match(txt(details[0]), /消費MP3（基本4）/);
+  assert.match(txt(details[0]), /威力係数×1\.5/);
+  assert.doesNotMatch(txt(details[0]), /味方1体のHPを回復/);
+  assert.equal(cls(ui.root, "gambit-rule").length, 2);
+  assert.equal(ui.character.tacticsRules[0].condition, "auto");
+  assert.equal(ui.character.tacticsRules[1].condition, "always");
+});
+test("未習得・存在しない技のルールは説明を捏造せず使用不可を示す", () => {
+  const ui = setup();
+  ui.character.tacticsRules[0].abilityId = "unknown_ability";
+  ui.ctx.renderCharDetail();
+  cls(ui.root, "gambit-trigger")[0].click();
+  assert.match(txt(cls(ui.root, "gambit-ability-detail")[0]), /現在習得していないか、使用できません/);
+  assert.equal(ui.character.tacticsRules[0].abilityId, "unknown_ability");
+  assert.equal(cls(ui.root, "gambit-rule").length, 2);
 });
