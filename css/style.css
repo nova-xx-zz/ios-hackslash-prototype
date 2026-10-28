@@ -2886,10 +2886,10 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
 /* ガンビット型スキル設定：条件と技をタップでその場で編集できる省スペース版 */
 .gambit-root { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .job-char-card:has(.gambit-root) { padding: 9px; }
-.gambit-tabs { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: 1px solid rgba(201,164,99,.6); border-radius: 9px; }
-.gambit-tab { min-width: 0; min-height: 38px; padding: 7px 6px; border: 0; background: rgba(8,20,28,.75); color: #d0d4d7; font-size: 12px; font-weight: 700; cursor: pointer; }
-.gambit-tab + .gambit-tab { border-left: 1px solid rgba(201,164,99,.45); }
-.gambit-tab.active { background: linear-gradient(180deg,#77602d,#302617); color: #fff4dc; box-shadow: inset 0 -2px 0 #c9a463; }
+.gambit-active-heading { padding: 5px 2px 1px; font-size: 13px; font-weight: 700; color: #f0d59b; }
+.stats-passive-section { margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(201,164,99,.35); }
+.stats-passive-section > .detail-section-head { margin-bottom: 4px; }
+.stats-passive-section .gambit-passive-list { margin-top: 8px; }
 .gambit-container { display: flex; flex-direction: column; gap: 6px; }
 .gambit-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .gambit-count { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; }
