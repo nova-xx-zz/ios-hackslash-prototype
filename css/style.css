@@ -313,11 +313,59 @@ input, textarea { -webkit-user-select: text; user-select: text; -webkit-touch-ca
 body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-nav-h, 68px)); }
 
 /* キャラ詳細: 前後の仲間への切り替え */
-.detail-switch { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
-.detail-switch-name { flex: 1; min-width: 0; text-align: center; }
-.detail-switch-name .map-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.detail-switch-pos { font-size: 10px; color: var(--sub-text); margin-top: 1px; }
-.detail-switch-btn { flex: none; min-width: 40px; font-size: 20px; line-height: 1; padding: 6px 0; }
+/* キャラ詳細の共通固定ヘッダー。名前・所属文字数と画面タブに左右されず
+   ‹ › のタップ位置（X/Y座標）とボタンサイズを常に同じにする。 */
+#screen-chardetail .roster-wrap { padding: 5px 10px 0; }
+#screen-chardetail .roster-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  gap: 8px;
+  align-items: center;
+  flex: 0 0 60px;
+  height: 60px;
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 0 2px 4px;
+}
+.detail-switch {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.detail-switch-name { min-width: 0; text-align: center; }
+.detail-switch-name .map-title {
+  font: 700 17px/1.2 var(--title-serif-ja);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.detail-switch-pos { font-size: 10px; color: var(--sub-text); margin-top: 1px; white-space: nowrap; }
+#screen-chardetail .detail-switch-btn {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+}
+#screen-chardetail #btnDetailBack {
+  width: 84px;
+  min-width: 84px;
+  height: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 6px;
+}
+#screen-chardetail .detail-switch-btn:focus-visible,
+#screen-chardetail #btnDetailBack:focus-visible {
+  outline: 2px solid #f5dc99;
+  outline-offset: 2px;
+}
 
 /* テイムしたモンスターの個体値（評価と、能力値ごとの▲▼） */
 .iv-rank { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid currentColor; }
@@ -1308,22 +1356,24 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 /* ツリー中も「能力値～ジョブ」と「編成～設定」を常時表示する。
    body.with-global-nav の既存安全領域/高さ計算をそのまま使い、全画面専用上書きは禁止。 */
 #screen-chardetail.warrior-crest-view { padding: 0; }
-#screen-chardetail.warrior-crest-view .roster-wrap { padding: 5px 10px 0; }
-#screen-chardetail.warrior-crest-view .roster-header {
-  display: flex; flex: 0 0 auto; align-items: center; gap: 8px;
-  padding: 0 2px 5px; min-height: 42px;
-}
-#screen-chardetail.warrior-crest-view .roster-header .detail-switch-name .map-title {
-  font: 700 17px/1.2 var(--title-serif-ja);
-}
-#screen-chardetail.warrior-crest-view #detailTabs {
-  display: flex; flex: 0 0 auto;
+/* 共通ナビゲーション：ツリーの角ばった5分割タブを全タブに適用。
+   ツリー専用セレクタでの上書きを禁止して切替時の段差をなくす。 */
+#screen-chardetail #detailTabs {
+  display: flex; /* ツリーがないモンスターは4タブを均等割りで表示 */
+  flex: 0 0 43px;
+  height: 43px;
+  min-height: 43px;
   margin: 3px -10px 0;
   background: rgba(5,14,20,.97);
   border-top: 1px solid rgba(216,182,115,.42);
+  box-sizing: border-box;
 }
-#screen-chardetail.warrior-crest-view #detailTabs .detail-tab {
-  min-height: 43px; padding: 10px 2px; font-size: 12px;
+#screen-chardetail #detailTabs .detail-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 43px;
+  padding: 10px 2px;
+  font-size: 12px;
 }
 #screen-chardetail.warrior-crest-view #detailSheet { display: none; }
 #screen-chardetail.warrior-crest-view #detailBody {
@@ -1992,7 +2042,7 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 /* 背の低い画面: 詳細カードを詰めて盤面を残す（盤面はピンチで拡大できる） */
 @media (max-height: 760px) {
   .tree-tab--crest { min-height: 0; }
-  #screen-chardetail.warrior-crest-view .roster-header { min-height: 36px; padding-bottom: 2px; }
+  /* 小画面でもキャラ送りのタップ位置は変えず、ツリー本体だけ縮める。 */
   .tree-tab--crest .crest-screen-head { margin-bottom: 6px; }
   .crest-focus-tab { padding: 8px 2px; }
   .crest-detail-card { padding: 10px 12px 9px; max-height: 34vh; }

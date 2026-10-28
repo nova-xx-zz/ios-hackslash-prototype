@@ -469,8 +469,8 @@ test("参考画像に合わせ全ジョブで共通ヘッダー・下部2段ナ�
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(detail, /detailTab === "tree" && !c\.isMonster && !!getExclusiveTree\(c\)/);
   assert.match(detail, /classList\.toggle\("warrior-crest-view", focus\)/);
-  assert.match(css, /#screen-chardetail\.warrior-crest-view \.roster-header/);
-  assert.match(css, /#screen-chardetail\.warrior-crest-view #detailTabs/);
+  assert.match(css, /#screen-chardetail \.roster-header/);
+  assert.match(css, /#screen-chardetail #detailTabs/);
   assert.match(css, /body\.with-global-nav \.screen \{ bottom: calc\(var\(--safe-bottom\) \+ var\(--global-nav-h, 68px\)\); \}/);
   assert.doesNotMatch(css, /body:has\(#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\) \.global-nav \{ display: none; \}/);
   assert.match(html, /class="detail-tabs" id="detailTabs"/);
