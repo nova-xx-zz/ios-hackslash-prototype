@@ -89,6 +89,19 @@ test("初期は現在のジョブ区分のみ展開、基本・上級・特殊�
   section(ui.root,"special").children[0].click();
   assert.equal(section(ui.root,"special").children[1].hidden,false);
 });
+test("上級職の条件は簡潔な1行で表示し、人数・折りたたみを残す",()=>{
+  const ui = setup();
+  const advanced = section(ui.root,"advanced");
+  const header = advanced.children[0];
+  assert.equal(cls(header,"job-accordion-title")[0].textContent,"上級職（対応職Lv.99で転職）");
+  assert.match(text(header),/^上級職（対応職Lv\.99で転職）0\/2/);
+  const css=fs.readFileSync(path.join(__dirname,"../css/style.css"),"utf8");
+  assert.match(css,/\.job-accordion\[data-group="advanced"\] \.job-accordion-title \{[^}]*white-space: nowrap;/);
+  assert.match(css,/\.job-accordion\[data-group="advanced"\] \.job-accordion-heading \{ flex-wrap: nowrap; \}/);
+  assert.equal(advanced.children[1].hidden,false);
+  header.click();
+  assert.equal(section(ui.root,"advanced").children[1].hidden,true);
+});
 test("購入済みなら基本職見出しの横に指定文言だけを出し、折りたたんでも見える",()=>{
   const ui = setup({purchased:true});
   const basic = section(ui.root,"basic");
@@ -133,6 +146,6 @@ test("iPhone向け折りたたみCSSとキャッシュ番号が更新されて�
   const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
   assert.match(css,/\.job-accordion-content\[hidden\]/);
   assert.match(css,/\.job-pass-purchased/);
-  assert.match(html,/css\/style\.css\?v=95/);
-  assert.match(html,/js\/ui\/detail-tabs\.js\?v=21/);
+  assert.match(html,/css\/style\.css\?v=96/);
+  assert.match(html,/js\/ui\/detail-tabs\.js\?v=22/);
 });

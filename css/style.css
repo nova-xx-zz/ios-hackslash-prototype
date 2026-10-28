@@ -3000,6 +3000,13 @@ button.actor-card:focus-visible { outline: 2px solid #f1d49a; outline-offset: 1p
 .job-accordion .job-accordion-header:focus-visible { outline: 2px solid #4dc3ff; outline-offset: 2px; }
 .job-accordion-heading { display: flex; flex: 1; align-items: center; flex-wrap: wrap; gap: 3px 8px; min-width: 0; }
 .job-accordion-title { min-width: 0; line-height: 1.5; overflow-wrap: anywhere; }
+/* 上級職の短い転職条件は1行固定。狭い端末でも人数・矢印を押し出さない。 */
+.job-accordion[data-group="advanced"] .job-accordion-heading { flex-wrap: nowrap; }
+.job-accordion[data-group="advanced"] .job-accordion-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .job-accordion-trailing { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
 .job-accordion-chevron { color: #d9bc82; font-size: 17px; line-height: 1; }
 .job-pass-purchased {
