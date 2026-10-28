@@ -559,13 +559,41 @@ function gambitSelect(options, selected, change) {
   el.addEventListener("change", () => change(el.value));
   return el;
 }
+function gambitRevealEditor() {
+  const panel = document.getElementById("gambitRuleEditor");
+  if (panel && typeof panel.scrollIntoView === "function") {
+    panel.scrollIntoView({ block: "nearest", behavior: "instant" });
+  }
+}
+function gambitOpenEditor(c, rule) {
+  editingTacticId = rule.id;
+  renderCharDetail();
+  // 旧実装は一覧の最下部に編集欄があり、押しても見えなかった。
+  // 行の直下に開いた編集欄をその場で見える範囲へ移動する。
+  gambitRevealEditor();
+}
+function gambitConditionText(rule) {
+  switch (rule.condition) {
+    case "always": return "常に";
+    case "allyHpLte": return "味方HP ≤ " + rule.value + "%";
+    case "selfHpLte": return "自分HP ≤ " + rule.value + "%";
+    case "enemyHpLte": return "敵HP ≤ " + rule.value + "%";
+    case "selfMpGte": return "自分MP ≥ " + rule.value + "%";
+    case "enemyCountGte": return "敵 " + rule.value + "体以上";
+    default: return "状況に応じて";
+  }
+}
 function gambitCommit(c) {
   c.tacticsRules = QPCore.tactics.normalizeRules(c.tacticsRules) || [];
   renderCharDetail();
+  if (editingTacticId) gambitRevealEditor();
 }
 function gambitEditor(c, rule, pool) {
   const panel = gambitEl("section", "gambit-editor");
-  panel.appendChild(gambitEl("div", "gambit-editor-head", "戦術ルールの設定"));
+  panel.id = "gambitRuleEditor";
+  panel.setAttribute("role", "region");
+  panel.setAttribute("aria-label", "ルール編集");
+  panel.appendChild(gambitEl("div", "gambit-editor-head", "ルール " + (c.tacticsRules.indexOf(rule) + 1) + " を編集"));
   const addField = (label, control) => {
     const field = gambitEl("label", "gambit-field");
     field.appendChild(gambitEl("span", "gambit-label", label));
@@ -622,8 +650,7 @@ function gambitRules(c, pool) {
     const rule = { id: "rule-" + num, abilityId: chosen.id, enabled: true, condition: "auto",
       value: 0, targetMode: TARGET_MODES.some((x) => x.value === c.targetPriority) ? c.targetPriority : "weakest" };
     c.tacticsRules.push(rule);
-    editingTacticId = rule.id;
-    gambitCommit(c);
+    gambitOpenEditor(c, rule);
   }, c.tacticsRules.length >= QPCore.tactics.MAX_RULES || pool.length === 0, "gambit-btn primary"));
   wrap.appendChild(actions);
 
@@ -631,37 +658,44 @@ function gambitRules(c, pool) {
   c.tacticsRules.forEach((rule, i) => {
     const ability = pool.find((a) => a.id === rule.abilityId);
     const row = gambitEl("div", "gambit-rule" + (rule.enabled ? "" : " inactive") + (ability ? "" : " unavailable"));
-    row.appendChild(gambitEl("div", "gambit-index", String(i + 1)));
-    const conditionLabel = (QPCore.tactics.CONDITIONS.find((x) => x.id === rule.condition) || {}).label || "条件不明";
-    const trigger = gambitEl("button", "gambit-trigger");
-    trigger.type = "button";
-    trigger.textContent = (rule.condition === "auto" ? "状況に応じて" : conditionLabel) +
-      (["allyHpLte", "selfHpLte", "enemyHpLte", "selfMpGte"].includes(rule.condition) ? " " + rule.value + "%" :
-      rule.condition === "enemyCountGte" ? " " + rule.value + "体" : "");
-    trigger.addEventListener("click", () => { editingTacticId = rule.id; renderCharDetail(); });
+    const number = gambitButton(String(i + 1), () => {
+      rule.enabled = !rule.enabled;
+      gambitCommit(c);
+    }, false, "gambit-index" + (rule.enabled ? " on" : ""));
+    number.title = "タップで" + (rule.enabled ? "OFF" : "ON") + "にする";
+    number.setAttribute("aria-label", "ルール" + (i + 1) + "を" + (rule.enabled ? "OFF" : "ON") + "にする");
+    row.appendChild(number);
+    const trigger = gambitButton(gambitConditionText(rule) + " ✎", () => gambitOpenEditor(c, rule), false, "gambit-trigger");
+    trigger.title = "発動条件を編集";
+    trigger.setAttribute("aria-label", "ルール" + (i + 1) + "の発動条件を編集");
     row.appendChild(trigger);
     row.appendChild(gambitEl("div", "gambit-arrow", "→"));
-    const skill = gambitButton((ability ? ability.name : "未習得・使用不可"), () => { editingTacticId = rule.id; renderCharDetail(); }, false, "gambit-skill");
+    const skill = gambitButton((ability ? ability.name : "未習得・使用不可") + " ✎",
+      () => gambitOpenEditor(c, rule), false, "gambit-skill");
+    skill.title = "使用スキルを編集";
+    skill.setAttribute("aria-label", "ルール" + (i + 1) + "の使用スキルを編集");
     row.appendChild(skill);
     const controls = gambitEl("div", "gambit-rule-controls");
-    controls.appendChild(gambitButton("↑", () => {
+    const up = gambitButton("↑", () => {
       [c.tacticsRules[i - 1], c.tacticsRules[i]] = [c.tacticsRules[i], c.tacticsRules[i - 1]];
       gambitCommit(c);
-    }, i === 0, "gambit-move"));
-    controls.appendChild(gambitButton("↓", () => {
+    }, i === 0, "gambit-move");
+    up.setAttribute("aria-label", "ルール" + (i + 1) + "を上へ");
+    controls.appendChild(up);
+    const down = gambitButton("↓", () => {
       [c.tacticsRules[i], c.tacticsRules[i + 1]] = [c.tacticsRules[i + 1], c.tacticsRules[i]];
       gambitCommit(c);
-    }, i === c.tacticsRules.length - 1, "gambit-move"));
-    controls.appendChild(gambitButton(rule.enabled ? "ON" : "OFF", () => { rule.enabled = !rule.enabled; gambitCommit(c); },
-      false, "gambit-enabled" + (rule.enabled ? " on" : "")));
+    }, i === c.tacticsRules.length - 1, "gambit-move");
+    down.setAttribute("aria-label", "ルール" + (i + 1) + "を下へ");
+    controls.appendChild(down);
     row.appendChild(controls);
     list.appendChild(row);
+    // タップした既存ルールの直後に編集欄を展開。リストの末尾には追いやらない。
+    if (editingTacticId === rule.id) list.appendChild(gambitEditor(c, rule, pool));
   });
   wrap.appendChild(list);
   if (c.tacticsRules.length === 0) wrap.appendChild(gambitEl("p", "gambit-hint", "ルールがありません。通常攻撃のみを使用します。"));
-  const edit = c.tacticsRules.find((r) => r.id === editingTacticId);
-  if (edit) wrap.appendChild(gambitEditor(c, edit, pool));
-  wrap.appendChild(gambitEl("p", "gambit-hint", "上から順に判定します。条件やMPが足りない場合は次のルールへ進みます。全て不成立なら通常攻撃します。"));
+  wrap.appendChild(gambitEl("p", "gambit-hint", "条件・技をタップで編集／番号でON・OFF／↑↓で順序変更。上から順に判定します。"));
   return wrap;
 }
 function gambitPassives(c) {
