@@ -528,7 +528,7 @@ test("全7種の固有ツリーマスターを共通紋章盤へ描画し、ノ�
     assert.equal(byClass(tab,"tree-web-link-bed").length,
       tree.nodes.reduce((n,x)=>n+(x.prerequisites||[]).length,0),tree.id+" の前提線");
     const names=byClass(tab,"tree-web-node").map(x=>x.title).sort();
-    assert.deepEqual(names,tree.nodes.map(x=>x.name).sort(),tree.id+" のスキル名");
+    assert.equal(JSON.stringify(names),JSON.stringify(Array.from(tree.nodes, x=>x.name).sort()),tree.id+" のスキル名");
     const points=byClass(tab,"tree-web-node").map(b=>[parseFloat(b.style.left),parseFloat(b.style.top)]);
     assert.ok(points.every(p=>p.every(v=>Number.isFinite(v)&&v>=0&&v<=100)),tree.id+" の配置範囲");
     assert.equal(byClass(tab,"crest-inline-detail").length,1,tree.id+" の詳細");
