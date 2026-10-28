@@ -1511,13 +1511,9 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
     body.appendChild(flavor);
   }
   card.appendChild(body);
-  panel.appendChild(card);
-
+  // 「習得済み」は上部の状態タグだけに集約し、画面下の巨大な重複表示はしない。
   if (acquired) {
-    const state = document.createElement("div");
-    state.className = "tree-node-detail-state crest-learned";
-    state.textContent = "習得済み";
-    panel.appendChild(state);
+    panel.appendChild(card);
     return panel;
   }
   // 習得できない理由は表示だけ（可否そのものは canAcquireNode の結果）
@@ -1549,7 +1545,12 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
     `習得する（SP${node.costByRank[rank]}／残り${availableSp(c)}）`);
   btn.disabled = !canGet;
   btn.addEventListener("click", () => treeAcquireWithChoiceConfirm(c, treeDef, ranks, node, choice));
-  panel.appendChild(btn);
+  // 習得ボタンも選択詳細カードの一部にする。ロジック・二択2段階確認は変えない。
+  const actions = document.createElement("div");
+  actions.className = "crest-detail-actions";
+  actions.appendChild(btn);
+  card.appendChild(actions);
+  panel.appendChild(card);
   return panel;
 }
 
