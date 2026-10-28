@@ -140,6 +140,8 @@ test("詳細画面: モンスターの見出しは名前・個体ランク・Lv�
       TEAM_LABELS: ["I", "II", "III", "IV"], MAX_ACTIVE: 5,
       teamMembers: () => [], isTeamLocked: () => false, clampVitals: () => {},
       renderCharDetail: () => {}, JOBS: { warrior: {} },
+      // 能力値タブに移したパッシブ表示は別関数。ここは名前見出しの単体テストなのでスタブ化する。
+      gambitPassives: () => new Element(),
     });
     vm.runInContext(code, context);
     return context.buildStatsTab(c);
