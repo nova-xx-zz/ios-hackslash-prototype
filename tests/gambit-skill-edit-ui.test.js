@@ -112,7 +112,7 @@ test("スキル名タップでも編集可能、番号でON/OFF、上下順序�
     cls(ui.root, "gambit-editor")[0].parent.children.indexOf(cls(ui.root, "gambit-editor")[0]));
   cls(ui.root, "gambit-index")[0].click();
   assert.equal(ui.character.tacticsRules[0].enabled, false);
-  cls(ui.root, "gambit-move")[3].click();
+  cls(ui.root, "gambit-move")[2].click();
   assert.equal(ui.character.tacticsRules[0].abilityId, "fire");
 });
 test("省スペース版のスタイルが存在し、旧独立ONボタンは廃止", () => {
