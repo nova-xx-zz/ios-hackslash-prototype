@@ -1070,7 +1070,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   text.className = "crest-banner-text";
   const job = document.createElement("span");
   job.className = "crest-banner-job";
-  job.textContent = "せんし";
+  job.textContent = jobDef(c).name;
   const tree = document.createElement("span");
   tree.className = "crest-banner-tree";
   tree.textContent = treeDef.name;
@@ -1084,7 +1084,7 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
   // 盤面: viewport（固定の枠・タッチ受付）＞ scene（正方形。transform はここだけ）
   const viewport = document.createElement("div");
   viewport.className = "tree-web-viewport";
-  viewport.setAttribute("aria-label", "せんしのスキルツリー（剛勇の紋章盤）。ピンチで拡大、拡大中は指で移動");
+  viewport.setAttribute("aria-label", jobDef(c).name + "のスキルツリー（" + treeDef.name + "）。ピンチで拡大、拡大中は指で移動");
   const scene = document.createElement("div");
   scene.className = "tree-web-scene";
   viewport.appendChild(scene);
