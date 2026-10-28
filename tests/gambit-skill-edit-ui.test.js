@@ -160,7 +160,7 @@ test("省スペース版のスタイルが存在し、旧独立ONボタンは廃
   assert.match(css, /\.gambit-index\.on:after/);
   assert.match(html, /css\/style\.css\?v=89/);
   assert.match(html, /js\/ui\/detail-tabs\.js\?v=21/);
-  assert.match(html, /js\/ui\/detail\.js\?v=11/);
+  assert.match(html, /js\/ui\/detail\.js\?v=12/);
   assert.match(css, /#screen-chardetail #detailSheet\.gambit-sheet/);
   const ui = setup();
   assert.equal(cls(ui.root, "gambit-enabled").length, 0);
