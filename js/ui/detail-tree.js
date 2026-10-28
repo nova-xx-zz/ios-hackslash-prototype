@@ -1001,7 +1001,7 @@ function buildWarriorCrestScreenHead(available, total) {
 }
 
 // ---------- 盤面の装飾（魔法陣・ルーン・外枠。すべて当たり判定なし） ----------
-function drawWarriorWebBoard(addSvg, svg) {
+function drawWarriorWebBoard(addSvg, svg, lanes = WARRIOR_WEB_LANES) {
   const defs = addSvg("defs", {}, svg);
   const board = addSvg("radialGradient", { id: "wcBoardGrad", cx: "50%", cy: "50%", r: "50%" }, defs);
   addSvg("stop", { offset: "0%", "stop-color": "#123544", "stop-opacity": ".86" }, board);
