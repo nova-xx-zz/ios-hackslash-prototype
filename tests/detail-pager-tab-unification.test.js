@@ -66,15 +66,15 @@ test("2枚の画面に同じキャラ送りDOMを使い、描画時は名前の�
 
 test("ツリー固有4タブのみ38pxのコンパクト表示にし、他画面の共通5タブは維持", () => {
   const tabs = declaration(".crest-focus-tabs");
-  assert.match(tabs, /grid-template-columns:\\s*repeat\\(4, minmax\\(0, 1fr\\)\\)/);
+  assert.match(tabs, /grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/);
   const tab = declaration(".crest-focus-tab");
-  assert.match(tab, /height:\\s*38px/);
-  assert.match(tab, /min-height:\\s*38px/);
-  assert.match(tab, /padding:\\s*0 2px/);
-  assert.match(tab, /font:\\s*700 clamp\\(10\\.5px, 2\\.9vw, 11\\.5px\\)\\/1\\.2/);
+  assert.match(tab, /height:\s*38px/);
+  assert.match(tab, /min-height:\s*38px/);
+  assert.match(tab, /padding:\s*0 2px/);
+  assert.match(tab, /font:\s*700 clamp\(10\.5px, 2\.9vw, 11\.5px\)\/1\.2/);
   const globalTabs = declaration("#screen-chardetail #detailTabs");
-  assert.match(globalTabs, /height:\\s*43px/);
-  assert.doesNotMatch(css, /\\.crest-focus-tab\\s*\\{\\s*padding:\\s*8px/);
-  assert.match(declaration("#screen-chardetail .detail-switch-btn"), /min-height:\\s*44px/);
-  assert.match(declaration("#screen-chardetail #btnDetailBack"), /min-height:\\s*44px/);
+  assert.match(globalTabs, /height:\s*43px/);
+  assert.doesNotMatch(css, /\.crest-focus-tab\s*\{\s*padding:\s*8px/);
+  assert.match(declaration("#screen-chardetail .detail-switch-btn"), /min-height:\s*44px/);
+  assert.match(declaration("#screen-chardetail #btnDetailBack"), /min-height:\s*44px/);
 });
