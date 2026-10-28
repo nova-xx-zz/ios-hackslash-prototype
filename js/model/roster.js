@@ -455,7 +455,14 @@
       const job = jobDef(c);
       const list = job.abilities.filter((a) => c.level >= a.reqLevel);
       if (!c.isMonster) {
-        for (const id of c.subAbilityIds) {
+        const usingTactics = Array.isArray(c.tacticsRules);
+        if (usingTactics) {
+          // 旧サブ2枠を外し、実際に育成した他ジョブの技をガンビット枠から参照する。
+          const ids = new Set(c.tacticsRules.filter((r) => r && r.enabled !== false).map((r) => r.abilityId));
+          for (const sub of subAbilityCandidates(c)) {
+            if (ids.has(sub.id) && !list.some((a) => a.id === sub.id)) list.push(sub);
+          }
+        } else for (const id of c.subAbilityIds || []) {
           if (!id) continue;
           const sub = getAbilityById(id);
           if (sub && !Object.keys(JOBS).some((j) => jobUsable(j) && JOBS[j].abilities.includes(sub))) continue;
@@ -470,7 +477,32 @@
           }
         }
       }
+      if (Array.isArray(c.tacticsRules)) {
+        const ids = new Set(c.tacticsRules.filter((r) => r && r.enabled !== false).map((r) => r.abilityId));
+        return list.filter((a) => ids.has(a.id));
+      }
       return list;
+    }
+
+    // 習得中のパッシブを既存のノード取得状態から毎回導出する（重複付与／保存しない）。
+    function learnedTreePassives(c) {
+      const st = getTreeState(c);
+      if (!st) return [];
+      const result = [];
+      function add(tree, ranks) {
+        if (!tree) return;
+        for (const node of tree.nodes) {
+          const rank = Number(ranks[node.id]) || 0;
+          if (node.kind !== "passive" || rank <= 0) continue;
+          result.push({ id: tree.id + ":" + node.id, name: node.name, desc: node.desc || "", rank, treeName: tree.name });
+        }
+      }
+      add(getExclusiveTree(c), st.exclusiveRanks);
+      for (const slot of GENERAL_SLOTS) {
+        const ss = st.general[slot.key];
+        if (ss) add(getGeneralTree(ss.treeId), ss.ranks);
+      }
+      return result;
     }
 
     // 探索専用スキルは戦闘アビリティと別配列。戦闘AIに渡さない。
@@ -512,7 +544,7 @@
 
     return {
       gainExp, levelCap, isMaxLevel, clampLevel, applyBasicJobMaxPass, applyBasicJobMaxPassToRoster, totalExpInvested, newCharacter, switchJob, jobUnlocked, specialJobUnlocked, activeJobWindow, refreshJobGrants, jobUsable, normalizeJob, soloBonus, jobDef, getExclusiveTree, getTreeState, generalSlotTreeDef, totalSp, spentSpFor, totalSpentSp, availableSp, canAcquireNode, acquireNode, canSwapGeneralSlot, swapGeneralSlot, treeResetCost, canResetTree, resetTree, treePassiveTotals, treePassive, computeStats, itemScore,
-      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, isSkillActive, explorationSkills, explorationSkillChance, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
+      equipProfile, accessorySlots, canPlaceItem, setBonuses, gearPassive, partyBonus, racePassive, availableAbilities, learnedTreePassives, isSkillActive, explorationSkills, explorationSkillChance, subAbilityCandidates, teamMembers, activeParty, currentMaxLevel,
     };
   }
 
