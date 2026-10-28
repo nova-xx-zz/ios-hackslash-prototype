@@ -127,8 +127,7 @@ test("紋章盤: 正本17ノード・6方向の飾り札・中央の剣紋章・
   assert.equal(byClass(root, "tree-web-spoke").length, 6, "放射線ガイド");
   assert.equal(byClass(root, "tree-web-tick").length, 72, "古金の外枠の目盛");
   assert.equal(byClass(root, "tree-web-runes").length, 1);
-  assert.equal(byClass(root, "crest-banner").length, 1);
-  assert.match(allText(byClass(root, "crest-banner")[0]), /戦士.*剛勇の心得/);
+  assert.equal(byClass(root, "crest-banner").length, 0, "盤面の重複した職業バナーは非表示");
   // 位置は重ならない
   const pos = buttons.map(b => [parseFloat(b.style.left), parseFloat(b.style.top)]);
   for (let i = 0; i < pos.length; i++) {
@@ -480,6 +479,8 @@ test("参考画像に合わせ全ジョブで共通ヘッダー・下部2段ナ�
   const first = context.buildTreeTab({ id: "hero1", name: "ガイ", job: "warrior", level: 99, team: null });
   assert.equal(byClass(first, "crest-focus-navigation").length, 0);
   assert.equal(byClass(first, "crest-screen-name").length, 0);
+  assert.equal(byClass(first, "crest-current-tree-name")[0].textContent,data.EXCLUSIVE_TREES.warrior.name);
+  assert.equal(byClass(first, "crest-banner").length,0);
   assert.equal(byClass(first, "crest-sp").length, 1);
   assert.equal(byClass(first, "crest-inline-detail").length, 1);
 });
@@ -497,7 +498,8 @@ test("他職の固有ツリーに全ノードと実前提線を描画し、選�
   assert.equal(byClass(tab,"tree-web--universal").length,1);
   assert.equal(byClass(tab,"tree-web-node").length,basic.nodes.length);
   assert.equal(byClass(tab,"tree-web-link-bed").length,basic.nodes.reduce((n,v)=>n+(v.prerequisites||[]).length,0));
-  assert.equal(byClass(tab,"crest-banner-job")[0].textContent,"魔法使い");
+  assert.equal(byClass(tab,"crest-banner-job").length,0,"他職の盤面もバナーを表示しない");
+  assert.equal(byClass(tab,"crest-current-tree-name")[0].textContent,basic.name);
   assert.equal(byClass(tab,"crest-focus-tab")[0].textContent,"魔法使い");
   assert.equal(byClass(tab,"crest-learn-btn").length,1);
   const target=byClass(tab,"tree-web-node").find(n=>n.title===basic.nodes[basic.nodes.length-1].name);
@@ -537,4 +539,25 @@ test("全7種の固有ツリーマスターを共通紋章盤へ描画し、ノ�
     assert.equal(byClass(tab,"crest-inline-detail").length,1,tree.id+" の詳細");
     assert.ok(byClass(tab,"crest-learn-btn").length<=1,tree.id+" の習得ボタン");
   }
+});
+
+
+test("固有・汎用の切替でSP左側のツリー名だけ変化し盤面に職業バナーを置かない",()=>{
+  const general = data.GENERAL_TREES.offense;
+  const {context}=renderContext({
+    GENERAL_SLOTS:[{key:"slot1",label:"汎用ツリー①"}],
+    getGeneralTree:()=>general,
+    getTreeState:()=>({exclusiveRanks:{w1:1},general:{slot1:{treeId:"offense",ranks:{}}}}),
+  });
+  const c={id:"hero",job:"warrior",name:"ガイ",level:99,team:null};
+  let tab=context.buildTreeTab(c);
+  assert.equal(byClass(tab,"crest-current-tree-name")[0].textContent,data.EXCLUSIVE_TREES.warrior.name);
+  assert.equal(byClass(tab,"crest-banner").length,0);
+  byClass(tab,"crest-focus-tab")[1].click();
+  tab=context.buildTreeTab(c);
+  assert.equal(byClass(tab,"crest-current-tree-name")[0].textContent,general.name);
+  assert.equal(byClass(tab,"crest-banner").length,0);
+  assert.equal(byClass(tab,"crest-banner-emblem").length,0);
+  assert.equal(byClass(tab,"crest-screen-head").length,1);
+  assert.equal(byClass(tab,"crest-sp").length,1);
 });
