@@ -318,14 +318,14 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 #screen-chardetail .roster-wrap { padding: 5px 10px 0; }
 #screen-chardetail .roster-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 84px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 6px;
   align-items: center;
-  flex: 0 0 60px;
-  height: 60px;
-  min-height: 60px;
+  flex: 0 0 52px;
+  height: 52px;
+  min-height: 52px;
   box-sizing: border-box;
-  padding: 0 2px 4px;
+  padding: 0 2px 2px;
 }
 .detail-switch {
   display: grid;
@@ -337,12 +337,12 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
 }
 .detail-switch-name { min-width: 0; text-align: center; }
 .detail-switch-name .map-title {
-  font: 700 17px/1.2 var(--title-serif-ja);
+  font: 700 16px/1.2 var(--title-serif-ja);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.detail-switch-pos { font-size: 10px; color: var(--sub-text); margin-top: 1px; white-space: nowrap; }
+.detail-switch-pos { font-size: 9px; color: var(--sub-text); margin-top: 1px; white-space: nowrap; }
 #screen-chardetail .detail-switch-btn {
   width: 44px;
   min-width: 44px;
@@ -354,8 +354,8 @@ body.with-global-nav .screen { bottom: calc(var(--safe-bottom) + var(--global-na
   padding: 0;
 }
 #screen-chardetail #btnDetailBack {
-  width: 84px;
-  min-width: 84px;
+  width: 76px;
+  min-width: 76px;
   height: 44px;
   min-height: 44px;
   box-sizing: border-box;
@@ -1485,14 +1485,18 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
 }
 .crest-focus-tab {
   min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  box-sizing: border-box;
   margin: 0;
-  padding: 10px 2px;
+  padding: 0 2px;
+  line-height: 1.2;
   border: 0;
   border-right: 1px solid rgba(201,164,99,.25);
   border-radius: 0;
   background: none;
   color: #a9b8b6;
-  font: 700 clamp(11px, 3.2vw, 13px) var(--title-serif-ja);
+  font: 700 clamp(10.5px, 2.9vw, 11.5px) var(--title-serif-ja);
   letter-spacing: .02em;
   white-space: nowrap;
   overflow: hidden;
@@ -2037,14 +2041,13 @@ button.tree-choice-option:active { background: rgba(240,200,120,.12); }
   .crest-sp { padding: 5px 7px 5px 6px; gap: 3px; }
   .crest-sp-value { font-size: 19px; }
   .crest-reset-row .tree-swap-btn { min-width: 52px; padding: 4px 5px; }
-  .crest-focus-tab { font-size: 12px; letter-spacing: 0; }
+  .crest-focus-tab { font-size: 11px; letter-spacing: 0; }
 }
 /* 背の低い画面: 詳細カードを詰めて盤面を残す（盤面はピンチで拡大できる） */
 @media (max-height: 760px) {
   .tree-tab--crest { min-height: 0; }
   /* 小画面でもキャラ送りのタップ位置は変えず、ツリー本体だけ縮める。 */
   .tree-tab--crest .crest-screen-head { margin-bottom: 6px; }
-  .crest-focus-tab { padding: 8px 2px; }
   .crest-detail-card { padding: 10px 12px 9px; max-height: 34vh; }
   .crest-detail-icon { width: 54px; height: 54px; }
   .warrior-crest-detail .tree-node-detail-name { font-size: 17px; }
