@@ -60,7 +60,7 @@ function context(overrides = {}) {
     availableSp: () => 20,
     scheduleSave: () => {},
     getExclusiveTree: () => data.EXCLUSIVE_TREES.warrior,
-    jobDef: (c) => ({name: c.job === "warrior" ? "せんし" : c.job}),
+    jobDef: (c) => ({name: c.job === "warrior" ? "戦士" : c.job}),
     getTreeState: () => ({ exclusiveRanks: { w1: 1 }, general: {} }),
     GENERAL_SLOTS: [],
     totalSp: () => 30,
