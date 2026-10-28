@@ -87,8 +87,10 @@ test("盤面に属するもの（魔法陣SVG・紋章・前提線・ノード�
     assert.ok(found.length > 0, cls);
     assert.ok(found.every(inScene), cls + " は scene の中");
   }
-  // 画面固定: 職業の見出し・ズームボタンは scene の外
-  for (const cls of ["crest-banner", "tree-web-control"]) {
+  // 重複の職業名・アイコンは廃止。ズーム操作のみ盤面の外側で固定する。
+  assert.equal(byClass(board, "crest-banner").length, 0);
+  assert.equal(byClass(board, "crest-banner-emblem").length, 0);
+  for (const cls of ["tree-web-control"]) {
     const found = byClass(board, cls);
     assert.ok(found.length > 0 && found.every((el) => !inScene(el)), cls + " は scene の外（固定）");
   }
@@ -207,6 +209,8 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   assert.equal(byClass(tab.children[3], "crest-detail-card")[0].children.at(-1).className, "crest-detail-actions");
   assert.equal(byClass(tab.children[2], "crest-learn-btn").length, 0);
   assert.equal(byClass(tab, "crest-screen-name").length, 0, "大きな左上タイトルは省略");
+  assert.equal(byClass(tab, "crest-current-tree-name")[0].textContent, data.EXCLUSIVE_TREES.warrior.name, "ツリー名を上部に残す");
+  assert.equal(byClass(tab, "crest-banner").length, 0, "盤面上に職業名や紋章を置かない");
   assert.equal(byClass(tab, "crest-screen-actions").length, 1, "SP・リセットは残す");
   assert.match(css, /#app:has\(#screen-chardetail\.warrior-crest-view:not\(\.hidden\)\) \{[^}]*explore-guild\.jpg/);
   assert.match(css, /\.crest-stage-area \{[^}]*flex: 1 1 auto;/);
