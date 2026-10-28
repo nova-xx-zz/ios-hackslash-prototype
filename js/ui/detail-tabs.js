@@ -495,9 +495,8 @@ function buildJobTab(c) {
   for (const jobId of advIds) advGrid.appendChild(buildJobCard(c, jobId, jobUnlocked(c, jobId)));
   advContent.appendChild(advGrid);
   if (isFeatureEnabled("jobTrialSwordmaster")) advContent.appendChild(buildSwordmasterTrialPilot(c));
-  const advCaption = isFeatureEnabled("jobTrialSwordmaster")
-    ? `上級職（基本職Lv.${JOB_MASTER_LEVEL}。けんごうのみ実績＋専用試練も必要）`
-    : `上級職（対応する基本職をLv.${JOB_MASTER_LEVEL}まで極めると転職できる）`;
+  // 転職条件の詳細は各職カード・試練欄で案内し、折りたたみ見出しは1行で表示する。
+  const advCaption = `上級職（対応職Lv.${JOB_MASTER_LEVEL}で転職）`;
   wrap.appendChild(buildJobAccordion(c, "advanced", advCaption, masteredCount(advIds), advIds.length, advContent));
 
   // 特殊職も今後増えるため折りたたみ可能にする。
