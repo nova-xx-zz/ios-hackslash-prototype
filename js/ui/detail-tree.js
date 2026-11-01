@@ -145,8 +145,11 @@ function buildTreeSection(c, opts) {
   // 一覧画面は全職共通の紋章盤。せんし固有だけ既存の手配置をそのまま使う。
   section.classList.add("warrior-crest-section");
   if (slotDef) section.appendChild(headRow); // 汎用ツリーの交換操作は残す
-  section.appendChild(isWarriorCrestWeb(c, scopeKey, treeDef)
-    ? buildWarriorWebGraph(c, scopeKey, treeDef, ranks)
+  const isWarriorExclusive = isWarriorCrestWeb(c, scopeKey, treeDef);
+  section.appendChild(isWarriorExclusive
+    ? (warriorBoardMode === "hex" && typeof buildWarriorSkillPanelBoard === "function"
+      ? buildWarriorSkillPanelBoard(c, scopeKey, treeDef, ranks)
+      : buildWarriorWebGraph(c, scopeKey, treeDef, ranks))
     : buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks));
 
   // 選んだマスの詳細。通常はキャラ詳細の下部シート（#detailSheet）に固定して出す
@@ -405,6 +408,8 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
 // 専用の4タブ表示状態は一時的なUI値。セーブせず、仲間変更時は固有に戻す。
 let warriorFocusScope = "exclusive";
 let warriorFocusCharId = null;
+// 試作中の表示モード。セーブデータには含めず、初期値は既存の紋章盤を維持する。
+let warriorBoardMode = "crest";
 
 // せんしだけに適用。同じ固有ツリーを使う「けんごう」・他職・汎用3枠は従来の縦分岐図のまま。
 function isWarriorCrestWeb(c, scopeKey, treeDef) {
@@ -896,6 +901,30 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   // 中段: 盤面（汎用は従来の縦分岐図をこの枠の中でスクロール）。下段: 詳細と習得ボタン（画面固定）
   const stageArea = document.createElement("div");
   stageArea.className = "crest-stage-area" + (active.scopeKey === "exclusive" ? "" : " crest-stage-area--general");
+  // せんしの固有ツリーだけ、新旧UIをこの場で見比べられる切替を表示。
+  if (c.job === "warrior" && active.scopeKey === "exclusive" &&
+      isWarriorCrestWeb(c, active.scopeKey, active.treeDef)) {
+    const modeSwitch = document.createElement("div");
+    modeSwitch.className = "hex-panel-switch";
+    modeSwitch.setAttribute("role", "group");
+    modeSwitch.setAttribute("aria-label", "スキルツリーの表示形式");
+    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "六角パネル"]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "hex-panel-mode" + (warriorBoardMode === mode ? " active" : "");
+      button.textContent = label;
+      button.setAttribute("aria-pressed", String(warriorBoardMode === mode));
+      button.addEventListener("click", () => {
+        if (warriorBoardMode === mode) return;
+        warriorBoardMode = mode;
+        treeSwapConfirm = null;
+        resetWarriorWebView();
+        renderCharDetail();
+      });
+      modeSwitch.appendChild(button);
+    }
+    stageArea.appendChild(modeSwitch);
+  }
   const dock = document.createElement("div");
   dock.className = "crest-inline-detail";
   stageArea.appendChild(buildTreeSection(c, { ...active, detailHost: dock }));
