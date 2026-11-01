@@ -176,13 +176,11 @@
 }
 .hex-panel-board .hex-panel-legend {
   position: absolute;
-  bottom: 4px;
-  left: 10px;
-  max-width: calc(100% - 120px);
-  color: #b6c5c2;
-  font: 500 9px/1.3 sans-serif;
-  pointer-events: none;
-  text-shadow: 0 1px 3px #071015;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .hex-panel-board .tree-web-controls { bottom: 3px; }
 @media (prefers-reduced-motion: reduce) {
