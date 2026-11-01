@@ -115,7 +115,7 @@ function buildWarriorSkillPanelBoard(c, scopeKey, treeDef, ranks) {
     if (choice) {
       const chip = document.createElement("span");
       chip.className = "hex-panel-choice";
-      chip.textContent = choice.label;
+      chip.textContent = choice.group.label;
       chip.setAttribute("aria-hidden", "true");
       button.appendChild(chip);
     }
