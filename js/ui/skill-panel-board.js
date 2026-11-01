@@ -20,8 +20,8 @@ const WARRIOR_HEX_PANEL_POSITIONS = Object.freeze({
   w9: [49, 24],
   w10a: [63, 24],
   w10b: [77, 24],
-  w11: [42, 11],
-  w12: [56, 11],
+  w11: [35, 11],
+  w12: [49, 11],
 });
 
 function buildWarriorSkillPanelBoard(c, scopeKey, treeDef, ranks) {
