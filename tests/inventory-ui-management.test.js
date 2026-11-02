@@ -262,8 +262,8 @@ test("鍛冶屋のロック切替は既存データを更新し、ロック時�
  assert.match(ids.btnInventoryForgeLock.textContent,/ロック解除/);
  assert.equal(x.saved,1,"保護状態の変更だけ保存");
  ids.btnInventoryForgeDisassemble.click();
- assert.ok(!ids.inventoryForgeSubModal ||
-   ids.inventoryForgeSubModal.className.includes("hidden"),"ロック中は分解確認を開けない");
+ assert.equal(Object.prototype.hasOwnProperty.call(ids,"inventoryForgeSubModal"),false,
+   "ロック中は確認シート自体を作成しない");
  ids.btnInventoryForgeLock.click();
  assert.equal(item.locked,false);
  assert.equal(ids.btnInventoryForgeDisassemble.disabled,false);
