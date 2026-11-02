@@ -106,13 +106,17 @@ test("剣/杖/体/盾/足/腕のアイコンはスキルの正本効果で決ま
   assert.equal(f({kind:"active",ability:{kind:"magic"}}),"staff");
   assert.equal(f({kind:"active",ability:{kind:"heal"}}),"staff");
   assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"hp"}]}),"body");
-  assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"mp"}]}),"body");
+  assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"mp"}]}),"staff");
   assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"def"}]}),"tower");
   assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"spd"}]}),"foot");
   assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"atk"}]}),"arm");
   assert.equal(f({kind:"passive",effects:[{type:"statAdd",stat:"mag"}]}),"staff");
   assert.equal(f(data.EXCLUSIVE_TREES.warrior.nodes.find(n=>n.id==="w3")),"blade");
   assert.equal(f(data.GENERAL_TREES.speed.nodes.find(n=>n.id==="gs1")),"foot");
+  assert.equal(f(data.GENERAL_TREES.support.nodes.find(n=>n.id==="gu4")),"staff","MP増強は魔法系");
+  assert.equal(f(data.EXCLUSIVE_TREES.magic.nodes.find(n=>n.id==="m5")),"staff","魔力強化も杖");
+  assert.equal(f(data.EXCLUSIVE_TREES.healer.nodes.find(n=>n.id==="h8")),"staff","属性付与も杖");
+  assert.equal(f(data.EXCLUSIVE_TREES.warrior.nodes.find(n=>n.id==="w8")),"blade","物理支援技は剣");
 });
 
 test("統合表示に固有17と汎用3枠各6、覚醒の予約3段を収容し旧4タブを非表示",()=>{

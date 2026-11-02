@@ -11,19 +11,21 @@ const UNIFIED_FILTERS = Object.freeze([
 ]);
 
 // スキルのアイコンは効果の正本から決める。文言や職業名の文字列には依存しない。
-// 物理アクティブ=剣 / 魔法・回復=杖 / HP,MP=体 / DEF,軽減=盾 / SPD=足 / ATK,会心=腕
+// 物理技=剣 / 魔法・回復・魔力強化=杖 / HP=体 / DEF,軽減=盾 / SPD=足 / ATK,会心=腕。MP・MAGも杖
 function unifiedSkillIconForNode(node) {
   if (node.kind === "active" && node.ability) {
-    const kind = node.ability.kind;
-    return ["magic", "heal"].includes(kind) ? "staff" : "blade";
+    const ability = node.ability;
+    const magical = ["magic", "heal"].includes(ability.kind) ||
+      ability.buff?.stat === "mag" || !!ability.imbue ||
+      (!!ability.element && ability.element !== "none");
+    return magical ? "staff" : "blade";
   }
   const effects = node.effects || [];
   if (effects.some((e) => e.type === "equipSlot")) return "body";
   if (effects.some((e) => e.stat === "spd")) return "foot";
   if (effects.some((e) => e.stat === "def" || e.key === "dmgTakenMult")) return "tower";
-  if (effects.some((e) => e.stat === "hp" || e.stat === "mp" ||
-      e.key === "lifesteal")) return "body";
-  if (effects.some((e) => e.stat === "mag" ||
+  if (effects.some((e) => e.stat === "hp" || e.key === "lifesteal")) return "body";
+  if (effects.some((e) => e.stat === "mag" || e.stat === "mp" ||
       e.key === "mpCostMult" || e.key === "healBonus")) return "staff";
   if (effects.some((e) => e.stat === "atk" || e.key === "critBonus")) return "arm";
   return "body";
