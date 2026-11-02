@@ -441,14 +441,14 @@ function openInventoryItemDetail(item, trigger) {
   }
   addField("保護", item.locked ? "ロック中（分解対象外）" :
     inventoryOrganize.isValuable(item) ? "貴重品扱い" : "未ロック");
-  modal.classList.remove("hidden");
+  modal.classList.toggle("hidden", false);
   modal.setAttribute("aria-hidden", "false");
   const close = document.getElementById("btnInventoryDetailClose");
   if (typeof close.focus === "function") close.focus();
 }
 function closeInventoryItemDetail() {
   const modal = document.getElementById("inventoryDetailModal");
-  modal.classList.add("hidden");
+  modal.classList.toggle("hidden", true);
   modal.setAttribute("aria-hidden", "true");
   if (inventoryDetailReturnFocus && typeof inventoryDetailReturnFocus.focus === "function" &&
       inventoryDetailReturnFocus.isConnected !== false) inventoryDetailReturnFocus.focus();
