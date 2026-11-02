@@ -199,8 +199,8 @@
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: clamp(33px, 10vw, 43px);
-  height: clamp(37px, 11vw, 47px);
+  width: clamp(35px, calc(10vw + 2px), 45px);
+  height: clamp(39px, calc(11vw + 2px), 49px);
   margin: 0 -1px;
   padding: 2px;
   border: 0;
@@ -219,12 +219,13 @@
   clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
   background: radial-gradient(circle, #2d3b42 0%, #101a23 74%);
 }
+/* アイコンが枠に接触しないよう68%に抑え、六角枠は各辺2px拡張。 */
 /* 6分類専用の正方形SVG。小さな六角でもシルエットをつぶさずに見せる。 */
 .unified-hex-node .unified-icon-glyph {
   display: block;
   box-sizing: border-box;
-  width: 76%;
-  height: 76%;
+  width: 68%;
+  height: 68%;
   flex: none;
   aspect-ratio: 1 / 1;
   overflow: visible;
@@ -315,7 +316,7 @@
 @media (max-width: 360px) {
   .unified-filter { padding: 4px 6px; }
   .unified-board { padding: 7px 4px 10px; }
-  .unified-hex-node { width: 34px; height: 38px; }
+  .unified-hex-node { width: 36px; height: 40px; }
   .unified-zone { padding: 4px 1px 6px; }
   .unified-zone-header { padding: 0 2px 3px; }
   .unified-zone-title { font-size: 10px; }
