@@ -333,8 +333,22 @@ function buildInventoryItemRow(item) {
     name.appendChild(opt);
   }
   row.appendChild(name);
+  row.classList.add("inventory-item-row");
+
+  // 表示専用の詳細。分解選択モードでも選択状態を変更せず内容を確認できる。
+  const info = document.createElement("button");
+  info.type = "button";
+  info.className = "inventory-info-button";
+  info.textContent = "ⓘ";
+  info.title = itemLabel(item) + "の詳細を見る";
+  info.setAttribute("aria-label", info.title);
+  info.addEventListener("click", (event) => {
+    if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+    openInventoryItemDetail(item, info);
+  });
 
   if (disassembleMode && item.locked) {
+    row.appendChild(info);
     // ロックした装備は選べない（ロックは選択モードを抜けてから外す）
     row.classList.add("locked");
     const note = document.createElement("div");
@@ -355,6 +369,7 @@ function buildInventoryItemRow(item) {
     const mark = document.createElement("div");
     mark.className = "skill-toggle-circle static" + (selected ? " on" : "");
     row.appendChild(mark);
+    row.appendChild(info);
     row.addEventListener("click", () => {
       if (disassembleSelection.has(item)) disassembleSelection.delete(item); else disassembleSelection.add(item);
       disassembleConfirming = false;
@@ -362,6 +377,8 @@ function buildInventoryItemRow(item) {
     });
     return row;
   }
+
+  row.appendChild(info);
 
   const lock = document.createElement("button");
   lock.className = "priority-chip lock-chip" + (item.locked ? " tier-3" : "");
@@ -377,6 +394,77 @@ function buildInventoryItemRow(item) {
   row.appendChild(enhance);
 
   return row;
+}
+
+
+let inventoryDetailReturnFocus = null;
+
+function openInventoryItemDetail(item, trigger) {
+  const modal = document.getElementById("inventoryDetailModal");
+  inventoryDetailReturnFocus = trigger || null;
+  const name = document.getElementById("inventoryDetailName");
+  name.textContent = (typeof itemMark === "function" ? itemMark(item) : "") +
+    item.name + ((item.plus || 0) > 0 ? "+" + item.plus : "");
+  name.style.color = rarityColor(item.rarity);
+
+  const stats = document.getElementById("inventoryDetailStats");
+  stats.innerHTML = "";
+  const addField = (label, value) => {
+    const row = document.createElement("div");
+    row.className = "inventory-detail-field";
+    const key = document.createElement("span");
+    key.className = "inventory-detail-key";
+    key.textContent = label;
+    const val = document.createElement("span");
+    val.className = "inventory-detail-value";
+    val.textContent = String(value);
+    row.appendChild(key);
+    row.appendChild(val);
+    stats.appendChild(row);
+  };
+  const rarity = RARITIES.find((r) => r.key === item.rarity);
+  const slot = SLOTS.find((s) => s.key === item.slot);
+  const type = typeof getItemType === "function" && item.type ? getItemType(item.type) : null;
+  addField("レア度", rarity ? rarity.name : item.rarity || "不明");
+  addField("部位・種類", [slot ? slot.name : item.slot, type && type.name].filter(Boolean).join(" / "));
+  addField("装備Lv", item.level == null ? "—" : item.level);
+  addField("強化値", "+" + (item.plus || 0));
+  if (item.hands === 2) addField("装備方法", "両手");
+  addField("能力値", typeof itemStatsText === "function" ? itemStatsText(item) || "なし" : "なし");
+  addField("追加オプション", typeof itemOptionsText === "function" ? itemOptionsText(item) || "なし" : "なし");
+  if (item.unique || item.cursed) {
+    addField("固有効果", typeof itemEffectText === "function" ? itemEffectText(item) || "なし" : "なし");
+    if (item.unique && typeof getUniqueItem === "function") {
+      const unique = getUniqueItem(item.base);
+      if (unique && unique.flavor) addField("伝承", "「" + unique.flavor + "」");
+    }
+  }
+  addField("保護", item.locked ? "ロック中（分解対象外）" :
+    inventoryOrganize.isValuable(item) ? "貴重品扱い" : "未ロック");
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  const close = document.getElementById("btnInventoryDetailClose");
+  if (typeof close.focus === "function") close.focus();
+}
+function closeInventoryItemDetail() {
+  const modal = document.getElementById("inventoryDetailModal");
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+  if (inventoryDetailReturnFocus && typeof inventoryDetailReturnFocus.focus === "function" &&
+      inventoryDetailReturnFocus.isConnected !== false) inventoryDetailReturnFocus.focus();
+  inventoryDetailReturnFocus = null;
+}
+document.getElementById("btnInventoryDetailClose").addEventListener("click", closeInventoryItemDetail);
+document.getElementById("inventoryDetailModal").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) closeInventoryItemDetail();
+});
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" &&
+        !document.getElementById("inventoryDetailModal").classList.contains("hidden")) {
+      closeInventoryItemDetail();
+    }
+  });
 }
 
 // スキルブックのドロップ・鑑定・使用は未実装のため、現状は一覧表示のみ（操作ボタンなし）。
