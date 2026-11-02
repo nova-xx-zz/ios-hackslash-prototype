@@ -410,6 +410,16 @@ let warriorFocusScope = "exclusive";
 let warriorFocusCharId = null;
 // 試作中の表示モード。セーブデータには含めず、初期値は既存の紋章盤を維持する。
 let warriorBoardMode = "crest";
+// 戦士の既存切替状態は保持。他職は最初から統合盤で開き、旧紋章盤にも戻せる。
+// 一時的なUI選択であり、セーブデータには書き込まない。
+const unifiedOtherJobModes = Object.create(null);
+function unifiedBoardModeForJob(job) {
+  return job === "warrior" ? warriorBoardMode : (unifiedOtherJobModes[job] || "hex");
+}
+function setUnifiedBoardModeForJob(job, mode) {
+  if (job === "warrior") warriorBoardMode = mode;
+  else unifiedOtherJobModes[job] = mode;
+}
 
 // せんしだけに適用。同じ固有ツリーを使う「けんごう」・他職・汎用3枠は従来の縦分岐図のまま。
 function isWarriorCrestWeb(c, scopeKey, treeDef) {
@@ -850,6 +860,8 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     warriorFocusScope = "exclusive";
     treeSelectedNode = null;
     resetWarriorWebView();
+    // 異なるジョブへ移動したら前職のフィルター表示を引き継がない。
+    if (typeof warriorUnifiedFilter !== "undefined") warriorUnifiedFilter = "all";
   }
   // キャラクター送り／もどるは通常の詳細ヘッダーを共用する（ツリー専用の重複ヘッダーを作らない）。
 
@@ -868,9 +880,9 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   });
   // 新しい1枚盤は既存の4系統を一括描画するが、SP・交換・習得処理は分離のまま。
   // 旧紋章盤は比較用として引き続き表示できる。
-  if (c.job === "warrior" && warriorBoardMode === "hex" &&
-      typeof buildWarriorUnifiedSkillScreen === "function") {
-    return buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent);
+  if (unifiedBoardModeForJob(c.job) === "hex" &&
+      typeof buildUnifiedSkillScreen === "function") {
+    return buildUnifiedSkillScreen(c, exclusiveTree, st, total, spent);
   }
   const active = entries.find((entry) => entry.scopeKey === warriorFocusScope) || entries[0];
   warriorFocusScope = active.scopeKey;
@@ -917,9 +929,10 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   // 中段: 盤面（汎用は従来の縦分岐図をこの枠の中でスクロール）。下段: 詳細と習得ボタン（画面固定）
   const stageArea = document.createElement("div");
   stageArea.className = "crest-stage-area" + (active.scopeKey === "exclusive" ? "" : " crest-stage-area--general");
-  // せんしの固有ツリーだけ、新旧UIをこの場で見比べられる切替を表示。
-  if (c.job === "warrior" && active.scopeKey === "exclusive" &&
-      isWarriorCrestWeb(c, active.scopeKey, active.treeDef)) {
+  // 戦士は従来の比較操作を維持。その他のジョブは旧盤面から統合盤へ戻る操作を提供。
+  if ((c.job === "warrior" && active.scopeKey === "exclusive" &&
+       isWarriorCrestWeb(c, active.scopeKey, active.treeDef)) ||
+      (c.job !== "warrior" && typeof buildUnifiedSkillScreen === "function")) {
     const modeSwitch = document.createElement("div");
     modeSwitch.className = "hex-panel-switch";
     modeSwitch.setAttribute("role", "group");
@@ -927,12 +940,12 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     for (const [mode, label] of [["crest", "紋章盤"], ["hex", "統合パネル"]]) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "hex-panel-mode" + (warriorBoardMode === mode ? " active" : "");
+      button.className = "hex-panel-mode" + (unifiedBoardModeForJob(c.job) === mode ? " active" : "");
       button.textContent = label;
-      button.setAttribute("aria-pressed", String(warriorBoardMode === mode));
+      button.setAttribute("aria-pressed", String(unifiedBoardModeForJob(c.job) === mode));
       button.addEventListener("click", () => {
-        if (warriorBoardMode === mode) return;
-        warriorBoardMode = mode;
+        if (unifiedBoardModeForJob(c.job) === mode) return;
+        setUnifiedBoardModeForJob(c.job, mode);
         treeSwapConfirm = null;
         resetWarriorWebView();
         renderCharDetail();
