@@ -302,7 +302,7 @@ function renderInventoryScreen() {
 
 function buildInventoryItemRow(item) {
   const row = document.createElement("div");
-  row.className = "skill-row";
+  row.className = "skill-row inventory-item-row";
   row.style.borderColor = rarityColor(item.rarity);
 
   const icon = document.createElement("div");
@@ -312,13 +312,13 @@ function buildInventoryItemRow(item) {
 
   const name = document.createElement("div");
   name.className = "skill-row-name";
-  name.textContent = (item.locked ? "🔒" : "") + itemLabel(item); // レア度は名前の色で表す（ノーマル白〜レジェンドレア金）
+  name.textContent = (item.locked ? "🔒" : "") + itemLabel(item);
   name.style.color = rarityColor(item.rarity);
   if (item.unique) {
-    const eff = document.createElement("span");
-    eff.className = "inv-unique-effect" + (item.cursed ? " cursed" : "");
-    eff.textContent = itemEffectText(item);
-    name.appendChild(eff);
+    const effect = document.createElement("span");
+    effect.className = "inv-unique-effect" + (item.cursed ? " cursed" : "");
+    effect.textContent = itemEffectText(item);
+    name.appendChild(effect);
   }
   if (inventoryOrganize.isValuable(item)) {
     const badge = document.createElement("span");
@@ -329,84 +329,70 @@ function buildInventoryItemRow(item) {
   if (item.options && item.options.length) {
     const opt = document.createElement("span");
     opt.className = "item-options";
-    opt.textContent = `オプション: ${itemOptionsText(item)}`;
+    opt.textContent = "オプション: " + itemOptionsText(item);
     name.appendChild(opt);
   }
   row.appendChild(name);
-  row.classList.add("inventory-item-row");
 
-  // 表示専用の詳細。分解選択モードでも選択状態を変更せず内容を確認できる。
+  if (disassembleMode) {
+    if (item.locked) {
+      row.classList.add("locked");
+      const note = document.createElement("div");
+      note.className = "disassemble-gain";
+      note.textContent = "ロック中";
+      row.appendChild(note);
+    } else {
+      const selected = disassembleSelection.has(item);
+      row.classList.add("selectable");
+      row.classList.toggle("selected", selected);
+      const gain = document.createElement("div");
+      gain.className = "disassemble-gain";
+      gain.textContent = "+" + Inventory.disassembleValue(item);
+      row.appendChild(gain);
+      const mark = document.createElement("div");
+      mark.className = "skill-toggle-circle static" + (selected ? " on" : "");
+      row.appendChild(mark);
+      row.addEventListener("click", () => {
+        if (disassembleSelection.has(item)) disassembleSelection.delete(item);
+        else disassembleSelection.add(item);
+        disassembleConfirming = false;
+        renderInventoryScreen();
+      });
+    }
+  }
+
+  // 一覧は右端のⓘのみ。分解選択中のタップも親行に伝播しない。
   const info = document.createElement("button");
   info.type = "button";
   info.className = "inventory-info-button";
   info.textContent = "ⓘ";
-  info.title = itemLabel(item) + "の詳細を見る";
+  info.title = itemLabel(item) + "の詳細と鍛冶屋メニュー";
   info.setAttribute("aria-label", info.title);
   info.addEventListener("click", (event) => {
     if (event && typeof event.stopPropagation === "function") event.stopPropagation();
     openInventoryItemDetail(item, info);
   });
-
-  if (disassembleMode && item.locked) {
-    row.appendChild(info);
-    // ロックした装備は選べない（ロックは選択モードを抜けてから外す）
-    row.classList.add("locked");
-    const note = document.createElement("div");
-    note.className = "disassemble-gain";
-    note.textContent = "ロック中";
-    row.appendChild(note);
-    return row;
-  }
-  if (disassembleMode) {
-    // 選択モードでは行全体をタップで選ぶ（右に選択の印と、分解で得られる強化石の量）
-    const selected = disassembleSelection.has(item);
-    row.classList.add("selectable");
-    row.classList.toggle("selected", selected);
-    const gain = document.createElement("div");
-    gain.className = "disassemble-gain";
-    gain.textContent = `+${Inventory.disassembleValue(item)}`;
-    row.appendChild(gain);
-    const mark = document.createElement("div");
-    mark.className = "skill-toggle-circle static" + (selected ? " on" : "");
-    row.appendChild(mark);
-    row.appendChild(info);
-    row.addEventListener("click", () => {
-      if (disassembleSelection.has(item)) disassembleSelection.delete(item); else disassembleSelection.add(item);
-      disassembleConfirming = false;
-      renderInventoryScreen();
-    });
-    return row;
-  }
-
   row.appendChild(info);
-
-  const lock = document.createElement("button");
-  lock.className = "priority-chip lock-chip" + (item.locked ? " tier-3" : "");
-  lock.textContent = item.locked ? "🔒" : "🔓";
-  lock.title = item.locked ? "ロック中（分解されません）。押すとロックを外す" : "ロックする（手動・自動の分解から守る）";
-  lock.addEventListener("click", () => { Inventory.setLocked(item, !item.locked); scheduleSave(); renderInventoryScreen(); });
-  row.appendChild(lock);
-
-  const enhance = document.createElement("button");
-  enhance.className = "priority-chip inventory-enhance-button";
-  enhance.textContent = "強化する";
-  enhance.addEventListener("click", () => openEnhanceModal(item, () => renderInventoryScreen()));
-  row.appendChild(enhance);
-
   return row;
 }
 
-
 let inventoryDetailReturnFocus = null;
+let inventoryDetailItem = null;
+let inventoryForgePreciousConfirmed = false;
 
-function openInventoryItemDetail(item, trigger) {
-  const modal = document.getElementById("inventoryDetailModal");
-  inventoryDetailReturnFocus = trigger || null;
+// 所持品にある同一参照の装備のみ加工対象にする（装備中や削除済みを誤操作しない）。
+const inventoryForgeItemExists = (item) => !!item && S.inventory.includes(item);
+function inventoryForgeRerender() {
+  const list = document.getElementById("inventoryBody");
+  const top = list.scrollTop;
+  renderInventoryScreen();
+  list.scrollTop = top;
+}
+function renderInventoryForgeDetails(item) {
   const name = document.getElementById("inventoryDetailName");
   name.textContent = (typeof itemMark === "function" ? itemMark(item) : "") +
     item.name + ((item.plus || 0) > 0 ? "+" + item.plus : "");
   name.style.color = rarityColor(item.rarity);
-
   const stats = document.getElementById("inventoryDetailStats");
   stats.innerHTML = "";
   const addField = (label, value) => {
@@ -423,7 +409,7 @@ function openInventoryItemDetail(item, trigger) {
     stats.appendChild(row);
   };
   const rarity = RARITIES.find((r) => r.key === item.rarity);
-  const slot = SLOTS.find((s) => s.key === item.slot);
+  const slot = SLOTS.find((sl) => sl.key === item.slot);
   const type = typeof getItemType === "function" && item.type ? getItemType(item.type) : null;
   addField("レア度", rarity ? rarity.name : item.rarity || "不明");
   addField("部位・種類", [slot ? slot.name : item.slot, type && type.name].filter(Boolean).join(" / "));
@@ -441,27 +427,127 @@ function openInventoryItemDetail(item, trigger) {
   }
   addField("保護", item.locked ? "ロック中（分解対象外）" :
     inventoryOrganize.isValuable(item) ? "貴重品扱い" : "未ロック");
+
+  const lock = document.getElementById("btnInventoryForgeLock");
+  lock.textContent = item.locked ? "🔓 ロック解除" : "🔒 ロックする";
+  const disassemble = document.getElementById("btnInventoryForgeDisassemble");
+  disassemble.disabled = !!item.locked;
+  disassemble.textContent = item.locked ? "分解不可（ロック中）" : "分解する";
+}
+
+function openInventoryItemDetail(item, trigger) {
+  if (!inventoryForgeItemExists(item)) return;
+  inventoryDetailItem = item;
+  inventoryDetailReturnFocus = trigger || null;
+  renderInventoryForgeDetails(item);
+  const modal = document.getElementById("inventoryDetailModal");
   modal.classList.toggle("hidden", false);
   modal.setAttribute("aria-hidden", "false");
   const close = document.getElementById("btnInventoryDetailClose");
   if (typeof close.focus === "function") close.focus();
 }
-function closeInventoryItemDetail() {
+function closeInventoryForgeSubsheet() {
+  const modal = document.getElementById("inventoryForgeSubModal");
+  modal.classList.toggle("hidden", true);
+  modal.setAttribute("aria-hidden", "true");
+  inventoryForgePreciousConfirmed = false;
+}
+function closeInventoryItemDetail(restoreFocus = true) {
+  closeInventoryForgeSubsheet();
   const modal = document.getElementById("inventoryDetailModal");
   modal.classList.toggle("hidden", true);
   modal.setAttribute("aria-hidden", "true");
-  if (inventoryDetailReturnFocus && typeof inventoryDetailReturnFocus.focus === "function" &&
-      inventoryDetailReturnFocus.isConnected !== false) inventoryDetailReturnFocus.focus();
+  const trigger = inventoryDetailReturnFocus;
   inventoryDetailReturnFocus = null;
+  inventoryDetailItem = null;
+  if (restoreFocus && trigger && typeof trigger.focus === "function" &&
+      trigger.isConnected !== false) trigger.focus();
 }
-document.getElementById("btnInventoryDetailClose").addEventListener("click", closeInventoryItemDetail);
+function openInventoryForgeSubsheet(mode) {
+  const item = inventoryDetailItem;
+  if (!inventoryForgeItemExists(item)) return;
+  const title = document.getElementById("inventoryForgeSubTitle");
+  const desc = document.getElementById("inventoryForgeSubDesc");
+  const action = document.getElementById("btnInventoryForgeSubAction");
+  inventoryForgePreciousConfirmed = false;
+  title.textContent = mode === "disassemble" ? "装備を分解する" : "OP付与";
+  if (mode === "disassemble") {
+    if (item.locked) return;
+    const valuable = inventoryOrganize.isValuable(item);
+    desc.textContent = itemLabel(item) + "を分解します。\n強化石 +" +
+      Inventory.disassembleValue(item) + " 個を獲得します。\n" +
+      (valuable ? "貴重な装備です。取り消せません。最終確認が必要です。" :
+        "分解後は元に戻せません。");
+    action.disabled = false;
+    action.textContent = valuable ? "分解内容を確認する" : "分解を確定する";
+    action.setAttribute("data-mode", "disassemble");
+  } else {
+    desc.textContent = itemLabel(item) +
+      "\nOP付与は今後のアップデートで実装予定です。現在は付与・素材消費は行えません。";
+    action.disabled = true;
+    action.textContent = "準備中";
+    action.setAttribute("data-mode", "op");
+  }
+  const modal = document.getElementById("inventoryForgeSubModal");
+  modal.classList.toggle("hidden", false);
+  modal.setAttribute("aria-hidden", "false");
+  if (typeof action.focus === "function" && !action.disabled) action.focus();
+}
+document.getElementById("btnInventoryDetailClose").addEventListener("click", () => closeInventoryItemDetail());
 document.getElementById("inventoryDetailModal").addEventListener("click", (event) => {
   if (event.target === event.currentTarget) closeInventoryItemDetail();
 });
+document.getElementById("btnInventoryForgeLock").addEventListener("click", () => {
+  const item = inventoryDetailItem;
+  if (!inventoryForgeItemExists(item)) { closeInventoryItemDetail(); return; }
+  Inventory.setLocked(item, !item.locked);
+  disassembleSelection.delete(item);
+  disassembleConfirming = false;
+  scheduleSave();
+  inventoryForgeRerender();
+  renderInventoryForgeDetails(item);
+});
+document.getElementById("btnInventoryForgeEnhance").addEventListener("click", () => {
+  const item = inventoryDetailItem;
+  if (!inventoryForgeItemExists(item)) return;
+  closeInventoryItemDetail(false);
+  const modal = document.getElementById("enhanceModal");
+  modal.classList.toggle("inventory-forge-enhance", true);
+  openEnhanceModal(item, () => {
+    modal.classList.toggle("inventory-forge-enhance", false);
+    inventoryForgeRerender();
+    if (inventoryForgeItemExists(item)) openInventoryItemDetail(item, null);
+  });
+});
+document.getElementById("btnInventoryForgeDisassemble").addEventListener("click", () => openInventoryForgeSubsheet("disassemble"));
+document.getElementById("btnInventoryForgeOp").addEventListener("click", () => openInventoryForgeSubsheet("op"));
+document.getElementById("btnInventoryForgeSubBack").addEventListener("click", closeInventoryForgeSubsheet);
+document.getElementById("inventoryForgeSubModal").addEventListener("click", (event) => {
+  if (event.target === event.currentTarget) closeInventoryForgeSubsheet();
+});
+document.getElementById("btnInventoryForgeSubAction").addEventListener("click", () => {
+  const action = document.getElementById("btnInventoryForgeSubAction");
+  const item = inventoryDetailItem;
+  if (action.getAttribute && action.getAttribute("data-mode") !== "disassemble") return;
+  if (!inventoryForgeItemExists(item) || item.locked) return;
+  if (inventoryOrganize.isValuable(item) && !inventoryForgePreciousConfirmed) {
+    inventoryForgePreciousConfirmed = true;
+    action.textContent = "貴重品を本当に分解する";
+    return;
+  }
+  const result = Inventory.disassembleItems([item]);
+  if (!result || result.count !== 1) return;
+  closeInventoryItemDetail(false);
+  saveGame();
+  inventoryForgeRerender();
+  showInventoryMessage(itemLabel(item) + "を分解し、強化石を" + result.materialGained + "個獲得しました");
+});
 if (typeof document.addEventListener === "function") {
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" &&
-        !document.getElementById("inventoryDetailModal").classList.contains("hidden")) {
+    if (event.key !== "Escape") return;
+    if (!document.getElementById("inventoryForgeSubModal").classList.contains("hidden")) {
+      closeInventoryForgeSubsheet();
+    } else if (!document.getElementById("inventoryDetailModal").classList.contains("hidden")) {
       closeInventoryItemDetail();
     }
   });
