@@ -213,33 +213,34 @@ test("装備分解・所持品: フィルターはスクロール外、固定の
  assert.match(html, /js\/ui\/inventory\.js\?v=\d+/);
 });
 
-test("所持品のⓘで武器詳細を表示し、確認だけでは装備やセーブデータを変更しない",()=>{
+test("所持品の通常一覧には右端ⓘのみ、鍛冶屋で能力値・OP・ロック状態を表示",()=>{
  const x=setup(2),{c,ids,state}=x;
  const item=state.inventory[0];
  Object.assign(item,{level:17,plus:4,rarity:"sr",stats:{atk:79,spd:39},
-   options:[{key:"crit",value:0.04}],type:"bow",hands:2});
- const snapshot=JSON.stringify(state.inventory);
+   options:[{key:"crit",value:.04}],type:"bow",hands:2});
+ const original=JSON.stringify(state.inventory);
  c.renderInventoryScreen();
- const rows=descend(ids.inventoryBody,n=>n.className.includes("inventory-item-row"));
- assert.ok(rows.length>0);
- const row=rows.find(n=>n.children.some(ch=>ch.textContent.includes("safe-0")));
- const info=row.children.find(n=>n.className==="inventory-info-button");
- const lock=row.children.find(n=>n.className.includes("lock-chip"));
- const enhance=row.children.find(n=>n.className.includes("inventory-enhance-button"));
- assert.ok(info&&lock&&enhance,"既存のロック・強化ボタンを維持");
- assert.equal(info["aria-label"].includes("safe-0"),true);
+ const row=descend(ids.inventoryBody,n=>n.className.includes("inventory-item-row") &&
+   n.children.some(ch=>ch.textContent.includes("safe-0")))[0];
+ const info=row.children.at(-1);
+ assert.equal(info.className,"inventory-info-button","ⓘは行の最右端");
+ assert.equal(row.children.some(n=>n.className.includes("lock-chip") ||
+   n.className.includes("inventory-enhance-button")),false,"一覧に強化・ロックのボタンなし");
+ assert.ok(info["aria-label"].includes("safe-0"));
  info.click();
  assert.equal(ids.inventoryDetailModal.className.includes("hidden"),false);
  assert.equal(ids.inventoryDetailModal["aria-hidden"],"false");
  assert.match(ids.inventoryDetailName.textContent,/safe-0\+4/);
- const fields=descend(ids.inventoryDetailStats,n=>n.className==="inventory-detail-field");
- const asText=fields.map(n=>n.children.map(e=>e.textContent).join(":")).join("\n");
- assert.match(asText,/レア度/);
- assert.match(asText,/装備Lv:17/);
- assert.match(asText,/強化値:\+4/);
- assert.match(asText,/追加オプション/);
- assert.match(asText,/保護/);
- assert.equal(JSON.stringify(state.inventory),snapshot,"閲覧で装備のデータを変更しない");
+ const details=descend(ids.inventoryDetailStats,n=>n.className==="inventory-detail-field")
+   .map(n=>n.children.map(t=>t.textContent).join(":")).join("\n");
+ assert.match(details,/装備Lv:17/);
+ assert.match(details,/強化値:\+4/);
+ assert.match(details,/追加オプション:crit/);
+ assert.ok(ids.btnInventoryForgeEnhance);
+ assert.ok(ids.btnInventoryForgeDisassemble);
+ assert.ok(ids.btnInventoryForgeOp);
+ assert.ok(ids.btnInventoryForgeLock);
+ assert.equal(JSON.stringify(state.inventory),original,"閲覧ではデータを変更しない");
  assert.equal(x.saved,0);
  ids.btnInventoryDetailClose.click();
  assert.ok(ids.inventoryDetailModal.className.includes("hidden"));
@@ -248,32 +249,110 @@ test("所持品のⓘで武器詳細を表示し、確認だけでは装備や�
  assert.ok(ids.inventoryDetailModal.className.includes("hidden"),"背景タップで閉じる");
 });
 
-test("装備分解の選択中・ロック中もⓘを押せ、選択や分解の状態を変えない",()=>{
+test("鍛冶屋のロック切替は既存データを更新し、ロック時は分解ボタン無効",()=>{
+ const x=setup(2),{c,ids,state}=x;
+ c.renderInventoryScreen();
+ const item=state.inventory.find(i=>i.id==="safe-0");
+ const row=descend(ids.inventoryBody,n=>n.className.includes("inventory-item-row") &&
+   n.children.some(ch=>ch.textContent.includes("safe-0")))[0];
+ row.children.at(-1).click();
+ ids.btnInventoryForgeLock.click();
+ assert.equal(item.locked,true);
+ assert.equal(ids.btnInventoryForgeDisassemble.disabled,true);
+ assert.match(ids.btnInventoryForgeLock.textContent,/ロック解除/);
+ assert.equal(x.saved,1,"保護状態の変更だけ保存");
+ ids.btnInventoryForgeDisassemble.click();
+ assert.ok(!ids.inventoryForgeSubModal ||
+   ids.inventoryForgeSubModal.className.includes("hidden"),"ロック中は分解確認を開けない");
+ ids.btnInventoryForgeLock.click();
+ assert.equal(item.locked,false);
+ assert.equal(ids.btnInventoryForgeDisassemble.disabled,false);
+ assert.equal(x.saved,2);
+ ids.btnInventoryDetailClose.click();
+});
+
+test("鍛冶屋の個別分解は下部の確認シートからのみ実行・保存され、ロック不可",()=>{
+ const x=setup(2),{c,ids,state}=x;
+ c.renderInventoryScreen();
+ const item=state.inventory.find(i=>i.id==="safe-0");
+ const row=descend(ids.inventoryBody,n=>n.className.includes("inventory-item-row") &&
+   n.children.some(ch=>ch.textContent.includes("safe-0")))[0];
+ row.children.at(-1).click();
+ const before=state.inventory.length;
+ ids.btnInventoryForgeDisassemble.click();
+ assert.equal(ids.inventoryForgeSubModal.className.includes("hidden"),false);
+ assert.equal(ids.inventoryForgeSubTitle.textContent,"装備を分解する");
+ assert.equal(state.inventory.length,before,"1段目は確認のみ");
+ ids.btnInventoryForgeSubBack.click();
+ assert.ok(ids.inventoryForgeSubModal.className.includes("hidden"),"戻るで取り消し");
+ ids.btnInventoryForgeDisassemble.click();
+ ids.btnInventoryForgeSubAction.click();
+ assert.equal(state.inventory.length,before-1,"確定後に1件だけ分解");
+ assert.equal(state.material,5);
+ assert.equal(x.saved,1);
+ assert.equal(ids.inventoryDetailModal.className.includes("hidden"),true);
+ assert.match(ids.inventoryMessage.textContent,/強化石を5個/);
+});
+
+test("貴重品は二重確認、OP付与は準備中で素材や所持品を消費しない",()=>{
+ const x=setup(2),{c,ids,state}=x;
+ c.renderInventoryScreen();
+ const high=state.inventory.find(i=>i.id==="high-0");
+ const row=descend(ids.inventoryBody,n=>n.className.includes("inventory-item-row") &&
+   n.children.some(ch=>ch.textContent.includes("high-0")))[0];
+ row.children.at(-1).click();
+ const before=JSON.stringify(state);
+ ids.btnInventoryForgeOp.click();
+ assert.equal(ids.inventoryForgeSubTitle.textContent,"OP付与");
+ assert.equal(ids.btnInventoryForgeSubAction.disabled,true);
+ assert.equal(JSON.stringify(state),before,"OP付与では所持品・素材を操作しない");
+ ids.btnInventoryForgeSubBack.click();
+ ids.btnInventoryForgeDisassemble.click();
+ const count=state.inventory.length;
+ ids.btnInventoryForgeSubAction.click();
+ assert.match(ids.btnInventoryForgeSubAction.textContent,/本当に分解/);
+ assert.equal(state.inventory.length,count,"貴重品は最初の押下では分解しない");
+ ids.btnInventoryForgeSubBack.click();
+ ids.btnInventoryForgeDisassemble.click();
+ ids.btnInventoryForgeSubAction.click();
+ assert.equal(state.inventory.length,count,"取り消し後は確認を最初から");
+ ids.btnInventoryForgeSubAction.click();
+ assert.equal(state.inventory.includes(high),false,"2回目の確認で初めて分解");
+ assert.equal(x.saved,1);
+});
+
+test("一括分解選択中のⓘも選択を変えず、後から鍛冶屋に移動できる",()=>{
  const x=setup(2),{c,ids,state}=x;
  c.openInventoryScreen({disassemble:true});
- const selectionBefore=vm.runInContext("disassembleSelection.size",c);
+ const size=vm.runInContext("disassembleSelection.size",c);
+ const row=descend(ids.inventoryBody,n=>n.className.includes("selectable") &&
+   n.className.includes("skill-row"))[0];
+ const info=row.children.at(-1);
+ assert.equal(info.className,"inventory-info-button");
  let stopped=false;
- const row=descend(ids.inventoryBody,n=>n.className.includes("selectable") && n.className.includes("skill-row"))[0];
- const info=row.children.find(n=>n.className==="inventory-info-button");
- assert.ok(info);
  info.listeners.click({stopPropagation:()=>{stopped=true;}});
  assert.equal(stopped,true);
- assert.equal(ids.inventoryDetailModal.className.includes("hidden"),false);
- assert.equal(vm.runInContext("disassembleSelection.size",c),selectionBefore);
- assert.equal(state.inventory.length,34);
+ assert.equal(vm.runInContext("disassembleSelection.size",c),size);
  ids.btnInventoryDetailClose.click();
- const locked=descend(ids.inventoryBody,n=>n.className.includes("skill-row") && n.className.includes("locked"))[0];
- assert.ok(locked.children.some(n=>n.className==="inventory-info-button"),"ロック中も詳細を見られる");
+ const locked=descend(ids.inventoryBody,n=>n.className.includes("skill-row") &&
+   n.className.includes("locked"))[0];
+ assert.equal(locked.children.at(-1).className,"inventory-info-button");
  assert.equal(x.saved,0);
 });
 
-test("所持品詳細には独立した閉じるボタンと読み取り専用のモーダルがある",()=>{
+test("鍛冶屋と2段目、強化の下部シートがHTML/CSSに構成されている",()=>{
  const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
- assert.match(html,/id="inventoryDetailModal"[^>]*role="dialog"/);
- assert.match(html,/aria-labelledby="inventoryDetailName"/);
- assert.match(html,/id="btnInventoryDetailClose"/);
- assert.match(html,/css\/inventory-detail\.css\?v=\d+/);
+ assert.match(html,/id="inventoryDetailModal"[^>]*inventory-forge-overlay/);
+ assert.match(html,/id="inventoryForgeSubModal"[^>]*inventory-forge-suboverlay/);
+ for(const id of ["btnInventoryForgeLock","btnInventoryForgeEnhance","btnInventoryForgeDisassemble",
+   "btnInventoryForgeOp","btnInventoryForgeSubAction","btnInventoryForgeSubBack"]) {
+   assert.ok(html.includes('id="'+id+'"'),id+" exists");
+ }
  const css=fs.readFileSync(path.join(__dirname,"../css/inventory-detail.css"),"utf8");
- assert.match(css,/#screen-inventory \.inventory-info-button/);
- assert.match(css,/\.inventory-detail-value/);
+ assert.match(css,/#screen-inventory \.inventory-item-row \.inventory-info-button/);
+ assert.match(css,/border: 0;/);
+ assert.match(css,/\.inventory-forge-overlay\.modal-overlay/);
+ assert.match(css,/#enhanceModal\.inventory-forge-enhance/);
+ assert.match(html,/css\/inventory-detail\.css\?v=\d+/);
+ assert.match(html,/js\/ui\/inventory\.js\?v=\d+/);
 });
