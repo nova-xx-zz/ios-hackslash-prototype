@@ -76,6 +76,21 @@ test("汎用を選択しても統合盤内に残り、各系統の詳細を表�
   assert.equal(find(chosen,"warrior-crest-detail").length,1);
   assert.equal(find(chosen,"unified-swap-btn").length,1);
 });
+test("フィルター選択は盤面を分離せず対象の系統へ自動ズームし全体へ戻せる",()=>{
+  const {ctx,c}=renderContext();
+  const first=ctx.buildTreeTab(c);
+  find(first,"unified-filter")[2].click();
+  const zoomed=ctx.buildTreeTab(c);
+  assert.equal(find(zoomed,"unified-node").length,35);
+  assert.equal(vm.runInContext("warriorWebView.scale",ctx),2.2);
+  const generalNodes=find(zoomed,"unified-node").filter(n=>n.attrs["data-scope"]==="slot1");
+  assert.equal(generalNodes.length,6);
+  assert.ok(generalNodes.every(n=>!n.className.includes("muted")));
+  assert.ok(find(zoomed,"unified-node").some(n=>n.attrs["data-scope"]==="exclusive"&&n.className.includes("muted")));
+  find(zoomed,"unified-filter")[0].click();
+  ctx.buildTreeTab(c);
+  assert.equal(vm.runInContext("warriorWebView.scale",ctx),1);
+});
 test("描画しても既存ゲームデータ・セーブ形式は不変",()=>{
   const {ctx,c,state}=renderContext(),old=JSON.stringify(state);
   ctx.buildTreeTab(c);
