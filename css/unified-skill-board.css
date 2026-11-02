@@ -1,0 +1,140 @@
+/* 戦士: 統合スキルパネル試作（他職と従来紋章盤には適用しない）。 */
+.tree-tab--unified .crest-screen-head { margin-bottom: 4px; }
+.tree-tab--unified .unified-toolbar {
+  display: flex; align-items: stretch; gap: 3px;
+  width: 100%; margin: 0 0 3px; padding: 2px 0;
+}
+.tree-tab--unified .unified-filter {
+  flex: 1 1 0; min-width: 0; min-height: 32px; padding: 5px 1px;
+  border: 1px solid rgba(157, 140, 102, .62);
+  border-radius: 4px; background: rgba(7, 24, 33, .92);
+  color: #bbcccd; font: 700 11px/1.1 var(--title-serif-ja);
+  cursor: pointer; touch-action: manipulation;
+}
+.tree-tab--unified .unified-filter.active {
+  color: #fbe4b3; border-color: #e5c785;
+  background: linear-gradient(#4f4531, #243b3d);
+  box-shadow: inset 0 -2px 0 rgba(243, 217, 145, .65);
+}
+.tree-tab--unified .unified-legacy-toggle {
+  flex: 0 0 auto; min-width: 43px; padding: 4px;
+  border: 1px solid #5b5d52; border-radius: 4px;
+  background: rgba(4, 13, 19, .85); color: #a5b2b3;
+  font: 500 10px/1 var(--title-serif-ja);
+  cursor: pointer;
+}
+.tree-tab--unified .unified-slot-tools {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 6px; min-width: 0; padding: 2px 6px;
+  background: rgba(16, 33, 41, .75); color: #c4dacd;
+  border: 1px solid rgba(170, 146, 101, .25);
+  border-radius: 3px; font: 600 10px/1.4 var(--title-serif-ja);
+}
+.tree-tab--unified .unified-slot-tools > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-tab--unified .unified-swap-btn {
+  flex: 0 0 auto; max-width: 58%; min-height: 28px; padding: 4px 6px;
+  background: #192d35; border: 1px solid #91805d; border-radius: 4px;
+  color: #f2d9a4; font: 600 10px/1.2 var(--title-serif-ja);
+  cursor: pointer;
+}
+.tree-tab--unified .unified-swap-btn.confirming { color: #ffd1b4; border-color: #e69c62; }
+.tree-tab--unified .unified-swap-btn:disabled { opacity: .45; cursor: default; }
+.tree-tab--unified .unified-stage {
+  flex: 1 1 auto; min-height: 280px; margin: 2px -5px 0;
+  border: 1px solid rgba(205, 170, 101, .26);
+  border-radius: 6px; overflow: hidden;
+}
+.tree-tab--unified .unified-board { flex: 1 1 auto; overflow: hidden; }
+.tree-tab--unified .unified-viewport {
+  background:
+    radial-gradient(circle at 52% 55%, rgba(31, 77, 77, .3), transparent 62%),
+    linear-gradient(160deg, rgba(10, 23, 30, .95), rgba(3, 13, 20, .95));
+}
+.tree-tab--unified .unified-scene {
+  border: 1px solid rgba(155, 137, 99, .45); border-radius: 6px;
+  background:
+    repeating-linear-gradient(40deg, transparent 0 14px, rgba(200, 165, 112, .025) 14px 15px),
+    radial-gradient(circle, rgba(19, 49, 52, .45), rgba(5, 15, 23, .95) 78%);
+}
+.tree-tab--unified .unified-area-label,
+.tree-tab--unified .unified-awakening-label {
+  position: absolute; transform: translateX(-50%); z-index: 1;
+  padding: 1px 4px; border-radius: 3px;
+  font: 700 clamp(8px, 2.1vw, 10px)/1.1 var(--title-serif-ja);
+  white-space: nowrap; pointer-events: none; text-shadow: 0 1px 3px #000;
+}
+.tree-tab--unified .unified-area-label.unified-scope-exclusive { color: #ecc88a; }
+.tree-tab--unified .unified-area-label.unified-scope-slot1 { color: #9dd6ff; }
+.tree-tab--unified .unified-area-label.unified-scope-slot2 { color: #a3e6b8; }
+.tree-tab--unified .unified-area-label.unified-scope-slot3 { color: #d5b2ff; }
+.tree-tab--unified .unified-awakening-label {
+  left: 50%; top: 1%; color: #d6c095;
+}
+.tree-tab--unified .unified-awakening-placeholder {
+  position: absolute; z-index: 1; transform: translate(-50%, -50%);
+  width: 12%; height: 12%; display: flex;
+  flex-direction: column; justify-content: center; align-items: center;
+  gap: 2px; padding: 2px 0;
+  border: 1px solid #746d5d; border-radius: 4px;
+  background: linear-gradient(#20272d, #0d1820);
+  color: #9c9d96; font: 500 8px/1.1 var(--title-serif-ja);
+  pointer-events: none;
+}
+.tree-tab--unified .unified-awakening-lock { display: flex; align-items: center; justify-content: center; height: 54%; }
+.tree-tab--unified .unified-awakening-lock .tree-web-glyph { width: 19px; height: 19px; stroke: #92948e; fill: none; }
+.tree-tab--unified .unified-node {
+  position: absolute; z-index: 2; transform: translate(-50%, -50%);
+  display: grid; place-items: center; margin: 0; padding: 0;
+  width: 9%; height: 9.6%;
+  border: none; outline: none; background: none;
+  cursor: pointer; touch-action: manipulation;
+  color: #f1bc9b; --unified-edge: #b08066; --unified-fill: #3b2b28;
+}
+.tree-tab--unified .unified-node.unified-scope-slot1 { color: #a1d2fa; --unified-edge: #638cad; --unified-fill: #203e55; }
+.tree-tab--unified .unified-node.unified-scope-slot2 { color: #9ce7be; --unified-edge: #62977a; --unified-fill: #1e4133; }
+.tree-tab--unified .unified-node.unified-scope-slot3 { color: #d6b9ff; --unified-edge: #926bb3; --unified-fill: #362846; }
+.tree-tab--unified .unified-node-tile {
+  display: grid; place-items: center;
+  width: 100%; height: 100%; padding: 2px;
+  border: 2px solid var(--unified-edge);
+  clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+  background:
+    radial-gradient(circle at 42% 40%, var(--unified-fill), #07131b 82%);
+  box-shadow: inset 0 0 4px #071015, 0 0 3px var(--unified-edge);
+}
+.tree-tab--unified .unified-node-icon {
+  width: 78%; height: 78%; fill: none;
+  stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px currentColor);
+}
+.tree-tab--unified .unified-node.acquired .unified-node-tile {
+  border-color: #f9dba0;
+  box-shadow: 0 0 7px rgba(239, 196, 111, .3);
+}
+.tree-tab--unified .unified-node.available .unified-node-tile {
+  border-color: #b5f1ff;
+  box-shadow: 0 0 9px rgba(113, 217, 245, .5);
+}
+.tree-tab--unified .unified-node.locked { opacity: .69; }
+.tree-tab--unified .unified-node.choice-sealed { opacity: .45; }
+.tree-tab--unified .unified-node.selected { z-index: 4; }
+.tree-tab--unified .unified-node.selected .unified-node-tile {
+  border-color: #fff1bd; box-shadow: 0 0 10px #f1c77a, inset 0 0 4px #e4aa5c;
+}
+.tree-tab--unified .unified-node.muted, .tree-tab--unified .unified-area-label.muted { opacity: .24; }
+.tree-tab--unified .unified-node-choice {
+  position: absolute; right: -3px; top: -3px; z-index: 5;
+  display: grid; place-items: center;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1px solid #d5b98a;
+  background: #30211d; color: #f7d59f;
+  font: 700 8px sans-serif; pointer-events: none;
+}
+.tree-tab--unified .unified-node:focus-visible { outline: 2px solid #ffefb8; outline-offset: 2px; }
+.tree-tab--unified .unified-board .tree-web-controls { left: 5px; bottom: 2px; }
+.tree-tab--unified .crest-inline-detail .crest-detail-card { max-height: min(25vh, 192px); }
+@media (max-width: 370px) {
+  .tree-tab--unified .unified-filter { font-size: 9px; }
+  .tree-tab--unified .unified-awakening-placeholder { font-size: 7px; }
+}
+@media (prefers-reduced-motion: reduce) { .tree-tab--unified .unified-node { animation: none !important; } }
