@@ -1,75 +1,136 @@
-/* 所持品一覧の情報ボタン・詳細モーダル。既存の他画面には影響させない。 */
+/* 所持品一覧: 編集操作を鍛冶屋へ集約。右端のⓘは枠を描画しない。 */
 #screen-inventory .inventory-item-row {
-  gap: 5px;
-  padding: 8px 7px;
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
 }
 #screen-inventory .inventory-item-row .skill-row-name {
   min-width: 0;
-  line-height: 1.45;
+  flex: 1 1 auto;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
-#screen-inventory .inventory-info-button {
-  flex: 0 0 32px;
-  width: 32px;
-  height: 34px;
-  min-height: 34px;
+#screen-inventory .inventory-item-row .inventory-info-button {
+  flex: 0 0 44px;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
   padding: 0;
-  border: 1px solid rgba(199, 170, 108, .7);
-  border-radius: 8px;
-  background: rgba(16, 35, 43, .9);
-  color: #e8d19b;
-  font-size: 19px;
-  line-height: 1;
-  font-weight: 700;
+  margin-left: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #ebd4a1;
+  font: 700 24px/1 sans-serif;
   cursor: pointer;
   touch-action: manipulation;
 }
-#screen-inventory .inventory-info-button:focus-visible {
-  outline: 2px solid #ffe4a8;
-  outline-offset: 2px;
+#screen-inventory .inventory-item-row .inventory-info-button:focus-visible {
+  outline: 2px solid #e8cf94;
+  outline-offset: -4px;
+  border-radius: 50%;
 }
-#screen-inventory .inventory-item-row .lock-chip {
-  margin-right: 0;
-  min-width: 34px;
-  padding: 5px 3px;
+#screen-inventory .inventory-item-row.locked {
+  opacity: .85;
 }
-#screen-inventory .inventory-item-row .inventory-enhance-button {
-  padding: 6px 7px;
-  white-space: nowrap;
+#screen-inventory .inventory-item-row.selectable .disassemble-gain {
+  margin-left: 0;
 }
-.inventory-detail-card {
-  max-width: 380px;
-  padding: 15px 14px 14px;
-  border-color: rgba(201, 164, 99, .65);
+
+/* 画面下端から現れる鍛冶屋と2段目シート。safe-areaを含む。 */
+.inventory-forge-overlay.modal-overlay {
+  z-index: 70;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(2, 8, 13, .72);
+  overscroll-behavior: contain;
+}
+.inventory-forge-suboverlay.modal-overlay { z-index: 72; }
+.inventory-forge-overlay .inventory-forge-sheet {
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  max-width: 520px;
+  max-height: min(88dvh, 880px);
+  margin: 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid rgba(207, 175, 109, .72);
+  border-bottom: 0;
+  border-radius: 19px 19px 0 0;
+  background: linear-gradient(160deg, #11252e 0%, #07141c 92%);
+  box-shadow: 0 -12px 38px rgba(0,0,0,.68);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  animation: inventory-forge-slide-in .22s ease-out both;
+}
+@keyframes inventory-forge-slide-in {
+  from { transform: translateY(80px); opacity: .6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.inventory-forge-handle {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  flex: 0 0 4px;
+  border-radius: 5px;
+  background: #9b8862;
+}
+.inventory-forge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: none;
 }
 .inventory-detail-heading {
-  text-align: center;
-  color: #d9bd84;
-  font-size: 11px;
-  letter-spacing: .08em;
+  color: #dbc08b;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .07em;
 }
-.inventory-detail-card .modal-name {
+.inventory-forge-close {
+  flex: 0 0 38px;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: #e2d4b9;
+  font-size: 28px;
+  cursor: pointer;
+}
+.inventory-forge-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 0 2px;
+}
+.inventory-forge-scroll .modal-name {
+  padding: 4px 0 8px;
+  font-size: 17px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
-  line-height: 1.45;
 }
 .inventory-detail-stats {
-  gap: 0;
-  padding: 5px 10px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(171, 148, 101, .3);
+  border-radius: 8px;
+  background: rgba(5, 18, 26, .62);
 }
 .inventory-detail-field {
   display: flex;
-  gap: 10px;
   align-items: flex-start;
-  padding: 8px 0;
+  gap: 10px;
+  padding: 7px 0;
   font-size: 12px;
   line-height: 1.5;
-  border-bottom: 1px solid rgba(201,164,99,.15);
+  border-bottom: 1px solid rgba(201,164,99,.14);
 }
 .inventory-detail-field:last-child { border-bottom: 0; }
-.inventory-detail-key {
-  flex: 0 0 86px;
-  color: #b6b6ad;
-}
+.inventory-detail-key { flex: 0 0 90px; color: #afbec0; }
 .inventory-detail-value {
   min-width: 0;
   flex: 1;
@@ -77,9 +138,70 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-@media (max-width: 370px) {
-  #screen-inventory .inventory-item-row { gap: 4px; padding: 7px 5px; }
-  #screen-inventory .inventory-item-row .inventory-enhance-button { padding: 6px 4px; font-size: 10px; }
-  #screen-inventory .inventory-info-button { flex-basis: 30px; width: 30px; }
-  .inventory-detail-key { flex-basis: 73px; }
+.inventory-forge-actions {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(201, 164, 99, .35);
+}
+.inventory-forge-action {
+  min-height: 48px;
+  border: 1px solid #857558;
+  border-radius: 8px;
+  background: #142b35;
+  color: #f4dfb0;
+  font: 700 13px/1.35 sans-serif;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.inventory-forge-action.primary {
+  background: #55432e;
+  border-color: #cba967;
+  color: #ffe3a9;
+}
+.inventory-forge-action.danger { background: #38262a; border-color: #a87775; color: #efb7b3; }
+.inventory-forge-action:disabled { opacity: .45; cursor: default; }
+.inventory-forge-action span { font-size: 10px; color: #aebcc0; }
+.inventory-forge-sub-sheet {
+  max-height: min(70dvh, 480px) !important;
+}
+.inventory-forge-sub-sheet .inventory-detail-heading { text-align: center; font-size: 16px; }
+.inventory-forge-sub-desc {
+  min-height: 0;
+  overflow-y: auto;
+  white-space: pre-line;
+  color: #e6d8b9;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.inventory-forge-sub-sheet .btn {
+  min-height: 44px;
+  width: 100%;
+}
+.inventory-forge-sub-sheet .btn:disabled { opacity: .55; }
+/* 既存の装備強化は内部計算と操作を変えず、鍛冶屋経由時だけ下部シート化 */
+#enhanceModal.inventory-forge-enhance.modal-overlay {
+  align-items: flex-end;
+  padding: 0;
+  z-index: 75;
+}
+#enhanceModal.inventory-forge-enhance .modal-card {
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  max-width: 520px;
+  max-height: 89dvh;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom,0px));
+  border-radius: 18px 18px 0 0;
+  border-color: #ac915e;
+  animation: inventory-forge-slide-in .22s ease-out both;
+}
+@media (max-width: 360px) {
+  .inventory-forge-overlay .inventory-forge-sheet { padding-left: 11px; padding-right: 11px; }
+  .inventory-detail-key { flex-basis: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inventory-forge-overlay .inventory-forge-sheet,
+  #enhanceModal.inventory-forge-enhance .modal-card { animation: none; }
 }
