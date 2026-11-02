@@ -408,8 +408,8 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
 // 専用の4タブ表示状態は一時的なUI値。セーブせず、仲間変更時は固有に戻す。
 let warriorFocusScope = "exclusive";
 let warriorFocusCharId = null;
-// 試作中の表示モード。セーブデータには含めず、初期値は既存の紋章盤を維持する。
-let warriorBoardMode = "crest";
+// 試作中の表示モード。剣士は統合盤を初期表示、旧UIも比較用に残す。セーブデータには含めない。
+let warriorBoardMode = "integrated";
 
 // せんしだけに適用。同じ固有ツリーを使う「けんごう」・他職・汎用3枠は従来の縦分岐図のまま。
 function isWarriorCrestWeb(c, scopeKey, treeDef) {
