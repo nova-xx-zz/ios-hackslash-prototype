@@ -55,8 +55,8 @@ function boot() {
     S:{material:99999},
     treeSelectedNode:null,
     treeSwapConfirm:null,
-    jobDef:c=>({name:c.job === "warrior" ? "戦士" : "剣豪"}),
-    getExclusiveTree:()=>data.EXCLUSIVE_TREES.warrior,
+    jobDef:c=>data.JOBS[c.job],
+    getExclusiveTree:c=>data.EXCLUSIVE_TREES[data.jobTag(c.job)] || null,
     getTreeState:()=>st,
     getGeneralTree:id=>data.GENERAL_TREES[id],
     GENERAL_SLOTS:data.GENERAL_SLOTS,
@@ -247,4 +247,75 @@ test("分岐のチップは六角形背景のクリップを受けず表示で�
   first.click();
   assert.equal(b.context.treeSelectedNode.scope, first.attrs["data-scope"]);
   assert.equal(b.calls.render, 1, "チップ付きノードの選択動作を維持");
+});
+
+
+test("戦士以外の基本・上級・特殊職12職で統合盤を既定表示し、実スキル17+汎用18を欠落させない",()=>{
+  const seen = [];
+  for (const [tag, jobs] of Object.entries(data.JOB_TAGS)) {
+    for (const job of jobs) {
+      if (job === "warrior") continue;
+      const b = boot();
+      b.c.job = job;
+      b.c.id = "test-" + job;
+      const tree = data.EXCLUSIVE_TREES[tag];
+      const before = JSON.stringify(tree);
+      const screen = b.context.buildTreeTab(b.c);
+      assert.equal(all(screen,"unified-skill-screen").length,1,job+" 統合盤");
+      assert.equal(all(screen,"crest-focus-tabs").length,0,job+" 旧4タブを廃止");
+      assert.equal(all(screen,"unified-zone").length,4,job+" 固有+汎用3枠");
+      assert.equal(all(screen,"unified-awakening-step").length,3,job+" 覚醒Ⅰ〜Ⅲは予約枠");
+      const exclusive = all(screen,"unified-hex-node").filter(n=>n.attrs["data-scope"]==="exclusive");
+      assert.equal(exclusive.length,tree.nodes.length,job+" 固有の全ノード");
+      assert.equal(all(screen,"unified-hex-node").length,tree.nodes.length+18,job+" 総パネル数");
+      assert.ok(exclusive.every(n=>n.children.some(c=>c.className==="unified-hex-face")),job+" 専用アイコン");
+      assert.equal(b.context.treeSelectedNode.scope,"exclusive",job);
+      assert.ok(tree.nodes.some(n=>n.id===b.context.treeSelectedNode.nodeId),job+" 初期選択");
+      assert.equal(JSON.stringify(tree),before,job+" スキル正本は変更しない");
+      assert.equal(Object.hasOwn(b.st,"awakeningTier"),false,job+" 覚醒セーブなし");
+      seen.push(job);
+    }
+  }
+  assert.equal(seen.length,12,"戦士以外の全職を網羅");
+});
+
+test("職業を変えたら旧フィルターと選択ノードを引き継がず全体盤に戻す",()=>{
+  const b=boot();
+  b.c.job="mage";
+  let screen=b.context.buildTreeTab(b.c);
+  const filter=all(screen,"unified-filter").find(n=>n.textContent==="汎Ⅲ");
+  filter.click();
+  screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"unified-zone").length,1);
+  b.c.job="priest";
+  b.c.id="next-character";
+  screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"unified-zone").length,4);
+  assert.equal(all(screen,"unified-hex-node").filter(n=>n.attrs["data-scope"]==="exclusive").length,
+    data.EXCLUSIVE_TREES.healer.nodes.length);
+  assert.ok(data.EXCLUSIVE_TREES.healer.nodes.some(n=>n.id===b.context.treeSelectedNode.nodeId));
+});
+
+test("他職も旧盤面に戻してから再び統合盤に復帰でき、習得ロジックは共通",()=>{
+  const b=boot();
+  b.c.job="mage";
+  let screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"unified-legacy").length,1);
+  all(screen,"unified-legacy")[0].click();
+  screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"crest-focus-tab").length,4,"従来の4タブに戻る");
+  const switcher=all(screen,"hex-panel-mode").find(n=>n.textContent==="統合パネル");
+  assert.ok(switcher,"旧盤面から戻る切替を提供");
+  switcher.click();
+  screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"unified-zone").length,4);
+  assert.equal(b.calls.save,0,"表示切替では保存しない");
+  const first=all(screen,"unified-hex-node").find(n=>n.attrs["data-scope"]==="exclusive" &&
+    n.attrs["data-glyph"]==="staff");
+  assert.ok(first,"魔法職のスキルを杖で描画");
+  first.click();
+  assert.equal(b.context.treeSelectedNode.scope,"exclusive");
+  const selected=b.context.treeSelectedNode.nodeId;
+  assert.ok(data.EXCLUSIVE_TREES.magic.nodes.some(n=>n.id===selected),"魔法職の正しいノードを選ぶ");
+  assert.equal(b.calls.save,0,"ノード選択でも保存しない");
 });
