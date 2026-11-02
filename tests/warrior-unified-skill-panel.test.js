@@ -198,6 +198,16 @@ test("統合パネルの6分類は専用SVGで表示され、小さい画面で�
     assert.ok(svg.children.length >= 2, icon + " は識別可能な複数要素を持つ");
     assert.ok(svg.children.every((path) => path.attrs.d && path.attrs.class.startsWith("unified-icon-")));
   }
+  const arm = b.context.createUnifiedSkillGlyph("arm");
+  assert.equal(arm.children.filter((p) => p.attrs.class === "unified-icon-solid").length, 2,
+    "腕は拳と力こぶの2つのシルエットで表す");
+  assert.match(arm.children.find((p) => p.attrs.class === "unified-icon-detail").attrs.d, /M7 24c3-4/,
+    "腕には力こぶを識別する陰影線がある");
+  const staff = b.context.createUnifiedSkillGlyph("staff");
+  assert.match(staff.children[0].attrs.d, /M17 2l8 7-8 8-8-8Z/,
+    "杖の先端は丸ではなく菱形の魔法石");
+  assert.match(staff.children[1].attrs.d, /M27 17v7/,
+    "杖には魔法を示す十字の光を描く");
   const screen = showIntegrated(b);
   const nodes = all(screen, "unified-hex-node");
   assert.equal(nodes.length, 35);
