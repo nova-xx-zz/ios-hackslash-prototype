@@ -204,7 +204,7 @@
   margin: 0 -1px;
   padding: 2px;
   border: 0;
-  /* ボタン本体は切り抜かない。分岐チップを六角形の外へ表示できるようにする。 */
+  /* ボタン本体はクリップせず、分岐チップを枠外にも描画する。 */
   background: transparent;
   color: var(--zone-color);
   cursor: pointer;
