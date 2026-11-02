@@ -839,6 +839,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     warriorFocusCharId = c.id + ":" + c.job;
     warriorFocusScope = "exclusive";
     treeSelectedNode = null;
+    if (typeof warriorUnifiedFocus !== "undefined") warriorUnifiedFocus = "all";
     resetWarriorWebView();
   }
   // キャラクター送り／もどるは通常の詳細ヘッダーを共用する（ツリー専用の重複ヘッダーを作らない）。
@@ -856,6 +857,12 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
       title: slot.label + ": " + treeDef.name, treeDef, ranks: slotState.ranks, slotDef: slot,
     });
   });
+  // 統合モードは固有＋汎用3枠を同じ盤面に描画。習得処理と保存は各正本へ委譲。
+  if (c.job === "warrior" && warriorBoardMode === "integrated" &&
+      typeof buildWarriorUnifiedSkillScreen === "function" && entries.length === 4 &&
+      entries.every((entry) => entry.treeDef && entry.ranks)) {
+    return buildWarriorUnifiedSkillScreen(c, entries, total, spent);
+  }
   const active = entries.find((entry) => entry.scopeKey === warriorFocusScope) || entries[0];
   warriorFocusScope = active.scopeKey;
 
@@ -908,7 +915,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     modeSwitch.className = "hex-panel-switch";
     modeSwitch.setAttribute("role", "group");
     modeSwitch.setAttribute("aria-label", "スキルツリーの表示形式");
-    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "六角パネル"]]) {
+    for (const [mode, label] of [["integrated", "統合"], ["crest", "紋章盤"], ["hex", "六角パネル"]]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "hex-panel-mode" + (warriorBoardMode === mode ? " active" : "");
