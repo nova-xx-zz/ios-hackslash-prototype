@@ -388,7 +388,7 @@ function buildInventoryItemRow(item) {
   row.appendChild(lock);
 
   const enhance = document.createElement("button");
-  enhance.className = "priority-chip";
+  enhance.className = "priority-chip inventory-enhance-button";
   enhance.textContent = "強化する";
   enhance.addEventListener("click", () => openEnhanceModal(item, () => renderInventoryScreen()));
   row.appendChild(enhance);
