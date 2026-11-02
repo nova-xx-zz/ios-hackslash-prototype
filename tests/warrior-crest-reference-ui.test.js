@@ -203,11 +203,11 @@ test("画面の器: 盤面・詳細・習得ボタンを1画面に配置し、�
   const { ctx } = context();
   const tab = ctx.buildTreeTab({ id: "a", name: "ガイ", job: "warrior", level: 99, team: null });
   const order = tab.children.map((child) => child.className);
-  assert.deepEqual(order, ["detail-section-head crest-screen-head", "crest-focus-tabs", "crest-stage-area", "crest-inline-detail"]);
-  assert.equal(byClass(tab.children[3], "crest-learn-btn").length, 1, "習得ボタンは詳細ドック内");
-  assert.equal(byClass(tab.children[3], "crest-detail-actions").length, 1, "詳細カードの末尾に習得ボタンを配置");
-  assert.equal(byClass(tab.children[3], "crest-detail-card")[0].children.at(-1).className, "crest-detail-actions");
-  assert.equal(byClass(tab.children[2], "crest-learn-btn").length, 0);
+  assert.deepEqual(order, ["detail-section-head crest-screen-head", "crest-focus-tabs", "hex-panel-switch", "crest-stage-area", "crest-inline-detail"]);
+  assert.equal(byClass(tab.children.at(-1), "crest-learn-btn").length, 1, "習得ボタンは詳細ドック内");
+  assert.equal(byClass(tab.children.at(-1), "crest-detail-actions").length, 1, "詳細カードの末尾に習得ボタンを配置");
+  assert.equal(byClass(tab.children.at(-1), "crest-detail-card")[0].children.at(-1).className, "crest-detail-actions");
+  assert.equal(byClass(tab.children.find((child) => child.className === "crest-stage-area"), "crest-learn-btn").length, 0);
   assert.equal(byClass(tab, "crest-screen-name").length, 0, "大きな左上タイトルは省略");
   assert.equal(byClass(tab, "crest-current-tree-name")[0].textContent, data.EXCLUSIVE_TREES.warrior.name, "ツリー名を上部に残す");
   assert.equal(byClass(tab, "crest-banner").length, 0, "盤面上に職業名や紋章を置かない");
