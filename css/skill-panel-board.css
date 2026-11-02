@@ -1,0 +1,188 @@
+/* 剣士の六角形スキルパネル試作。既存紋章盤と他職のCSSには影響させない。 */
+.crest-stage-area .hex-panel-switch {
+  position: absolute;
+  z-index: 12;
+  top: 5px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid rgba(216, 181, 108, .65);
+  border-radius: 7px;
+  background: rgba(4, 15, 22, .94);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .5);
+}
+.hex-panel-switch button {
+  min-height: 30px;
+  min-width: 46px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #d6c9ac;
+  font: 700 11px/1.15 var(--title-serif-ja);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hex-panel-switch button.active {
+  color: #17252a;
+  border-color: #f4d99d;
+  background: linear-gradient(#f8dfaa, #c7a15f);
+}
+.hex-panel-switch button:focus-visible {
+  outline: 2px solid #fff1be;
+  outline-offset: 2px;
+}
+
+.hex-panel-board {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+}
+.hex-panel-board .hex-panel-viewport {
+  min-width: 0;
+  min-height: 0;
+  background: radial-gradient(ellipse at 48% 48%, rgba(19, 50, 62, .43), rgba(4, 13, 20, .08) 70%);
+}
+.hex-panel-board .hex-panel-scene {
+  overflow: visible;
+  border-radius: 12px;
+  border: 1px solid rgba(186, 150, 87, .34);
+  background:
+    radial-gradient(circle at 50% 60%, rgba(24, 79, 89, .2), transparent 55%),
+    repeating-linear-gradient(45deg, transparent 0 21px, rgba(201, 164, 99, .018) 21px 22px),
+    linear-gradient(150deg, rgba(10, 27, 34, .92), rgba(4, 13, 20, .92));
+  box-shadow: inset 0 0 0 3px rgba(2, 10, 15, .6), inset 0 0 24px rgba(201, 164, 99, .12);
+}
+.hex-panel-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font: 800 10em/1 var(--title-serif-ja);
+  letter-spacing: .2em;
+  color: rgba(214, 180, 115, .045);
+  pointer-events: none;
+  user-select: none;
+}
+.hex-panel-node {
+  position: absolute;
+  z-index: 1;
+  width: 15.6%;
+  height: 17.4%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  color: #a6afb3;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.hex-panel-node .hex-panel-shell,
+.hex-panel-node .hex-panel-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0, 94% 24%, 94% 76%, 50% 100%, 6% 76%, 6% 24%);
+}
+.hex-panel-node .hex-panel-shell {
+  padding: 2px;
+  background: #64727a;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55));
+}
+.hex-panel-node .hex-panel-inner {
+  gap: .5em;
+  background: linear-gradient(145deg, #202e33, #0b191f 78%);
+}
+.hex-panel-node .tree-web-glyph {
+  display: block;
+  flex: 0 0 auto;
+  width: 42%;
+  height: 42%;
+  min-height: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 2px currentColor);
+}
+.hex-panel-node .hex-panel-mark {
+  display: block;
+  max-width: 100%;
+  color: inherit;
+  font: 800 max(2.8em, 9px)/1 var(--title-serif-ja);
+  text-shadow: 0 1px 2px #061015;
+}
+.hex-panel-node.acquired { color: #ffe3a8; }
+.hex-panel-node.acquired .hex-panel-shell {
+  background: linear-gradient(140deg, #fff0bd, #b7883f 70%, #f4d99d);
+}
+.hex-panel-node.acquired .hex-panel-inner {
+  background: linear-gradient(160deg, #53411e, #151e22 85%);
+}
+.hex-panel-node.available { z-index: 2; color: #c9f6ff; }
+.hex-panel-node.available .hex-panel-shell {
+  background: linear-gradient(140deg, #d9fbff, #50b5d0 65%, #fff3cb);
+  box-shadow: 0 0 12px rgba(100, 212, 255, .35);
+}
+.hex-panel-node.available .hex-panel-inner {
+  background: linear-gradient(145deg, #124454, #0b222e 75%);
+}
+.hex-panel-node.locked { opacity: .68; }
+.hex-panel-node.choice-sealed { color: #c58f87; opacity: .75; }
+.hex-panel-node.choice-sealed .hex-panel-shell { background: #985749; }
+.hex-panel-node.choice-sealed .hex-panel-inner { background: #332020; }
+.hex-panel-node.selected { z-index: 6; }
+.hex-panel-node.selected .hex-panel-shell {
+  outline: 2px solid #fff0b5;
+  outline-offset: 2px;
+  filter: drop-shadow(0 0 6px #d6a454);
+}
+.hex-panel-node.prerequisite:not(.selected) .hex-panel-shell {
+  filter: drop-shadow(0 0 4px #9bddb9);
+}
+.hex-panel-node.successor:not(.selected):not(.locked) .hex-panel-shell {
+  filter: drop-shadow(0 0 4px #60c7db);
+}
+.hex-panel-node.ultimate-kind .hex-panel-shell {
+  box-shadow: 0 0 0 2px rgba(219, 183, 97, .4);
+}
+.hex-panel-node .hex-panel-tick,
+.hex-panel-node .hex-panel-choice {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  min-height: 15px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 240, 200, .62);
+  background: #273e32;
+  color: #f9e9c3;
+  font: 700 9px/1 sans-serif;
+  pointer-events: none;
+}
+.hex-panel-node .hex-panel-tick { right: -2px; bottom: 2px; }
+.hex-panel-node .hex-panel-choice { right: -4px; top: -2px; background: #5b3930; }
+.hex-panel-node:focus-visible {
+  outline: 2px solid #f7e0a7;
+  outline-offset: 2px;
+}
+.hex-panel-board .hex-panel-legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.hex-panel-board .tree-web-controls { bottom: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .hex-panel-node, .hex-panel-node .hex-panel-shell { animation: none !important; }
+}
