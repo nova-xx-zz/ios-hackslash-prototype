@@ -1256,13 +1256,22 @@ function buildWarriorWebGraph(c, scopeKey, treeDef, ranks) {
 
 // 盤面の拡大縮小・移動。viewport は固定の枠、scene は viewport の中央に置いた正方形。
 // 画面上の点 = viewport中心 + (x, y) + scale × (scene中心からの位置)。transform-origin は scene の中心。
-function attachWarriorWebZoom(viewport, scene, controls) {
+function attachWarriorWebZoom(viewport, scene, controls, initialFocus = null) {
   let side = 0;
+  let focusPending = !!initialFocus;
   const measure = () => {
     const width = viewport.clientWidth || 0;
     const height = viewport.clientHeight || 0;
     if (!width || !height) return false;
     side = Math.max(1, Math.floor(Math.min(width, height)));
+    // 統合盤の領域フィルターから呼ぶ時だけズーム中心を更新する。
+    // 旧紋章盤やノード選択時の再描画には影響させない。
+    if (focusPending) {
+      warriorWebView.scale = clampWarriorWebScale(initialFocus.scale);
+      warriorWebView.x = (50 - initialFocus.x) / 100 * side * warriorWebView.scale;
+      warriorWebView.y = (50 - initialFocus.y) / 100 * side * warriorWebView.scale;
+      focusPending = false;
+    }
     scene.style.width = side + "px";
     scene.style.height = side + "px";
     scene.style.left = Math.round((width - side) / 2) + "px";
