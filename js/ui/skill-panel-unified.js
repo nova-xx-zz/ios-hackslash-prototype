@@ -52,8 +52,8 @@ const UNIFIED_ICON_PATHS = Object.freeze({
     ["detail", "M11 12h9M5 24h20"],
   ],
   arm: [
-    ["solid", "M4.5 28 8 17l5-4 4 3 4-5 4 1-2 8-6.5 7.5L11 29Z"],
-    ["detail", "M11 21l5 2M20 15l3 1"],
+    ["solid", "M21 5c1-2 5-2 7 1v5q-1 3-5 3h-3Z"],
+    ["muscle", "M21 14q0 5-4 6l-5-3q-4 1-5 6l-1 4h16q4-1 5-5"],
   ],
   staff: [
     ["solid", "M15 8a5 5 0 1 0 10 0a5 5 0 1 0-10 0"],
