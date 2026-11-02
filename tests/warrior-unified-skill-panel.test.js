@@ -204,10 +204,13 @@ test("統合パネルの6分類は専用SVGで表示され、小さい画面で�
   assert.match(arm.children.find((p) => p.attrs.class === "unified-icon-detail").attrs.d, /M7 24c3-4/,
     "腕には力こぶを識別する陰影線がある");
   const staff = b.context.createUnifiedSkillGlyph("staff");
-  assert.match(staff.children[0].attrs.d, /M17 2l8 7-8 8-8-8Z/,
-    "杖の先端は丸ではなく菱形の魔法石");
-  assert.match(staff.children[1].attrs.d, /M27 17v7/,
-    "杖には魔法を示す十字の光を描く");
+  assert.equal(staff.children.length, 3, "小サイズで潰れないシンプルな3要素");
+  assert.match(staff.children[0].attrs.d, /M7 4C4 11/,
+    "杖の上部は魔法球を抱える三日月状の飾り");
+  assert.match(staff.children[1].attrs.d, /M12\.5 9a3\.5/,
+    "中心に魔法球を描く");
+  assert.match(staff.children[2].attrs.d, /M16 17v12/,
+    "柄は斜めではなく縦に伸びる");
   const screen = showIntegrated(b);
   const nodes = all(screen, "unified-hex-node");
   assert.equal(nodes.length, 35);
@@ -220,4 +223,28 @@ test("統合パネルの6分類は専用SVGで表示され、小さい画面で�
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(html, /css\/skill-panel-unified\.css\?v=\d+/);
   assert.match(html, /js\/ui\/skill-panel-unified\.js\?v=\d+/);
+});
+
+
+test("分岐のチップは六角形背景のクリップを受けず表示できる", () => {
+  const b = boot();
+  const screen = showIntegrated(b);
+  const nodes = all(screen, "unified-hex-node");
+  const choiceNodes = nodes.filter((node) => node.className.includes("choice-node"));
+  assert.ok(choiceNodes.length >= 2, "分岐を持つパネルには個別の識別クラスを付与");
+  assert.ok(choiceNodes.every((node) => node.children.some((child) =>
+    child.className === "unified-hex-choice")), "チップは選択可能ボタンの子要素のまま");
+  assert.equal(all(screen, "unified-hex-choice").length, choiceNodes.length);
+  const css = fs.readFileSync(path.join(__dirname, "../css/skill-panel-unified.css"), "utf8");
+  const buttonRule = css.match(/\.unified-hex-node\s*\{([^}]*)\}/);
+  assert.ok(buttonRule);
+  assert.doesNotMatch(buttonRule[1], /clip-path/, "ボタン全体を六角で切り抜かない");
+  assert.match(css, /\.unified-hex-node::before\s*\{[^}]*clip-path:/,
+    "六角形背景だけを切り抜く");
+  assert.match(css, /\.unified-hex-node\.choice-node:not\(\.selected\)\s*\{ z-index: 3;/,
+    "他ノードより分岐チップを前面表示");
+  const first = choiceNodes[0];
+  first.click();
+  assert.equal(b.context.treeSelectedNode.scope, first.attrs["data-scope"]);
+  assert.equal(b.calls.render, 1, "チップ付きノードの選択動作を維持");
 });

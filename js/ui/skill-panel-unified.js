@@ -58,10 +58,12 @@ const UNIFIED_ICON_PATHS = Object.freeze({
     ["solid", "M23 14c3 1 5 4.5 4 8-1 4.5-4.5 7-10 7H8c-3.5 0-5-2-5-5 0-4.5 3.8-9 8-9 3 0 5 2 6.5 5l2-3Z"],
     ["detail", "M7 24c3-4 6-4 9-2M9 17c2-2 4-2 6 0M22 7v3M25 7v3"],
   ],
-  // 杖: 人物の頭に見える円形を廃止。菱形の魔法石・長い柄・光の十字で識別。
+  // 杖: 小画面でも魔術師の杖と分かるよう、魔法球を抱える三日月飾り＋直立した柄。
+  // 星のような細かい光や斜め柄は使わず、遠目に輪郭を識別できる3要素に絞る。
   staff: [
-    ["solid", "M17 2l8 7-8 8-8-8Z"],
-    ["line", "M17 17 10 29M13 24l4 3M5 4v6M2 7h6M27 17v7M24 20h6"],
+    ["line", "M7 4C4 11 8 17 16 17c8 0 12-6 9-13"],
+    ["solid", "M12.5 9a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0"],
+    ["line", "M16 17v12M13 28h6"],
   ],
 });
 
@@ -299,6 +301,7 @@ function buildUnifiedSkillNode(c, entry, node) {
   button.className = "unified-hex-node" +
     (acquired ? " acquired" : available ? " available" : " locked") +
     (sealed ? " choice-sealed" : "") +
+    (node.exclusiveGroup ? " choice-node" : "") +
     (selected ? " selected" : "") +
     (warriorUnifiedFilter === "ready" && !available ? " dimmed" : "");
   const iconName = unifiedSkillIconForNode(node);
