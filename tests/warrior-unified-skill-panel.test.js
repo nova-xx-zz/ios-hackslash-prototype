@@ -185,3 +185,29 @@ test("旧盤面に戻せる。スキル正本、保存形式、覚醒ステー�
   assert.equal(JSON.stringify(data.EXCLUSIVE_TREES.warrior),before);
   assert.equal(Object.hasOwn(b.st,"awakeningTier"),false);
 });
+
+
+test("統合パネルの6分類は専用SVGで表示され、小さい画面でも形を保つ", () => {
+  const b = boot();
+  const icons = ["blade", "body", "tower", "foot", "arm", "staff"];
+  for (const icon of icons) {
+    const svg = b.context.createUnifiedSkillGlyph(icon);
+    assert.ok(svg.className.includes("unified-icon-glyph"), icon);
+    assert.equal(svg.attrs.viewBox, "0 0 32 32");
+    assert.equal(svg.attrs.preserveAspectRatio, "xMidYMid meet");
+    assert.ok(svg.children.length >= 2, icon + " は識別可能な複数要素を持つ");
+    assert.ok(svg.children.every((path) => path.attrs.d && path.attrs.class.startsWith("unified-icon-")));
+  }
+  const screen = showIntegrated(b);
+  const nodes = all(screen, "unified-hex-node");
+  assert.equal(nodes.length, 35);
+  assert.equal(all(screen, "unified-icon-glyph").length, 35);
+  assert.equal(all(screen, "unified-hex-node").filter(n => n.attrs["data-glyph"] === "arm").length > 0, true);
+  const css = fs.readFileSync(path.join(__dirname, "../css/skill-panel-unified.css"), "utf8");
+  assert.match(css, /\.unified-hex-node \.unified-icon-glyph\s*\{[^}]*width: 76%;[^}]*height: 76%;/);
+  assert.match(css, /preserveAspectRatio|aspect-ratio: 1 \/ 1/);
+  assert.match(css, /dimmed:not\(\.selected\)\s*\{ opacity: \.48;/);
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(html, /css\/skill-panel-unified\.css\?v=\d+/);
+  assert.match(html, /js\/ui\/skill-panel-unified\.js\?v=\d+/);
+});

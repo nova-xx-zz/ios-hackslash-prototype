@@ -219,16 +219,43 @@
   clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
   background: radial-gradient(circle, #2d3b42 0%, #101a23 74%);
 }
-.unified-hex-node .tree-web-glyph {
-  width: 59%;
-  height: 59%;
+/* 6分類専用の正方形SVG。小さな六角でもシルエットをつぶさずに見せる。 */
+.unified-hex-node .unified-icon-glyph {
+  display: block;
+  box-sizing: border-box;
+  width: 76%;
+  height: 76%;
+  flex: none;
+  aspect-ratio: 1 / 1;
+  overflow: visible;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.3;
+  stroke-width: 2.7;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 2px currentColor);
+  filter: drop-shadow(0 0 1px currentColor);
   pointer-events: none;
+}
+.unified-hex-node .unified-icon-solid {
+  fill: currentColor;
+  stroke: none;
+}
+.unified-hex-node .unified-icon-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.7;
+}
+.unified-hex-node .unified-icon-detail {
+  fill: none;
+  stroke: #0a1a22;
+  stroke-width: 2.3;
+}
+.unified-hex-node .unified-icon-muscle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .unified-hex-node.acquired {
   background: linear-gradient(145deg, #fff0be, #b88b4a 70%, #f2d59a);
@@ -242,10 +269,11 @@
   color: #bff6ff;
 }
 .unified-hex-node.available .unified-hex-face { background: radial-gradient(circle, #21485b, #10202c 75%); }
-.unified-hex-node.locked { color: #7d9299; opacity: .84; }
+.unified-hex-node.locked { color: #a2b2bc; opacity: .94; }
 .unified-hex-node.choice-sealed { color: #a97d83; background: #63424a; }
 .unified-hex-node.selected { z-index: 2; background: linear-gradient(145deg, #fff8df, #ffe0a0, #fff4cc); filter: drop-shadow(0 0 4px #ffd98b); }
-.unified-hex-node.dimmed:not(.selected) { opacity: .28; }
+/* 「習得可」フィルター中も未習得/習得済みの形を識別できる濃さにする。 */
+.unified-hex-node.dimmed:not(.selected) { opacity: .48; }
 .unified-hex-node:focus-visible { outline: 2px solid #e6d4a4; outline-offset: 3px; z-index: 3; }
 .unified-hex-choice {
   position: absolute;
