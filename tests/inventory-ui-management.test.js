@@ -109,7 +109,7 @@ test("価値あり装備は一括選択不可、個別選択と明示確認で�
  ids.inventoryManageRow.children.find(e=>e.textContent==="保護・貴重").click();
  ids.btnInventoryDisassemble.click();
  assert.equal(ids.inventoryBulkRow.children.find(e=>e.textContent.startsWith("安全候補すべて")).disabled,true);
- const high=descend(ids.inventoryBody,x=>x.className==="skill-row selectable"&&
+ const high=descend(ids.inventoryBody,x=>x.className.includes("skill-row")&&x.className.includes("selectable")&&
    x.children.some(ch=>ch.className==="skill-row-name"&&ch.textContent.startsWith("high-")))[0];
  assert.ok(high);high.click();
  const chosen=vm.runInContext("[...disassembleSelection]",c);assert.equal(chosen.length,1);
