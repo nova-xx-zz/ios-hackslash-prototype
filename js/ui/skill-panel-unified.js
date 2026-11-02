@@ -119,7 +119,7 @@ function buildUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
   const toolbar = document.createElement("div");
   toolbar.className = "unified-toolbar";
   toolbar.setAttribute("role", "group");
-  toolbar.setAttribute("aria-label", "スキルパネルの表示切替");
+  toolbar.setAttribute("aria-label", "スキルパネルの表示範囲");
   const filters = document.createElement("div");
   filters.className = "unified-filters";
   for (const [key, label] of UNIFIED_FILTERS) {
@@ -137,20 +137,6 @@ function buildUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
     filters.appendChild(button);
   }
   toolbar.appendChild(filters);
-  const legacy = document.createElement("button");
-  legacy.type = "button";
-  legacy.className = "unified-legacy";
-  legacy.textContent = "旧盤面";
-  legacy.setAttribute("aria-label", "従来の紋章盤に戻る");
-  legacy.addEventListener("click", () => {
-    setUnifiedBoardModeForJob(c.job, "crest");
-    warriorFocusScope = "exclusive";
-    treeSwapConfirm = null;
-    treeSelectedNode = null;
-    resetWarriorWebView();
-    renderCharDetail();
-  });
-  toolbar.appendChild(legacy);
   wrap.appendChild(toolbar);
 
   const activeEntry = entries.find((entry) => treeSelectedNode &&
