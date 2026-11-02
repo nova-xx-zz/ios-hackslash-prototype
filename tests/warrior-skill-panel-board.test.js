@@ -90,7 +90,7 @@ test("試作は剣士の固有だけ: 既定の紋章盤を保持して六角パ
   assert.equal(findAll(initial, "hex-panel-node").length, 0);
   assert.equal(findAll(initial, "hex-panel-switch").length, 1);
   const modes = findAll(initial, "hex-panel-mode");
-  assert.deepEqual(modes.map((m) => m.textContent), ["紋章盤", "六角パネル"]);
+  assert.deepEqual(modes.map((m) => m.textContent), ["紋章盤", "統合パネル"]);
   modes[1].click();
   assert.equal(calls.renders, 1);
 
