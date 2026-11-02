@@ -925,8 +925,9 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
   const stageArea = document.createElement("div");
   stageArea.className = "crest-stage-area" + (active.scopeKey === "exclusive" ? "" : " crest-stage-area--general");
   // 全ジョブの固有領域で統合盤／従来紋章盤を切り替え可能（比較・復帰用）。
-  if (active.scopeKey === "exclusive" && typeof buildWarriorUnifiedSkillScreen === "function" &&
-      (c.job !== "warrior" || isWarriorCrestWeb(c, active.scopeKey, active.treeDef))) {
+  if (active.scopeKey === "exclusive" &&
+      (c.job === "warrior" ? isWarriorCrestWeb(c, active.scopeKey, active.treeDef) :
+        typeof buildWarriorUnifiedSkillScreen === "function")) {
     const modeSwitch = document.createElement("div");
     modeSwitch.className = "hex-panel-switch";
     modeSwitch.setAttribute("role", "group");
