@@ -1463,7 +1463,7 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   iconAura.className = "tree-web-node-aura";
   icon.appendChild(iconAura);
   icon.appendChild(createWarriorNodeFrame(shape));
-  const detailGlyph = c.job === "warrior" && warriorBoardMode === "hex" &&
+  const detailGlyph = unifiedBoardModeForJob(c.job) === "hex" &&
     typeof unifiedSkillIconForNode === "function" ?
       unifiedSkillIconForNode(node) : (layout ? layout.glyph : "blade");
   icon.appendChild(createWarriorCrestGlyph(detailGlyph));
