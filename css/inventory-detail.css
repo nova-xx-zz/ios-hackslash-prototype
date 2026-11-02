@@ -1,0 +1,85 @@
+/* 所持品一覧の情報ボタン・詳細モーダル。既存の他画面には影響させない。 */
+#screen-inventory .inventory-item-row {
+  gap: 5px;
+  padding: 8px 7px;
+}
+#screen-inventory .inventory-item-row .skill-row-name {
+  min-width: 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+#screen-inventory .inventory-info-button {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid rgba(199, 170, 108, .7);
+  border-radius: 8px;
+  background: rgba(16, 35, 43, .9);
+  color: #e8d19b;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#screen-inventory .inventory-info-button:focus-visible {
+  outline: 2px solid #ffe4a8;
+  outline-offset: 2px;
+}
+#screen-inventory .inventory-item-row .lock-chip {
+  margin-right: 0;
+  min-width: 34px;
+  padding: 5px 3px;
+}
+#screen-inventory .inventory-item-row .inventory-enhance-button {
+  padding: 6px 7px;
+  white-space: nowrap;
+}
+.inventory-detail-card {
+  max-width: 380px;
+  padding: 15px 14px 14px;
+  border-color: rgba(201, 164, 99, .65);
+}
+.inventory-detail-heading {
+  text-align: center;
+  color: #d9bd84;
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+.inventory-detail-card .modal-name {
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.inventory-detail-stats {
+  gap: 0;
+  padding: 5px 10px;
+}
+.inventory-detail-field {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(201,164,99,.15);
+}
+.inventory-detail-field:last-child { border-bottom: 0; }
+.inventory-detail-key {
+  flex: 0 0 86px;
+  color: #b6b6ad;
+}
+.inventory-detail-value {
+  min-width: 0;
+  flex: 1;
+  color: #f1e3c3;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 370px) {
+  #screen-inventory .inventory-item-row { gap: 4px; padding: 7px 5px; }
+  #screen-inventory .inventory-item-row .inventory-enhance-button { padding: 6px 4px; font-size: 10px; }
+  #screen-inventory .inventory-info-button { flex-basis: 30px; width: 30px; }
+  .inventory-detail-key { flex-basis: 73px; }
+}
