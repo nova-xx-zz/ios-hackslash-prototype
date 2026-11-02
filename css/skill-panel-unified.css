@@ -1,4 +1,4 @@
-/* 剣士の統合スキルパネル。CSSは全てunified-以下に閉じて他職・旧盤面を保護する。 */
+/* 全ジョブ共通の統合スキルパネル。CSSはunified-以下に閉じて旧盤面を保護する。 */
 .unified-skill-screen { min-height: 0; }
 .unified-skill-screen .crest-screen-head { margin-bottom: 5px; }
 .unified-toolbar {

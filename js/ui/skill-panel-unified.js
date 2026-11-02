@@ -1,4 +1,4 @@
-// 剣士向け統合スキルパネル試作。保存・SP・排他・覚醒実績には一切触れない。
+// 全ジョブ共通の統合スキルパネル。保存・SP・排他・覚醒実績には一切触れない。
 // detail-tree.js / skill-panel-board.js の後に読み込む。
 "use strict";
 
@@ -104,7 +104,7 @@ function unifiedSkillEntries(c, exclusiveTree, st) {
 }
 
 // 1画面の中で系統を切り替えても「別画面」には遷移しない。全体では全4系統を表示。
-function buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
+function buildUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
   const entries = unifiedSkillEntries(c, exclusiveTree, st);
   const wrap = document.createElement("div");
   wrap.className = "tree-tab tree-tab--crest unified-skill-screen";
@@ -143,7 +143,7 @@ function buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
   legacy.textContent = "旧盤面";
   legacy.setAttribute("aria-label", "従来の紋章盤に戻る");
   legacy.addEventListener("click", () => {
-    warriorBoardMode = "crest";
+    setUnifiedBoardModeForJob(c.job, "crest");
     warriorFocusScope = "exclusive";
     treeSwapConfirm = null;
     treeSelectedNode = null;
@@ -157,7 +157,11 @@ function buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
     entry.scopeKey === treeSelectedNode.scope &&
     entry.treeDef.nodes.some((node) => node.id === treeSelectedNode.nodeId));
   if (!activeEntry) {
-    const initial = exclusiveTree.nodes.find((node) => node.id === "w3") || exclusiveTree.nodes[0];
+    // 戦士の初期選択は維持。他職は既に習得した技→最初の技→先頭ノードの順。
+    const initial = c.job === "warrior"
+      ? (exclusiveTree.nodes.find((node) => node.id === "w3") || exclusiveTree.nodes[0])
+      : (exclusiveTree.nodes.find((node) => node.kind === "active" && (st.exclusiveRanks[node.id] || 0) > 0) ||
+         exclusiveTree.nodes.find((node) => node.kind === "active") || exclusiveTree.nodes[0]);
     treeSelectedNode = initial ? {scope:"exclusive", nodeId:initial.id} : null;
   }
 
@@ -264,7 +268,9 @@ function buildUnifiedSkillZone(c, entry) {
   const rows = document.createElement("div");
   rows.className = "unified-hex-rows";
   const nodes = entry.treeDef.nodes;
-  const groups = entry.scopeKey === "exclusive" ? [4, 5, 4, 4] : [3, 3];
+  // 現在の7系統は各17ノード。将来スキル数が増減しても欠落させない。
+  const groups = entry.scopeKey === "exclusive"
+    ? [4, 5, 4, 4] : [3, 3];
   let offset = 0;
   for (const count of groups) {
     const row = document.createElement("div");
