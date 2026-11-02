@@ -31,6 +31,53 @@ function unifiedSkillIconForNode(node) {
   return "body";
 }
 
+
+// 六角形内の約24px表示に特化した、6分類の輪郭を判別しやすい専用SVG。
+// 元の紋章盤・詳細画面で使う WARRIOR_CREST_GLYPHS は変更しない。
+const UNIFIED_ICON_PATHS = Object.freeze({
+  blade: [
+    ["solid", "M11 20L23 8l6-5-5 8-12 12Z"],
+    ["line", "M7 17l8 8M10 22l-5 5M3.5 27.5l2 2"],
+  ],
+  body: [
+    ["solid", "M11.5 8a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0"],
+    ["solid", "M7 28v-5c0-6 3.5-9 9-9s9 3 9 9v5Z"],
+  ],
+  tower: [
+    ["line", "M16 3 27 7v8c0 6.8-4.5 11.2-11 14C9.5 26.2 5 21.8 5 15V7Z"],
+    ["line", "M16 7v17M8 12h16"],
+  ],
+  foot: [
+    ["solid", "M11 3h9v13l6 6v5H4v-5l8-5Z"],
+    ["detail", "M11 12h9M5 24h20"],
+  ],
+  arm: [
+    ["solid", "M4.5 28 8 17l5-4 4 3 4-5 4 1-2 8-6.5 7.5L11 29Z"],
+    ["detail", "M11 21l5 2M20 15l3 1"],
+  ],
+  staff: [
+    ["solid", "M15 8a5 5 0 1 0 10 0a5 5 0 1 0-10 0"],
+    ["line", "M17 13 9 29M12 26l-4-1M5 7l5 2M25 15l4 3"],
+  ],
+});
+
+function createUnifiedSkillGlyph(kind) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.classList.add("tree-web-glyph");
+  svg.classList.add("unified-icon-glyph");
+  svg.setAttribute("viewBox", "0 0 32 32");
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("aria-hidden", "true");
+  for (const [style, d] of UNIFIED_ICON_PATHS[kind] || UNIFIED_ICON_PATHS.blade) {
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "unified-icon-" + style);
+    svg.appendChild(path);
+  }
+  return svg;
+}
+
 function unifiedSkillEntries(c, exclusiveTree, st) {
   const entries = [{
     scopeKey: "exclusive", label: jobDef(c).name + "固有",
@@ -259,7 +306,7 @@ function buildUnifiedSkillNode(c, entry, node) {
   button.title = node.name;
   const face = document.createElement("span");
   face.className = "unified-hex-face";
-  face.appendChild(createWarriorCrestGlyph(iconName));
+  face.appendChild(createUnifiedSkillGlyph(iconName));
   button.appendChild(face);
   if (node.exclusiveGroup) {
     const choice = treeChoiceInfo(entry.treeDef, ranks).byNode[node.id];
