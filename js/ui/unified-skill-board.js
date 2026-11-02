@@ -3,6 +3,7 @@
 "use strict";
 let unifiedSkillFocus = "all";
 let unifiedSkillCharKey = null;
+let unifiedSkillFocusPending = false;
 
 const UNIFIED_AREAS = Object.freeze({
   exclusive: { label: "戦士固有", x: 50, y: 59 },
@@ -90,6 +91,7 @@ function buildWarriorUnifiedSkillPanelScreen(c, exclusiveTree, st, total, spent)
   if (charKey !== unifiedSkillCharKey) {
     unifiedSkillCharKey = charKey;
     unifiedSkillFocus = "all";
+    unifiedSkillFocusPending = false;
     treeSelectedNode = null;
     resetWarriorWebView();
   }
@@ -124,7 +126,9 @@ function buildWarriorUnifiedSkillPanelScreen(c, exclusiveTree, st, total, spent)
     btn.addEventListener("click", () => {
       if (unifiedSkillFocus === scope) return;
       unifiedSkillFocus = scope;
+      unifiedSkillFocusPending = true;
       treeSwapConfirm = null;
+      resetWarriorWebView();
       renderCharDetail();
     });
     toolbar.appendChild(btn);
@@ -275,7 +279,12 @@ function buildWarriorUnifiedSkillPanelScreen(c, exclusiveTree, st, total, spent)
   const controls = document.createElement("div");
   controls.className = "tree-web-controls";
   graph.appendChild(controls);
-  attachWarriorWebZoom(viewport, scene, controls);
+  const focusedArea = UNIFIED_AREAS[unifiedSkillFocus];
+  const focus = unifiedSkillFocusPending && focusedArea
+    ? { x: focusedArea.x, y: focusedArea.y, scale: unifiedSkillFocus === "exclusive" ? 1.85 : 2.2 }
+    : null;
+  unifiedSkillFocusPending = false;
+  attachWarriorWebZoom(viewport, scene, controls, focus);
   wrap.appendChild(stage);
 
   const dock = document.createElement("div");
