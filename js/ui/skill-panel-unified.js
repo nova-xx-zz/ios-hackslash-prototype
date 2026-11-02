@@ -11,7 +11,7 @@ const UNIFIED_FILTERS = Object.freeze([
 ]);
 
 // スキルのアイコンは効果の正本から決める。文言や職業名の文字列には依存しない。
-// 物理アクティブ=剣 / 魔法・回復=杖 / HP,MP=体 / DEF,軽減=盾 / SPD=足 / ATK,会心=腕
+// 物理技=剣 / 魔法・回復・魔力強化=杖 / HP=体 / DEF,軽減=盾 / SPD=足 / ATK,会心=腕。MP・MAGも杖
 function unifiedSkillIconForNode(node) {
   if (node.kind === "active" && node.ability) {
     const ability = node.ability;
