@@ -5,9 +5,9 @@
 
 // ---------- 詳細: ツリータブ（固有ツリー1本＋汎用ツリー3枠を分岐図で表示） ----------
 function buildTreeTab(c) {
-  const wrap = document.createElement("div");
   const exclusiveTree = getExclusiveTree(c);
   if (!exclusiveTree) {
+    const wrap = document.createElement("div");
     const none = document.createElement("div");
     none.className = "sub-ability-row";
     none.textContent = "このジョブに対応するスキルツリーがありません";
@@ -15,38 +15,15 @@ function buildTreeTab(c) {
     return wrap;
   }
   const st = getTreeState(c);
-  const total = totalSp(c);
-  const spent = totalSpentSp(c);
-  // 固有ツリーを持つ全職を共通の紋章盤UIに統一。せんしの配置は専用配置を維持する。
-  return buildWarriorCrestScreen(c, exclusiveTree, st, total, spent);
-
-  const head = document.createElement("div");
-  head.className = "detail-section-head";
-  head.innerHTML = `<span>スキルツリー</span><span class="count">SP ${total - spent}/${total}</span>`;
-  wrap.appendChild(head);
-  const resetRow = buildTreeResetRow(c, spent, false);
-  if (resetRow) wrap.appendChild(resetRow);
-
-  wrap.appendChild(buildTreeSection(c, {
-    scopeKey: "exclusive",
-    title: `${exclusiveTree.name}（固有）`,
-    treeDef: exclusiveTree,
-    ranks: st.exclusiveRanks,
-    slotDef: null,
-  }));
-
-  for (const slot of GENERAL_SLOTS) {
-    const slotState = st.general[slot.key];
-    const treeDef = getGeneralTree(slotState.treeId);
-    wrap.appendChild(buildTreeSection(c, {
-      scopeKey: slot.key,
-      title: `${slot.label}: ${treeDef.name}`,
-      treeDef,
-      ranks: slotState.ranks,
-      slotDef: slot,
-    }));
+  const key = c.id + ":" + c.job;
+  if (warriorFocusCharId !== key) {
+    warriorFocusCharId = key;
+    treeSelectedNode = null;
+    treeSwapConfirm = null;
+    warriorUnifiedFilter = "all";
+    resetWarriorWebView();
   }
-  return wrap;
+  return buildUnifiedSkillScreen(c, exclusiveTree, st, totalSp(c), totalSpentSp(c));
 }
 
 // 振り直し（4本ぶんのSPを全部戻す。費用は強化石）。確認2回押し・費用・処理は全職共通。
@@ -145,12 +122,7 @@ function buildTreeSection(c, opts) {
   // 一覧画面は全職共通の紋章盤。せんし固有だけ既存の手配置をそのまま使う。
   section.classList.add("warrior-crest-section");
   if (slotDef) section.appendChild(headRow); // 汎用ツリーの交換操作は残す
-  const isWarriorExclusive = isWarriorCrestWeb(c, scopeKey, treeDef);
-  section.appendChild(isWarriorExclusive
-    ? (warriorBoardMode === "hex" && typeof buildWarriorSkillPanelBoard === "function"
-      ? buildWarriorSkillPanelBoard(c, scopeKey, treeDef, ranks)
-      : buildWarriorWebGraph(c, scopeKey, treeDef, ranks))
-    : buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks));
+  section.appendChild(buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks));
 
   // 選んだマスの詳細。通常はキャラ詳細の下部シート（#detailSheet）に固定して出す
   if (treeSelectedNode && treeSelectedNode.scope === scopeKey) {
@@ -405,27 +377,8 @@ function buildTreeGraph(c, scopeKey, treeDef, ranks) {
 // 盤面は正方形1枚（.tree-web-scene）で、SVG（viewBox 0 0 100 100）とHTML（left/top の%）が同じ座標を共有する。
 // transform は scene にだけ掛ける。scene の font-size を「盤面1単位」にするので、札の文字やノードの大きさも em で盤面と一緒に変わる。
 
-// 専用の4タブ表示状態は一時的なUI値。セーブせず、仲間変更時は固有に戻す。
-let warriorFocusScope = "exclusive";
+// キャラ変更検知は表示専用。一時状態をセーブデータに追加しない。
 let warriorFocusCharId = null;
-// 試作中の表示モード。セーブデータには含めず、初期値は既存の紋章盤を維持する。
-let warriorBoardMode = "crest";
-// 戦士の既存切替状態は保持。他職は最初から統合盤で開き、旧紋章盤にも戻せる。
-// 一時的なUI選択であり、セーブデータには書き込まない。
-const unifiedOtherJobModes = Object.create(null);
-function unifiedBoardModeForJob(job) {
-  return job === "warrior" ? warriorBoardMode : (unifiedOtherJobModes[job] || "hex");
-}
-function setUnifiedBoardModeForJob(job, mode) {
-  if (job === "warrior") warriorBoardMode = mode;
-  else unifiedOtherJobModes[job] = mode;
-}
-
-// せんしだけに適用。同じ固有ツリーを使う「けんごう」・他職・汎用3枠は従来の縦分岐図のまま。
-function isWarriorCrestWeb(c, scopeKey, treeDef) {
-  return !!(c && treeDef) && c.job === "warrior" && scopeKey === "exclusive" &&
-    treeDef.id === "warrior" && treeDef.nodes.every((node) => WARRIOR_WEB_LAYOUT[node.id]);
-}
 
 // 方向（-90°が真上で時計回り）。基礎は剣紋章を囲む中心の環で、ほかの5方向はそこから外へ伸びる。
 // label=札の位置（盤面座標）。外周ノードと重ならない位置に置く。
@@ -847,118 +800,6 @@ function buildUniversalCrestWebGraph(c, scopeKey, treeDef, ranks) {
   }
   wrap.appendChild(legend);
   attachWarriorWebZoom(viewport,scene,controls);
-  return wrap;
-}
-
-// ---------- せんし専用画面の全体（画面固定のUI＋盤面＋下部の詳細） ----------
-function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
-  const wrap = document.createElement("div");
-  wrap.className = "tree-tab tree-tab--crest";
-  // キャラ送りで仲間が変わったら、前の仲間の表示枠・選択ノード・拡大位置を引き継がない。
-  if (warriorFocusCharId !== c.id + ":" + c.job) {
-    warriorFocusCharId = c.id + ":" + c.job;
-    warriorFocusScope = "exclusive";
-    treeSelectedNode = null;
-    resetWarriorWebView();
-    // 異なるジョブへ移動したら前職のフィルター表示を引き継がない。
-    if (typeof warriorUnifiedFilter !== "undefined") warriorUnifiedFilter = "all";
-  }
-  // キャラクター送り／もどるは通常の詳細ヘッダーを共用する（ツリー専用の重複ヘッダーを作らない）。
-
-  // 参考画面の横並び4タブ。固有と汎用3枠のうち1つだけを表示する。
-  const entries = [{
-    scopeKey: "exclusive", label: jobDef(c).name, title: exclusiveTree.name + "（固有）",
-    treeDef: exclusiveTree, ranks: st.exclusiveRanks, slotDef: null,
-  }];
-  GENERAL_SLOTS.forEach((slot, index) => {
-    const slotState = st.general[slot.key];
-    const treeDef = getGeneralTree(slotState.treeId);
-    entries.push({
-      scopeKey: slot.key, label: "汎用" + (["Ⅰ", "Ⅱ", "Ⅲ"][index] || String(index + 1)),
-      title: slot.label + ": " + treeDef.name, treeDef, ranks: slotState.ranks, slotDef: slot,
-    });
-  });
-  // 新しい1枚盤は既存の4系統を一括描画するが、SP・交換・習得処理は分離のまま。
-  // 旧紋章盤は比較用として引き続き表示できる。
-  if (unifiedBoardModeForJob(c.job) === "hex" &&
-      typeof buildUnifiedSkillScreen === "function") {
-    return buildUnifiedSkillScreen(c, exclusiveTree, st, total, spent);
-  }
-  const active = entries.find((entry) => entry.scopeKey === warriorFocusScope) || entries[0];
-  warriorFocusScope = active.scopeKey;
-
-  // 選択中ツリーの名称だけをSP・リセットの左に置く。
-  // 円形盤面上の浮遊バナーは表示せず、操作領域を広く確保する。
-  const head = document.createElement("div");
-  head.className = "detail-section-head crest-screen-head";
-  const bar = buildWarriorCrestScreenHead(total - spent, total, active.treeDef.name);
-  const resetRow = buildTreeResetRow(c, spent, true);
-  if (resetRow) bar.crestActions.appendChild(resetRow);
-  head.appendChild(bar);
-  wrap.appendChild(head);
-  const tabs = document.createElement("div");
-  tabs.className = "crest-focus-tabs";
-  tabs.setAttribute("role", "tablist");
-  for (const entry of entries) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "crest-focus-tab" + (entry.scopeKey === warriorFocusScope ? " active" : "");
-    button.setAttribute("role", "tab");
-    button.setAttribute("aria-selected", String(entry.scopeKey === warriorFocusScope));
-    button.setAttribute("aria-label", entry.title);
-    button.textContent = entry.label;
-    button.addEventListener("click", () => {
-      if (warriorFocusScope === entry.scopeKey) return;
-      warriorFocusScope = entry.scopeKey;
-      treeSelectedNode = null;
-      treeSwapConfirm = null;
-      renderCharDetail();
-    });
-    tabs.appendChild(button);
-  }
-  wrap.appendChild(tabs);
-
-  // 未選択なら、固有は剣撃突き・汎用は先頭ノードの詳細を最初から出す
-  if (!treeSelectedNode || treeSelectedNode.scope !== active.scopeKey ||
-      !active.treeDef.nodes.some((node) => node.id === treeSelectedNode.nodeId)) {
-    const initial = active.scopeKey === "exclusive" && c.job === "warrior"
-      ? active.treeDef.nodes.find((node) => node.id === "w3")
-      : active.treeDef.nodes[0];
-    treeSelectedNode = initial ? { scope: active.scopeKey, nodeId: initial.id } : null;
-  }
-  // 中段: 盤面（汎用は従来の縦分岐図をこの枠の中でスクロール）。下段: 詳細と習得ボタン（画面固定）
-  const stageArea = document.createElement("div");
-  stageArea.className = "crest-stage-area" + (active.scopeKey === "exclusive" ? "" : " crest-stage-area--general");
-  // 戦士は従来の比較操作を維持。その他のジョブは旧盤面から統合盤へ戻る操作を提供。
-  if ((c.job === "warrior" && active.scopeKey === "exclusive" &&
-       isWarriorCrestWeb(c, active.scopeKey, active.treeDef)) ||
-      (c.job !== "warrior" && typeof buildUnifiedSkillScreen === "function")) {
-    const modeSwitch = document.createElement("div");
-    modeSwitch.className = "hex-panel-switch";
-    modeSwitch.setAttribute("role", "group");
-    modeSwitch.setAttribute("aria-label", "スキルツリーの表示形式");
-    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "統合パネル"]]) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "hex-panel-mode" + (unifiedBoardModeForJob(c.job) === mode ? " active" : "");
-      button.textContent = label;
-      button.setAttribute("aria-pressed", String(unifiedBoardModeForJob(c.job) === mode));
-      button.addEventListener("click", () => {
-        if (unifiedBoardModeForJob(c.job) === mode) return;
-        setUnifiedBoardModeForJob(c.job, mode);
-        treeSwapConfirm = null;
-        resetWarriorWebView();
-        renderCharDetail();
-      });
-      modeSwitch.appendChild(button);
-    }
-    wrap.appendChild(modeSwitch); // パネルを覆わないよう、盤面の上の独立した行に置く
-  }
-  const dock = document.createElement("div");
-  dock.className = "crest-inline-detail";
-  stageArea.appendChild(buildTreeSection(c, { ...active, detailHost: dock }));
-  wrap.appendChild(stageArea);
-  wrap.appendChild(dock);
   return wrap;
 }
 
@@ -1433,7 +1274,7 @@ function attachWarriorWebZoom(viewport, scene, controls) {
   } else if (typeof requestAnimationFrame === "function") requestAnimationFrame(refit);
 }
 
-// ---------- 下部の専用詳細パネル（せんしのみ） ----------
+// ---------- 全ジョブ共通の下部スキル詳細 ----------
 function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   const isWarriorLayout = c.job === "warrior" && treeDef.id === "warrior" && WARRIOR_WEB_LAYOUT[node.id];
   const layout = isWarriorLayout ? WARRIOR_WEB_LAYOUT[node.id] : crestGenericLayout(treeDef)[node.id];
@@ -1463,9 +1304,7 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   iconAura.className = "tree-web-node-aura";
   icon.appendChild(iconAura);
   icon.appendChild(createWarriorNodeFrame(shape));
-  const detailGlyph = unifiedBoardModeForJob(c.job) === "hex" &&
-    typeof unifiedSkillIconForNode === "function" ?
-      unifiedSkillIconForNode(node) : (layout ? layout.glyph : "blade");
+  const detailGlyph = unifiedSkillIconForNode(node);
   icon.appendChild(createWarriorCrestGlyph(detailGlyph));
   main.appendChild(icon);
 

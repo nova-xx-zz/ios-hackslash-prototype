@@ -87,15 +87,13 @@ function boot(job = "warrior") {
     renderCharDetail:()=>{calls.render++;},
     scheduleSave:()=>{calls.save++;},
   });
-  for (const name of ["detail-tree.js","skill-panel-board.js","skill-panel-unified.js"]) {
+  for (const name of ["detail-tree.js","skill-panel-unified.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui", name),"utf8"),context,{filename:name});
   }
   const c={id:"a",name:"ロイ",job,level:99,team:null};
   return {context,c,calls,st};
 }
 function showIntegrated(b) {
-  b.context.buildTreeTab(b.c);
-  vm.runInContext('warriorBoardMode="hex"',b.context);
   return b.context.buildTreeTab(b.c);
 }
 
@@ -174,16 +172,18 @@ test("汎用フィルターとツリー交換は既存枠の正本を変更す�
   assert.equal(b.calls.save,1);
 });
 
-test("旧盤面に戻せる。スキル正本、保存形式、覚醒ステータスを変更しない",()=>{
+test("戦士も統合パネルが既定。旧盤面の切替・4タブ・独立CSS/JSはない",()=>{
   const b=boot(),before=JSON.stringify(data.EXCLUSIVE_TREES.warrior);
   const screen=showIntegrated(b);
-  const back=all(screen,"unified-legacy")[0];
-  back.click();
-  const legacy=b.context.buildTreeTab(b.c);
-  assert.equal(all(legacy,"crest-focus-tab").length,4);
-  assert.equal(all(legacy,"unified-zone").length,0);
+  assert.equal(all(screen,"unified-skill-screen").length,1);
+  for (const cls of ["unified-legacy","hex-panel-switch","hex-panel-mode","crest-focus-tab","tree-web-viewport"]) {
+    assert.equal(all(screen,cls).length,0,cls+" を表示しない");
+  }
+  const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+  assert.doesNotMatch(html,/skill-panel-board\.(css|js)/,"旧盤面専用アセットを読み込まない");
   assert.equal(JSON.stringify(data.EXCLUSIVE_TREES.warrior),before);
   assert.equal(Object.hasOwn(b.st,"awakeningTier"),false);
+  assert.equal(b.calls.save,0,"描画だけでセーブしない");
 });
 
 
@@ -256,8 +256,8 @@ test("全13ジョブで統合盤を初期表示し、固有17＋汎用18＋覚�
   for(const job of jobs) {
     const b=boot(job.id);
     const original=JSON.stringify(data.EXCLUSIVE_TREES[data.jobTag(job.id)]);
-    // 戦士は以前の検証フローを保ち、旧盤面から切替。ほか12職は初期表示。
-    const root=job.id === "warrior" ? showIntegrated(b) : b.context.buildTreeTab(b.c);
+    // 13職すべての最初の表示が同じ統合パネル。
+    const root=b.context.buildTreeTab(b.c);
     assert.equal(all(root,"unified-skill-screen").length,1,job.id+" 統合盤");
     assert.equal(all(root,"unified-zone").length,4,job.id+" 固有＋汎用3");
     const nodes=all(root,"unified-hex-node");
@@ -272,7 +272,7 @@ test("全13ジョブで統合盤を初期表示し、固有17＋汎用18＋覚�
   }
 });
 
-test("魔法使い・僧侶・盗賊・剣豪・巡礼剣士で選択/習得/旧盤面への切替と復帰",()=>{
+test("魔法使い・僧侶・盗賊・剣豪・巡礼剣士で選択/習得後も統合盤だけを表示",()=>{
   for(const id of ["mage","priest","thief","swordmaster","pilgrim"]){
     const b=boot(id);
     let root=b.context.buildTreeTab(b.c);
@@ -292,15 +292,9 @@ test("魔法使い・僧侶・盗賊・剣豪・巡礼剣士で選択/習得/旧
     assert.equal(b.st.exclusiveRanks[tree.nodes[0].id],1,id+" 固有スキル習得");
     assert.equal(b.calls.save,1,id+" 習得を保存");
     root=b.context.buildTreeTab(b.c);
-    all(root,"unified-legacy")[0].click();
-    root=b.context.buildTreeTab(b.c);
-    assert.equal(all(root,"crest-focus-tab").length,4,id+" 旧盤面も利用可");
-    assert.equal(all(root,"unified-zone").length,0);
-    const toNew=all(root,"hex-panel-mode").find(n=>n.textContent==="統合パネル");
-    assert.ok(toNew,id+" 統合へ戻るボタン");
-    toNew.click();
-    root=b.context.buildTreeTab(b.c);
-    assert.equal(all(root,"unified-zone").length,4,id+" 統合盤に復帰");
+    assert.equal(all(root,"unified-zone").length,4,id+" 習得後も統合盤");
+    assert.equal(all(root,"unified-legacy").length,0,id+" 旧盤面への入口を作らない");
+    assert.equal(all(root,"crest-focus-tab").length,0,id+" 4タブを表示しない");
   }
 });
 
@@ -346,7 +340,7 @@ test("キャラ送りで前職の選択ノードと表示フィルターを引�
 test("全13職の下部スキル詳細も統合盤と同じ6分類のアイコンを表示",()=>{
   for (const job of Object.values(data.JOBS).filter(j=>["basic","advanced","special"].includes(j.tier))) {
     const b=boot(job.id);
-    const screen=job.id==="warrior" ? showIntegrated(b) : b.context.buildTreeTab(b.c);
+    const screen=b.context.buildTreeTab(b.c);
     const tree=data.EXCLUSIVE_TREES[data.jobTag(job.id)];
     const node=tree.nodes.find(n=>n.id===b.context.treeSelectedNode.nodeId);
     assert.ok(node,job.id+" 選択中スキル");
@@ -358,5 +352,30 @@ test("全13職の下部スキル詳細も統合盤と同じ6分類のアイコ�
     const expected=b.context.createWarriorCrestGlyph(kind);
     assert.equal(glyph.children.map(p=>p.attrs.d).join("|"),
       expected.children.map(p=>p.attrs.d).join("|"),job.id+" の"+kind+"詳細アイコン");
+  }
+});
+
+test("キャラ送りで13職とも選択状態と表示フィルターを初期化し、習得状態は保持",()=>{
+  const b=boot("warrior");
+  const st=JSON.stringify(b.st);
+  let screen=b.context.buildTreeTab(b.c);
+  all(screen,"unified-filter").find(n=>n.textContent==="汎Ⅱ").click();
+  screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"unified-zone").length,1);
+  b.c={...b.c,id:"different-id"};
+  screen=b.context.buildTreeTab(b.c);
+  assert.equal(all(screen,"unified-zone").length,4);
+  assert.equal(b.context.treeSelectedNode.nodeId,"w3");
+  assert.equal(JSON.stringify(b.st),st);
+  assert.equal(b.calls.save,0);
+});
+
+test("全13職に旧盤面を再表示する導線や4タブが存在しない",()=>{
+  for(const job of Object.values(data.JOBS).filter(j=>["basic","advanced","special"].includes(j.tier))){
+    const b=boot(job.id),screen=b.context.buildTreeTab(b.c);
+    assert.equal(all(screen,"unified-skill-screen").length,1,job.id);
+    assert.equal(all(screen,"unified-legacy").length,0,job.id);
+    assert.equal(all(screen,"hex-panel-switch").length,0,job.id);
+    assert.equal(all(screen,"crest-focus-tab").length,0,job.id);
   }
 });
