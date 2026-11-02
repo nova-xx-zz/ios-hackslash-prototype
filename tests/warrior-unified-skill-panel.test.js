@@ -341,3 +341,22 @@ test("キャラ送りで前職の選択ノードと表示フィルターを引�
   assert.ok(priestTree.nodes.some(n=>n.id===b.context.treeSelectedNode.nodeId),
     "別職のノードを自動選択");
 });
+
+
+test("全13職の下部スキル詳細も統合盤と同じ6分類のアイコンを表示",()=>{
+  for (const job of Object.values(data.JOBS).filter(j=>["basic","advanced","special"].includes(j.tier))) {
+    const b=boot(job.id);
+    const screen=job.id==="warrior" ? showIntegrated(b) : b.context.buildTreeTab(b.c);
+    const tree=data.EXCLUSIVE_TREES[data.jobTag(job.id)];
+    const node=tree.nodes.find(n=>n.id===b.context.treeSelectedNode.nodeId);
+    assert.ok(node,job.id+" 選択中スキル");
+    const kind=b.context.unifiedSkillIconForNode(node);
+    const detail=all(screen,"crest-detail-icon")[0];
+    assert.ok(detail,job.id+" 詳細カード");
+    const glyph=all(detail,"tree-web-glyph")[0];
+    assert.ok(glyph,job.id+" 詳細アイコン");
+    const expected=b.context.createWarriorCrestGlyph(kind);
+    assert.equal(glyph.children.map(p=>p.attrs.d).join("|"),
+      expected.children.map(p=>p.attrs.d).join("|"),job.id+" の"+kind+"詳細アイコン");
+  }
+});
