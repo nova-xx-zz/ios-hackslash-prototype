@@ -85,7 +85,7 @@ function setup(ranks = { w1: 1 }, options = {}) {
   return { context, calls, state, hero };
 }
 
-test("試作は剣士の固有だけ: 既定の紋章盤を保持して六角パネルへ切り替えられる", () => {
+test("汎用枠を省いたテスト環境でも旧紋章盤へフォールバックし六角パネルに切り替えられる", () => {
   const { context, calls, hero } = setup();
   const initial = context.buildTreeTab(hero);
   assert.equal(findAll(initial, "tree-web-node").length, 17);
@@ -181,9 +181,8 @@ test("統合モード: 固有17 + 汎用3系統各6スキルを単一盤面に�
   ]));
   const { context, hero, state, calls } = setup({w1:1,w2:1,w3:1}, {slots, general});
   const original = JSON.stringify(state);
-  context.buildTreeTab(hero);
-  vm.runInContext('warriorBoardMode = "integrated"',context);
   const view = context.buildTreeTab(hero);
+  assert.equal(vm.runInContext("warriorBoardMode", context), "integrated", "初期表示は統合パネル");
   assert.equal(findAll(view, "crest-focus-tabs").length, 0, "旧4タブを統合モードでは作らない");
   assert.equal(findAll(view, "unified-skill-board").length, 1);
   assert.equal(findAll(view, "unified-skill-node").length, 35, "17+6+6+6のスキル");
