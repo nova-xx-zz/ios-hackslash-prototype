@@ -236,12 +236,12 @@ test("分岐のチップは六角形背景のクリップを受けず表示で�
     child.className === "unified-hex-choice")), "チップは選択可能ボタンの子要素のまま");
   assert.equal(all(screen, "unified-hex-choice").length, choiceNodes.length);
   const css = fs.readFileSync(path.join(__dirname, "../css/skill-panel-unified.css"), "utf8");
-  const buttonRule = css.match(/\\.unified-hex-node\\s*\\{([^}]*)\\}/);
+  const buttonRule = css.match(/\.unified-hex-node\s*\{([^}]*)\}/);
   assert.ok(buttonRule);
   assert.doesNotMatch(buttonRule[1], /clip-path/, "ボタン全体を六角で切り抜かない");
-  assert.match(css, /\\.unified-hex-node::before\\s*\\{[^}]*clip-path:/,
+  assert.match(css, /\.unified-hex-node::before\s*\{[^}]*clip-path:/,
     "六角形背景だけを切り抜く");
-  assert.match(css, /\\.unified-hex-node\\.choice-node:not\\(\\.selected\\)\\s*\\{ z-index: 3;/,
+  assert.match(css, /\.unified-hex-node\.choice-node:not\(\.selected\)\s*\{ z-index: 3;/,
     "他ノードより分岐チップを前面表示");
   const first = choiceNodes[0];
   first.click();
