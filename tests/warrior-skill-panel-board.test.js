@@ -39,9 +39,9 @@ function findAll(root, className) {
   visit(root);
   return out;
 }
-function setup(ranks = { w1: 1 }) {
+function setup(ranks = { w1: 1 }, options = {}) {
   const calls = { renders: 0, saves: 0 };
-  const state = { exclusiveRanks: { ...ranks }, general: {} };
+  const state = { exclusiveRanks: { ...ranks }, general: options.general || {} };
   const context = vm.createContext({
     document: {
       createElement: (tag) => new Element(tag),
@@ -54,7 +54,9 @@ function setup(ranks = { w1: 1 }) {
     getExclusiveTree: () => data.EXCLUSIVE_TREES.warrior,
     getTreeState: () => state,
     jobDef: (c) => ({ name: c.job === "warrior" ? "剣士" : "剣豪" }),
-    GENERAL_SLOTS: [],
+    GENERAL_SLOTS: options.slots || [],
+    getGeneralTree: (id) => data.GENERAL_TREES[id],
+    swapGeneralSlot: (_c, key) => { calls.swapped = key; },
     totalSp: () => 100,
     totalSpentSp: () => Object.values(state.exclusiveRanks).filter(Boolean).length,
     canAcquireNode: (c, tree, current, node) => {
@@ -75,7 +77,7 @@ function setup(ranks = { w1: 1 }) {
     confirmReady: () => true,
     armConfirm: () => {},
   });
-  for (const file of ["detail-tree.js", "skill-panel-board.js"]) {
+  for (const file of ["detail-tree.js", "skill-panel-board.js", "unified-skill-panel.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/ui", file), "utf8"),
       context, { filename: file });
   }
@@ -90,8 +92,8 @@ test("試作は剣士の固有だけ: 既定の紋章盤を保持して六角パ
   assert.equal(findAll(initial, "hex-panel-node").length, 0);
   assert.equal(findAll(initial, "hex-panel-switch").length, 1);
   const modes = findAll(initial, "hex-panel-mode");
-  assert.deepEqual(modes.map((m) => m.textContent), ["紋章盤", "六角パネル"]);
-  modes[1].click();
+  assert.deepEqual(modes.map((m) => m.textContent), ["統合", "紋章盤", "六角パネル"]);
+  modes[2].click();
   assert.equal(calls.renders, 1);
 
   const preview = context.buildTreeTab(hero);
@@ -110,7 +112,7 @@ test("試作は剣士の固有だけ: 既定の紋章盤を保持して六角パ
   assert.equal(findAll(preview, "tree-web-control").length, 3, "拡大・縮小・全体表示を維持");
   assert.equal(findAll(preview, "crest-inline-detail").length, 1, "下部の詳細と習得ボタンを維持");
 
-  findAll(preview, "hex-panel-mode")[0].click();
+  findAll(preview, "hex-panel-mode")[1].click();
   assert.equal(findAll(context.buildTreeTab(hero), "tree-web-node").length, 17);
 });
 
@@ -156,4 +158,47 @@ test("試作の読み込みとデザインを分離し、非対応職には切�
   const other = context.buildTreeTab({ ...hero, job: "swordmaster" });
   assert.equal(findAll(other, "hex-panel-switch").length, 0);
   assert.equal(findAll(other, "hex-panel-node").length, 0);
+});
+
+
+test("アイコン分類: 技=剣、魔法=杖、ステータスは体・盾・足・腕", () => {
+  const { context } = setup();
+  const get = (id, node) => data.GENERAL_TREES[id].nodes.find(n => n.id === node);
+  const icon = (node) => context.unifiedSkillIconName(node);
+  assert.equal(icon(data.EXCLUSIVE_TREES.warrior.nodes.find(n => n.id === "w3")), "sword");
+  assert.equal(icon(data.EXCLUSIVE_TREES.warrior.nodes.find(n => n.id === "w1")), "arm");
+  assert.equal(icon(data.EXCLUSIVE_TREES.warrior.nodes.find(n => n.id === "w4a")), "shield");
+  assert.equal(icon(get("defense", "gd2b")), "body");
+  assert.equal(icon(get("speed", "gs1")), "foot");
+  assert.equal(icon(get("arcane", "ga1")), "staff");
+  assert.equal(icon({kind:"active",ability:{kind:"magic"}}), "staff");
+});
+
+test("統合モード: 固有17 + 汎用3系統各6スキルを単一盤面に表示、既存状態は変更しない", () => {
+  const slots = data.GENERAL_SLOTS;
+  const general = Object.fromEntries(slots.map(slot => [
+    slot.key, { treeId: slot.defaultTreeId, ranks: {} }
+  ]));
+  const { context, hero, state, calls } = setup({w1:1,w2:1,w3:1}, {slots, general});
+  const original = JSON.stringify(state);
+  context.buildTreeTab(hero);
+  vm.runInContext('warriorBoardMode = "integrated"',context);
+  const view = context.buildTreeTab(hero);
+  assert.equal(findAll(view, "crest-focus-tabs").length, 0, "旧4タブを統合モードでは作らない");
+  assert.equal(findAll(view, "unified-skill-board").length, 1);
+  assert.equal(findAll(view, "unified-skill-node").length, 35, "17+6+6+6のスキル");
+  assert.equal(findAll(view, "unified-awakening-stamp").length, 3, "Ⅰ〜Ⅲの予約表示");
+  assert.equal(findAll(view, "unified-slot-swap").length, 3, "汎用ツリー交換への導線を維持");
+  assert.equal(findAll(view, "crest-inline-detail").length, 1, "詳細は画面下部のまま");
+  assert.equal(findAll(view, "tree-web-control").length, 3, "ズーム操作を維持");
+  const generalNode = findAll(view, "unified-skill-node").find(n=>n.title==="会心の芽生え");
+  assert.ok(generalNode);
+  generalNode.click();
+  assert.equal(context.treeSelectedNode.scope,"slot1");
+  assert.equal(context.treeSelectedNode.nodeId,"go1");
+  const selectedView = context.buildTreeTab(hero);
+  assert.equal(findAll(selectedView, "unified-skill-node").filter(n=>n.className.includes("selected")).length,1);
+  assert.equal(findAll(selectedView, "warrior-crest-detail").length,1);
+  assert.equal(JSON.stringify(state), original, "表示・選択では保存データを変更しない");
+  assert.ok(calls.renders>0);
 });
