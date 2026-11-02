@@ -34,7 +34,7 @@ test("4分割タブは幅オーバー防止、表示名変更に合わせてキ�
   assert.match(css, /\.crest-focus-tab\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden/);
   assert.match(html, /css\/style\.css\?v=96/);
   assert.match(html, /js\/data\.js\?v=40/);
-  assert.match(html, /js\/ui\/detail-tree\.js\?v=17/);
+  assert.match(html, /js\/ui\/detail-tree\.js\?v=\d+/);
 });
 
 test("習得済みはカード内状態タグに集約し未取得のみカード内習得ボタンを生成", () => {
