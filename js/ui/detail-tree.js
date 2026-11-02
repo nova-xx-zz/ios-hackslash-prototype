@@ -841,6 +841,11 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     treeSelectedNode = null;
     resetWarriorWebView();
   }
+  // 統合パネルモードでは固有＋汎用を同じ盤面に描画。旧紋章盤は比較用に残す。
+  if (c.job === "warrior" && warriorBoardMode === "hex" &&
+      typeof buildWarriorUnifiedSkillPanelScreen === "function") {
+    return buildWarriorUnifiedSkillPanelScreen(c, exclusiveTree, st, total, spent);
+  }
   // キャラクター送り／もどるは通常の詳細ヘッダーを共用する（ツリー専用の重複ヘッダーを作らない）。
 
   // 参考画面の横並び4タブ。固有と汎用3枠のうち1つだけを表示する。
@@ -908,7 +913,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     modeSwitch.className = "hex-panel-switch";
     modeSwitch.setAttribute("role", "group");
     modeSwitch.setAttribute("aria-label", "スキルツリーの表示形式");
-    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "六角パネル"]]) {
+    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "統合パネル"]]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "hex-panel-mode" + (warriorBoardMode === mode ? " active" : "");
