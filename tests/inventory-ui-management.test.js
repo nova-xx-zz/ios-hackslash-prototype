@@ -253,7 +253,7 @@ test("装備分解の選択中・ロック中もⓘを押せ、選択や分解�
  c.openInventoryScreen({disassemble:true});
  const selectionBefore=vm.runInContext("disassembleSelection.size",c);
  let stopped=false;
- const row=descend(ids.inventoryBody,n=>n.className.includes("skill-row selectable"))[0];
+ const row=descend(ids.inventoryBody,n=>n.className.includes("selectable") && n.className.includes("skill-row"))[0];
  const info=row.children.find(n=>n.className==="inventory-info-button");
  assert.ok(info);
  info.listeners.click({stopPropagation:()=>{stopped=true;}});
@@ -262,7 +262,7 @@ test("装備分解の選択中・ロック中もⓘを押せ、選択や分解�
  assert.equal(vm.runInContext("disassembleSelection.size",c),selectionBefore);
  assert.equal(state.inventory.length,34);
  ids.btnInventoryDetailClose.click();
- const locked=descend(ids.inventoryBody,n=>n.className==="skill-row locked")[0];
+ const locked=descend(ids.inventoryBody,n=>n.className.includes("skill-row") && n.className.includes("locked"))[0];
  assert.ok(locked.children.some(n=>n.className==="inventory-info-button"),"ロック中も詳細を見られる");
  assert.equal(x.saved,0);
 });
