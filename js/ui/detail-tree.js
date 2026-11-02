@@ -565,6 +565,16 @@ const WARRIOR_CREST_GLYPHS = {
   ultimate: ["M7.5 24.5L24 8l2.5-2.5-.6 3.1-16.4 16.4", "M24.5 24.5L8 8 5.5 5.5l.6 3.1 16.4 16.4", "M9.5 19.5l3 3M22.5 19.5l-3 3", warriorGlyphCircle(6.2, 25.8, 1.6), warriorGlyphCircle(25.8, 25.8, 1.6), "M16 11.5l1.6 3 3.2.4-2.3 2.2.6 3.2-3.1-1.6-3.1 1.6.6-3.2-2.3-2.2 3.2-.4Z"],
   ring: [warriorGlyphCircle(16, 19.5, 7.5), warriorGlyphCircle(16, 19.5, 4.4), "M12.5 9.5L16 5l3.5 4.5L16 12.2Z"],
   amulet: ["M8 3.5q8 9 16 0", "M16 10.5l6.5 5.5-3 9.5h-7l-3-9.5Z", "M9.5 16h13", "M16 10.5l-2.6 5.5 2.6 9.5 2.6-9.5Z"],
+  // 統合パネル専用: 体(HP/MP)、腕(ATK/会心)、足(SPD)、杖(魔法・回復)。
+  // 盾は既存tower、剣は既存bladeを再利用する。
+  body: ["M12 5.5Q16 3 20 5.5L23.5 10.5L27 13l-3 6-3-2v11H11V17l-3 2-3-6 3.5-2.5Z",
+    "M12 5.5L16 10l4-4.5M16 10v14", "M11 17h10"],
+  arm: ["M5 26L9 14l5-3 3 3 4-5 4 2-4 8-5 5-2 4Z",
+    "M10 15l-1-5 3-2 3 2M19 15l2-10 4 1-1 7", "M13 20l5 1"],
+  foot: ["M12 4h8l1 10 4 7 2 4v3H6v-5l8-4-2-7Z",
+    "M12 11h9M8 25h18M14 19l4 4"],
+  staff: ["M18 6L11 28", "M13 12l5-7 5 2-2 7-5 2Z",
+    "M7 16l3-3M21 20l4-2M8 7l2 3", "M15 7l3 3M18 6l-5 1"],
   lock: ["M9 15h14v11.5H9Z", "M12 15v-3.5a4 4 0 0 1 8 0V15", "M16 19.5v3"],
   seal: ["M9 15h14v11.5H9Z", "M12 15v-3.5a4 4 0 0 1 8 0V15", "M16 19.5v3", "M3.5 5.5l5 4M28.5 5.5l-5 4M3.5 30l5-3.5M28.5 30l-5-3.5"],
   gem: ["M16 3l12 11.5L16 29 4 14.5Z", "M4 14.5h24", "M10 8.8l6 5.7 6-5.7"],
@@ -856,6 +866,12 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
       title: slot.label + ": " + treeDef.name, treeDef, ranks: slotState.ranks, slotDef: slot,
     });
   });
+  // 新しい1枚盤は既存の4系統を一括描画するが、SP・交換・習得処理は分離のまま。
+  // 旧紋章盤は比較用として引き続き表示できる。
+  if (c.job === "warrior" && warriorBoardMode === "hex" &&
+      typeof buildWarriorUnifiedSkillScreen === "function") {
+    return buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent);
+  }
   const active = entries.find((entry) => entry.scopeKey === warriorFocusScope) || entries[0];
   warriorFocusScope = active.scopeKey;
 
@@ -908,7 +924,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
     modeSwitch.className = "hex-panel-switch";
     modeSwitch.setAttribute("role", "group");
     modeSwitch.setAttribute("aria-label", "スキルツリーの表示形式");
-    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "六角パネル"]]) {
+    for (const [mode, label] of [["crest", "紋章盤"], ["hex", "統合パネル"]]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "hex-panel-mode" + (warriorBoardMode === mode ? " active" : "");
@@ -1434,7 +1450,10 @@ function buildWarriorCrestDetail(c, treeDef, ranks, node, panel) {
   iconAura.className = "tree-web-node-aura";
   icon.appendChild(iconAura);
   icon.appendChild(createWarriorNodeFrame(shape));
-  icon.appendChild(createWarriorCrestGlyph(layout ? layout.glyph : "blade"));
+  const detailGlyph = c.job === "warrior" && warriorBoardMode === "hex" &&
+    typeof unifiedSkillIconForNode === "function" ?
+      unifiedSkillIconForNode(node) : (layout ? layout.glyph : "blade");
+  icon.appendChild(createWarriorCrestGlyph(detailGlyph));
   main.appendChild(icon);
 
   const info = document.createElement("div");
