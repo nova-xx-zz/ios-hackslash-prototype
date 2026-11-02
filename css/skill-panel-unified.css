@@ -223,8 +223,8 @@
 .unified-hex-node .unified-icon-glyph {
   display: block;
   box-sizing: border-box;
-  width: 76%;
-  height: 76%;
+  width: calc(76% - 2px);
+  height: calc(76% - 2px);
   flex: none;
   aspect-ratio: 1 / 1;
   overflow: visible;
