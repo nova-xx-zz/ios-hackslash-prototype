@@ -109,7 +109,7 @@ test("価値あり装備は一括選択不可、個別選択と明示確認で�
  ids.inventoryManageRow.children.find(e=>e.textContent==="保護・貴重").click();
  ids.btnInventoryDisassemble.click();
  assert.equal(ids.inventoryBulkRow.children.find(e=>e.textContent.startsWith("安全候補すべて")).disabled,true);
- const high=descend(ids.inventoryBody,x=>x.className==="skill-row selectable"&&
+ const high=descend(ids.inventoryBody,x=>x.className.includes("skill-row")&&x.className.includes("selectable")&&
    x.children.some(ch=>ch.className==="skill-row-name"&&ch.textContent.startsWith("high-")))[0];
  assert.ok(high);high.click();
  const chosen=vm.runInContext("[...disassembleSelection]",c);assert.equal(chosen.length,1);
@@ -210,5 +210,70 @@ test("装備分解・所持品: フィルターはスクロール外、固定の
  assert.ok(section.indexOf('id="inventoryManageRow"')<section.indexOf('id="inventoryBody"'));
  assert.ok(section.indexOf('id="inventoryBulkRow"')>section.indexOf('id="inventoryFilterPopover"'));
  assert.ok(section.indexOf('id="inventoryDisassembleBar"')>section.indexOf('id="inventoryBody"'));
- assert.ok(html.includes('js/ui/inventory.js?v=26'));
+ assert.match(html, /js\/ui\/inventory\.js\?v=\d+/);
+});
+
+test("所持品のⓘで武器詳細を表示し、確認だけでは装備やセーブデータを変更しない",()=>{
+ const x=setup(2),{c,ids,state}=x;
+ const item=state.inventory[0];
+ Object.assign(item,{level:17,plus:4,rarity:"sr",stats:{atk:79,spd:39},
+   options:[{key:"crit",value:0.04}],type:"bow",hands:2});
+ const snapshot=JSON.stringify(state.inventory);
+ c.renderInventoryScreen();
+ const rows=descend(ids.inventoryBody,n=>n.className.includes("inventory-item-row"));
+ assert.ok(rows.length>0);
+ const row=rows.find(n=>n.children.some(ch=>ch.textContent.includes("safe-0")));
+ const info=row.children.find(n=>n.className==="inventory-info-button");
+ const lock=row.children.find(n=>n.className.includes("lock-chip"));
+ const enhance=row.children.find(n=>n.className.includes("inventory-enhance-button"));
+ assert.ok(info&&lock&&enhance,"既存のロック・強化ボタンを維持");
+ assert.equal(info["aria-label"].includes("safe-0"),true);
+ info.click();
+ assert.equal(ids.inventoryDetailModal.className.includes("hidden"),false);
+ assert.equal(ids.inventoryDetailModal["aria-hidden"],"false");
+ assert.match(ids.inventoryDetailName.textContent,/safe-0\+4/);
+ const fields=descend(ids.inventoryDetailStats,n=>n.className==="inventory-detail-field");
+ const asText=fields.map(n=>n.children.map(e=>e.textContent).join(":")).join("\n");
+ assert.match(asText,/レア度/);
+ assert.match(asText,/装備Lv:17/);
+ assert.match(asText,/強化値:\+4/);
+ assert.match(asText,/追加オプション/);
+ assert.match(asText,/保護/);
+ assert.equal(JSON.stringify(state.inventory),snapshot,"閲覧で装備のデータを変更しない");
+ assert.equal(x.saved,0);
+ ids.btnInventoryDetailClose.click();
+ assert.ok(ids.inventoryDetailModal.className.includes("hidden"));
+ info.click();
+ ids.inventoryDetailModal.listeners.click({target:ids.inventoryDetailModal,currentTarget:ids.inventoryDetailModal});
+ assert.ok(ids.inventoryDetailModal.className.includes("hidden"),"背景タップで閉じる");
+});
+
+test("装備分解の選択中・ロック中もⓘを押せ、選択や分解の状態を変えない",()=>{
+ const x=setup(2),{c,ids,state}=x;
+ c.openInventoryScreen({disassemble:true});
+ const selectionBefore=vm.runInContext("disassembleSelection.size",c);
+ let stopped=false;
+ const row=descend(ids.inventoryBody,n=>n.className.includes("selectable") && n.className.includes("skill-row"))[0];
+ const info=row.children.find(n=>n.className==="inventory-info-button");
+ assert.ok(info);
+ info.listeners.click({stopPropagation:()=>{stopped=true;}});
+ assert.equal(stopped,true);
+ assert.equal(ids.inventoryDetailModal.className.includes("hidden"),false);
+ assert.equal(vm.runInContext("disassembleSelection.size",c),selectionBefore);
+ assert.equal(state.inventory.length,34);
+ ids.btnInventoryDetailClose.click();
+ const locked=descend(ids.inventoryBody,n=>n.className.includes("skill-row") && n.className.includes("locked"))[0];
+ assert.ok(locked.children.some(n=>n.className==="inventory-info-button"),"ロック中も詳細を見られる");
+ assert.equal(x.saved,0);
+});
+
+test("所持品詳細には独立した閉じるボタンと読み取り専用のモーダルがある",()=>{
+ const html=fs.readFileSync(path.join(__dirname,"../index.html"),"utf8");
+ assert.match(html,/id="inventoryDetailModal"[^>]*role="dialog"/);
+ assert.match(html,/aria-labelledby="inventoryDetailName"/);
+ assert.match(html,/id="btnInventoryDetailClose"/);
+ assert.match(html,/css\/inventory-detail\.css\?v=\d+/);
+ const css=fs.readFileSync(path.join(__dirname,"../css/inventory-detail.css"),"utf8");
+ assert.match(css,/#screen-inventory \.inventory-info-button/);
+ assert.match(css,/\.inventory-detail-value/);
 });
