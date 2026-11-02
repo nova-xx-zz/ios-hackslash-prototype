@@ -96,6 +96,16 @@ test("試作は剣士の固有だけ: 既定の紋章盤を保持して六角パ
 
   const preview = context.buildTreeTab(hero);
   assert.equal(findAll(preview, "hex-panel-node").length, 17);
+  assert.equal(findAll(preview, "hex-panel-placeholder").length, 27, "周囲のロックは装飾用、実スキルとは分離");
+  assert.equal(findAll(preview, "hex-panel-medallion").length, 17, "全スキルは中央のSVGアイコン");
+  assert.equal(findAll(preview, "hex-panel-mark").length, 0, "大きな漢字を盤面に載せない");
+  assert.equal(findAll(preview, "hex-panel-links").length, 1, "実際の習得前提だけを光路で表現");
+  const slots = [...findAll(preview, "hex-panel-node"), ...findAll(preview, "hex-panel-placeholder")];
+  assert.equal(new Set(slots.map(n => n.style.left + ":" + n.style.top)).size, 44, "全44マスが重複のない位置に収まる");
+  assert.ok(findAll(preview, "hex-panel-placeholder").every(n => n.tagName === "div" && !n.listeners.click),
+    "見た目だけのロックパネルはタップできない");
+  assert.ok(preview.children.includes(findAll(preview, "hex-panel-switch")[0]),
+    "切替ボタンを盤面外の行に配置しパネルとの重なりを防ぐ");
   assert.equal(findAll(preview, "tree-web-node").length, 0);
   assert.equal(findAll(preview, "tree-web-control").length, 3, "拡大・縮小・全体表示を維持");
   assert.equal(findAll(preview, "crest-inline-detail").length, 1, "下部の詳細と習得ボタンを維持");
@@ -139,6 +149,9 @@ test("試作の読み込みとデザインを分離し、非対応職には切�
   const css = fs.readFileSync(path.join(__dirname, "../css/skill-panel-board.css"), "utf8");
   assert.match(css, /\.hex-panel-node\.choice-sealed/);
   assert.match(css, /\.hex-panel-board \.hex-panel-viewport/);
+  assert.match(css, /\.hex-panel-board \.hex-panel-node,/);
+  assert.match(css, /\.hex-panel-board \.hex-panel-placeholder/);
+  assert.doesNotMatch(css, /font:\s*800 max\(2\.8em/, "漢字の巨大表示に使っていたCSSを排除");
   const { context, hero } = setup();
   const other = context.buildTreeTab({ ...hero, job: "swordmaster" });
   assert.equal(findAll(other, "hex-panel-switch").length, 0);
