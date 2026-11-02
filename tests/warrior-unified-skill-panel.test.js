@@ -198,6 +198,12 @@ test("統合パネルの6分類は専用SVGで表示され、小さい画面で�
     assert.ok(svg.children.length >= 2, icon + " は識別可能な複数要素を持つ");
     assert.ok(svg.children.every((path) => path.attrs.d && path.attrs.class.startsWith("unified-icon-")));
   }
+  const armIcon = b.context.createUnifiedSkillGlyph("arm");
+  const staffIcon = b.context.createUnifiedSkillGlyph("staff");
+  assert.equal(armIcon.children.length, 3);
+  assert.ok(armIcon.children.every(p => p.attrs.class === "unified-icon-line"));
+  assert.equal(staffIcon.children.length, 4);
+  assert.equal(staffIcon.children.at(-1).attrs.class, "unified-icon-spark");
   const screen = showIntegrated(b);
   const nodes = all(screen, "unified-hex-node");
   assert.equal(nodes.length, 35);
