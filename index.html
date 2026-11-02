@@ -17,7 +17,7 @@
 <!-- css/js を更新したら ?v= の数字を必ず上げること（GitHub Pages/Safariのキャッシュで更新が反映されない対策） -->
 <link rel="preload" as="image" href="icons/title-guild.jpg">
 <link rel="stylesheet" href="css/style.css?v=96">
-<link rel="stylesheet" href="css/inventory-detail.css?v=1">
+<link rel="stylesheet" href="css/inventory-detail.css?v=2">
 <link rel="stylesheet" href="css/create-unified.css?v=1">
 <link rel="stylesheet" href="css/skill-panel-board.css?v=2">
 <link rel="stylesheet" href="css/skill-panel-unified.css?v=4">
@@ -468,14 +468,37 @@
     </div>
   </nav>
 
-  <!-- 所持品の装備詳細（見るだけ。ロック・強化・分解操作は一覧から） -->
-  <div id="inventoryDetailModal" class="modal-overlay hidden" role="dialog" aria-modal="true"
-    aria-labelledby="inventoryDetailName" aria-hidden="true">
-    <div class="modal-card inventory-detail-card">
-      <div class="inventory-detail-heading">装備の詳細</div>
-      <div class="modal-name" id="inventoryDetailName"></div>
-      <div class="modal-stats inventory-detail-stats" id="inventoryDetailStats"></div>
-      <button type="button" class="btn ghost modal-ok" id="btnInventoryDetailClose">とじる</button>
+  <!-- 所持品のⓘから下から開く鍛冶屋（装備詳細と加工メニュー） -->
+  <div id="inventoryDetailModal" class="modal-overlay inventory-forge-overlay hidden"
+    role="dialog" aria-modal="true" aria-labelledby="inventoryDetailName" aria-hidden="true">
+    <div class="modal-card inventory-detail-card inventory-forge-sheet">
+      <div class="inventory-forge-handle" aria-hidden="true"></div>
+      <div class="inventory-forge-header">
+        <span class="inventory-detail-heading">鍛冶屋 / 装備詳細</span>
+        <button type="button" class="inventory-forge-close" id="btnInventoryDetailClose" aria-label="鍛冶屋を閉じる">×</button>
+      </div>
+      <div class="inventory-forge-scroll">
+        <div class="modal-name" id="inventoryDetailName"></div>
+        <div class="modal-stats inventory-detail-stats" id="inventoryDetailStats"></div>
+      </div>
+      <div class="inventory-forge-actions" aria-label="鍛冶屋の操作">
+        <button type="button" class="inventory-forge-action" id="btnInventoryForgeLock">🔒 ロックする</button>
+        <button type="button" class="inventory-forge-action primary" id="btnInventoryForgeEnhance">⚒ 強化する</button>
+        <button type="button" class="inventory-forge-action danger" id="btnInventoryForgeDisassemble">分解する</button>
+        <button type="button" class="inventory-forge-action" id="btnInventoryForgeOp">OP付与 <span>準備中</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 鍛冶屋の分解確認・将来のOP付与案内。2段目も下から表示 -->
+  <div id="inventoryForgeSubModal" class="modal-overlay inventory-forge-overlay inventory-forge-suboverlay hidden"
+    role="dialog" aria-modal="true" aria-labelledby="inventoryForgeSubTitle" aria-hidden="true">
+    <div class="modal-card inventory-forge-sheet inventory-forge-sub-sheet">
+      <div class="inventory-forge-handle" aria-hidden="true"></div>
+      <div class="inventory-detail-heading" id="inventoryForgeSubTitle"></div>
+      <p class="inventory-forge-sub-desc" id="inventoryForgeSubDesc"></p>
+      <button type="button" class="btn danger" id="btnInventoryForgeSubAction">分解を確定する</button>
+      <button type="button" class="btn ghost" id="btnInventoryForgeSubBack">鍛冶屋へ戻る</button>
     </div>
   </div>
 
@@ -633,7 +656,7 @@
 <script src="js/ui/skill-panel-board.js?v=2"></script>
 <script src="js/ui/skill-panel-unified.js?v=5"></script>
 <script src="js/ui/detail-tabs.js?v=22"></script>
-<script src="js/ui/inventory.js?v=27"></script>
+<script src="js/ui/inventory.js?v=28"></script>
 <script src="js/ui/battle.js?v=8"></script>
 <script src="js/ui/log.js?v=4"></script>
 <script src="js/ui/dock.js?v=18"></script>
