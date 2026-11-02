@@ -170,7 +170,9 @@ function buildWarriorSkillPanelBoard(c, scopeKey, treeDef, ranks) {
       inner.className = "hex-panel-inner";
       const medallion = document.createElement("span");
       medallion.className = "hex-panel-medallion";
-      medallion.appendChild(createWarriorCrestGlyph(sealed ? "seal" : levelLocked ? "lock" : glyphInfo.glyph));
+      medallion.appendChild(sealed || levelLocked || typeof createUnifiedSkillGlyph !== "function"
+        ? createWarriorCrestGlyph(sealed ? "seal" : levelLocked ? "lock" : glyphInfo.glyph)
+        : createUnifiedSkillGlyph(node));
       inner.appendChild(medallion);
       shell.appendChild(inner);
       button.appendChild(shell);
