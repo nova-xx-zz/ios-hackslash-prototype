@@ -1,0 +1,295 @@
+/* 剣士の統合スキルパネル。CSSは全てunified-以下に閉じて他職・旧盤面を保護する。 */
+.unified-skill-screen { min-height: 0; }
+.unified-skill-screen .crest-screen-head { margin-bottom: 5px; }
+.unified-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 2px 0 5px;
+}
+.unified-filters {
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.unified-filters::-webkit-scrollbar { display: none; }
+.unified-filter, .unified-legacy {
+  flex: 0 0 auto;
+  min-height: 31px;
+  padding: 5px 8px;
+  border: 1px solid rgba(204, 173, 107, .38);
+  border-radius: 3px;
+  background: rgba(7, 19, 27, .85);
+  color: #c4cfcf;
+  font: 700 10px/1.15 var(--title-serif-ja);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.unified-filter.active {
+  border-color: #d9b578;
+  color: #ffecc3;
+  background: linear-gradient(#455345, #1b3033);
+}
+.unified-legacy { padding: 5px 7px; color: #b8a88b; border-color: rgba(199, 168, 108, .24); }
+.unified-stage {
+  flex: 1 1 auto;
+  min-height: 230px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(184, 151, 95, .43);
+  border-radius: 6px;
+  background: radial-gradient(ellipse at center, #102b30, #07151c 78%);
+}
+.unified-board {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 9px 7px 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.unified-awakening {
+  flex: 0 0 auto;
+  border: 1px solid rgba(196, 166, 109, .25);
+  border-radius: 4px;
+  padding: 5px 7px;
+  margin-bottom: 7px;
+  background: rgba(12, 25, 34, .68);
+}
+.unified-awakening-label {
+  text-align: center;
+  color: #d6ba87;
+  font: 700 10px/1.4 var(--title-serif-ja);
+  letter-spacing: .03em;
+}
+.unified-awakening-steps {
+  display: flex;
+  justify-content: center;
+  gap: 13px;
+  padding-top: 5px;
+}
+.unified-awakening-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font: 700 10px/1 var(--title-serif-ja);
+  color: #829092;
+  user-select: none;
+}
+.unified-awakening-icon {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border: 1px solid rgba(169, 145, 108, .52);
+  border-radius: 50%;
+  background: #182831;
+}
+.unified-awakening-icon .tree-web-glyph {
+  width: 17px;
+  height: 17px;
+  stroke: #938878;
+  fill: none;
+}
+.unified-zones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "slot1 slot2"
+    "exclusive exclusive"
+    "slot3 slot3";
+  gap: 7px;
+  min-width: 0;
+}
+.unified-zones.single-zone {
+  grid-template-columns: 1fr;
+  grid-template-areas: none;
+}
+.unified-zone {
+  min-width: 0;
+  padding: 5px 3px 8px;
+  border: 1px solid rgba(201, 164, 99, .32);
+  border-radius: 5px;
+  background: linear-gradient(160deg, rgba(17, 37, 45, .85), rgba(6, 17, 23, .9));
+}
+.unified-zone--exclusive { grid-area: exclusive; --zone-color: #e1ab7c; }
+.unified-zone--slot1 { grid-area: slot1; --zone-color: #83c6f5; }
+.unified-zone--slot2 { grid-area: slot2; --zone-color: #84d7b0; }
+.unified-zone--slot3 { grid-area: slot3; --zone-color: #c4aff5; }
+.unified-zones.single-zone .unified-zone { grid-area: auto; }
+.unified-zone--exclusive {
+  border-color: rgba(232, 169, 116, .44);
+  background: radial-gradient(ellipse at 50% 50%, rgba(72, 41, 30, .27), transparent 72%), #081a22;
+}
+.unified-zone-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  min-height: 29px;
+  padding: 0 4px 3px;
+  border-bottom: 1px solid rgba(191, 164, 112, .18);
+}
+.unified-zone-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--zone-color);
+  font: 700 11px/1.15 var(--title-serif-ja);
+}
+.unified-zone-title span {
+  color: #a9b6ba;
+  font-size: 9px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.unified-swap {
+  max-width: 53%;
+  flex: 0 0 auto;
+  min-height: 25px;
+  border: 1px solid rgba(196, 170, 117, .48);
+  border-radius: 3px;
+  padding: 2px 4px;
+  background: #15252c;
+  color: #dccaa5;
+  font: 700 9px/1.1 var(--title-serif-ja);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.unified-swap.confirming {
+  border-color: #f1b46e;
+  color: #ffe3b9;
+  background: #51371f;
+}
+.unified-swap:disabled { opacity: .45; cursor: default; }
+.unified-hex-rows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4px;
+}
+.unified-hex-row {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  margin-top: -6px;
+}
+.unified-hex-row:first-child { margin-top: 0; }
+.unified-hex-node {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: clamp(33px, 10vw, 43px);
+  height: clamp(37px, 11vw, 47px);
+  margin: 0 -1px;
+  padding: 2px;
+  border: 0;
+  background: linear-gradient(145deg, #60584c, #344f54 63%, #716046);
+  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  color: var(--zone-color);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.unified-hex-face {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: radial-gradient(circle, #2d3b42 0%, #101a23 74%);
+}
+.unified-hex-node .tree-web-glyph {
+  width: 59%;
+  height: 59%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px currentColor);
+  pointer-events: none;
+}
+.unified-hex-node.acquired {
+  background: linear-gradient(145deg, #fff0be, #b88b4a 70%, #f2d59a);
+  color: #fae2ac;
+}
+.unified-hex-node.acquired .unified-hex-face {
+  background: radial-gradient(circle at 48% 40%, #555039, #1b2326 75%);
+}
+.unified-hex-node.available {
+  background: linear-gradient(145deg, #d9f8ff, #53b0d0 70%, #e5dfa8);
+  color: #bff6ff;
+}
+.unified-hex-node.available .unified-hex-face { background: radial-gradient(circle, #21485b, #10202c 75%); }
+.unified-hex-node.locked { color: #7d9299; opacity: .84; }
+.unified-hex-node.choice-sealed { color: #a97d83; background: #63424a; }
+.unified-hex-node.selected { z-index: 2; background: linear-gradient(145deg, #fff8df, #ffe0a0, #fff4cc); filter: drop-shadow(0 0 4px #ffd98b); }
+.unified-hex-node.dimmed:not(.selected) { opacity: .28; }
+.unified-hex-node:focus-visible { outline: 2px solid #e6d4a4; outline-offset: 3px; z-index: 3; }
+.unified-hex-choice {
+  position: absolute;
+  top: 0;
+  right: 2px;
+  z-index: 4;
+  width: 13px;
+  height: 13px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #c9af82;
+  border-radius: 50%;
+  background: #3a302b;
+  color: #f7e6c2;
+  font: 700 9px/1 sans-serif;
+  pointer-events: none;
+}
+.unified-detail {
+  padding: 4px 0 0;
+  margin-top: 1px;
+  max-height: min(28vh, 220px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.unified-detail::-webkit-scrollbar { display: none; }
+.unified-detail-source {
+  color: #d7ba86;
+  padding: 0 4px 3px;
+  font: 700 10px/1.3 var(--title-serif-ja);
+}
+.unified-detail .crest-detail-card {
+  max-height: none;
+  padding: 7px 9px 8px;
+}
+.unified-detail .crest-detail-icon { width: 45px; height: 45px; }
+.unified-detail .crest-detail-body { margin-top: 5px; padding-top: 5px; }
+.unified-detail .crest-detail-actions { margin-top: 6px; padding-top: 6px; }
+.unified-detail .crest-detail-actions .crest-learn-btn { min-height: 40px; }
+@media (max-width: 360px) {
+  .unified-filter { padding: 4px 6px; }
+  .unified-board { padding: 7px 4px 10px; }
+  .unified-hex-node { width: 34px; height: 38px; }
+  .unified-zone { padding: 4px 1px 6px; }
+  .unified-zone-header { padding: 0 2px 3px; }
+  .unified-zone-title { font-size: 10px; }
+  .unified-zone-title span { font-size: 8px; }
+}
