@@ -1,178 +1,209 @@
-/* 剣士の六角形スキルパネル試作。既存紋章盤と他職のCSSには影響させない。 */
-.crest-stage-area .hex-panel-switch {
-  position: absolute;
-  z-index: 12;
-  top: 5px;
-  right: 8px;
+/* 剣士の六角パネル: 5/6/7/8/7/6/5 の密集配置。既存紋章盤・他職には適用しない。 */
+.tree-tab--crest > .hex-panel-switch {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  z-index: 2;
   display: flex;
   gap: 2px;
-  padding: 3px;
-  border: 1px solid rgba(216, 181, 108, .65);
-  border-radius: 7px;
-  background: rgba(4, 15, 22, .94);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, .5);
+  margin: 3px 5px 0;
+  padding: 2px;
+  border: 1px solid rgba(211, 178, 109, .55);
+  border-radius: 5px;
+  background: rgba(4, 14, 21, .95);
 }
 .hex-panel-switch button {
-  min-height: 30px;
-  min-width: 46px;
-  padding: 4px 8px;
+  min-height: 26px;
+  min-width: 52px;
+  padding: 3px 8px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 3px;
   background: transparent;
-  color: #d6c9ac;
-  font: 700 11px/1.15 var(--title-serif-ja);
+  color: #d1c4a6;
+  font: 700 11px/1.1 var(--title-serif-ja);
   cursor: pointer;
   touch-action: manipulation;
 }
 .hex-panel-switch button.active {
   color: #17252a;
   border-color: #f4d99d;
-  background: linear-gradient(#f8dfaa, #c7a15f);
+  background: linear-gradient(#f8dfaa, #bf9a5e);
 }
 .hex-panel-switch button:focus-visible {
   outline: 2px solid #fff1be;
   outline-offset: 2px;
 }
 
-.hex-panel-board {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  width: 100%;
-}
+.hex-panel-board { position: relative; isolation: isolate; overflow: hidden; width: 100%; }
 .hex-panel-board .hex-panel-viewport {
   min-width: 0;
   min-height: 0;
-  background: radial-gradient(ellipse at 48% 48%, rgba(19, 50, 62, .43), rgba(4, 13, 20, .08) 70%);
+  background: radial-gradient(circle at center, rgba(15, 53, 59, .55), rgba(3, 11, 17, .1) 72%);
 }
 .hex-panel-board .hex-panel-scene {
   overflow: visible;
-  border-radius: 12px;
-  border: 1px solid rgba(186, 150, 87, .34);
+  border: 1px solid rgba(153, 130, 85, .32);
+  border-radius: 5px;
   background:
-    radial-gradient(circle at 50% 60%, rgba(24, 79, 89, .2), transparent 55%),
-    repeating-linear-gradient(45deg, transparent 0 21px, rgba(201, 164, 99, .018) 21px 22px),
-    linear-gradient(150deg, rgba(10, 27, 34, .92), rgba(4, 13, 20, .92));
-  box-shadow: inset 0 0 0 3px rgba(2, 10, 15, .6), inset 0 0 24px rgba(201, 164, 99, .12);
+    radial-gradient(ellipse at 50% 50%, rgba(22, 63, 69, .5), transparent 61%),
+    repeating-linear-gradient(45deg, transparent 0 16px, rgba(225, 194, 137, .02) 16px 17px),
+    linear-gradient(160deg, #0b1820, #07131b 58%, #0b1b23);
+  box-shadow: inset 0 0 26px rgba(3, 7, 10, .65), 0 0 14px rgba(0, 0, 0, .3);
 }
-.hex-panel-watermark {
+.hex-panel-board .hex-panel-links {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font: 800 10em/1 var(--title-serif-ja);
-  letter-spacing: .2em;
-  color: rgba(214, 180, 115, .045);
-  pointer-events: none;
-  user-select: none;
-}
-.hex-panel-node {
-  position: absolute;
-  z-index: 1;
-  width: 15.6%;
-  height: 17.4%;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  transform: translate(-50%, -50%);
-  color: #a6afb3;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-.hex-panel-node .hex-panel-shell,
-.hex-panel-node .hex-panel-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  inset: 0;
   width: 100%;
   height: 100%;
-  clip-path: polygon(50% 0, 94% 24%, 94% 76%, 50% 100%, 6% 76%, 6% 24%);
-}
-.hex-panel-node .hex-panel-shell {
-  padding: 2px;
-  background: #64727a;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .55));
-}
-.hex-panel-node .hex-panel-inner {
-  gap: .5em;
-  background: linear-gradient(145deg, #202e33, #0b191f 78%);
-}
-.hex-panel-node .tree-web-glyph {
-  display: block;
-  flex: 0 0 auto;
-  width: 42%;
-  height: 42%;
-  min-height: 0;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  filter: drop-shadow(0 0 2px currentColor);
-}
-.hex-panel-node .hex-panel-mark {
-  display: block;
-  max-width: 100%;
-  color: inherit;
-  font: 800 max(2.8em, 9px)/1 var(--title-serif-ja);
-  text-shadow: 0 1px 2px #061015;
-}
-.hex-panel-node.acquired { color: #ffe3a8; }
-.hex-panel-node.acquired .hex-panel-shell {
-  background: linear-gradient(140deg, #fff0bd, #b7883f 70%, #f4d99d);
-}
-.hex-panel-node.acquired .hex-panel-inner {
-  background: linear-gradient(160deg, #53411e, #151e22 85%);
-}
-.hex-panel-node.available { z-index: 2; color: #c9f6ff; }
-.hex-panel-node.available .hex-panel-shell {
-  background: linear-gradient(140deg, #d9fbff, #50b5d0 65%, #fff3cb);
-  box-shadow: 0 0 12px rgba(100, 212, 255, .35);
-}
-.hex-panel-node.available .hex-panel-inner {
-  background: linear-gradient(145deg, #124454, #0b222e 75%);
-}
-.hex-panel-node.locked { opacity: .68; }
-.hex-panel-node.choice-sealed { color: #c58f87; opacity: .75; }
-.hex-panel-node.choice-sealed .hex-panel-shell { background: #985749; }
-.hex-panel-node.choice-sealed .hex-panel-inner { background: #332020; }
-.hex-panel-node.selected { z-index: 6; }
-.hex-panel-node.selected .hex-panel-shell {
-  outline: 2px solid #fff0b5;
-  outline-offset: 2px;
-  filter: drop-shadow(0 0 6px #d6a454);
-}
-.hex-panel-node.prerequisite:not(.selected) .hex-panel-shell {
-  filter: drop-shadow(0 0 4px #9bddb9);
-}
-.hex-panel-node.successor:not(.selected):not(.locked) .hex-panel-shell {
-  filter: drop-shadow(0 0 4px #60c7db);
-}
-.hex-panel-node.ultimate-kind .hex-panel-shell {
-  box-shadow: 0 0 0 2px rgba(219, 183, 97, .4);
-}
-.hex-panel-node .hex-panel-tick,
-.hex-panel-node .hex-panel-choice {
-  position: absolute;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 15px;
-  min-height: 15px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 240, 200, .62);
-  background: #273e32;
-  color: #f9e9c3;
-  font: 700 9px/1 sans-serif;
+  overflow: visible;
   pointer-events: none;
 }
-.hex-panel-node .hex-panel-tick { right: -2px; bottom: 2px; }
-.hex-panel-node .hex-panel-choice { right: -4px; top: -2px; background: #5b3930; }
-.hex-panel-node:focus-visible {
-  outline: 2px solid #f7e0a7;
-  outline-offset: 2px;
+.hex-panel-link { stroke: #75caef; stroke-width: 1.6; stroke-linecap: round; filter: drop-shadow(0 0 1px #85ecff); }
+.hex-panel-link.completed { stroke: #f4dfaa; stroke-width: 2; }
+.hex-panel-link.ready { stroke: #b1e8ff; opacity: .8; }
+.hex-panel-link.tone-red { stroke: #ff999a; }
+.hex-panel-link.tone-green { stroke: #91df9f; }
+.hex-panel-link.tone-violet { stroke: #c9aaff; }
+
+/* 実スキル/装飾タイルは同じ寸法と中心座標。CSSで個別スケールさせず六角を密着させる。 */
+.hex-panel-board .hex-panel-node,
+.hex-panel-board .hex-panel-placeholder {
+  position: absolute;
+  display: block;
+  width: 14%;
+  height: 16.4%;
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.hex-panel-board .hex-panel-node {
+  z-index: 2;
+  cursor: pointer;
+  touch-action: manipulation;
+  --tile-accent: #95ccdf;
+  --tile-glow: rgba(101, 212, 242, .3);
+  --tile-core: #16323d;
+  color: var(--tile-accent);
+}
+.hex-panel-board .hex-panel-placeholder {
+  z-index: 1;
+  color: #657077;
+  pointer-events: none;
+}
+.hex-panel-board .hex-panel-shell,
+.hex-panel-board .hex-panel-inner {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+}
+.hex-panel-board .hex-panel-shell {
+  padding: 2px;
+  background: linear-gradient(145deg, #8b815e, #344c4a 70%, #99764b);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .7));
+}
+.hex-panel-board .hex-panel-inner {
+  position: relative;
+  background:
+    radial-gradient(circle at 48% 40%, rgba(105, 133, 131, .09), transparent 65%),
+    linear-gradient(155deg, #17232a 0%, #080e13 73%, #1b262a 100%);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, .65);
+}
+.hex-panel-board .hex-panel-placeholder .hex-panel-shell { background: linear-gradient(145deg, #626052, #303b3e 64%, #62553c); }
+.hex-panel-board .hex-panel-placeholder .hex-panel-inner { background: linear-gradient(150deg, #131a1f, #060c11 76%); }
+.hex-panel-board .hex-panel-placeholder .tree-web-glyph {
+  width: 37%;
+  height: 37%;
+  fill: rgba(170, 177, 170, .05);
+  stroke: #657077;
+  stroke-width: 2.6;
+  opacity: .83;
+  filter: drop-shadow(0 1px 1px #000);
+}
+/* テキスト1文字の略字は撤廃。アイコンを中央のメダルにまとめる。 */
+.hex-panel-board .hex-panel-medallion {
+  display: grid;
+  place-items: center;
+  width: 65%;
+  height: 57%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--tile-accent) 66%, transparent);
+  background:
+    radial-gradient(circle at 40% 28%, color-mix(in srgb, var(--tile-accent) 32%, transparent), transparent 49%),
+    radial-gradient(circle, var(--tile-core), #0c1721 76%);
+  box-shadow: inset 0 0 0 2px rgba(2, 8, 13, .56), 0 0 7px var(--tile-glow);
+}
+.hex-panel-board .hex-panel-node .tree-web-glyph {
+  display: block;
+  width: 74%;
+  height: 74%;
+  max-width: 100%;
+  max-height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px var(--tile-accent));
+}
+/* 技/支援/防御/装備の違いは文字でなくモチーフと色で示す。 */
+.hex-panel-board .tone-red { --tile-accent: #f38b85; --tile-glow: rgba(255, 101, 105, .38); --tile-core: #57262d; }
+.hex-panel-board .tone-green { --tile-accent: #87dfad; --tile-glow: rgba(83, 225, 126, .3); --tile-core: #204834; }
+.hex-panel-board .tone-blue { --tile-accent: #87c7fc; --tile-glow: rgba(74, 150, 245, .4); --tile-core: #1b395a; }
+.hex-panel-board .tone-violet { --tile-accent: #d2aeff; --tile-glow: rgba(180, 118, 255, .35); --tile-core: #3b275a; }
+.hex-panel-board .tone-cyan { --tile-accent: #92e3e5; --tile-glow: rgba(125, 231, 241, .34); --tile-core: #14434a; }
+
+.hex-panel-board .hex-panel-node.acquired .hex-panel-shell {
+  background: linear-gradient(145deg, #fff0c2, #c9a669 55%, #f8df9f);
+}
+.hex-panel-board .hex-panel-node.acquired .hex-panel-inner {
+  background: radial-gradient(circle at 44% 33%, #493b23, #161b1e 70%);
+}
+.hex-panel-board .hex-panel-node.acquired .hex-panel-medallion {
+  box-shadow: inset 0 0 1px #ffebad, 0 0 8px var(--tile-glow);
+}
+.hex-panel-board .hex-panel-node.available .hex-panel-shell {
+  background: linear-gradient(140deg, #e3fdff, #78d7f2 58%, #f2e1aa);
+  filter: drop-shadow(0 0 3px rgba(146, 224, 255, .65));
+}
+.hex-panel-board .hex-panel-node.available .hex-panel-inner {
+  background: radial-gradient(circle at 50% 40%, #234551, #0a1821 75%);
+}
+.hex-panel-board .hex-panel-node.locked { opacity: .78; }
+.hex-panel-board .hex-panel-node.locked .hex-panel-medallion { opacity: .75; }
+.hex-panel-board .hex-panel-node.level-locked .hex-panel-shell { background: linear-gradient(140deg, #778086, #344149); }
+.hex-panel-board .hex-panel-node.choice-sealed { --tile-accent: #af7873; --tile-core: #3f252a; opacity: .72; }
+.hex-panel-board .hex-panel-node.choice-sealed .hex-panel-shell { background: linear-gradient(145deg, #a3655c, #533038); }
+.hex-panel-board .hex-panel-node.selected { z-index: 5; }
+.hex-panel-board .hex-panel-node.selected .hex-panel-shell {
+  background: linear-gradient(140deg, #ffffff, #ffdd82, #fff4c8);
+  filter: drop-shadow(0 0 6px rgba(255, 223, 147, .93));
+}
+.hex-panel-board .hex-panel-node.prerequisite:not(.selected) .hex-panel-shell { filter: drop-shadow(0 0 4px #87d9ac); }
+.hex-panel-board .hex-panel-node.successor:not(.selected):not(.locked) .hex-panel-shell { filter: drop-shadow(0 0 4px #80cafa); }
+.hex-panel-board .hex-panel-node.ultimate-kind .hex-panel-medallion { border-width: 2px; }
+.hex-panel-board .hex-panel-node:focus-visible { outline: 2px solid #ffeab5; outline-offset: 2px; z-index: 6; }
+.hex-panel-board .hex-panel-choice {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  top: 0;
+  right: -1px;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #c9a876;
+  background: #3c2929;
+  color: #ffe4b7;
+  font: 700 9px/1 sans-serif;
+  pointer-events: none;
 }
 .hex-panel-board .hex-panel-legend {
   position: absolute;
@@ -182,7 +213,7 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.hex-panel-board .tree-web-controls { bottom: 3px; }
+.hex-panel-board .tree-web-controls { bottom: 1px; }
 @media (prefers-reduced-motion: reduce) {
-  .hex-panel-node, .hex-panel-node .hex-panel-shell { animation: none !important; }
+  .hex-panel-board .hex-panel-node { animation: none !important; }
 }
