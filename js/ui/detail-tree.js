@@ -923,7 +923,7 @@ function buildWarriorCrestScreen(c, exclusiveTree, st, total, spent) {
       });
       modeSwitch.appendChild(button);
     }
-    stageArea.appendChild(modeSwitch);
+    wrap.appendChild(modeSwitch); // パネルを覆わないよう、盤面の上の独立した行に置く
   }
   const dock = document.createElement("div");
   dock.className = "crest-inline-detail";
