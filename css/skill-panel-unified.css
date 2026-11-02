@@ -204,14 +204,25 @@
   margin: 0 -1px;
   padding: 2px;
   border: 0;
-  background: linear-gradient(145deg, #60584c, #344f54 63%, #716046);
-  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  /* ボタン本体は切り抜かない。分岐チップを六角形の外へ表示できるようにする。 */
+  background: transparent;
   color: var(--zone-color);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
+.unified-hex-node::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(145deg, #60584c, #344f54 63%, #716046);
+  clip-path: polygon(50% 0%, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+}
 .unified-hex-face {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 100%;
@@ -257,31 +268,31 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.unified-hex-node.acquired {
-  background: linear-gradient(145deg, #fff0be, #b88b4a 70%, #f2d59a);
-  color: #fae2ac;
-}
+.unified-hex-node.acquired { color: #fae2ac; }
+.unified-hex-node.acquired::before { background: linear-gradient(145deg, #fff0be, #b88b4a 70%, #f2d59a); }
 .unified-hex-node.acquired .unified-hex-face {
   background: radial-gradient(circle at 48% 40%, #555039, #1b2326 75%);
 }
-.unified-hex-node.available {
-  background: linear-gradient(145deg, #d9f8ff, #53b0d0 70%, #e5dfa8);
-  color: #bff6ff;
-}
+.unified-hex-node.available { color: #bff6ff; }
+.unified-hex-node.available::before { background: linear-gradient(145deg, #d9f8ff, #53b0d0 70%, #e5dfa8); }
 .unified-hex-node.available .unified-hex-face { background: radial-gradient(circle, #21485b, #10202c 75%); }
 .unified-hex-node.locked { color: #a2b2bc; opacity: .94; }
-.unified-hex-node.choice-sealed { color: #a97d83; background: #63424a; }
-.unified-hex-node.selected { z-index: 2; background: linear-gradient(145deg, #fff8df, #ffe0a0, #fff4cc); filter: drop-shadow(0 0 4px #ffd98b); }
+.unified-hex-node.choice-sealed { color: #a97d83; }
+.unified-hex-node.choice-sealed::before { background: #63424a; }
+/* 隣のマスより分岐チップを前面に出す。選択中のハイライトを最優先。 */
+.unified-hex-node.choice-node:not(.selected) { z-index: 3; }
+.unified-hex-node.selected { z-index: 5; filter: drop-shadow(0 0 4px #ffd98b); }
+.unified-hex-node.selected::before { background: linear-gradient(145deg, #fff8df, #ffe0a0, #fff4cc); }
 /* 「習得可」フィルター中も未習得/習得済みの形を識別できる濃さにする。 */
 .unified-hex-node.dimmed:not(.selected) { opacity: .48; }
 .unified-hex-node:focus-visible { outline: 2px solid #e6d4a4; outline-offset: 3px; z-index: 3; }
 .unified-hex-choice {
   position: absolute;
-  top: 0;
-  right: 2px;
+  top: 1px;
+  right: 1px;
   z-index: 4;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   display: grid;
   place-items: center;
   border: 1px solid #c9af82;
