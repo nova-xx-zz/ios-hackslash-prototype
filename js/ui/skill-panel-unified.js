@@ -1,8 +1,10 @@
-// 剣士向け統合スキルパネル試作。保存・SP・排他・覚醒実績には一切触れない。
+// 全職共通の統合スキルパネル。保存・SP・排他・覚醒実績には一切触れない。
 // detail-tree.js / skill-panel-board.js の後に読み込む。
 "use strict";
 
-// 現在のキャラクターだけの表示フィルター。セーブデータへは書き込まない。
+// 現在のキャラクターだけの表示状態。セーブデータへは書き込まない。
+// 戦士は従来の比較状態を維持し、他職は初回から統合版を既定とする。
+let otherJobBoardMode = "hex";
 let warriorUnifiedFilter = "all";
 const UNIFIED_FILTERS = Object.freeze([
   ["all", "全体"], ["exclusive", "固有"],
@@ -143,7 +145,8 @@ function buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
   legacy.textContent = "旧盤面";
   legacy.setAttribute("aria-label", "従来の紋章盤に戻る");
   legacy.addEventListener("click", () => {
-    warriorBoardMode = "crest";
+    if (c.job === "warrior") warriorBoardMode = "crest";
+    else otherJobBoardMode = "crest";
     warriorFocusScope = "exclusive";
     treeSwapConfirm = null;
     treeSelectedNode = null;
@@ -157,7 +160,12 @@ function buildWarriorUnifiedSkillScreen(c, exclusiveTree, st, total, spent) {
     entry.scopeKey === treeSelectedNode.scope &&
     entry.treeDef.nodes.some((node) => node.id === treeSelectedNode.nodeId));
   if (!activeEntry) {
-    const initial = exclusiveTree.nodes.find((node) => node.id === "w3") || exclusiveTree.nodes[0];
+    const initial = c.job === "warrior" ?
+      (exclusiveTree.nodes.find((node) => node.id === "w3") || exclusiveTree.nodes[0]) :
+      (exclusiveTree.nodes.find((node) => node.kind === "active" &&
+        (node.prerequisites || []).every((pre) => (st.exclusiveRanks[pre.nodeId] || 0) >= pre.minRank)) ||
+        exclusiveTree.nodes.find((node) => (st.exclusiveRanks[node.id] || 0) > 0) ||
+        exclusiveTree.nodes[0]);
     treeSelectedNode = initial ? {scope:"exclusive", nodeId:initial.id} : null;
   }
 
