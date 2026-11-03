@@ -12,7 +12,8 @@
     "build:preview:web": "node tools/build-www.js --web",
     "build:release:web": "node tools/build-www.js --web --release",
     "build:release:ios": "node tools/build-www.js --release",
-    "cap:sync:release": "npm run build:release:ios && npx cap sync"
+    "cap:sync:release": "npm run build:release:ios && npx cap sync",
+    "build:beta:web": "node tools/build-beta.js"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
