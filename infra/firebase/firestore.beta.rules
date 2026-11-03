@@ -1,0 +1,50 @@
+// Beta Staging ONLY. Deploy to the isolated beta Firebase project.
+// UI login checks are not an authorization boundary; Firestore Rules are.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function hasGoogleIdentity() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == "google.com";
+    }
+    function owns(uid) {
+      return hasGoogleIdentity() && request.auth.uid == uid;
+    }
+    function admitted() {
+      return hasGoogleIdentity()
+        && exists(/databases/$(database)/documents/betaMembers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/betaMembers/$(request.auth.uid)).data.enabled == true
+        && get(/databases/$(database)/documents/betaMembers/$(request.auth.uid)).data.expiresAt > request.time;
+    }
+    function validSave() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['data', 'savedAt', 'schemaVersion', 'chars', 'updatedAt'])
+        && data.keys().hasOnly(['data', 'savedAt', 'schemaVersion', 'chars', 'updatedAt'])
+        && data.data is string
+        && data.data.size() <= 921600
+        && data.savedAt is int
+        && data.savedAt >= 0
+        && data.schemaVersion is int
+        && data.schemaVersion >= 1
+        && data.chars is int
+        && data.chars >= 0
+        && data.chars <= 921600
+        && data.updatedAt == request.time;
+    }
+    match /betaMembers/{uid} {
+      allow get: if owns(uid);
+      allow list, create, update, delete: if false;
+    }
+    match /betaControl/{id} {
+      allow read, write: if false;
+    }
+    match /saves/{uid} {
+      allow get: if owns(uid) && admitted();
+      allow list, delete: if false;
+      allow create, update: if owns(uid) && admitted() && validSave();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
